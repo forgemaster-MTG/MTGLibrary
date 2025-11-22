@@ -31,8 +31,8 @@ export function bootApp() {
                 const size = prefs.gridSize || window.collectionGridSize || 'md';
                 const btn = document.querySelector(`.grid-size-btn[data-size="${size}"]`);
                 if (btn) {
-                  document.querySelectorAll('.grid-size-btn').forEach((b) => b.classList.remove('bg-indigo-600','text-white'));
-                  btn.classList.add('bg-indigo-600','text-white');
+                  document.querySelectorAll('.grid-size-btn').forEach((b) => b.classList.remove('bg-indigo-600', 'text-white'));
+                  btn.classList.add('bg-indigo-600', 'text-white');
                   window.collectionGridSize = size;
                 }
                 // View mode
@@ -40,21 +40,21 @@ export function bootApp() {
                 if (mode === 'grid') {
                   const g = document.getElementById('view-toggle-grid');
                   const t = document.getElementById('view-toggle-table');
-                  if (t) t.classList.remove('bg-indigo-600','text-white');
-                  if (g) g.classList.add('bg-indigo-600','text-white');
+                  if (t) t.classList.remove('bg-indigo-600', 'text-white');
+                  if (g) g.classList.add('bg-indigo-600', 'text-white');
                   window.collectionViewMode = 'grid';
                 } else {
                   const g = document.getElementById('view-toggle-grid');
                   const t = document.getElementById('view-toggle-table');
-                  if (g) g.classList.remove('bg-indigo-600','text-white');
-                  if (t) t.classList.add('bg-indigo-600','text-white');
+                  if (g) g.classList.remove('bg-indigo-600', 'text-white');
+                  if (t) t.classList.add('bg-indigo-600', 'text-white');
                   window.collectionViewMode = 'table';
                 }
                 // hide in decks
                 try {
                   const hid = document.getElementById('hide-in-deck-checkbox');
                   if (hid && typeof prefs.hideInDecks !== 'undefined') hid.checked = !!prefs.hideInDecks;
-                } catch (e) {}
+                } catch (e) { }
                 // Trigger initial render so UI reflects preferences
                 if (typeof window.renderPaginatedCollection === 'function') window.renderPaginatedCollection();
               }
@@ -91,10 +91,10 @@ if (typeof window !== 'undefined') {
 if (typeof document !== 'undefined') {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-      try { if (!window.__global_listeners_installed) setupGlobalListeners(); } catch(e) {}
+      try { if (!window.__global_listeners_installed) setupGlobalListeners(); } catch (e) { }
     });
   } else {
-    try { if (!window.__global_listeners_installed) setupGlobalListeners(); } catch(e) {}
+    try { if (!window.__global_listeners_installed) setupGlobalListeners(); } catch (e) { }
   }
 }
 
@@ -140,14 +140,14 @@ export function setupGlobalListeners() {
               if (key === 'sets') {
                 // lazy-load sets modules and render
                 try { import('../pages/sets.js').then(mod => { if (typeof mod.initSetsModule === 'function') mod.initSetsModule(); }); } catch (e) { console.debug('[Boot] lazy-load sets module failed', e); }
-                }
-                if (key === 'precons') {
-                  // lazy-load precons module and render
-                  try { import('../pages/precons.js').then(mod => { if (typeof mod.initPreconsModule === 'function') mod.initPreconsModule(); }); } catch (e) { console.debug('[Boot] lazy-load precons module failed', e); }
+              }
+              if (key === 'precons') {
+                // lazy-load precons module and render
+                try { import('../pages/precons.js').then(mod => { if (typeof mod.initPreconsModule === 'function') mod.initPreconsModule(); }); } catch (e) { console.debug('[Boot] lazy-load precons module failed', e); }
               }
               // If user opened Settings, ensure playstyle module is loaded and rendered
               if (key === 'settings') {
-                try { import('../settings/playstyle.js').then(mod => { if (window.userId && typeof mod.loadPlaystyleForUser === 'function') mod.loadPlaystyleForUser(window.userId); }); } catch (e) {}
+                try { import('../settings/playstyle.js').then(mod => { if (window.userId && typeof mod.loadPlaystyleForUser === 'function') mod.loadPlaystyleForUser(window.userId); }); } catch (e) { }
               }
             } else if (typeof window.renderPaginatedCollection === 'function' && key === 'collection') {
               // fallback to rendering collection view
@@ -168,27 +168,27 @@ export function setupGlobalListeners() {
       const navDecks = document.getElementById('nav-decks');
       const navSettings = document.getElementById('nav-settings');
       if (navDecks) {
-  navDecks.style.pointerEvents = 'auto';
-  navDecks.onclick = (e) => { try { console.debug('[Boot][FB] nav-decks onclick fallback'); if (typeof window.showView === 'function') window.showView('decks'); else renderDecksList(); } catch (err) { console.error('[Boot][FB] nav-decks onclick error', err); } };
-  console.debug('[Boot][FB] nav-decks fallback onclick installed');
+        navDecks.style.pointerEvents = 'auto';
+        navDecks.onclick = (e) => { try { console.debug('[Boot][FB] nav-decks onclick fallback'); if (typeof window.showView === 'function') window.showView('decks'); else renderDecksList(); } catch (err) { console.error('[Boot][FB] nav-decks onclick error', err); } };
+        console.debug('[Boot][FB] nav-decks fallback onclick installed');
       }
-        const navSets = document.getElementById('nav-sets');
-        if (navSets) {
-      navSets.style.pointerEvents = 'auto';
-      navSets.onclick = (e) => { try { console.debug('[Boot][FB] nav-sets onclick fallback'); if (typeof window.showView === 'function') { window.showView('sets'); } else { try { import('../pages/sets.js').then(mod => { if (typeof mod.initSetsModule === 'function') mod.initSetsModule(); }); } catch(e){} } } catch (err) { console.error('[Boot][FB] nav-sets onclick error', err); } };
-      console.debug('[Boot][FB] nav-sets fallback onclick installed');
-        }
-        const navPrecons = document.getElementById('nav-precons');
-        if (navPrecons) {
-      navPrecons.style.pointerEvents = 'auto';
-      navPrecons.onclick = (e) => { try { console.debug('[Boot][FB] nav-precons onclick fallback'); if (typeof window.showView === 'function') { window.showView('precons'); } else { try { import('../pages/precons.js').then(mod => { if (typeof mod.initPreconsModule === 'function') mod.initPreconsModule(); }); } catch(e){} } } catch (err) { console.error('[Boot][FB] nav-precons onclick error', err); } };
-      console.debug('[Boot][FB] nav-precons fallback onclick installed');
-        }
-        if (navSettings) {
-      navSettings.style.pointerEvents = 'auto';
-      navSettings.onclick = (e) => { try { console.debug('[Boot][FB] nav-settings onclick fallback'); if (typeof window.showView === 'function') window.showView('settings'); else renderSettings(); if (typeof window.renderSettingsSavedViews === 'function') window.renderSettingsSavedViews(); try { import('../settings/playstyle.js').then(mod => { if (window.userId && typeof mod.loadPlaystyleForUser === 'function') mod.loadPlaystyleForUser(window.userId); }); } catch (e) {} } catch (err) { console.error('[Boot][FB] nav-settings onclick error', err); } };
-      console.debug('[Boot][FB] nav-settings fallback onclick installed');
-        }
+      const navSets = document.getElementById('nav-sets');
+      if (navSets) {
+        navSets.style.pointerEvents = 'auto';
+        navSets.onclick = (e) => { try { console.debug('[Boot][FB] nav-sets onclick fallback'); if (typeof window.showView === 'function') { window.showView('sets'); } else { try { import('../pages/sets.js').then(mod => { if (typeof mod.initSetsModule === 'function') mod.initSetsModule(); }); } catch (e) { } } } catch (err) { console.error('[Boot][FB] nav-sets onclick error', err); } };
+        console.debug('[Boot][FB] nav-sets fallback onclick installed');
+      }
+      const navPrecons = document.getElementById('nav-precons');
+      if (navPrecons) {
+        navPrecons.style.pointerEvents = 'auto';
+        navPrecons.onclick = (e) => { try { console.debug('[Boot][FB] nav-precons onclick fallback'); if (typeof window.showView === 'function') { window.showView('precons'); } else { try { import('../pages/precons.js').then(mod => { if (typeof mod.initPreconsModule === 'function') mod.initPreconsModule(); }); } catch (e) { } } } catch (err) { console.error('[Boot][FB] nav-precons onclick error', err); } };
+        console.debug('[Boot][FB] nav-precons fallback onclick installed');
+      }
+      if (navSettings) {
+        navSettings.style.pointerEvents = 'auto';
+        navSettings.onclick = (e) => { try { console.debug('[Boot][FB] nav-settings onclick fallback'); if (typeof window.showView === 'function') window.showView('settings'); else renderSettings(); if (typeof window.renderSettingsSavedViews === 'function') window.renderSettingsSavedViews(); try { import('../settings/playstyle.js').then(mod => { if (window.userId && typeof mod.loadPlaystyleForUser === 'function') mod.loadPlaystyleForUser(window.userId); }); } catch (e) { } } catch (err) { console.error('[Boot][FB] nav-settings onclick error', err); } };
+        console.debug('[Boot][FB] nav-settings fallback onclick installed');
+      }
     } catch (err) { console.error('[Boot][FB] nav fallback install error', err); }
 
     // Header buttons
@@ -196,44 +196,51 @@ export function setupGlobalListeners() {
     if (editBtn) editBtn.addEventListener('click', () => { if (typeof window.toggleEditMode === 'function') window.toggleEditMode(); else console.debug('[Boot] toggleEditMode not available'); });
     const newPlayerBtn = document.getElementById('new-player-guide-btn');
     if (newPlayerBtn) newPlayerBtn.addEventListener('click', () => { if (typeof window.openModal === 'function') window.openModal('new-player-guide-modal'); });
-    // Playstyle floating panel toggle — use delegation to be resilient to timing
-    async function openPlaystylePanel() {
-      const panel = document.getElementById('playstyle-floating-panel');
-      const panelContent = document.getElementById('playstyle-panel-content');
-      if (!panel) return;
-      console.debug('[Boot] openPlaystylePanel()');
-      panel.classList.remove('hidden');
-      // lazy-load the playstyle module and render into the panel
+    // Playstyle Profile Modal Wiring
+    const playstyleBtn = document.getElementById('open-playstyle-panel-btn');
+    const closeProfileBtn = document.getElementById('close-playstyle-profile-modal-btn');
+
+    async function openPlaystyleProfile() {
+      const modalId = 'playstyle-profile-modal';
+      if (typeof window.openModal === 'function') {
+        window.openModal(modalId);
+      } else {
+        // Fallback: manually show modal
+        const m = document.getElementById(modalId);
+        if (m) m.classList.remove('hidden');
+      }
+
+      // Load and render playstyle module
       try {
-        const mod = await import('../settings/playstyle.js');
+        const mod = await import('../settings/playstyle.js?v=' + Date.now());
         if (mod) {
-          try { if (window.userId && typeof mod.loadPlaystyleForUser === 'function') await mod.loadPlaystyleForUser(window.userId); } catch(e){}
-          if (typeof mod.renderPlaystyleWidget === 'function') mod.renderPlaystyleWidget('playstyle-panel-content');
+          if (window.userId && typeof mod.loadPlaystyleForUser === 'function') {
+            await mod.loadPlaystyleForUser(window.userId);
+          }
+          // Render into the new modal content area
+          if (typeof mod.renderPlaystyleWidget === 'function') {
+            mod.renderPlaystyleWidget('playstyle-profile-content');
+          }
         }
       } catch (e) {
-        console.debug('[Boot] failed to load playstyle module for panel', e);
+        console.error('[Boot] Failed to load playstyle module', e);
       }
     }
-    function closePlaystylePanel() {
-      const panel = document.getElementById('playstyle-floating-panel');
-      const panelContent = document.getElementById('playstyle-panel-content');
-      if (!panel) return; console.debug('[Boot] closePlaystylePanel()'); panel.classList.add('hidden'); if (panelContent) panelContent.innerHTML = ''; }
-    // if the button exists, wire directly, otherwise add delegated click handler on document
-    const playstyleBtn = document.getElementById('open-playstyle-panel-btn');
-    const closePanelBtn = document.getElementById('close-playstyle-panel-btn');
+
     if (playstyleBtn) {
-      playstyleBtn.addEventListener('click', () => { try { const panel = document.getElementById('playstyle-floating-panel'); const isHidden = panel && panel.classList.contains('hidden'); if (isHidden) openPlaystylePanel(); else closePlaystylePanel(); } catch(e) { console.debug('[Boot] playstyle toggle failed', e); } });
+      playstyleBtn.addEventListener('click', () => openPlaystyleProfile());
     } else {
-      // delegated: catch clicks on the header button even if it wasn't present at listener installation
+      // Delegation fallback
       document.addEventListener('click', (ev) => {
         const t = ev.target.closest && ev.target.closest('#open-playstyle-panel-btn');
-        if (!t) return;
-        try { const panel = document.getElementById('playstyle-floating-panel'); const isHidden = panel && panel.classList.contains('hidden'); if (isHidden) openPlaystylePanel(); else closePlaystylePanel(); } catch(e) { console.debug('[Boot] delegated playstyle toggle failed', e); }
+        if (t) openPlaystyleProfile();
       });
     }
-    if (closePanelBtn) closePanelBtn.addEventListener('click', () => closePlaystylePanel());
-    else {
-      document.addEventListener('click', (ev) => { const t = ev.target.closest && ev.target.closest('#close-playstyle-panel-btn'); if (!t) return; closePlaystylePanel(); });
+
+    if (closeProfileBtn) {
+      closeProfileBtn.addEventListener('click', () => {
+        if (typeof window.closeModal === 'function') window.closeModal('playstyle-profile-modal');
+      });
     }
 
     // Collection search & filters
@@ -242,7 +249,7 @@ export function setupGlobalListeners() {
     const cardSearchInput = document.getElementById('card-search-input');
     if (cardSearchInput) cardSearchInput.addEventListener('keyup', (e) => { if (e.key === 'Enter' && typeof window.searchForCard === 'function') window.searchForCard('collection'); });
 
-    ['filter-text','collection-group-by-1','collection-group-by-2','hide-in-deck-checkbox'].forEach(id => {
+    ['filter-text', 'collection-group-by-1', 'collection-group-by-2', 'hide-in-deck-checkbox'].forEach(id => {
       const el = document.getElementById(id);
       if (!el) return;
       el.addEventListener('change', (e) => {
@@ -252,8 +259,8 @@ export function setupGlobalListeners() {
           }
           // persist hide-in-deck preference
           if (id === 'hide-in-deck-checkbox') {
-            try { if (typeof window.uiPreferences !== 'undefined') window.uiPreferences.hideInDecks = !!e.target.checked; } catch (pe) {}
-            try { if (window.userId && typeof window.persistSettingsForUser === 'function') window.persistSettingsForUser(window.userId); } catch(pe) {}
+            try { if (typeof window.uiPreferences !== 'undefined') window.uiPreferences.hideInDecks = !!e.target.checked; } catch (pe) { }
+            try { if (window.userId && typeof window.persistSettingsForUser === 'function') window.persistSettingsForUser(window.userId); } catch (pe) { }
           }
           if (typeof window.renderPaginatedCollection === 'function') { window.renderPaginatedCollection(); }
         } catch (err) { console.error('[Boot][ERR] filter change handler threw', err); }
@@ -265,8 +272,8 @@ export function setupGlobalListeners() {
           }
           // persist hide-in-deck preference for input events as well
           if (id === 'hide-in-deck-checkbox') {
-            try { if (typeof window.uiPreferences !== 'undefined') window.uiPreferences.hideInDecks = !!e.target.checked; } catch (pe) {}
-            try { if (window.userId && typeof window.persistSettingsForUser === 'function') window.persistSettingsForUser(window.userId); } catch(pe) {}
+            try { if (typeof window.uiPreferences !== 'undefined') window.uiPreferences.hideInDecks = !!e.target.checked; } catch (pe) { }
+            try { if (window.userId && typeof window.persistSettingsForUser === 'function') window.persistSettingsForUser(window.userId); } catch (pe) { }
           }
           if (typeof window.renderPaginatedCollection === 'function') { window.renderPaginatedCollection(); }
         } catch (err) { console.error('[Boot][ERR] filter input handler threw', err); }
@@ -300,11 +307,11 @@ export function setupGlobalListeners() {
     // Grid size buttons
     document.querySelectorAll('.grid-size-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
-        document.querySelectorAll('.grid-size-btn').forEach((b) => b.classList.remove('bg-indigo-600','text-white'));
-        btn.classList.add('bg-indigo-600','text-white');
+        document.querySelectorAll('.grid-size-btn').forEach((b) => b.classList.remove('bg-indigo-600', 'text-white'));
+        btn.classList.add('bg-indigo-600', 'text-white');
         if (btn.dataset && btn.dataset.size) window.collectionGridSize = btn.dataset.size;
-        try { if (typeof window.uiPreferences !== 'undefined') window.uiPreferences.gridSize = window.collectionGridSize; } catch(e){}
-        try { if (window.userId && typeof window.persistSettingsForUser === 'function') window.persistSettingsForUser(window.userId); } catch(e){}
+        try { if (typeof window.uiPreferences !== 'undefined') window.uiPreferences.gridSize = window.collectionGridSize; } catch (e) { }
+        try { if (window.userId && typeof window.persistSettingsForUser === 'function') window.persistSettingsForUser(window.userId); } catch (e) { }
         if (typeof window.renderPaginatedCollection === 'function' && window.collectionViewMode === 'grid') window.renderPaginatedCollection();
       });
     });
@@ -314,15 +321,15 @@ export function setupGlobalListeners() {
       btn.addEventListener('click', () => {
         if (btn.id === 'view-toggle-grid') {
           window.collectionViewMode = 'grid';
-          const other = document.getElementById('view-toggle-table'); if (other) other.classList.remove('bg-indigo-600','text-white');
-          btn.classList.add('bg-indigo-600','text-white');
+          const other = document.getElementById('view-toggle-table'); if (other) other.classList.remove('bg-indigo-600', 'text-white');
+          btn.classList.add('bg-indigo-600', 'text-white');
         } else {
           window.collectionViewMode = 'table';
-          const other = document.getElementById('view-toggle-grid'); if (other) other.classList.remove('bg-indigo-600','text-white');
-          btn.classList.add('bg-indigo-600','text-white');
+          const other = document.getElementById('view-toggle-grid'); if (other) other.classList.remove('bg-indigo-600', 'text-white');
+          btn.classList.add('bg-indigo-600', 'text-white');
         }
-        try { if (typeof window.uiPreferences !== 'undefined') window.uiPreferences.viewMode = window.collectionViewMode; } catch(e){}
-        try { if (window.userId && typeof window.persistSettingsForUser === 'function') window.persistSettingsForUser(window.userId); } catch(e){}
+        try { if (typeof window.uiPreferences !== 'undefined') window.uiPreferences.viewMode = window.collectionViewMode; } catch (e) { }
+        try { if (window.userId && typeof window.persistSettingsForUser === 'function') window.persistSettingsForUser(window.userId); } catch (e) { }
         if (typeof window.renderPaginatedCollection === 'function') window.renderPaginatedCollection();
       });
     });
@@ -343,8 +350,8 @@ export function setupGlobalListeners() {
 
     // Close buttons & common modal controls (best-effort)
     const closeMap = [
-      ['close-versions-modal-btn','card-versions-modal'],
-      ['close-card-details-btn','card-details-modal'],
+      ['close-versions-modal-btn', 'card-versions-modal'],
+      ['close-card-details-btn', 'card-details-modal'],
       ['edit-card-details-btn', null] // toggle handled elsewhere
     ];
     closeMap.forEach(([btnId, modalId]) => {
@@ -365,9 +372,9 @@ export function setupGlobalListeners() {
 
     document.querySelectorAll('.commander-source-btn').forEach((btn) => {
       btn.addEventListener('click', (e) => {
-        document.querySelectorAll('.commander-source-btn').forEach((b) => { b.classList.remove('border-indigo-500','text-white'); b.classList.add('border-transparent','text-gray-400'); });
-        e.currentTarget.classList.add('border-indigo-500','text-white');
-        e.currentTarget.classList.remove('border-transparent','text-gray-400');
+        document.querySelectorAll('.commander-source-btn').forEach((b) => { b.classList.remove('border-indigo-500', 'text-white'); b.classList.add('border-transparent', 'text-gray-400'); });
+        e.currentTarget.classList.add('border-indigo-500', 'text-white');
+        e.currentTarget.classList.remove('border-transparent', 'text-gray-400');
         const fromCollection = e.currentTarget.id === 'commander-source-collection-btn';
         const coll = document.getElementById('commander-from-collection');
         const search = document.getElementById('commander-from-search');
@@ -390,22 +397,29 @@ export function setupGlobalListeners() {
     const closeRule = document.getElementById('close-rule-lookup-modal-btn'); if (closeRule) closeRule.addEventListener('click', () => { if (typeof window.closeModal === 'function') window.closeModal('rule-lookup-modal'); });
     const ruleForm = document.getElementById('rule-lookup-form'); if (ruleForm) ruleForm.addEventListener('submit', (e) => { e.preventDefault(); if (typeof window.handleRuleLookup === 'function') window.handleRuleLookup(e); });
     const closeMtg = document.getElementById('close-mtg-chat-modal-btn'); if (closeMtg) closeMtg.addEventListener('click', () => { if (typeof window.closeModal === 'function') window.closeModal('mtg-chat-modal'); });
-    const mtgForm = document.getElementById('mtg-chat-form');
-    try {
-      if (mtgForm && !window.__boot_mtg_listener_installed) {
-        mtgForm.addEventListener('submit', (e) => { try { e.preventDefault(); const input = document.getElementById('mtg-chat-input'); const m = input ? input.value : null; if (typeof window.handleMtgChat === 'function') window.handleMtgChat(m); } catch (err) { console.error('[Boot] mtgForm submit handler error', err); } });
-        window.__boot_mtg_listener_installed = true;
+
+    // Initialize new Chat Module
+    import('../pages/chat.js').then(mod => {
+      if (mod && typeof mod.initChatModule === 'function') {
+        mod.initChatModule();
       }
-    } catch (err) { console.debug('[Boot] failed to install mtgForm submit listener', err); }
+    }).catch(err => console.error('[Boot] Failed to load chat module', err));
+
+    // Initialize Playstyle Wizard Module
+    import('../pages/playstyleWizard.js').then(mod => {
+      if (mod && typeof mod.initPlaystyleWizard === 'function') {
+        mod.initPlaystyleWizard();
+      }
+    }).catch(err => console.error('[Boot] Failed to load playstyle wizard module', err));
+
     // Fallback: if some other listener prevents form submission, ensure button click still triggers module handler
     try {
       const aiSubmitBtn = document.querySelector('#ai-chat-form button[type="submit"]');
       if (aiSubmitBtn) aiSubmitBtn.addEventListener('click', (ev) => { try { ev.preventDefault(); const input = document.getElementById('ai-chat-input'); const msg = input ? input.value : null; if (typeof window.__module_handleAiChat === 'function') window.__module_handleAiChat(null, msg); } catch (e) { console.error('AI submit button fallback error', e); } });
       const ruleSubmitBtn = document.querySelector('#rule-lookup-form button[type="submit"]');
       if (ruleSubmitBtn) ruleSubmitBtn.addEventListener('click', (ev) => { try { ev.preventDefault(); const input = document.getElementById('rule-lookup-input'); const q = input ? input.value : null; if (typeof window.__module_handleRuleLookup === 'function') window.__module_handleRuleLookup(q); } catch (e) { console.error('Rule submit button fallback error', e); } });
-  const mtgSubmitBtn = document.querySelector('#mtg-chat-form button[type="submit"]');
-  if (mtgSubmitBtn) mtgSubmitBtn.addEventListener('click', (ev) => { try { ev.preventDefault(); const input = document.getElementById('mtg-chat-input'); const m = input ? input.value : null; if (typeof window.handleMtgChat === 'function') window.handleMtgChat(m); } catch (e) { console.error('MTG submit button fallback error', e); } });
     } catch (err) { console.warn('Failed to install button-level fallback click handlers', err); }
+
     const closeNewPlayer = document.getElementById('close-new-player-guide-modal-btn'); if (closeNewPlayer) closeNewPlayer.addEventListener('click', () => { if (typeof window.closeModal === 'function') window.closeModal('new-player-guide-modal'); });
 
     // Confirmation modals
@@ -423,7 +437,7 @@ export function setupGlobalListeners() {
       if (typeof window.clearAllUserData === 'function' && window.userId) {
         // Ask inline confirmation first to preserve UX
         if (confirm && confirm('This will permanently delete all your account data. Continue?')) {
-          window.clearAllUserData(window.userId).then(ok => { if (ok) { try { if (typeof window.renderPaginatedCollection === 'function') window.renderPaginatedCollection(); } catch(e){} } });
+          window.clearAllUserData(window.userId).then(ok => { if (ok) { try { if (typeof window.renderPaginatedCollection === 'function') window.renderPaginatedCollection(); } catch (e) { } } });
         }
         return;
       }
@@ -449,12 +463,12 @@ export function setupGlobalListeners() {
         const m = document.getElementById(id); if (!m) return; m.classList.add('hidden');
       };
 
-          async function renderManageViews() {
+      async function renderManageViews() {
         try {
-              // Ensure saved views are loaded (support local fallback even without userId)
-              if ((!window.savedViews || !window.savedViews.length) && typeof window.loadSavedViewsFromFirestore === 'function') {
-                await window.loadSavedViewsFromFirestore(window.userId);
-              }
+          // Ensure saved views are loaded (support local fallback even without userId)
+          if ((!window.savedViews || !window.savedViews.length) && typeof window.loadSavedViewsFromFirestore === 'function') {
+            await window.loadSavedViewsFromFirestore(window.userId);
+          }
           const views = window.savedViews || [];
           if (!manageList) return;
           if (views.length === 0) {
@@ -486,11 +500,11 @@ export function setupGlobalListeners() {
               if (typeof window.deleteViewFromFirestore === 'function') {
                 await window.deleteViewFromFirestore(window.userId, id);
               } else {
-                window.savedViews = (window.savedViews||[]).filter(v=>v.id !== id);
+                window.savedViews = (window.savedViews || []).filter(v => v.id !== id);
                 if (typeof window.persistSavedViewsToFirestore === 'function') await window.persistSavedViewsToFirestore(window.userId);
               }
               await renderManageViews();
-              if (typeof window.renderSavedViewsSelect === 'function') window.renderSavedViewsSelect(window.savedViews||[]);
+              if (typeof window.renderSavedViewsSelect === 'function') window.renderSavedViewsSelect(window.savedViews || []);
             } catch (err) { console.error('delete saved view failed', err); }
           }));
 
@@ -512,14 +526,14 @@ export function setupGlobalListeners() {
             saveBtn.addEventListener('click', async () => {
               const newName = input.value || oldName;
               try {
-                const vIdx = (window.savedViews||[]).findIndex(x => x.id === id);
+                const vIdx = (window.savedViews || []).findIndex(x => x.id === id);
                 if (vIdx >= 0) {
                   window.savedViews[vIdx].name = newName;
                   // Persist change (allow settings module to handle local fallback)
                   if (typeof window.persistSavedViewsToFirestore === 'function') {
                     await window.persistSavedViewsToFirestore(window.userId);
                   }
-                  if (typeof window.renderSavedViewsSelect === 'function') window.renderSavedViewsSelect(window.savedViews||[]);
+                  if (typeof window.renderSavedViewsSelect === 'function') window.renderSavedViewsSelect(window.savedViews || []);
                 }
               } catch (err) { console.error('rename save failed', err); }
               await renderManageViews();

@@ -13,33 +13,80 @@ export function renderDecksList() {
   const noDecksMsg = document.getElementById('no-decks-msg');
   const decks = Object.values(localDecks || {});
   if (!container) return;
+
+  // Sort decks by creation date (newest first) or name
+  decks.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
   if (decks.length === 0) {
     container.innerHTML = '';
     noDecksMsg && noDecksMsg.classList.remove('hidden');
     return;
   }
   noDecksMsg && noDecksMsg.classList.add('hidden');
-  container.innerHTML = decks.map(deck => {
+
+  // "Create New Deck" Card HTML
+  const createCardHtml = `
+    <div 
+      class="deck-card group bg-gray-800/50 hover:bg-gray-800 border-2 border-dashed border-gray-700 hover:border-indigo-500/50 rounded-xl overflow-hidden transition-all duration-300 cursor-pointer flex flex-col items-center justify-center min-h-[300px]"
+      onclick="document.getElementById('create-deck-btn').click()"
+    >
+      <div class="w-16 h-16 rounded-full bg-gray-700 group-hover:bg-indigo-600/20 flex items-center justify-center mb-4 transition-colors">
+        <svg class="w-8 h-8 text-gray-400 group-hover:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+      </div>
+      <h3 class="text-lg font-bold text-gray-300 group-hover:text-white">Create New Deck</h3>
+      <p class="text-sm text-gray-500 mt-2">Start a new build</p>
+    </div>
+  `;
+
+  const deckCardsHtml = decks.map(deck => {
     const commander = deck.commander;
-    const commanderImg = commander ? commander.image_uris?.art_crop : 'https://placehold.co/600x440/2d3748/e2e8f0?text=No+Commander';
+    const commanderImg = commander ? commander.image_uris?.art_crop : 'https://placehold.co/600x440/1f2937/4b5563?text=No+Commander';
     const cardCount = Object.keys(deck.cards || {}).reduce((sum, key) => sum + (deck.cards[key].count || 1), 0) + (commander ? 1 : 0);
+
+    // Determine colors based on commander identity or default
+    const colors = commander && commander.colors && commander.colors.length > 0
+      ? commander.colors.join('')
+      : 'C'; // C for Colorless/Default
+
     return `
-      <div class="deck-card bg-gray-700/50 rounded-lg overflow-hidden shadow-lg hover:shadow-indigo-500/30 transition-shadow duration-300">
-        <div class="relative">
-          <img src="${commanderImg}" alt="${commander ? commander.name : 'Deck Art'}" class="deck-card-img">
-          <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
-          <div class="absolute bottom-0 left-0 p-4">
-            <h3 class="text-xl font-bold">${deck.name}</h3>
-            <p class="text-sm text-gray-300">${deck.format} - ${cardCount} cards</p>
+      <div class="deck-card group bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-indigo-500/20 border border-gray-700 hover:border-indigo-500/50 transition-all duration-300 flex flex-col">
+        <!-- Image Section -->
+        <div class="relative h-48 overflow-hidden">
+          <img src="${commanderImg}" alt="${commander ? commander.name : 'Deck Art'}" class="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500">
+          <div class="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-transparent opacity-90"></div>
+          
+          <!-- Overlay Stats -->
+          <div class="absolute top-2 right-2 bg-black/60 backdrop-blur-sm px-2 py-1 rounded text-xs font-mono text-white border border-white/10">
+            ${deck.format === 'commander' ? 'EDH' : deck.format.toUpperCase()}
           </div>
         </div>
-        <div class="p-4 flex justify-between items-center">
-          <button class="view-deck-btn bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg" data-deck-id="${deck.id}">View Deck</button>
-          <button class="delete-button bg-red-800 hover:bg-red-700 p-2 rounded-lg" data-deck-id="${deck.id}">Delete</button>
+
+        <!-- Content Section -->
+        <div class="p-4 flex-grow flex flex-col">
+          <div class="flex justify-between items-start mb-2">
+            <h3 class="text-lg font-bold text-white leading-tight group-hover:text-indigo-400 transition-colors line-clamp-1" title="${deck.name}">${deck.name}</h3>
+          </div>
+          
+          <div class="flex items-center gap-2 mb-4">
+             <span class="text-xs text-gray-400 bg-gray-700/50 px-2 py-0.5 rounded">${cardCount} cards</span>
+             ${commander ? `<span class="text-xs text-indigo-300 bg-indigo-900/20 px-2 py-0.5 rounded truncate max-w-[150px]">${commander.name}</span>` : ''}
+          </div>
+
+          <div class="mt-auto pt-4 border-t border-gray-700 flex gap-2">
+            <button class="view-deck-btn flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold py-2 px-3 rounded-lg transition-colors" data-deck-id="${deck.id}">
+              View
+            </button>
+            <button class="delete-button bg-gray-700 hover:bg-red-900/50 hover:text-red-200 text-gray-300 p-2 rounded-lg transition-colors" data-deck-id="${deck.id}" title="Delete Deck">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </button>
+          </div>
         </div>
       </div>
     `;
   }).join('');
+
+  // Prepend the create card
+  container.innerHTML = createCardHtml + deckCardsHtml;
 
   container.querySelectorAll('.view-deck-btn').forEach(btn => btn.addEventListener('click', (e) => {
     const deckId = e.currentTarget.dataset.deckId;
@@ -98,7 +145,7 @@ export async function getAiDeckBlueprint(commanderCard, deckCards = null) {
     }
     // Prefer structured playstyle object when available
     let structured = null;
-    try { if (window.playstyle && window.playstyleState) structured = window.playstyleState; } catch (e) {}
+    try { if (window.playstyle && window.playstyleState) structured = window.playstyleState; } catch (e) { }
     if (!structured && typeof window.playstyle === 'object' && typeof window.playstyle.loadPlaystyleForUser === 'function' && window.userId) {
       try { structured = await window.playstyle.loadPlaystyleForUser(window.userId); } catch (e) { /* ignore */ }
     }
@@ -113,8 +160,8 @@ export async function getAiDeckBlueprint(commanderCard, deckCards = null) {
   try {
     const url = (typeof window.getGeminiUrl === 'function') ? await window.getGeminiUrl() : null;
     if (!url) {
-      try { if (typeof window.renderGeminiSettings === 'function') window.renderGeminiSettings(); } catch (e) {}
-      try { if (typeof window.showView === 'function') window.showView('settings'); } catch (e) {}
+      try { if (typeof window.renderGeminiSettings === 'function') window.renderGeminiSettings(); } catch (e) { }
+      try { if (typeof window.showView === 'function') window.showView('settings'); } catch (e) { }
       throw new Error('Gemini API Key is not defined (per-user key missing).');
     }
     const response = await fetch(url, {
@@ -180,7 +227,7 @@ export function renderAiBlueprintModal(blueprint, deckName, isReadOnly = false) 
   const footerEl = document.getElementById('ai-blueprint-footer');
   if (titleEl) titleEl.textContent = `AI Blueprint: ${deckName}`;
   const counts = blueprint.suggestedCounts || {};
-  const countsHtml = Object.entries(counts).filter(([key]) => key !== 'Total').map(([key,value]) => `
+  const countsHtml = Object.entries(counts).filter(([key]) => key !== 'Total').map(([key, value]) => `
     <div class="flex justify-between items-center p-2 bg-gray-900/50 rounded">
       <span class="font-semibold">${key}</span>
       <span class="text-indigo-400 font-bold">${value}</span>
@@ -293,7 +340,7 @@ export async function handleDeckCreationSubmit(e) {
     if (saveButton) saveButton.disabled = false;
     if (saveText) saveText.textContent = 'Get AI Blueprint';
     if (saveSpinner) saveSpinner.classList.add('hidden');
-      window.__handleDeckCreationSubmitInFlight = false;
+    window.__handleDeckCreationSubmitInFlight = false;
   }
 }
 
@@ -329,12 +376,12 @@ export async function createDeckFromBlueprint() {
       aiBlueprint: window.tempAiBlueprint
     };
 
-  // Persist the new deck to Firestore and obtain its id (docRef)
-  // Reuse the userId that was already validated above.
-  const decksCol = collection(db, `artifacts/${appId}/users/${userId}/decks`);
-  const docRef = await addDoc(decksCol, newDeck);
+    // Persist the new deck to Firestore and obtain its id (docRef)
+    // Reuse the userId that was already validated above.
+    const decksCol = collection(db, `artifacts/${appId}/users/${userId}/decks`);
+    const docRef = await addDoc(decksCol, newDeck);
 
-  showToast(`Deck "${newDeck.name}" created successfully!`, 'success');
+    showToast(`Deck "${newDeck.name}" created successfully!`, 'success');
     // Clear temporary blueprint/commander data after successful creation
     window.tempAiBlueprint = null;
     window.currentCommanderForAdd = null;
@@ -370,7 +417,7 @@ export function exportDeck(deckId) {
   const dataStr = JSON.stringify(deckDataToExport, null, 2);
   const blob = new Blob([dataStr], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = `${deck.name.replace(/\s/g,'_')}.json`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  const a = document.createElement('a'); a.href = url; a.download = `${deck.name.replace(/\s/g, '_')}.json`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
   showToast(`Exported ${deck.name} as a JSON file!`, 'success');
 }
 

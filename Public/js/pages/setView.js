@@ -51,7 +51,7 @@ export async function showSetView(code) {
 
     // Title bar: add back button and set title
     const pageTitle = document.getElementById('page-title');
-    if (pageTitle) pageTitle.textContent = `${code.toUpperCase()} — Set`; 
+    if (pageTitle) pageTitle.textContent = `${code.toUpperCase()} — Set`;
 
     // Render a simple back button above the grid
     const backHtml = `<div id="sets-back-button" class="mb-4 flex items-center gap-3"><button class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-1 px-3 rounded">← Back to Sets</button><div class="text-sm text-gray-400">${cards.length} cards</div></div>`;
@@ -82,11 +82,11 @@ export async function showSetView(code) {
       </div>
     `;
 
-  // Ensure the content container itself is used for our sticky bar + grid
-  // Remove any preset grid classes on the container so our inner layout can span full width
-  try { content.className = 'p-4'; } catch (e) {}
-  // Use auto-fill with minmax to wrap into multiple rows and keep cards consistent
-  content.innerHTML = stickyBack + `<div class="grid gap-4" style="${gridStyle}">${gridHtml}</div>`;
+    // Ensure the content container itself is used for our sticky bar + grid
+    // Remove any preset grid classes on the container so our inner layout can span full width
+    try { content.className = 'p-4'; } catch (e) { }
+    // Use auto-fill with minmax to wrap into multiple rows and keep cards consistent
+    content.innerHTML = stickyBack + `<div class="grid gap-4" style="${gridStyle}">${gridHtml}</div>`;
 
     // Wire back button
     const backBtn = document.getElementById('sets-back-button');
@@ -94,9 +94,9 @@ export async function showSetView(code) {
       // restore page title
       if (pageTitle) pageTitle.textContent = 'Sets';
       // ensure the Sets view is shown and re-render the sets listing
-      try { if (typeof window.showView === 'function') window.showView('sets'); } catch (e) {}
+      try { if (typeof window.showView === 'function') window.showView('sets'); } catch (e) { }
       if (typeof window.renderSets === 'function') window.renderSets();
-      else import('./sets.js').then(mod => { if (typeof mod.renderSets === 'function') mod.renderSets(); }).catch(() => {});
+      else import('./sets.js').then(mod => { if (typeof mod.renderSets === 'function') mod.renderSets(); }).catch(() => { });
     });
 
     // Wire card click to open details modal (reuse collection renderer if available)
@@ -128,6 +128,6 @@ export async function showSetView(code) {
 }
 
 // Expose on window for lazy callers
-try { window.showSetView = showSetView; } catch (e) {}
+try { window.showSetView = showSetView; } catch (e) { }
 
 export default { showSetView };

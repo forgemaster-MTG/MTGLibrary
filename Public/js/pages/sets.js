@@ -37,7 +37,7 @@ function applyGridSize(el, size) {
 
 function renderGrid(container, items) {
   // Ensure container is a grid so items flow into multiple columns
-  try { container.className = 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 p-4'; } catch (e) {}
+  try { container.className = 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 p-4'; } catch (e) { }
   container.innerHTML = '';
   if (!items.length) {
     document.getElementById('no-sets-msg').classList.remove('hidden');
@@ -75,7 +75,7 @@ function renderGrid(container, items) {
 }
 
 function renderTable(container, items) {
-  try { container.className = 'p-4'; } catch (e) {}
+  try { container.className = 'p-4'; } catch (e) { }
   container.innerHTML = '';
   if (!items.length) {
     document.getElementById('no-sets-msg').classList.remove('hidden');
@@ -135,7 +135,7 @@ function renderSets() {
     // Clear container and render each group as a collapsed <details>
     container.innerHTML = '';
     // Ensure container uses vertical flow for groups
-    try { container.className = 'space-y-4 p-4'; } catch (e) {}
+    try { container.className = 'space-y-4 p-4'; } catch (e) { }
 
     Object.keys(groups).sort().forEach((type) => {
       const list = groups[type];
@@ -189,11 +189,11 @@ function wireControls() {
     gridBtns.forEach(x => x.classList.remove('bg-indigo-600', 'text-white'));
     ev.currentTarget.classList.add('bg-indigo-600', 'text-white');
     currentSize = ev.currentTarget.getAttribute('data-size') || 'md';
-    try { if (typeof window !== 'undefined') window.collectionGridSize = currentSize; } catch (e) {}
+    try { if (typeof window !== 'undefined') window.collectionGridSize = currentSize; } catch (e) { }
     renderSets();
   }));
-  if (gridToggle) gridToggle.addEventListener('click', () => { currentView = 'grid'; try { if (typeof window !== 'undefined') window.collectionViewMode = 'grid'; } catch(e){} renderSets(); });
-  if (tableToggle) tableToggle.addEventListener('click', () => { currentView = 'table'; try { if (typeof window !== 'undefined') window.collectionViewMode = 'table'; } catch(e){} renderSets(); });
+  if (gridToggle) gridToggle.addEventListener('click', () => { currentView = 'grid'; try { if (typeof window !== 'undefined') window.collectionViewMode = 'grid'; } catch (e) { } renderSets(); });
+  if (tableToggle) tableToggle.addEventListener('click', () => { currentView = 'table'; try { if (typeof window !== 'undefined') window.collectionViewMode = 'table'; } catch (e) { } renderSets(); });
 }
 
 function debounce(fn, wait) {
@@ -215,16 +215,16 @@ export default async function initSetsModule() {
       if (window.collectionGridSize) currentSize = window.collectionGridSize;
       if (window.collectionViewMode) currentView = window.collectionViewMode;
     }
-  } catch (e) {}
+  } catch (e) { }
   wireControls();
   // Ensure grid buttons reflect currentSize
   try {
     const btn = document.querySelector(`.sets-grid-size-btn[data-size="${currentSize}"]`);
-    if (btn) { document.querySelectorAll('.sets-grid-size-btn').forEach(b => b.classList.remove('bg-indigo-600','text-white')); btn.classList.add('bg-indigo-600','text-white'); }
+    if (btn) { document.querySelectorAll('.sets-grid-size-btn').forEach(b => b.classList.remove('bg-indigo-600', 'text-white')); btn.classList.add('bg-indigo-600', 'text-white'); }
     // view toggles
-    if (currentView === 'grid') { const g = document.getElementById('sets-view-toggle-grid'); const t = document.getElementById('sets-view-toggle-table'); if (g) g.classList.add('bg-indigo-600','text-white'); if (t) t.classList.remove('bg-indigo-600','text-white'); }
-    else { const g = document.getElementById('sets-view-toggle-grid'); const t = document.getElementById('sets-view-toggle-table'); if (t) t.classList.add('bg-indigo-600','text-white'); if (g) g.classList.remove('bg-indigo-600','text-white'); }
-  } catch(e) {}
+    if (currentView === 'grid') { const g = document.getElementById('sets-view-toggle-grid'); const t = document.getElementById('sets-view-toggle-table'); if (g) g.classList.add('bg-indigo-600', 'text-white'); if (t) t.classList.remove('bg-indigo-600', 'text-white'); }
+    else { const g = document.getElementById('sets-view-toggle-grid'); const t = document.getElementById('sets-view-toggle-table'); if (t) t.classList.add('bg-indigo-600', 'text-white'); if (g) g.classList.remove('bg-indigo-600', 'text-white'); }
+  } catch (e) { }
   // fetch and render
   const loader = document.createElement('div');
   loader.className = 'text-center text-gray-400';
@@ -239,4 +239,4 @@ export default async function initSetsModule() {
 window.initSetsModule = initSetsModule;
 // Also provide a named export so legacy boot code can call mod.initSetsModule()
 export { initSetsModule };
- 
+
