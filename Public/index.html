@@ -845,8 +845,19 @@
                     Card Modal Visibility
                   </h3>
                   <p class="text-sm text-gray-400 mb-4">Choose which fields to display when viewing card details</p>
-                  <div id="modal-visibility-settings" class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <!-- Will be populated by renderModalVisibilitySettings() -->
+                  <div id="modal-visibility-settings-wrapper" class="space-y-4">
+                    <div>
+                      <h4 class="text-sm font-semibold text-gray-200 mb-2">Default Options</h4>
+                      <div id="modal-visibility-default" class="grid grid-cols-2 gap-3">
+                        <!-- Default option checkboxes will be populated here -->
+                      </div>
+                    </div>
+                    <div>
+                      <h4 class="text-sm font-semibold text-gray-200 mb-2">Additional Options</h4>
+                      <div id="modal-visibility-additional" class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        <!-- Advanced/metadata option checkboxes will be populated here -->
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1271,7 +1282,7 @@
     >
       <div
         id="card-details-modal-content-wrapper"
-        class="bg-gray-800 rounded-lg shadow-2xl max-w-4xl w-full my-8 relative"
+        class="bg-gray-800 rounded-lg shadow-2xl max-w-[90vw] w-[90vw] h-[90vh] my-8 relative flex flex-col overflow-hidden"
       >
         <div class="absolute top-2 right-4 flex items-center gap-4 z-10">
           <button
@@ -1299,7 +1310,7 @@
             &times;
           </button>
         </div>
-        <div id="card-details-content" class="p-6">
+        <div id="card-details-content" class="p-6 flex-grow overflow-auto no-scrollbar">
           <!-- Content will be injected by JS -->
         </div>
       </div>

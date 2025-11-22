@@ -678,6 +678,11 @@ async function startSuggestionFlow(deckId, opts = {}) {
     const idsToAdd = Object.keys(allSuggestedMap).filter(id => !(deck.cards || {})[id]);
     if (idsToAdd.length === 0) { try { window.__deckSuggestionsFlowInFlight = false; } catch (e) { }; showToast('No new cards to add.', 'info'); return; }
 
+    // Persist metadata for these suggested cards (include name and scryfall id)
+    try {
+      saveSuggestionMetadata(deckId, idsToAdd);
+    } catch (e) { console.warn('[deckSuggestions] saveSuggestionMetadata (auto) failed', e); }
+
     if (typeof window.handleAddSelectedCardsToDeck === 'function') {
       closeModal('deck-suggestions-modal');
       window.handleAddSelectedCardsToDeck(deckId, idsToAdd);
@@ -786,26 +791,35 @@ function appendResultBlock(effectiveType, slotType, count, requested, isError, m
  * This is called when "Add Selected" is clicked.
  * @param {string} deckId
  */
-function saveSuggestionMetadata(deckId) {
+function saveSuggestionMetadata(deckId, argsSelectedIds) {
   if (typeof window.attachSuggestionMetadataToDeck !== 'function') {
     console.warn('[deckSuggestions] attachSuggestionMetadataToDeck function not found.');
     return;
   }
 
-  // Get *only* the selected cards
-  const selectedIds = new Set(Array.from(document.querySelectorAll('.deck-suggestion-checkbox:checked')).map(cb => cb.dataset.firestoreId));
+  // Get *only* the selected cards. Allow optional explicit set of ids (for auto mode).
+  let selectedIds;
+  if (arguments.length > 1 && argsSelectedIds) {
+    // If caller passed an explicit set/array, normalize to a Set
+    selectedIds = new Set(Array.from(argsSelectedIds));
+  } else {
+    selectedIds = new Set(Array.from(document.querySelectorAll('.deck-suggestion-checkbox:checked')).map(cb => cb.dataset.firestoreId));
+  }
 
-  const metadataToSave = []; // FIX: Initialize as an array
+  const metadataToSave = [];
   for (const id of selectedIds) {
     if (allSuggestedMap[id]) {
       const s = allSuggestedMap[id];
-      metadataToSave.push({ // FIX: Push objects into the array
-        firestoreId: id, // FIX: Include the ID in the object
-        // Only save the AI-generated data, not the full card object
+      metadataToSave.push({
+        firestoreId: id,
+        // Save AI-generated fields
         rating: s.rating ?? null,
         reason: s.reason ?? '',
         sourceType: s.sourceType,
         slotType: s.slotType,
+        // Additionally persist the card name and scryfall id so we can later resolve
+        name: s.name || ((window.localCollection || localCollection)[id] || {}).name || '',
+        scryfallId: s.id || s.scryfall_id || ((window.localCollection || localCollection)[id] || {}).id || '',
       });
     }
   }

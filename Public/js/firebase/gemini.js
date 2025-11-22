@@ -88,6 +88,8 @@ export async function getGeminiUrlForCurrentUser() {
   if (!key) return null;
   return `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(key)}`;
 }
+//models/gemini-3-pro-preview
+//models/gemini-2.5-flash
 
 // Expose a convenience wrapper on window
 if (typeof window !== 'undefined') {

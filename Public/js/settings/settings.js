@@ -9,6 +9,40 @@ export let modalVisibilitySettings = {
   condition: true,
   purchasePrice: true,
   notes: true,
+  deckAssignments: true,
+  // Scryfall / metadata fields (hidden by default)
+  textless: false,
+  set_type: false,
+  lang: false,
+  digital: false,
+  cardmarket_id: false,
+  object: false,
+  highres_image: false,
+  scryfall_set_uri: false,
+  promo: false,
+  nonfoil: false,
+  games: false,
+  purchase_uris: false,
+  related_uris: false,
+  set_search_uri: false,
+  uri: false,
+  security_stamp: false,
+  oversized: false,
+  booster: false,
+  frame: false,
+  prints_search_uri: false,
+  edhrec_rank: false,
+  variation: false,
+  image_status: false,
+  finishes: false,
+  card_faces: false,
+  reprint: false,
+  promo_types: false,
+  tcgplayer_id: false,
+  story_spotlight: false,
+  full_art: false,
+  layout: false,
+  image_uris: false,
 };
 
 // UI preferences persisted per-user: gridSize, viewMode, hideInDecks
@@ -160,21 +194,31 @@ export function renderSavedViewsSelect(views = savedViews) {
 
 export function renderModalVisibilitySettings() {
   const container = document.getElementById('modal-visibility-settings');
-  if (!container) return;
-  container.innerHTML = '';
-  // Ensure defaults exist
-  const fields = Object.keys(modalVisibilitySettings || { count: true, finish: true, condition: true, purchasePrice: true, notes: true });
-  fields.forEach(field => {
+  // Backwards-compat: prefer explicit default/additional containers if present
+  const defaultContainer = document.getElementById('modal-visibility-default') || container;
+  const additionalContainer = document.getElementById('modal-visibility-additional') || null;
+  if (!defaultContainer) return;
+  defaultContainer.innerHTML = '';
+  if (additionalContainer) additionalContainer.innerHTML = '';
+
+  // Define which fields are core (default) vs additional (advanced/metadata)
+  const coreFields = [ 'count', 'finish', 'condition', 'purchasePrice', 'notes', 'deckAssignments' ];
+  const allFields = Object.keys(modalVisibilitySettings || {});
+  const additionalFields = allFields.filter(f => !coreFields.includes(f)).sort();
+
+  const labelize = (s) => String(s).replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase());
+
+  const renderCheckbox = (field, containerEl) => {
     const id = `modal-vis-${field}`;
     const div = document.createElement('div');
     div.className = 'flex items-center gap-2';
     div.innerHTML = `
       <label class="flex items-center gap-2 text-sm text-gray-300">
         <input type="checkbox" id="${id}" class="h-4 w-4" ${modalVisibilitySettings[field] ? 'checked' : ''} />
-        <span class="capitalize">${field}</span>
+        <span class="">${labelize(field)}</span>
       </label>
     `;
-    container.appendChild(div);
+    containerEl.appendChild(div);
     const cb = document.getElementById(id);
     if (!cb) return;
     cb.addEventListener('change', async (e) => {
@@ -185,7 +229,18 @@ export function renderModalVisibilitySettings() {
       // Persist settings for current user when possible
       try { if (window && window.userId) await persistSettingsForUser(window.userId); } catch (err) { console.debug('[Settings] persist modal visibility failed', err); }
     });
+  };
+
+  // Render core fields
+  coreFields.forEach(f => {
+    if (allFields.includes(f)) renderCheckbox(f, defaultContainer);
   });
+  // Render any remaining fields as Additional (if container present), otherwise append to default
+  if (additionalContainer) {
+    additionalFields.forEach(f => renderCheckbox(f, additionalContainer));
+  } else {
+    additionalFields.forEach(f => renderCheckbox(f, defaultContainer));
+  }
 }
 
 export function buildFilterPredicate(rule) {

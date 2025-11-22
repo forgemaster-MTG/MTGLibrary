@@ -138,6 +138,7 @@ export function renderDecklist(deckId, viewMode = 'grid') {
       <select id="${groupById}" class="w-full sm:w-auto bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all">
         <option value="type_line">Group by Type</option>
         <option value="rarity">Group by Rarity</option>
+        <option value="rating">Group by Rating</option>
         <option value="set_name">Group by Set</option>
         <option value="cmc">Group by Mana Value</option>
         <option value="">No Grouping</option>
@@ -148,17 +149,60 @@ export function renderDecklist(deckId, viewMode = 'grid') {
   function renderGridItem(card) {
     const img = card.image_uris?.normal || card.image_uris?.art_crop || 'https://placehold.co/250x350?text=No+Image';
     const price = card.finish === 'foil' ? (card.prices?.usd_foil || card.prices?.usd) : (card.prices?.usd || 'N/A');
-    const count = card.countInDeck || 1;
+    // Lookup AI suggestion metadata for this specific card on the deck (if present).
+    // Suggestions are stored on the deck as `aiSuggestions` (each item should include firestoreId and rating/reason).
+    let cardRating = '';
+    let cardReason = '';
+    try {
+      const suggestions = (deck && (deck.aiSuggestions || (deck.aiBlueprint && deck.aiBlueprint.aiSuggestions))) || [];
+      const match = suggestions && suggestions.find && suggestions.find(s => {
+        if (!s) return false;
+        // Only compare suggestion fields when present to avoid undefined === undefined matching
+        if (s.firestoreId && (s.firestoreId === card.firestoreId || s.firestoreId === card.firestore_id)) return true;
+        if (s.scryfallId && (s.scryfallId === card.id || s.scryfallId === card.scryfall_id)) return true;
+        if (s.id && (s.id === card.id || s.id === card.scryfall_id)) return true;
+        return false;
+      });
+      if (match) {
+        cardRating = (typeof match.rating !== 'undefined' && match.rating !== null) ? match.rating : '';
+        cardReason = match.reason || match.note || '';
+      }
+    } catch (e) {
+      // Defensive: don't let suggestion lookup break rendering
+      cardRating = '';
+      cardReason = '';
+    }
+  const count = card.countInDeck || 1;
+  // Decide whether to render the reason inline or only via tooltip
+  const reasonText = (cardReason || '').trim();
+  const reasonEsc = reasonText.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  // Determine pill color by rating
+  const ratingNum = (cardRating !== '' && !isNaN(Number(cardRating))) ? Number(cardRating) : null;
+  let ratingPillClass = 'bg-gray-700 text-white';
+  if (ratingNum !== null) {
+    if (ratingNum >= 9) ratingPillClass = 'bg-green-500 text-white';
+    else if (ratingNum >= 7) ratingPillClass = 'bg-yellow-400 text-black';
+    else if (ratingNum >= 4) ratingPillClass = 'bg-amber-500 text-black';
+    else ratingPillClass = 'bg-red-600 text-white';
+  }
     return `
         <div class="relative group aspect-[2.5/3.5] rounded-xl overflow-hidden shadow-lg bg-gray-900 transition-transform duration-200 hover:scale-105 hover:shadow-indigo-500/20 hover:z-10">
             <img src="${img}" alt="${card.name}" class="w-full h-full object-cover" loading="lazy">
             ${count > 1 ? `<div class="absolute top-2 right-2 bg-indigo-600 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md z-20">x${count}</div>` : ''}
-            <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-end p-3">
-                <div class="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-200">
-                    <div class="font-bold text-white text-sm leading-tight mb-1">${card.name}</div>
-                    <div class="flex justify-between items-center text-xs text-gray-300 mb-2">
-                        <span>${(card.type_line || '').split('—')[0].trim()}</span>
-                        <span class="text-green-400 font-mono">${price !== 'N/A' ? '$' + price : ''}</span>
+      <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-end p-3">
+                ${reasonText ? `<div class="absolute top-3 left-3 right-3 bg-black/70 backdrop-blur-sm text-gray-100 text-xs leading-snug max-h-50 overflow-hidden z-30 p-2 rounded">${reasonEsc}</div>` : ''}
+        <div class="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-200">
+          <div class="font-bold text-white text-sm leading-tight mb-1">${card.name}</div>
+                    <div class="flex flex-col gap-2 text-xs text-gray-300 mb-2">
+                        <div class="flex justify-between items-center">
+                          <span>${(card.type_line || '').split('—')[0].trim()}</span>
+                          <span class="text-green-400 font-mono">${price !== 'N/A' ? '$' + price : ''}</span>
+                        </div>
+                        <div class="flex items-center">
+                          <div class="inline-flex items-center">
+                            <span class="inline-flex items-center ${ratingPillClass} text-xs font-semibold px-2 py-0.5 rounded">${cardRating !== '' ? `${cardRating}/10` : '—'}</span>
+                          </div>
+                        </div>
                     </div>
                     <div class="flex gap-2 justify-between">
                         <button class="view-card-details-btn flex-1 bg-gray-700 hover:bg-gray-600 text-white py-1.5 rounded text-xs font-medium transition-colors" data-firestore-id="${card.firestoreId}">View</button>
@@ -247,6 +291,29 @@ export function renderDecklist(deckId, viewMode = 'grid') {
         const cmc = Math.floor(card.cmc || 0);
         key = `${cmc} Mana`;
         if (cmc >= 7) key = '7+ Mana';
+      } else if (currentGroup === 'rating') {
+        // Bucket ratings into human-friendly groups using deck.aiSuggestions (if present)
+        try {
+          const suggestions = (deck && (deck.aiSuggestions || deck.aiBlueprint && deck.aiBlueprint.aiSuggestions)) || [];
+          const match = suggestions && suggestions.find && suggestions.find(s => {
+            if (!s) return false;
+            if (s.firestoreId && (s.firestoreId === card.firestoreId || s.firestoreId === card.firestore_id)) return true;
+            if (s.scryfallId && (s.scryfallId === card.id || s.scryfallId === card.scryfall_id)) return true;
+            if (s.id && (s.id === card.id || s.id === card.scryfall_id)) return true;
+            return false;
+          });
+          const rating = (match && typeof match.rating !== 'undefined' && match.rating !== null) ? Number(match.rating) : null;
+          if (rating === null || Number.isNaN(rating)) {
+            key = 'Unrated';
+          } else if (rating >= 9) key = '9-10';
+          else if (rating >= 7) key = '7-8';
+          else if (rating >= 4) key = '4-6';
+          else if (rating >= 1) key = '1-3';
+          else key = '0';
+          key = `Rating: ${key}`;
+        } catch (e) {
+          key = 'Rating: Unrated';
+        }
       } else {
         key = card[currentGroup] || 'Other';
       }
@@ -260,6 +327,14 @@ export function renderDecklist(deckId, viewMode = 'grid') {
       groupKeys.sort((a, b) => {
         const ia = typeOrder.indexOf(a);
         const ib = typeOrder.indexOf(b);
+        return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+      });
+    } else if (currentGroup === 'rating') {
+      // Order rating buckets highest to lowest
+      const ratingOrder = ['Rating: 9-10', 'Rating: 7-8', 'Rating: 4-6', 'Rating: 1-3', 'Rating: 0', 'Rating: Unrated'];
+      groupKeys.sort((a, b) => {
+        const ia = ratingOrder.indexOf(a);
+        const ib = ratingOrder.indexOf(b);
         return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
       });
     } else {
@@ -284,6 +359,8 @@ export function renderDecklist(deckId, viewMode = 'grid') {
   }
 
   container.innerHTML = filterHtml + content;
+
+  
 
   // --- Restore State & Listeners ---
   const fEl = document.getElementById(filterId);

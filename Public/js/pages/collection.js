@@ -114,14 +114,14 @@ function groupCardsRecursively(cards, groupByKeys) {
 
 function renderCollectionCard(card) {
   const price = card.prices?.usd_foil && card.finish === 'foil' ? card.prices.usd_foil : card.prices?.usd;
-  const assignment = (cardDeckAssignments[card.firestoreId] || [])[0];
+      const assignment = (cardDeckAssignments[card.firestoreId] || [])[0] || {};
   return `
     <div class="relative group rounded-lg overflow-hidden shadow-lg transition-transform transform hover:-translate-y-1 hover:shadow-indigo-500/40 collection-card-item" style="aspect-ratio:2/3">
       ${renderCardImageHtml(card, 'normal', 'collection-card-img')}
       <div class="absolute top-1 right-1 bg-gray-900/80 text-white text-sm font-bold px-2 py-1 rounded-full">${card.count || 1}</div>
       <div class="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/90 to-transparent">
         <p class="text-white text-xs font-bold truncate">${card.name}</p>
-        ${assignment ? `<p class="text-indigo-400 text-xs font-semibold truncate">${assignment.deckName}</p>` : (price ? `<p class="text-green-400 text-xs font-semibold">$${price}</p>` : '')}
+            ${assignment.deckName ? `<p class="text-indigo-400 text-xs font-semibold truncate">${assignment.deckName}</p>` : (price ? `<p class="text-green-400 text-xs font-semibold">$${price}</p>` : '')}
       </div>
       <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-2">
         <button class="view-card-details-btn bg-white/20 backdrop-blur-sm text-white text-xs font-bold py-2 px-3 rounded-lg w-full" data-firestore-id="${card.firestoreId}">View</button>
@@ -1289,42 +1289,426 @@ export async function saveCardDetails(firestoreId) {
 }
 
 export function renderCardDetailsModal(card) {
-  try {
+    // Global handler for coach widget actions (recalculate, edit, feedback)
+    try {
+      window.handleCoachAction = function(action, deckId, firestoreId) {
+        try {
+          // prefer a hosted implementation if it exists
+          if (action === 'recalculate') {
+            if (typeof window.recalculateAiSuggestion === 'function') return window.recalculateAiSuggestion(deckId, firestoreId);
+            if (typeof window.refreshAiForDeck === 'function') return window.refreshAiForDeck(deckId);
+            try { if (window.showToast) window.showToast('Recalculate not available.', 'info'); } catch(e) { console.debug('Recalculate not available'); }
+            return null;
+          }
+          if (action === 'edit') {
+            // open modal edit mode if supported
+            try { wrapper.classList.add('card-modal-edit-mode'); } catch(e) {}
+            if (typeof window.openCardEdit === 'function') return window.openCardEdit(firestoreId);
+            try { if (window.showToast) window.showToast('Edit not available.', 'info'); } catch(e) {}
+            return null;
+          }
+          if (action === 'feedback') {
+            // payload: deckId, firestoreId, thumb (+1 or -1 passed as deckId param when using inline)
+            const vote = firestoreId; // in some inline handlers we pass vote in this arg
+            if (typeof window.sendAiFeedback === 'function') return window.sendAiFeedback(deckId, vote);
+            try { if (window.showToast) window.showToast('Feedback recorded.', 'success'); } catch(e) {}
+            return null;
+          }
+        } catch (err) { console.debug('[Coach] action handler error', err); }
+      };
+    } catch (e) { /* ignore */ }
     const contentDiv = document.getElementById('card-details-content');
     const wrapper = document.getElementById('card-details-modal-content-wrapper');
     if (!contentDiv || !wrapper) return;
+    // Apply blurred card art as modal background for ambience
+    try {
+      const bgUrl = card.image_uris?.art_crop || card.image_uris?.normal || card.image_uri || card.image;
+      if (bgUrl) {
+        wrapper.style.backgroundImage = `linear-gradient(rgba(6,8,15,0.75), rgba(6,8,15,0.85)), url(${bgUrl})`;
+        wrapper.style.backgroundSize = 'cover';
+        wrapper.style.backgroundPosition = 'center';
+        wrapper.style.backdropFilter = 'blur(6px)';
+        wrapper.style.WebkitBackdropFilter = 'blur(6px)';
+      } else {
+        wrapper.style.backgroundImage = '';
+      }
+    } catch (e) { /* non-fatal */ }
     wrapper.dataset.firestoreId = card.firestoreId;
     wrapper.classList.remove('card-modal-edit-mode');
     const assignments = (cardDeckAssignments || {})[card.firestoreId] || [];
-    const modalVisibility = (typeof window !== 'undefined' && window.modalVisibilitySettings) ? window.modalVisibilitySettings : { count: true, finish: true, condition: true, purchasePrice: true, notes: true };
+    // If this card is assigned to any decks, try to pull AI suggestion metadata
+    let suggestionForModal = null;
+    try {
+      const decksMap = (typeof window !== 'undefined' && window.localDecks) ? window.localDecks : (typeof localDecks !== 'undefined' ? localDecks : {});
+      for (const a of assignments) {
+        const deck = decksMap && decksMap[a.deckId];
+        if (!deck) continue;
+        const suggestions = (deck && (deck.aiSuggestions || (deck.aiBlueprint && deck.aiBlueprint.aiSuggestions))) || [];
+        const match = suggestions && suggestions.find && suggestions.find(s => {
+          if (!s) return false;
+          if (s.firestoreId && (s.firestoreId === card.firestoreId || s.firestoreId === card.firestore_id)) return true;
+          if (s.scryfallId && (s.scryfallId === card.id || s.scryfallId === card.scryfall_id)) return true;
+          if (s.id && (s.id === card.id || s.id === card.scryfall_id)) return true;
+          return false;
+        });
+        if (match) { suggestionForModal = { match, deck }; break; }
+      }
+    } catch (err) { console.debug('[Collection] suggestion lookup failed', err); }
 
-    contentDiv.innerHTML = `
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="md:col-span-1">
-          <img src="${card.image_uris?.normal}" class="rounded-lg w-full">
-        </div>
-        <div class="md:col-span-2 space-y-4">
-          <h3 class="text-3xl font-bold">${card.name} ${card.mana_cost || ''}</h3>
-          <p class="text-lg text-gray-400">${card.type_line}</p>
-          <div class="text-gray-300 space-y-2 whitespace-pre-wrap">${card.oracle_text || ''}</div>
-          ${card.power && card.toughness ? `<p class="text-xl font-bold">${card.power}/${card.toughness}</p>` : ''}
-          <hr class="border-gray-600">
-          <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-            <p><strong>Set:</strong> ${card.set_name} (${(card.set||'').toUpperCase()})</p>
-            <p><strong>Rarity:</strong> ${card.rarity || ''}</p>
-            ${modalVisibility.count ? `<div><strong>Count:</strong><span class="card-modal-value-display">${card.count || 1}</span><input id="modal-edit-count" type="number" value="${card.count || 1}" min="0" class="card-modal-value-input mt-1 w-full bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm"></div>` : ''}
-            ${modalVisibility.finish ? `<div><strong>Finish:</strong><span class="card-modal-value-display">${card.finish || 'nonfoil'}</span><select id="modal-edit-finish" class="card-modal-value-input mt-1 w-full bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm"><option value="nonfoil" ${card.finish ? (card.finish === 'nonfoil' ? 'selected' : '') : 'selected'}>Non-Foil</option><option value="foil" ${card.finish === 'foil' ? 'selected' : ''}>Foil</option><option value="etched" ${card.finish === 'etched' ? 'selected' : ''}>Etched</option></select></div>` : ''}
-            ${modalVisibility.condition ? `<div><strong>Condition:</strong><span class="card-modal-value-display">${card.condition || 'Not Set'}</span><input id="modal-edit-condition" type="text" value="${card.condition || ''}" placeholder="e.g., Near Mint" class="card-modal-value-input mt-1 w-full bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm"></div>` : ''}
-            ${modalVisibility.purchasePrice ? `<div><strong>Purchase Price:</strong><span class="card-modal-value-display">$${(card.purchasePrice || 0).toFixed(2)}</span><input id="modal-edit-purchasePrice" type="number" value="${card.purchasePrice || ''}" step="0.01" placeholder="e.g., 4.99" class="card-modal-value-input mt-1 w-full bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm"></div>` : ''}
+    // Prepare suggestion HTML if found (Coach's Insight widget)
+    let suggestionHtml = '';
+    if (suggestionForModal && suggestionForModal.match) {
+      const m = suggestionForModal.match;
+      const ratingVal = (typeof m.rating !== 'undefined' && m.rating !== null) ? m.rating : null;
+      const reasonText = (m.reason || m.note || '').trim();
+      const safeEsc = s => String(s === undefined || s === null ? '' : s).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+      // highlight common mechanical/UX terms in the explanation for scanability
+      function highlightTerms(text) {
+        if (!text) return '';
+        const terms = ['lesson', 'lessons', 'lesson subtheme', 'synergy', 'graveyard', 'draw', 'discard', 'mana', 'cmc', 'card selection', 'tempo', 'speed', 'slow', 'fast', 'removal', 'card advantage', 'mana ramp'];
+        let out = safeEsc(text);
+        terms.forEach(t => {
+          const re = new RegExp('\\b' + t.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&') + '\\b', 'ig');
+          out = out.replace(re, match => `<strong class="text-white font-semibold">${match}</strong>`);
+        });
+        return out;
+      }
+
+      function bulletsFromReason(text) {
+        if (!text) return [];
+        const lower = text.toLowerCase();
+        if (lower.includes('pros:') || lower.includes('cons:')) {
+          const parts = text.split(/pros:?|cons:?/i).map(s => s.trim()).filter(Boolean);
+          return parts.slice(0, 4);
+        }
+        const sentences = text.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(Boolean);
+        if (sentences.length <= 2) return sentences;
+        return sentences.slice(0, 3);
+      }
+
+      const rn = (ratingVal !== null && !isNaN(Number(ratingVal))) ? Number(ratingVal) : 0;
+      let color = '#f59e0b';
+      if (rn >= 8) color = '#34d399';
+      else if (rn <= 4) color = '#f87171';
+      else color = '#f59e0b';
+      const percent = Math.max(0, Math.min(100, (rn / 10) * 100));
+      const scoreDisplay = Number.isFinite(rn) ? (Math.round(rn * 10) / 10).toFixed(1) : '0.0';
+      const bullets = bulletsFromReason(reasonText).map(s => `<li class="mb-1">${highlightTerms(s)}</li>`).join('');
+      const deckName = (suggestionForModal.deck && (suggestionForModal.deck.name || suggestionForModal.deck.title || suggestionForModal.deck.deckName)) || 'this deck';
+      const deckIdAttr = suggestionForModal.deck && (suggestionForModal.deck.id || suggestionForModal.deck.firestoreId || suggestionForModal.deck.deckId) || '';
+      const fsId = card && (card.firestoreId || card.id || card.scryfallId) || '';
+
+      suggestionHtml = `
+        <div class="bg-gray-800 rounded-lg p-3 border border-gray-700 mt-3 shadow-sm coach-insight">
+          <div class="flex items-start justify-between mb-3">
+            <div>
+              <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-2">
+                <svg class="w-4 h-4 text-purple-400" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C8 6 3 8 3 12c0 5 4 9 9 9s9-4 9-9c0-4-5-6-9-10z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <span>Synergy with ${safeEsc(deckName)}</span>
+              </h3>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="handleCoachAction('recalculate', '${deckIdAttr}', '${fsId}');" class="text-xs text-blue-400 hover:underline">Recalculate</button>
+              <button onclick="handleCoachAction('edit', '${deckIdAttr}', '${fsId}');" class="text-xs text-gray-300 hover:text-white ml-1" title="Edit note">✎</button>
+            </div>
           </div>
-          ${modalVisibility.notes ? `<div class="col-span-2"><strong>Notes:</strong><p class="card-modal-value-display text-gray-400 whitespace-pre-wrap">${card.notes || 'No notes.'}</p><textarea id="modal-edit-notes" placeholder="Add notes here..." class="card-modal-value-input mt-1 w-full bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm h-24">${card.notes || ''}</textarea></div>` : ''}
-          ${modalVisibility.deckAssignments && assignments.length > 0 ? `<div class="col-span-2"><hr class="border-gray-600 my-2"><p><strong>In Decks:</strong></p><ul class="list-disc list-inside text-gray-400">${assignments.map(a => `<li>${a.deckName}</li>`).join('')}</ul></div>` : ''}
+
+          <div class="flex items-start gap-4">
+            <div class="flex-shrink-0 text-center">
+              <div class="w-14 h-14 rounded-full p-1 flex items-center justify-center" style="background: conic-gradient(${color} ${percent * 3.6}deg, rgba(255,255,255,0.03) 0deg);">
+                <div class="w-full h-full rounded-full flex items-center justify-center" style="background: rgba(6,8,15,0.9);">
+                  <span class="text-lg font-bold" style="color: #ffffff;">${scoreDisplay}</span>
+                </div>
+              </div>
+              <span class="text-[10px] text-gray-500 mt-1 block">${rn >= 8 ? 'Excellent' : rn >= 5 ? 'Average' : 'Poor'}</span>
+            </div>
+
+            <div class="text-sm text-gray-300 leading-relaxed flex-grow">
+              <div class="mb-2">${highlightTerms(reasonText)}</div>
+              ${bullets ? `<ul class="list-disc list-inside text-gray-300">${bullets}</ul>` : ''}
+              <div class="mt-2 flex items-center gap-2">
+                <button onclick="handleCoachAction('feedback','${deckIdAttr}', '+1');" class="px-2 py-1 text-xs bg-gray-700 rounded hover:bg-gray-600">👍</button>
+                <button onclick="handleCoachAction('feedback','${deckIdAttr}', '-1');" class="px-2 py-1 text-xs bg-gray-700 rounded hover:bg-gray-600">👎</button>
+                <span class="ml-3 text-[11px] text-gray-500">Last updated: ${safeEsc(m.updatedAt || m.updated || '')}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+  
+    // Default modal visibility settings. Many Scryfall-specific or low-value fields
+    // are disabled by default (false) so they don't clutter the modal. Settings UI
+    // can override these via `window.modalVisibilitySettings`.
+    const modalVisibility = (typeof window !== 'undefined' && window.modalVisibilitySettings) ? window.modalVisibilitySettings : {
+      count: true,
+      finish: true,
+      condition: true,
+      purchasePrice: true,
+      notes: true,
+      // Scryfall / metadata fields (hidden by default)
+      textless: false,
+      set_type: false,
+      lang: false,
+      digital: false,
+      cardmarket_id: false,
+      object: false,
+      highres_image: false,
+      scryfall_set_uri: false,
+      promo: false,
+      nonfoil: false,
+      games: false,
+      purchase_uris: false,
+      related_uris: false,
+      set_search_uri: false,
+      uri: false,
+      security_stamp: false,
+      oversized: false,
+      booster: false,
+      frame: false,
+      prints_search_uri: false,
+      edhrec_rank: false,
+      variation: false,
+      image_status: false,
+      finishes: false,
+      card_faces: false,
+      reprint: false,
+      promo_types: false,
+      tcgplayer_id: false,
+      story_spotlight: false,
+      full_art: false,
+      layout: false,
+      image_uris: false
+    };
+
+    // Build a comprehensive details HTML block including common saved fields
+    try {
+      const details = [];
+      const push = (label, value) => { if (value !== undefined && value !== null && String(value) !== '') details.push({ label, value }); };
+      push('Firestore ID', card.firestoreId);
+      push('Scryfall ID', card.id || card.scryfall_id);
+      push('Name', card.name);
+      push('Mana Cost', card.mana_cost || '');
+      push('Type', card.type_line || '');
+      push('Oracle Text', card.oracle_text || '');
+      push('Power/Toughness', (card.power || card.toughness) ? `${card.power || '?'} / ${card.toughness || '?'}` : '');
+      push('Set', card.set_name || card.set || '');
+      push('Collector #', card.collector_number || '');
+      push('Rarity', card.rarity || '');
+      push('Colors', (card.colors || []).join(', '));
+      push('Color Identity', (card.color_identity || []).join(', '));
+      push('CMC', card.cmc ?? '');
+      // Prices: try to format usd and usd_foil
+      if (card.prices) {
+        const p = card.prices;
+        const priceText = [];
+        if (p.usd) priceText.push(`USD: $${Number(p.usd).toFixed(2)}`);
+        if (p.usd_foil) priceText.push(`USD (foil): $${Number(p.usd_foil).toFixed(2)}`);
+        if (priceText.length) push('Prices', priceText.join(' — '));
+      }
+      push('Count', card.count ?? '');
+      push('Finish', card.finish || '');
+      push('Condition', card.condition || '');
+      push('Purchase Price', (card.purchasePrice !== undefined && card.purchasePrice !== null) ? `$${Number(card.purchasePrice).toFixed(2)}` : '');
+      push('Notes', card.notes || '');
+
+      // Also include any AI suggestion we found earlier under suggestionForModal.match
+      if (suggestionForModal && suggestionForModal.match) {
+        const m = suggestionForModal.match;
+        push('AI Rating', (typeof m.rating !== 'undefined' && m.rating !== null) ? `${m.rating}/10` : '');
+        push('AI Reason', m.reason || m.note || '');
+        push('AI Source', m.sourceType || m.source || '');
+      }
+
+      // Generic extra fields (non-empty) — show anything not already listed
+      Object.keys(card).forEach(k => {
+        // Skip core fields already represented in the details grid above
+        if ([ 'firestoreId','id','scryfall_id','name','mana_cost','type_line','oracle_text','power','toughness','set_name','set','collector_number','rarity','colors','color_identity','cmc','prices','count','finish','condition','purchasePrice','notes' ].includes(k)) return;
+        // Skip a set of Scryfall / low-value fields that should not appear by default
+        if ([ 'textless','set_type','lang','digital','cardmarket_id','object','highres_image','scryfall_set_uri','promo','nonfoil','games','purchase_uris','related_uris','set_search_uri','uri','security_stamp','oversized','booster','frame','prints_search_uri','edhrec_rank','variation','image_status','finishes','card_faces','reprint','promo_types','tcgplayer_id','story_spotlight','full_art','layout','image_uris' ].includes(k)) return;
+        const val = card[k];
+        if (val === undefined || val === null) return;
+        if ((typeof val === 'object' && Object.keys(val).length === 0) || (Array.isArray(val) && val.length === 0)) return;
+        try { push(k.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase()), (typeof val === 'object') ? JSON.stringify(val) : String(val)); } catch (e) {}
+      });
+
+      const detailsHtml = details.map(d => `
+            <div class="mb-3 border-b border-gray-800 pb-2">
+              <div class="text-xs text-gray-400 uppercase">${d.label}</div>
+              <div class="text-sm text-gray-200 mt-1">${d.value}</div>
+            </div>
+          `).join('');
+
+      // helper escaper and truncator
+      const esc = s => String(s === undefined || s === null ? '' : s).replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      // Render mana symbols from {W}{U}{B}{R}{G}{C}{2}{W/U} etc into styled badges
+      const renderManaSymbols = (text) => {
+        if (!text) return '';
+        // replace tokens like {2}, {W}, {W/U}, {T}
+        return String(text).replace(/\{([^}]+)\}/g, (m, token) => {
+          const key = token.toUpperCase();
+          // normalize hybrid (use slash) and phyrexian (P)
+          const display = key.replace('/', '/');
+          // color mapping for main symbols
+          const colorMap = { 'W':'#f8f5e6', 'U':'#cfe8ff', 'B':'#222222', 'R':'#ffd1cf', 'G':'#d4f5d6', 'C':'#dfe3e6' };
+          const bg = colorMap[key] || '#333';
+          const fg = (key === 'B' ? '#fff' : '#000');
+          // numeric cost or generic
+          const inner = display;
+          return `<span class="mana-symbol" style="display:inline-block;min-width:20px;height:20px;padding:0 6px;margin:0 2px;border-radius:4px;background:${bg};color:${fg};font-weight:700;font-size:12px;line-height:20px;text-align:center;border:1px solid rgba(0,0,0,0.2)">${inner}</span>`;
+        });
+      };
+      const trunc = (s, start = 6, end = 4) => {
+        const str = String(s || '');
+        if (str.length <= start + end + 3) return str;
+        return `${str.slice(0,start)}...${str.slice(-end)}`;
+      };
+
+      // Legalities formatted as badges (green for Legal, red for Banned, gray otherwise)
+      let legalitiesHtml = '';
+      try {
+        const l = card.legalities || {};
+        if (l && typeof l === 'object') {
+          // Focus on a common subset; omit obscure formats to reduce noise
+          const preferred = [ 'standard','modern','legacy','vintage','commander','pioneer','pauper','historic' ];
+          const formats = Object.keys(l).filter(f => preferred.includes(f.toLowerCase())).sort();
+          // If none of the preferred formats exist, fall back to showing all (first 12)
+          const show = formats.length ? formats : Object.keys(l).slice(0,12);
+          legalitiesHtml = show.map(f => {
+            const val = String(l[f] || '').toLowerCase();
+            const label = f.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+            let bg = 'bg-gray-700 text-gray-300';
+            if (val === 'legal') bg = 'bg-green-500 text-white';
+            else if (val === 'banned' || val === 'not_legal' || val === 'not legal' || val === 'illegal') bg = 'bg-red-600 text-white';
+            else bg = 'bg-gray-600 text-white';
+            return `<span class="inline-flex items-center gap-2 px-2 py-1 rounded-full ${bg} text-xs font-semibold mr-2 mb-2">${label}: <span class="ml-2 text-sm font-normal text-white">${String(l[f])}</span></span>`;
+          }).join('');
+        }
+      } catch (e) { legalitiesHtml = ''; }
+
+      // Rulings
+      const rulingsCount = Array.isArray(card.rulings) ? card.rulings.length : 0;
+      const rulingsLink = card.rulings_uri || (card.related_uris && card.related_uris.rulings) || '';
+
+      // Collection fields
+      const totalOwned = card.count ?? 0;
+      const finish = card.finish || (Array.isArray(card.finishes) ? card.finishes.join(', ') : (card.isFoil ? 'Foil' : 'Nonfoil')) || 'Unknown';
+      const priceText = (() => {
+        try {
+          const p = card.prices || {};
+          const part = [];
+          if (p.usd) part.push(`$${Number(p.usd).toFixed(2)}`);
+          if (p.usd_foil) part.push(`Foil: $${Number(p.usd_foil).toFixed(2)}`);
+          return part.join(' — ');
+        } catch (e) { return '';} })();
+      const dateAdded = card.addedAt || card.added_at || card.originalReleaseDate || '';
+
+      // Art & Metadata
+      const artist = card.artist || card.artistName || card.artist_name || '';
+      const frameEffects = (card.frame_effects && card.frame_effects.join(', ')) || card.frame_effect || '';
+      const watermark = card.watermark || '';
+      const borderColor = card.borderColor || card.border_color || '';
+      const illustrationId = card.scryfallIllustrationId || (card.identifiers && card.identifiers.scryfallIllustrationId) || '';
+
+      // Links and IDs
+      const scryfallPage = card.scryfall_uri || card.scryfallUri || (card.related_uris && card.related_uris.permalink) || '';
+      const scryfallId = card.id || card.scryfallId || card.scryfall_id || '';
+      const oracleId = card.oracle_id || card.scryfallOracleId || card.scryfall_oracle_id || '';
+      const firestoreId = card.firestoreId || '';
+      const releasedAt = card.released_at || card.releasedAt || card.originalReleaseDate || '';
+
+      contentDiv.innerHTML = `
+      <div class="h-full overflow-auto pr-2">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="md:col-span-1 flex flex-col gap-4">
+            ${suggestionHtml ? `<div class="bg-gray-800 p-3 rounded text-sm">${suggestionHtml}</div>` : ''}
+            <img src="${esc(card.image_uris?.normal || card.image_uri || card.image)}" class="rounded-lg w-full max-w-[550px] h-auto object-contain">
+          </div>
+          <div class="md:col-span-2 space-y-4">
+            <!-- Header (Always Visible) -->
+            <div class="bg-gray-900 p-4 rounded">
+              <div class="flex items-center justify-between gap-4">
+                <div>
+                  <h2 class="text-3xl font-bold leading-tight">${esc(card.name)}</h2>
+                  <div class="text-sm text-gray-300 mt-1">${renderManaSymbols(esc(card.mana_cost || card.manaCost || ''))} ${card.cmc || card.manaValue ? `| CMC: ${card.cmc ?? card.manaValue ?? ''}` : ''}</div>
+                  <div class="text-sm text-gray-400 mt-2">${esc(card.type_line || card.type || '')}</div>
+                  <div class="text-sm text-gray-400 mt-1">${esc((card.set_name || card.set || '') + (card.rarity ? ` • ${String(card.rarity).charAt(0).toUpperCase()+String(card.rarity).slice(1)}` : ''))}</div>
+                </div>
+                <div class="text-right">
+                  <div class="text-sm text-gray-400">${esc(card.power && card.toughness ? `${card.power} / ${card.toughness}` : '')}</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Gameplay & Rules -->
+            <details open class="p-3 rounded" style="background: rgba(6,8,15,0.55); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); border:1px solid rgba(255,255,255,0.04);">
+              <summary class="cursor-pointer font-semibold text-gray-200">Gameplay & Rules</summary>
+              <div class="mt-3">
+                <div class="mb-3">
+                  <div class="text-xs text-gray-400">Oracle Text</div>
+                  <div class="text-sm text-gray-200 whitespace-pre-wrap mt-1">${renderManaSymbols(esc(card.oracle_text || card.originalText || card.text || ''))}</div>
+                </div>
+                ${card.flavorText || card.flavor_text ? `<div class="mb-3 italic text-sm text-gray-400 mt-2">${esc(card.flavorText || card.flavor_text)}</div>` : ''}
+                ${card.keywords && Array.isArray(card.keywords) ? `<div class="mb-2"><div class="text-xs text-gray-400">Keywords</div><div class="text-sm text-gray-200 mt-1">${esc((card.keywords||[]).join(', '))}</div></div>` : ''}
+                ${card.power || card.toughness ? `<div class="mb-2"><div class="text-xs text-gray-400">Power / Toughness</div><div class="text-sm text-gray-200 mt-1">${esc(card.power||'') || '?'} / ${esc(card.toughness||'') || '?'}</div></div>` : ''}
+                ${card.color_identity || card.colors ? `<div class="mb-2"><div class="text-xs text-gray-400">Color Identity</div><div class="text-sm text-gray-200 mt-1">${esc((card.color_identity||card.colors||[]).join(', ') || '')}</div></div>` : ''}
+                <div class="mb-2"><div class="text-xs text-gray-400">Legalities</div><div class="text-sm text-gray-200 mt-1">${legalitiesHtml || '<span class="text-gray-400">No legalities data</span>'}</div></div>
+                <div class="mb-2"><div class="text-xs text-gray-400">Rulings</div><div class="text-sm text-gray-200 mt-1">${rulingsLink ? `<a href="${esc(rulingsLink)}" target="_blank" class="text-indigo-400 hover:underline">View Rulings (${rulingsCount})</a>` : `<span class="text-gray-400">${rulingsCount} rulings</span>`}</div></div>
+              </div>
+            </details>
+
+            <!-- Collection Status -->
+            <details class="p-3 rounded" style="background: rgba(6,8,15,0.55); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); border:1px solid rgba(255,255,255,0.04);">
+              <summary class="cursor-pointer font-semibold text-gray-200">Collection Status</summary>
+              <div class="mt-3 text-sm text-gray-200">
+                <div class="mb-2"><span class="text-gray-400">Total Owned:</span> ${esc(totalOwned)}</div>
+                <div class="mb-2"><span class="text-gray-400">Finish:</span> ${esc(finish)}</div>
+                <div class="mb-2"><span class="text-gray-400">Market Price:</span> ${esc(priceText || 'N/A')}</div>
+                <div class="mb-2"><span class="text-gray-400">Date Added:</span> ${esc(dateAdded || '')}</div>
+                <div class="mb-2"><span class="text-gray-400">Collector Number:</span> ${esc(card.collector_number || card.number || '')}</div>
+              </div>
+            </details>
+
+            <!-- Art & Aesthetics -->
+            <details class="p-3 rounded" style="background: rgba(6,8,15,0.55); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); border:1px solid rgba(255,255,255,0.04);">
+              <summary class="cursor-pointer font-semibold text-gray-200">Art & Aesthetics</summary>
+              <div class="mt-3 text-sm text-gray-200">
+                <div class="mb-2"><span class="text-gray-400">Artist:</span> ${esc(artist)}</div>
+                <div class="mb-2"><span class="text-gray-400">Frame Effects:</span> ${esc(frameEffects)}</div>
+                <div class="mb-2"><span class="text-gray-400">Watermark:</span> ${esc(watermark)}</div>
+                <div class="mb-2"><span class="text-gray-400">Border Color:</span> ${esc(borderColor)}</div>
+                <div class="mb-2"><span class="text-gray-400">Illustration ID:</span> ${illustrationId ? `<span title="${esc(illustrationId)}">${trunc(illustrationId)}</span>` : ''}</div>
+              </div>
+            </details>
+
+            <!-- Developer / Metadata -->
+            <details class="p-3 rounded" style="background: rgba(6,8,15,0.55); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); border:1px solid rgba(255,255,255,0.04);">
+              <summary class="cursor-pointer font-semibold text-gray-200">Developer / Metadata</summary>
+              <div class="mt-3 text-sm text-gray-200">
+                <div class="mb-2"><span class="text-gray-400">External Links:</span> ${scryfallPage ? `<a href="${esc(scryfallPage)}" target="_blank" class="text-indigo-400 hover:underline">Scryfall</a>` : '—'}</div>
+                <div class="mb-2"><span class="text-gray-400">Scryfall ID:</span> ${esc(trunc(scryfallId || ''))}</div>
+                <div class="mb-2"><span class="text-gray-400">Oracle ID:</span> ${esc(trunc(oracleId || ''))}</div>
+                <div class="mb-2"><span class="text-gray-400">Firestore ID:</span> ${esc(trunc(firestoreId || ''))}</div>
+                <div class="mt-3"><span class="text-gray-400">System Data:</span>
+                  <div class="mt-1 text-sm text-gray-200">
+                    <div>Released At: ${esc(releasedAt || '')}</div>
+                    <div>Game Changer: ${esc(card.game_changer || card.gameChanger || false)}</div>
+                    <div>Reserved List: ${esc(card.reserved || card.reserved_list || false)}</div>
+                  </div>
+                </div>
+              </div>
+            </details>
+
+          </div>
         </div>
       </div>
     `;
-  } catch (err) {
-    console.error('[Collection.renderCardDetailsModal] error', err);
-  }
+    
+    } catch (err) {
+      console.error('[Collection.renderCardDetailsModal] error building modal', err);
+    }
+
 }
 
 export function selectCommander(card) {
