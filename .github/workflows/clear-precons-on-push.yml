@@ -1,0 +1,30 @@
+name: Clear Precons on Push
+
+on:
+  push:
+    paths:
+      - '.clear-precons'
+  workflow_dispatch: {}
+
+jobs:
+  clear-precons:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install deps
+        run: npm install firebase-admin
+
+      - name: Clear precons collection
+        env:
+          FIREBASE_SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          echo "Running clear-precons-firestore.js (this will permanently delete documents in 'precons')."
+          node scripts/clear-precons-firestore.js

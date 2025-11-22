@@ -53,6 +53,39 @@ function getUserId() {
   return window.userId || (window.auth && window.auth.currentUser && window.auth.currentUser.uid) || null;
 }
 
+function isEditModeEnabled() {
+  const wrapper = document.getElementById('app-wrapper');
+  if (wrapper) return wrapper.classList.contains('edit-mode');
+  return document.body && document.body.classList && document.body.classList.contains('edit-mode');
+}
+
+// Helper to show the app's styled confirmation modal and wire a single-use confirm handler
+function showConfirmationModal(title, message, onConfirm) {
+  try {
+    if (typeof window.openModal === 'function' && document && document.getElementById && document.getElementById('confirmation-modal')) {
+      document.getElementById('confirmation-title').textContent = title;
+      document.getElementById('confirmation-message').textContent = message;
+      const btn = document.getElementById('confirm-action-btn');
+      if (btn) {
+        btn.onclick = async () => {
+          try { if (typeof window.closeModal === 'function') window.closeModal('confirmation-modal'); } catch (e) {}
+          try { await onConfirm(); } catch (e) { /* allow caller to handle errors */ }
+          btn.onclick = null;
+        };
+      }
+      try { window.openModal('confirmation-modal'); } catch (e) { /* fallback below */ }
+    } else {
+      // fallback to native confirm
+      const ok = confirm(message);
+      if (ok) return onConfirm();
+    }
+  } catch (e) {
+    console.warn('[showConfirmationModal] failed, falling back to confirm()', e);
+    const ok = confirm(message);
+    if (ok) return onConfirm();
+  }
+}
+
 // Helper: validate color identity subset (migrated from inline index-dev.html)
 export function isColorIdentityValid(cardColors, commanderColors) {
   if (!cardColors || cardColors.length === 0) return true;
@@ -72,31 +105,101 @@ export function renderDecklist(deckId) {
     if (!cardData) return null;
     return { ...cardData, countInDeck: deck.cards[firestoreId].count };
   }).filter(Boolean);
+  // Build a small filter/group UI atop the decklist so users can search or group like the collection view
+  const filterId = 'single-deck-filter';
+  const groupById = 'single-deck-groupby';
+  const filterHtml = `
+    <div class="mb-3 flex items-center gap-2">
+      <input id="${filterId}" placeholder="Filter cards by name or set..." class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm" />
+      <select id="${groupById}" class="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm">
+        <option value="">No Group</option>
+        <option value="type_line">Group by Type</option>
+        <option value="rarity">Group by Rarity</option>
+        <option value="set_name">Group by Set</option>
+      </select>
+    </div>`;
 
-  const grouped = allCards.reduce((acc, card) => {
-    const mainType = (card.type_line || '').split(' — ')[0];
-    (acc[mainType] = acc[mainType] || []).push(card);
-    return acc;
-  }, {});
+  // Helper to render a table for a set of cards
+  function renderTable(cards) {
+    if (!cards || cards.length === 0) return `<div class="text-gray-500">This deck is empty. Click \"Add Cards\" to get started.</div>`;
+    const rows = cards.map(card => {
+      const img = card.image_uris?.art_crop || card.image_uris?.normal || '';
+      const type = (card.type_line||'').split(' — ')[0];
+      const price = card.finish === 'foil' ? (card.prices?.usd_foil || card.prices?.usd) : (card.prices?.usd || 'N/A');
+      return `
+        <tr class="border-b border-gray-700 hover:bg-gray-700/50">
+          <td class="px-4 py-3 text-center">${card.countInDeck || 1}</td>
+          <td class="px-4 py-3"><div class="flex items-center gap-3"><img src="${img}" alt="${card.name}" class="w-12 h-16 object-cover rounded-sm"/><div><div class="font-medium">${card.name}</div><div class="text-xs text-gray-400">${card.set_name || ''} · ${card.collector_number || ''}</div></div></div></td>
+          <td class="px-4 py-3">${type}</td>
+          <td class="px-4 py-3 text-center">${card.rarity || ''}</td>
+          <td class="px-4 py-3 text-right">${price && price !== 'N/A' ? `$${Number(price).toFixed(2)}` : 'N/A'}</td>
+          <td class="px-4 py-3 text-right">
+            <button class="view-card-details-btn p-2 text-gray-400 hover:text-white" data-firestore-id="${card.firestoreId}" title="View card"></button>
+            <button class="delete-button remove-card-from-deck-btn p-2 text-red-400 hover:text-red-300 ml-2" data-firestore-id="${card.firestoreId}" data-deck-id="${deckId}" title="Remove card from deck"></button>
+            <button class="delete-button return-card-to-collection-btn p-2 text-green-400 hover:text-green-300 ml-2 flex items-center gap-2" data-firestore-id="${card.firestoreId}" data-deck-id="${deckId}" title="Remove and return to collection">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1.707-9.707a1 1 0 00-1.414-1.414L8 9.172V6a1 1 0 10-2 0v5a1 1 0 001 1h5a1 1 0 100-2h-3.172l2.879-2.879z" clip-rule="evenodd"/></svg>
+              <span class="text-xs">Return</span>
+            </button>
+          </td>
+        </tr>`;
+    }).join('');
 
-  const typeOrder = ['Creature','Planeswalker','Instant','Sorcery','Artifact','Enchantment','Land'];
-  let html = '';
-  typeOrder.forEach(type => {
-    if (grouped[type]) {
-      const cardsOfType = grouped[type].sort((a,b) => a.name.localeCompare(b.name));
-      const count = cardsOfType.reduce((s,c) => s + c.countInDeck, 0);
-      html += `<div><h4 class="text-lg font-semibold text-indigo-400 mb-2">${type} (${count})</h4>${cardsOfType.map(card => `
-        <div class="flex items-center justify-between p-2 rounded-lg hover:bg-gray-700/50">
-          <span>${card.countInDeck} ${card.name}</span>
-          <div class="flex items-center gap-2">
-            <button class="view-card-details-btn p-1 text-gray-400 hover:text-white" data-firestore-id="${card.firestoreId}"></button>
-            <button class="remove-card-from-deck-btn p-1 text-red-400 hover:text-red-300" data-firestore-id="${card.firestoreId}" data-deck-id="${deckId}"></button>
-          </div>
-        </div>`).join('')}</div>`;
+    return `
+      <div class="overflow-auto">
+        <table class="w-full text-sm text-left text-gray-300">
+          <thead class="text-xs text-gray-400 uppercase bg-gray-700 sticky top-0">
+            <tr>
+              <th class="px-4 py-2 text-center">#</th>
+              <th class="px-4 py-2">Card</th>
+              <th class="px-4 py-2">Type</th>
+              <th class="px-4 py-2 text-center">Rarity</th>
+              <th class="px-4 py-2 text-right">Price</th>
+              <th class="px-4 py-2 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
+          </tbody>
+        </table>
+      </div>`;
+  }
+
+  // Compose grouped or ungrouped view based on selection
+  function composeHtml() {
+    const filterVal = (document.getElementById(filterId)?.value || '').toLowerCase();
+    const groupBy = (document.getElementById(groupById)?.value || '');
+    let filtered = allCards.filter(c => {
+      if (!filterVal) return true;
+      try {
+        return (c.name||'').toLowerCase().includes(filterVal) || (c.set_name||'').toLowerCase().includes(filterVal) || (c.type_line||'').toLowerCase().includes(filterVal);
+      } catch (e) { return true; }
+    });
+
+    if (!groupBy) {
+      // simple table
+      return filterHtml + renderTable(filtered.sort((a,b) => a.name.localeCompare(b.name)));
     }
-  });
+    // group
+    const groups = filtered.reduce((acc, card) => {
+      const key = (groupBy === 'type_line') ? ((card.type_line||'').split(' — ')[0]) : (card[groupBy] || 'Other');
+      (acc[key] = acc[key] || []).push(card);
+      return acc;
+    }, {});
+    const groupKeys = Object.keys(groups).sort();
+    return filterHtml + groupKeys.map(k => {
+      const cards = groups[k].sort((a,b) => a.name.localeCompare(b.name));
+      const count = cards.reduce((s,c) => s + (c.countInDeck||1), 0);
+      return `<div class="mb-4"><h4 class="text-lg font-semibold text-indigo-400 mb-2">${k} (${count})</h4>${renderTable(cards)}</div>`;
+    }).join('');
+  }
 
-  container.innerHTML = html || '<p class="text-gray-500">This deck is empty. Click "Add Cards" to get started.</p>';
+  container.innerHTML = composeHtml();
+
+  // Wire filter/group change handlers (idempotent). Re-run the full render so new DOM nodes get wired correctly.
+  const fEl = document.getElementById(filterId);
+  const gEl = document.getElementById(groupById);
+  if (fEl && !fEl._handler) { fEl._handler = () => { renderDecklist(deckId); }; fEl.addEventListener('input', fEl._handler); }
+  if (gEl && !gEl._handler) { gEl._handler = () => { renderDecklist(deckId); }; gEl.addEventListener('change', gEl._handler); }
 }
 
 export function renderManaCurveChart(manaCurveData) {
@@ -554,6 +657,143 @@ export function addSingleDeckListeners(deckId) {
   try { renderDeckSuggestionSummary(deckId); } catch (e) {}
   document.getElementById('export-deck-btn')?.addEventListener('click', (e) => { const id = e.currentTarget.dataset.deckId; if (typeof window.exportDeck === 'function') window.exportDeck(id); });
   document.getElementById('view-strategy-btn')?.addEventListener('click', () => { const deck = (window.localDecks||localDecks)[deckId]; if (deck && deck.aiBlueprint && typeof window.renderAiBlueprintModal === 'function') { window.renderAiBlueprintModal(deck.aiBlueprint, deck.name, true); window.openModal('ai-blueprint-modal'); } });
+  // Delegated handlers for decklist actions (view, remove). Using delegation so rows can be re-rendered.
+  const decklistContainer = document.getElementById('decklist-container');
+  if (decklistContainer && !decklistContainer._delegatedHandler) {
+    decklistContainer.addEventListener('click', (e) => {
+      const viewBtn = e.target.closest && e.target.closest('.view-card-details-btn');
+      if (viewBtn) {
+        const fid = viewBtn.dataset.firestoreId;
+        const card = (window.localCollection||localCollection)[fid];
+        if (card) {
+          if (typeof window.renderCardDetailsModal === 'function') window.renderCardDetailsModal(card);
+          if (typeof window.openModal === 'function') window.openModal('card-details-modal');
+        }
+        return;
+      }
+      const remBtn = e.target.closest && e.target.closest('.remove-card-from-deck-btn');
+      if (remBtn) {
+        const fid = remBtn.dataset.firestoreId;
+        const did = remBtn.dataset.deckId || deckId;
+        if (!isEditModeEnabled()) { showToast && showToast('Enable Edit Mode to remove cards from a deck.', 'warning'); return; }
+        // Styled confirmation modal
+        showConfirmationModal('Remove card from deck?', 'Remove this card from the deck?', async () => {
+          await removeCardFromDeck(did, fid);
+        });
+        return;
+      }
+      const returnBtn = e.target.closest && e.target.closest('.return-card-to-collection-btn');
+      if (returnBtn) {
+        const fid = returnBtn.dataset.firestoreId;
+        const did = returnBtn.dataset.deckId || deckId;
+        if (!isEditModeEnabled()) { showToast && showToast('Enable Edit Mode to remove cards from a deck.', 'warning'); return; }
+        showConfirmationModal('Return card to collection?', 'Remove this card from the deck and return it to your collection?', async () => {
+          await removeCardFromDeckAndReturnToCollection(did, fid);
+        });
+        return;
+      }
+    });
+    decklistContainer._delegatedHandler = true;
+  }
+}
+
+// Remove a card entry from a deck (only when in edit mode). This removes the reference
+// from the deck document; it does not attempt to restore collection docs.
+export async function removeCardFromDeck(deckId, firestoreId) {
+  try {
+    if (!isEditModeEnabled()) {
+      showToast && showToast('Enable Edit Mode to remove cards from a deck.', 'warning');
+      return;
+    }
+    if (!deckId || !firestoreId) return;
+    const uid = getUserId(); if (!uid) { showToast && showToast('User not signed in.', 'error'); return; }
+    const deckRef = doc(db, `artifacts/${appId}/users/${uid}/decks`, deckId);
+    // If the deck locally shows a count > 1 for this card we remove the entry entirely for simplicity.
+    await updateDoc(deckRef, { [`cards.${firestoreId}`]: deleteField() });
+    // Optimistic local update
+    try {
+      if (!window.localDecks) window.localDecks = localDecks;
+      const localDeck = window.localDecks[deckId] || localDecks[deckId];
+      if (localDeck && localDeck.cards) {
+        delete localDeck.cards[firestoreId];
+      }
+      updateCardAssignments();
+      if (typeof window.renderSingleDeck === 'function') window.renderSingleDeck(deckId);
+      showToast && showToast('Card removed from deck.', 'success');
+    } catch (e) { /* ignore optimistic errors */ }
+  } catch (err) {
+    console.error('[removeCardFromDeck] error', err);
+    showToast && showToast('Failed to remove card from deck.', 'error');
+  }
+}
+
+// Remove a card from a deck and return it to the user's collection.
+// Behavior:
+// - If there's an existing collection stack (same card id + finish) we increment that stack and delete the deck-specific collection doc.
+// - Otherwise we leave the collection doc in place (it already exists) and just remove the deck reference.
+export async function removeCardFromDeckAndReturnToCollection(deckId, firestoreId) {
+  try {
+    if (!isEditModeEnabled()) {
+      showToast && showToast('Enable Edit Mode to remove cards from a deck.', 'warning');
+      return;
+    }
+    if (!deckId || !firestoreId) return;
+    const uid = getUserId(); if (!uid) { showToast && showToast('User not signed in.', 'error'); return; }
+
+    // Fetch the card doc we're trying to return
+    const cardSnap = await getDoc(doc(db, `artifacts/${appId}/users/${uid}/collection`, firestoreId));
+    if (!cardSnap || !cardSnap.exists()) {
+      showToast && showToast('Collection entry for this card could not be found.', 'error');
+      return;
+    }
+    const cardData = cardSnap.data();
+
+    // Look for an existing collection stack with same scryfall id + finish
+    const col = window.localCollection || localCollection;
+    const existing = Object.values(col || {}).find(c => c && c.id === cardData.id && ((c.finish || '') === (cardData.finish || '')) && c.firestoreId !== firestoreId);
+
+    const batch = writeBatch(db);
+    const deckRef = doc(db, `artifacts/${appId}/users/${uid}/decks`, deckId);
+    // remove deck reference
+    batch.update(deckRef, { [`cards.${firestoreId}`]: deleteField() });
+
+    if (existing && existing.firestoreId) {
+      const existingRef = doc(db, `artifacts/${appId}/users/${uid}/collection`, existing.firestoreId);
+      const newCount = (existing.count || 0) + (cardData.count || 1);
+      batch.update(existingRef, { count: newCount });
+      // delete the deck-specific collection doc to avoid duplicate docs
+      const thisRef = doc(db, `artifacts/${appId}/users/${uid}/collection`, firestoreId);
+      batch.delete(thisRef);
+    } else {
+      // No matching stack - leave the collection doc in place (it already exists) and just removed deck ref
+    }
+
+    await batch.commit();
+
+    // Optimistic local updates
+    try {
+      if (!window.localDecks) window.localDecks = localDecks;
+      if (!window.localCollection) window.localCollection = localCollection;
+      const localDeck = window.localDecks[deckId] || localDecks[deckId];
+      if (localDeck && localDeck.cards) delete localDeck.cards[firestoreId];
+      if (existing && existing.firestoreId) {
+        // increment local existing stack and remove the deck-specific placeholder
+        window.localCollection[existing.firestoreId] = window.localCollection[existing.firestoreId] || existing;
+        window.localCollection[existing.firestoreId].count = (window.localCollection[existing.firestoreId].count || 0) + (cardData.count || 1);
+        delete window.localCollection[firestoreId];
+      } else {
+        // Ensure the returned collection doc is present locally
+        window.localCollection[firestoreId] = Object.assign({}, cardData, { firestoreId });
+      }
+      updateCardAssignments();
+      if (typeof window.renderSingleDeck === 'function') window.renderSingleDeck(deckId);
+      showToast && showToast('Card returned to collection and removed from deck.', 'success');
+    } catch (e) { console.warn('[removeCardFromDeckAndReturnToCollection] optimistic update failed', e); }
+
+  } catch (err) {
+    console.error('[removeCardFromDeckAndReturnToCollection] error', err);
+    showToast && showToast('Failed to return card to collection.', 'error');
+  }
 }
 
 // Expose compatibility shims
@@ -562,4 +802,5 @@ if (typeof window !== 'undefined') {
   window.handleAddSelectedCardsToDeck = handleAddSelectedCardsToDeck;
   window.deleteDeck = deleteDeck; // override earlier shim with wrapper
   window.addSingleDeckListeners = addSingleDeckListeners;
+  window.removeCardFromDeckAndReturnToCollection = removeCardFromDeckAndReturnToCollection;
 }

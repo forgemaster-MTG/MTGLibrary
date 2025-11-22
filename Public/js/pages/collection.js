@@ -387,6 +387,17 @@ export function initCollectionModule() {
       console.warn('[Collection] Could not install listeners during init:', e);
     }
     window.__collection_listeners_installed = true;
+    // Wire Refresh Prices button if present (idempotent)
+    try {
+      const refreshBtn = document.getElementById('refresh-prices-btn');
+      if (refreshBtn && !refreshBtn._handlerInstalled) {
+        refreshBtn.addEventListener('click', (e) => {
+          // default: persist updates to Firestore
+          refreshCollectionPrices({ persist: true }).catch(err => console.error('refreshCollectionPrices error', err));
+        });
+        refreshBtn._handlerInstalled = true;
+      }
+    } catch (err) { console.warn('[Collection] failed to wire refresh-prices-btn', err); }
   }
   console.log('[Collection] Module initialized. window.renderPaginatedCollection present=', typeof window.renderPaginatedCollection === 'function');
   // Install delegated handler for double-faced-card flip buttons (idempotent)
@@ -663,6 +674,16 @@ export function renderCardVersions(cards) {
 
   // initial render
   renderList();
+  // UX: when search results are shown, focus the versions filter so users can immediately refine
+  try {
+    const fv = document.getElementById('card-versions-filter');
+    if (fv) {
+      // ensure async focus so callers that just opened the modal get the cursor placed
+      setTimeout(() => {
+        try { fv.focus(); fv.select && fv.select(); } catch (e) {}
+      }, 0);
+    }
+  } catch (e) { /* ignore */ }
 }
 
 // Migrate handleCardSelection and renderCardConfirmationModal
@@ -679,6 +700,15 @@ export function handleCardSelection(card) {
 export function renderCardConfirmationModal(card) {
   const contentDiv = document.getElementById('card-confirmation-content');
   if (!contentDiv) return;
+  // Hide any global hover preview overlay while the confirmation modal is open
+  try {
+    const hoverPreview = document.getElementById('card-hover-preview');
+    if (hoverPreview) {
+      hoverPreview.classList.add('hidden');
+      const hi = hoverPreview.querySelector && hoverPreview.querySelector('img');
+      if (hi) hi.src = '';
+    }
+  } catch (e) { /* ignore */ }
   const cleanedCard = {
     id: card.id, name: card.name,
     image_uris: { small: card.image_uris?.small, normal: card.image_uris?.normal, art_crop: card.image_uris?.art_crop },
@@ -688,9 +718,17 @@ export function renderCardConfirmationModal(card) {
     prices: card.prices, legalities: card.legalities
   };
 
+  // Render the card image inside a positioned container and avoid the
+  // global `.card-image` absolute styles (which can position the img
+  // relative to the body and cause it to appear detached at the page
+  // top-left). Build a plain <img> with sizing classes instead.
+  const imgsForModal = getCardFaceImageUrls(card, 'normal');
+  const modalImgSrc = imgsForModal.front || imgsForModal.back || '';
+  const modalImgHtml = `<img src="${modalImgSrc}" alt="${(card.name||'card')}" class="rounded-lg shadow-lg w-full max-w-[360px] h-auto max-h-[640px] object-contain" loading="lazy" />`;
+
   contentDiv.innerHTML = `
-    <div class="flex justify-center md:justify-start md:col-span-1">
-        ${renderCardImageHtml(card, 'normal', 'rounded-lg shadow-lg w-full max-w-[360px] h-auto max-h-[640px] object-contain')}
+    <div class="flex justify-center md:justify-start md:col-span-1 relative">
+        ${modalImgHtml}
     </div>
     <div class="space-y-4 md:col-span-1">
       <h3 class="text-3xl font-bold">${card.name}</h3>
@@ -733,7 +771,25 @@ export function renderCardConfirmationModal(card) {
     }
     const cardToAdd = { ...current, count: quantity, finish, addedAt: new Date().toISOString() };
     try { await addCardToCollection(cardToAdd); } catch (err) { console.error('[Collection] addCardToCollection error', err); }
+    // Close the confirmation modal
     window.closeModal && window.closeModal('card-confirmation-modal');
+    // UX: After successfully adding a card, clear the collection quick-filter (top of page)
+    try {
+      const topFilter = document.getElementById('filter-text');
+      if (topFilter) {
+        topFilter.value = '';
+        // trigger any change handlers if present
+        try { topFilter.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
+      }
+    } catch (e) { /* ignore */ }
+    // Focus the add-card search input and select all text so the user can immediately start typing a new search
+    try {
+      const searchInput = document.getElementById('card-search-input');
+      if (searchInput) {
+        searchInput.focus();
+        try { searchInput.select(); } catch (e) { /* some inputs may not support select */ }
+      }
+    } catch (e) { /* ignore */ }
   });
 }
 
@@ -1465,6 +1521,102 @@ export function installFloatingHeaderSync() {
   }
 }
 
+/**
+ * Refresh prices for cards in the local collection using Scryfall.
+ * Assumptions: use Scryfall per-card endpoint and persist updated prices to Firestore.
+ * This will perform concurrent fetches (controlled concurrency) and batch updates to Firestore
+ * to avoid committing one write per card.
+ *
+ * Options:
+ *  - persist: boolean (default true) - whether to persist updated prices to Firestore
+ */
+export async function refreshCollectionPrices(options = { persist: true }) {
+  const persist = options.persist !== false;
+  const btn = document.getElementById('refresh-prices-btn');
+  const spinner = document.getElementById('refresh-prices-spinner');
+  const text = document.getElementById('refresh-prices-text');
+  if (btn) btn.disabled = true;
+  if (spinner) spinner.classList.remove('hidden');
+  if (text) text.textContent = 'Refreshing...';
+
+  try {
+    const entries = Object.values(localCollection || {}).map(c => ({ firestoreId: c.firestoreId, scryfallId: c.id } )).filter(e => e.scryfallId && e.firestoreId);
+    if (entries.length === 0) {
+      showToast && showToast('No cards found in local collection to refresh.', 'info');
+      return;
+    }
+
+    // concurrency pool
+    const concurrency = 6;
+    let idx = 0;
+    const results = [];
+
+    const fetchCard = async (entry) => {
+      try {
+        const res = await fetch(`https://api.scryfall.com/cards/${encodeURIComponent(entry.scryfallId)}`);
+        if (!res.ok) throw new Error(`Scryfall fetch failed: ${res.status}`);
+        const data = await res.json();
+        const prices = data.prices || null;
+        // update localCollection optimistically
+        try { if (window.localCollection && window.localCollection[entry.firestoreId]) window.localCollection[entry.firestoreId].prices = prices; } catch (e) {}
+        results.push({ firestoreId: entry.firestoreId, prices });
+      } catch (err) {
+        console.warn('[refreshCollectionPrices] fetch error for', entry.scryfallId, err);
+        results.push({ firestoreId: entry.firestoreId, prices: null, error: String(err) });
+      }
+    };
+
+    const workers = new Array(concurrency).fill(null).map(async () => {
+      while (true) {
+        const i = idx++;
+        if (i >= entries.length) return;
+        const entry = entries[i];
+        await fetchCard(entry);
+      }
+    });
+
+    await Promise.all(workers);
+
+    // Persist updates to Firestore in batches of 100
+    if (persist && typeof window.db !== 'undefined' && window.userId && window.appId) {
+      try {
+        const { writeBatch, doc } = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js');
+        const batches = [];
+        let batch = writeBatch(window.db);
+        let ops = 0;
+        for (const r of results) {
+          if (!r.prices) continue; // skip empty results
+          const ref = doc(window.db, `artifacts/${window.appId}/users/${window.userId}/collection`, r.firestoreId);
+          batch.update(ref, { prices: r.prices });
+          ops++;
+          if (ops >= 100) {
+            batches.push(batch.commit());
+            batch = writeBatch(window.db);
+            ops = 0;
+          }
+        }
+        if (ops > 0) batches.push(batch.commit());
+        if (batches.length > 0) await Promise.all(batches);
+      } catch (err) {
+        console.warn('[refreshCollectionPrices] Firestore persist error', err);
+        showToast && showToast('Prices refreshed locally but failed to persist to Firestore.', 'warning');
+      }
+    }
+
+    // Recompute KPI and re-render
+    try { if (typeof window.renderPaginatedCollection === 'function') window.renderPaginatedCollection(); } catch (e) { console.warn('[refreshCollectionPrices] re-render failed', e); }
+
+    showToast && showToast('Prices refreshed.', 'success');
+  } catch (err) {
+    console.error('[refreshCollectionPrices] unexpected error', err);
+    showToast && showToast('Failed to refresh prices.', 'error');
+  } finally {
+    if (btn) btn.disabled = false;
+    if (spinner) spinner.classList.add('hidden');
+    if (text) text.textContent = 'Refresh Prices';
+  }
+}
+
 // Expose legacy/global shims for backwards compatibility with inline scripts
 // and other non-module code. Do not overwrite existing window handlers if
 // they were already provided by delegators; only set missing ones.
@@ -1489,6 +1641,7 @@ export function installFloatingHeaderSync() {
     safeAssign('renderCollectionCard', renderCollectionCard);
     safeAssign('initCollectionModule', initCollectionModule);
     safeAssign('installFloatingHeaderSync', installFloatingHeaderSync);
+  safeAssign('refreshCollectionPrices', refreshCollectionPrices);
 
   // Additional helpers migrated from inline HTML
   safeAssign('toggleCardDetailsEditMode', toggleCardDetailsEditMode);

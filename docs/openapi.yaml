@@ -1,0 +1,175 @@
+openapi: 3.0.1
+info:
+  title: MTGLibrary API
+  version: '1.0'
+  description: API for MTGLibrary — endpoints for cards, identifiers, decks, users, precons and saved views.
+servers:
+  - url: http://localhost:3000
+
+paths:
+  /cards/scryfall/{scryfallId}:
+    get:
+      summary: Lookup a card by Scryfall id
+      parameters:
+        - in: path
+          name: scryfallId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Card found
+        '404':
+          description: Not found
+
+  /cards:
+    get:
+      summary: List cards (limited)
+      responses:
+        '200':
+          description: OK
+    
+  /cards/add:
+    post:
+      summary: Add card(s) to a collection by name
+      description: |
+        Search `cards.name` for matching cards and return each card along with any matching `cardidentifiers`.
+        This endpoint is used by the "add card to collection" button and accepts a single text string.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Search text to match against `cards.name` (required)
+                exact:
+                  oneOf:
+                    - type: boolean
+                    - type: string
+                  description: If true, perform an exact match; otherwise a case-insensitive partial match (default)
+              required: [name]
+      responses:
+        '200':
+          description: Matches and identifiers
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CardsAddResponse'
+        '400':
+          description: Bad request (missing/invalid name)
+        '500':
+          description: Internal Server Error
+
+  /cardidentifiers:
+    get:
+      summary: List card identifiers
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: Create a card identifier
+      requestBody:
+        required: true
+      responses:
+        '201':
+          description: Created
+
+  /cardidentifiers/{id}:
+    get:
+      summary: Get card identifier by id
+    put:
+      summary: Update card identifier
+    delete:
+      summary: Delete card identifier
+
+  /decks:
+    get:
+      summary: List decks
+    post:
+      summary: Create deck
+
+  /decks/{id}:
+    get:
+      summary: Get deck with cards
+    put:
+      summary: Update deck
+    delete:
+      summary: Delete deck
+
+  /deck_cards:
+    post:
+      summary: Add card to deck
+
+  /deck_cards/{id}:
+    put:
+      summary: Update deck card count
+    delete:
+      summary: Remove card from deck
+
+  /users:
+    get:
+      summary: List users (requires auth)
+
+  /users/me:
+    get:
+      summary: Get current user (requires auth)
+
+  /users/{id}:
+    get:
+      summary: Get user by id (requires auth)
+    put:
+      summary: Update user (requires auth, owner only)
+
+  /precons:
+    get:
+      summary: List precons
+    post:
+      summary: Create or upsert precon
+
+  /precons/{firestoreId}:
+    get:
+      summary: Get precon by firestore id
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    CardIdentifier:
+      type: object
+      description: A card identifier row from `cardidentifiers` table
+      additionalProperties: true
+    Card:
+      type: object
+      description: A card row from `cards` table
+      additionalProperties: true
+    CardsAddResultItem:
+      type: object
+      properties:
+        card:
+          $ref: '#/components/schemas/Card'
+        identifiers:
+          type: array
+          items:
+            $ref: '#/components/schemas/CardIdentifier'
+    CardsAddResponse:
+      type: object
+      properties:
+        count:
+          type: integer
+          description: Number of matching cards returned
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/CardsAddResultItem'
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message

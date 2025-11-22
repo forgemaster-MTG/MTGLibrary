@@ -592,6 +592,29 @@ export function renderPreconsAdmin(containerId = 'settings-precons-admin') {
       <div id="precons-upload-results" class="mt-4 text-sm text-gray-300"></div>
     `;
 
+    // Add helper details for Firestore rules and making precons publicly readable
+    const help = document.createElement('div');
+    help.className = 'mt-3 text-sm text-gray-300';
+    help.innerHTML = `
+      <details class="bg-gray-900 p-3 rounded mt-3">
+        <summary class="font-medium">Firestore setup & public-read rules</summary>
+        <div class="mt-2 text-sm text-gray-400">
+          <p>To serve precons from Firestore for everyone, ensure the <code>precons</code> collection is readable by unauthenticated users. Example rule (restrict writes to admins):</p>
+          <pre class="mt-2 p-3 bg-gray-800 text-xs rounded text-green-300" style="overflow:auto">service cloud.firestore {
+  match /databases/{database}/documents {
+    match /precons/{docId} {
+      allow read: if true; // public read
+      allow write: if request.auth != null && request.auth.token.email == 'Gidgidonihah.147@gmail.com';
+    }
+  }
+}
+          </pre>
+          <p class="mt-2">Adjust the write rule to match your admin auth method. After applying rules, use the <strong>Upload Precons to Firestore</strong> button above to publish the JSON files from <code>/precons</code>.</p>
+        </div>
+      </details>
+    `;
+    block.appendChild(help);
+
     // insert near top of settings view, below Gemini section if present
     const gem = document.getElementById('settings-gemini-section');
     if (gem && gem.parentElement) gem.parentElement.insertBefore(block, gem.nextSibling);
@@ -601,6 +624,14 @@ export function renderPreconsAdmin(containerId = 'settings-precons-admin') {
     const regenBtn = document.getElementById('precons-regenerate-index-btn');
     const statusEl = document.getElementById('precons-upload-status');
     const resultsEl = document.getElementById('precons-upload-results');
+
+  // Clear precons cache button (admin only)
+  const clearCacheBtn = document.createElement('button');
+  clearCacheBtn.id = 'precons-clear-cache-btn';
+  clearCacheBtn.className = 'bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-2 rounded';
+  clearCacheBtn.textContent = 'Clear Precons Cache';
+  // insert after upload/regenerate controls
+  if (regenBtn && regenBtn.parentElement) regenBtn.parentElement.appendChild(clearCacheBtn);
 
     if (uploadBtn) uploadBtn.addEventListener('click', async () => {
       if (!confirm('Upload all precons from /precons to Firestore? This will overwrite existing docs with the same IDs.')) return;
@@ -622,6 +653,23 @@ export function renderPreconsAdmin(containerId = 'settings-precons-admin') {
         statusEl.textContent = 'Upload failed (see console)';
       }
       uploadBtn.disabled = false;
+    });
+
+    if (clearCacheBtn) clearCacheBtn.addEventListener('click', async () => {
+      if (!confirm('Clear the local precons cache for all users in this browser?')) return;
+      try {
+        const key = `preconsIndex_v1_${window.__app_id || 'default'}`;
+        localStorage.removeItem(key);
+        const tsEl = document.getElementById('precons-cache-ts');
+        if (tsEl) tsEl.textContent = '';
+        statusEl.textContent = 'Cache cleared.';
+        showToast('Precons cache cleared in this browser.', 'success');
+      } catch (e) {
+        console.error('Failed to clear precons cache', e);
+        statusEl.textContent = 'Failed to clear cache.';
+        showToast('Failed to clear precons cache.', 'error');
+      }
+      setTimeout(() => { statusEl.textContent = ''; }, 3000);
     });
 
     // Regenerate index: do a safe check for a generated index and provide clear instructions.

@@ -8,6 +8,7 @@
     "serve-and-test": "npx http-server .. -p 8080 -a 127.0.0.1 --silent & npm run playstyle-smoke",
     "import-export": "node importExportTest.js",
     "ui-controls": "node uiControlsSmoke.js"
+    ,"precons-smoke": "node preconsSmoke.js"
   },
   "devDependencies": {
     "puppeteer": "^24.26.0"

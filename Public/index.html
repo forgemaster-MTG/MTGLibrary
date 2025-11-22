@@ -556,6 +556,11 @@
               >
                 Reset
               </button>
+              <button id="refresh-prices-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg ml-2 flex items-center">
+                <svg class="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10a9 9 0 0114-7m4 4v5h-5"></path></svg>
+                <span id="refresh-prices-text">Refresh Prices</span>
+                <div id="refresh-prices-spinner" class="hidden animate-spin rounded-full h-4 w-4 border-b-2 border-white ml-2" aria-hidden="true"></div>
+              </button>
               </div>
             </section>
 
@@ -2674,16 +2679,13 @@
             return acc + cardCost * count;
           }, 0);
 
-          const cardCountsByType = allDeckCards.reduce((acc, card) => {
-            const mainType = card.type_line.split(" — ")[0];
-            const count = card.count || 1;
-            if (acc[mainType]) {
-              acc[mainType] += count;
-            } else {
-              acc[mainType] = count;
-            }
-            return acc;
-          }, {});
+          // Helper to count cards by type (inclusive check)
+          const countByType = (type) => {
+             return allDeckCards.reduce((sum, card) => {
+               if ((card.type_line || '').includes(type)) return sum + (card.count || 1);
+               return sum;
+             }, 0);
+          };
 
           const blueprint = deck.aiBlueprint?.suggestedCounts;
           const kpiData = [
@@ -2699,37 +2701,37 @@
             },
             {
               label: "Creature",
-              current: cardCountsByType.Creature || 0,
+              current: countByType("Creature"),
               target: blueprint?.Creature,
             },
             {
               label: "Land",
-              current: cardCountsByType.Land || 0,
+              current: countByType("Land"),
               target: blueprint?.Land,
             },
             {
               label: "Instant",
-              current: cardCountsByType.Instant || 0,
+              current: countByType("Instant"),
               target: blueprint?.Instant,
             },
             {
               label: "Sorcery",
-              current: cardCountsByType.Sorcery || 0,
+              current: countByType("Sorcery"),
               target: blueprint?.Sorcery,
             },
             {
               label: "Enchantment",
-              current: cardCountsByType.Enchantment || 0,
+              current: countByType("Enchantment"),
               target: blueprint?.Enchantment,
             },
             {
               label: "Artifact",
-              current: cardCountsByType.Artifact || 0,
+              current: countByType("Artifact"),
               target: blueprint?.Artifact,
             },
             {
               label: "Planeswalker",
-              current: cardCountsByType.Planeswalker || 0,
+              current: countByType("Planeswalker"),
               target: blueprint?.Planeswalker,
             },
           ];

@@ -71,18 +71,18 @@ function openDeckHelp(deckId) {
     const commanderName = deck.commander?.name || 'Unknown';
     const cards = deck.cards || {};
     const localColl = window.localCollection || localCollection;
-    const total = Object.values(cards).reduce((s,c) => s + (c.count||0), 0);
+    const total = Object.values(cards).reduce((s, c) => s + (c.count || 0), 0);
     const typeCounts = {};
-    const sample = [];
+    const allCardsList = [];
     for (const fid of Object.keys(cards)) {
       const cdata = localColl[fid] || { name: cards[fid].name || fid, type_line: cards[fid].type_line || '' };
       const mainType = (cdata.type_line || '').split(' — ')[0] || 'Other';
       typeCounts[mainType] = (typeCounts[mainType] || 0) + (cards[fid].count || 0);
-      if (sample.length < 20) sample.push(`${cdata.name} x${cards[fid].count || 1}`);
+      allCardsList.push(`${cdata.name} x${cards[fid].count || 1}`);
     }
 
     const countsText = Object.keys(typeCounts).map(k => `${k}: ${typeCounts[k]}`).join(', ');
-    const msg = `Deck Help Request:\nDeck: ${deck.name} (${deck.format || 'commander'})\nCommander: ${commanderName}\nTotal cards (non-commander): ${total}\nCounts: ${countsText}\nSample cards: ${sample.join(', ')}\n\nPlease provide guidance, improvements, and suggestions for this deck.\n`;
+    const msg = `Deck Help Request:\nDeck: ${deck.name} (${deck.format || 'commander'})\nCommander: ${commanderName}\nTotal cards (non-commander): ${total}\nCounts: ${countsText}\n\nCurrent Deck List:\n${allCardsList.join('\n')}\n\nPlease provide guidance, improvements, and suggestions for this deck.\nIMPORTANT: Do NOT suggest adding any card that is already in the deck (listed above), unless it is a Basic Land. Ensure no duplicate names within your suggestions.`;
 
     // Prefer module-level MTG chat handler if present
     if (typeof window.__module_handleMtgChat === 'function') {
@@ -99,7 +99,7 @@ function openDeckHelp(deckId) {
       openDeckSuggestionsModal(deckId, { type: null });
       const status = document.getElementById('deck-suggestions-status');
       if (status) status.textContent = 'Deck Help context loaded. Paste the following into MTG Chat:';
-      appendResultBlock('DeckHelp','',0,0,false,msg);
+      appendResultBlock('DeckHelp', '', 0, 0, false, msg);
     } catch (e) {
       console.error('Could not open Deck Help UI', e);
       showToast('Deck Help is unavailable in this build.', 'error');
@@ -108,7 +108,7 @@ function openDeckHelp(deckId) {
 }
 
 // Expose helpers
-try { window.openDeckSuggestionsModal = openDeckSuggestionsModal; window.openDeckHelp = openDeckHelp; } catch(e) {}
+try { window.openDeckSuggestionsModal = openDeckSuggestionsModal; window.openDeckHelp = openDeckHelp; } catch (e) { }
 
 export { openDeckSuggestionsModal, openDeckHelp };
 
@@ -267,7 +267,7 @@ function openDeckSuggestionsModal(deckId, opts = {}) {
     const el = document.getElementById('deck-suggestions-preview-selected-count');
     if (el) el.textContent = `${cnt} selected`;
   };
-  
+
   // Need to use event delegation on the body since table rows are dynamic
   document.body.removeEventListener('change', handleModalChangeEvents); // Remove old listener
   document.body.addEventListener('change', handleModalChangeEvents); // Add new one
@@ -338,16 +338,15 @@ function buildCandidateMapForType(type, commanderColors, tempDeckList) {
       // 3. Add to map. We DON'T check tempDeckList or assignments for lands.
       candidateMap.set(card.firestoreId, card);
     }
-  } 
+  }
   // --- Non-Land Logic ---
   else {
     for (const card of Object.values(col)) {
       // 1. Check color identity
       if (!isColorIdentityValid(card.color_identity, commanderColors)) continue;
 
-      // 2. Check type
-      const mainType = (card.type_line || '').split(' — ')[0];
-      if (type && mainType !== type) continue;
+      // 2. Check type (Allow partial match, e.g. "Legendary Creature" matches "Creature")
+      if (type && !(card.type_line || '').includes(type)) continue;
 
       // 3. Check if already in temp deck (from this session OR original)
       if (tempDeckList[card.firestoreId]) continue;
@@ -375,7 +374,7 @@ async function startSuggestionFlow(deckId, opts = {}) {
   }
   window.__deckSuggestionsFlowInFlight = true;
 
-  
+
   // --- UI State Update: Show Loading ---
   const statusEl = document.getElementById('deck-suggestions-status');
   statusEl.textContent = 'Starting suggestion flow...';
@@ -385,7 +384,7 @@ async function startSuggestionFlow(deckId, opts = {}) {
   // ---
 
   const deck = (window.localDecks || localDecks)[deckId];
-  if (!deck) { try { window.__deckSuggestionsFlowInFlight = false; } catch(e){}; showToast('Deck not found.', 'error'); return; }
+  if (!deck) { try { window.__deckSuggestionsFlowInFlight = false; } catch (e) { }; showToast('Deck not found.', 'error'); return; }
 
   const blueprint = deck.aiBlueprint || {};
   const commanderColors = deck.commander?.color_identity || [];
@@ -394,16 +393,17 @@ async function startSuggestionFlow(deckId, opts = {}) {
 
   // --- Get type counts from blueprint ---
   const typeCounts = blueprint.counts || {};
-  
+
   // --- Better defaults for type counts ---
+  // Prefer values from blueprint.suggestedCounts if present, otherwise fall back to sane defaults.
   const defaultTypeCounts = {
-    'Creature': 25,
-    'Planeswalker': 5,
-    'Instant': 10,
-    'Sorcery': 10,
-    'Artifact': 10,
-    'Enchantment': 10,
-    'Land': 30 // This is for non-basic lands in the 99
+    'Creature': blueprint.suggestedCounts?.Creature ?? 25,
+    'Planeswalker': blueprint.suggestedCounts?.Planeswalker ?? 5,
+    'Instant': blueprint.suggestedCounts?.Instant ?? 10,
+    'Sorcery': blueprint.suggestedCounts?.Sorcery ?? 10,
+    'Artifact': blueprint.suggestedCounts?.Artifact ?? 10,
+    'Enchantment': blueprint.suggestedCounts?.Enchantment ?? 10,
+    'Land': blueprint.suggestedCounts?.Land ?? 30 // This is for non-basic lands in the 99
   };
   // ---
 
@@ -416,18 +416,18 @@ async function startSuggestionFlow(deckId, opts = {}) {
     // The commander is not in the .cards list, so this is fine.
     return Object.values(tempDeckList).reduce((s, c) => s + (c.count || 0), 0);
   }
-  
+
   // --- Helper to count cards of a specific type SLOT in the tempDeckList ---
   const getTempDeckCountForType = (typeToCount) => { // typeToCount is the SLOT (e.g., 'Planeswalker')
     let count = 0;
     for (const card of Object.values(tempDeckList)) {
       // Check original deck cards (which have no slotType)
       if (!card.slotType) {
-          const mainType = (card.type_line || '').split(' — ')[0];
-          if (mainType === typeToCount) {
-            count += (card.count || 0);
-          }
-      } 
+        const mainType = (card.type_line || '').split(' — ')[0];
+        if (mainType === typeToCount) {
+          count += (card.count || 0);
+        }
+      }
       // Check suggested cards
       else if (card.slotType === typeToCount) {
         count += (card.count || 0);
@@ -439,7 +439,7 @@ async function startSuggestionFlow(deckId, opts = {}) {
 
 
   // Types to fill: use a common order or blueprint.types
-  let typesToFill = blueprint.types || ['Creature','Planeswalker','Instant','Sorcery','Artifact','Enchantment','Land'];
+  let typesToFill = blueprint.types || ['Creature', 'Planeswalker', 'Instant', 'Sorcery', 'Artifact', 'Enchantment', 'Land'];
 
   // If the modal was opened with a specific type filter, restrict to that
   if (currentTypeFilter) {
@@ -450,7 +450,7 @@ async function startSuggestionFlow(deckId, opts = {}) {
   // --- Main Loop: Process each type sequentially ---
   for (const type of typesToFill) {
     if (countNonCommander() >= targetTotal) break;
-    
+
     // --- Calculate numToRequest based on blueprint ---
     // Use the *original* type from the loop (e.g., 'Planeswalker')
     const targetCount = typeCounts[type] || defaultTypeCounts[type] || 10; // Use blueprint, then default, then 10
@@ -491,10 +491,10 @@ async function startSuggestionFlow(deckId, opts = {}) {
     console.log(`[deckSuggestions] ${statusMsg}`); // Console log now includes fallback info
 
     // 1. Build the full list of candidates to send
-    const candidatesPreview = Array.from(candidateMap.values()).map(c => ({ 
-      firestoreId: c.firestoreId, 
-      name: c.name, 
-      oracle_text: c.oracle_text || '', 
+    const candidatesPreview = Array.from(candidateMap.values()).map(c => ({
+      firestoreId: c.firestoreId,
+      name: c.name,
+      oracle_text: c.oracle_text || '',
       type_line: c.type_line || '',
       cmc: c.cmc || 0,
       power: c.power || null,
@@ -506,7 +506,17 @@ async function startSuggestionFlow(deckId, opts = {}) {
       // Tiny hint: mark basic lands so the model can prefer them as duplicates when allowed
       is_basic_land: /^(Plains|Island|Swamp|Mountain|Forest)$/i.test(c.name || '')
     }));
-    
+
+    // --- Build Current Deck List String for Context ---
+    const currentDeckNames = [];
+    for (const cid of Object.keys(tempDeckList)) {
+      const c = tempDeckList[cid];
+      if (c && c.name) {
+        currentDeckNames.push(c.name);
+      }
+    }
+    const currentDeckContext = currentDeckNames.length > 0 ? `Current cards in deck:\n${currentDeckNames.join(', ')}` : 'Current deck is empty.';
+
     // 2. Create the prompt
     let singleCallInstructions = `
       You are an expert Magic: The Gathering deck builder.
@@ -514,9 +524,14 @@ async function startSuggestionFlow(deckId, opts = {}) {
       The deck is a ${deckFormat} deck.
       Provide a 1-10 rating and a brief "reason" for each card you select.
       Prioritize cards that fit the deck "blueprint" themes: ${blueprint.themes ? blueprint.themes.join(', ') : 'General Synergy'}.
+      Prioritize "Legendary" cards or other special variants (e.g. Artifact Creatures) if they fit the deck's theme better than standard cards.
       The commander is: ${deck.commander?.name || 'Unknown'}.
       Current deck size is ${countNonCommander()} / ${targetTotal}.
-      IMPORTANT: Return the candidate's exact "firestoreId" string from the candidates list. Do NOT append suffixes like "_1", "_2" to indicate duplicates. If you want duplicates of a card, either return the same "firestoreId" multiple times or include a numeric "count" field on the suggestion object. Return ONLY a JSON object matching the provided schema.
+      ${currentDeckContext}
+      IMPORTANT: Return the candidate's exact "firestoreId" string from the candidates list. 
+      Do NOT suggest any card that is already in the deck (listed above), unless it is a Basic Land.
+      Ensure no duplicate names within your suggestions.
+      Do NOT append suffixes like "_1", "_2" to indicate duplicates. If you want duplicates of a card, either return the same "firestoreId" multiple times or include a numeric "count" field on the suggestion object. Return ONLY a JSON object matching the provided schema.
     `;
 
     // --- Land-specific prompt modification ---
@@ -532,6 +547,7 @@ async function startSuggestionFlow(deckId, opts = {}) {
         IMPORTANT: Return the candidate's exact "firestoreId" string from the candidates list. Do NOT invent or append suffixes like "_1". If you want duplicates, return the same "firestoreId" multiple times or include a numeric "count" field on the suggestion object.
         The commander is: ${deck.commander?.name || 'Unknown'}.
         Current deck size is ${countNonCommander()} / ${targetTotal}.
+        ${currentDeckContext}
         Return ONLY a JSON object matching the provided schema.
       `;
     }
@@ -564,7 +580,7 @@ async function startSuggestionFlow(deckId, opts = {}) {
     // 4. Process results
     const suggestions = result.suggestions || [];
     const mapped = []; // This will hold the cards we ACTUALLY add
-    
+
     for (const suggestion of suggestions) {
       let card = candidateMap.get(suggestion.firestoreId);
       // If AI returned an ID that doesn't match, attempt tolerant mapping.
@@ -610,7 +626,7 @@ async function startSuggestionFlow(deckId, opts = {}) {
       // Add to aggregate map for preview
       allSuggestedMap[card.firestoreId] = Object.assign({
         // Base data from local collection
-        ...card, 
+        ...card,
         // AI-provided data
         rating: suggestion.rating ?? null,
         reason: suggestion.reason ?? '',
@@ -623,7 +639,7 @@ async function startSuggestionFlow(deckId, opts = {}) {
       tempDeckList[card.firestoreId].count = (tempDeckList[card.firestoreId].count || 0) + 1;
       tempDeckList[card.firestoreId].slotType = type; // Mark which slot it fills
     }
-    
+
     // Only proceed if we actually mapped cards to add
     if (mapped.length > 0) {
       // Append incremental per-type UI block
@@ -660,8 +676,8 @@ async function startSuggestionFlow(deckId, opts = {}) {
   if (mode === 'auto') {
     // Auto-apply
     const idsToAdd = Object.keys(allSuggestedMap).filter(id => !(deck.cards || {})[id]);
-  if (idsToAdd.length === 0) { try { window.__deckSuggestionsFlowInFlight = false; } catch(e){}; showToast('No new cards to add.', 'info'); return; }
-    
+    if (idsToAdd.length === 0) { try { window.__deckSuggestionsFlowInFlight = false; } catch (e) { }; showToast('No new cards to add.', 'info'); return; }
+
     if (typeof window.handleAddSelectedCardsToDeck === 'function') {
       closeModal('deck-suggestions-modal');
       window.handleAddSelectedCardsToDeck(deckId, idsToAdd);
@@ -682,7 +698,7 @@ async function startSuggestionFlow(deckId, opts = {}) {
       // Wire buttons
       document.getElementById('deck-suggestions-apply-selected-btn').onclick = () => {
         const ids = Array.from(document.querySelectorAll('.deck-suggestion-checkbox:checked')).map(cb => cb.dataset.firestoreId);
-        
+
         // Save metadata first
         saveSuggestionMetadata(deckId);
 
@@ -701,7 +717,7 @@ async function startSuggestionFlow(deckId, opts = {}) {
         // User wants replacements.
         // 1. Get selected IDs
         const selectedIds = new Set(Array.from(document.querySelectorAll('.deck-suggestion-checkbox:checked')).map(cb => cb.dataset.firestoreId));
-        
+
         // 2. Remove unselected cards from the aggregate map
         Object.keys(allSuggestedMap).forEach(id => {
           if (!selectedIds.has(id)) {
@@ -719,9 +735,9 @@ async function startSuggestionFlow(deckId, opts = {}) {
       appendResultBlock('Complete', '', 0, 0, true, 'No new suggestions found for this deck.');
       document.getElementById('deck-suggestions-preview').classList.add('hidden');
     }
-  // Clear the in-flight guard so the user can run another pass
-  try { window.__deckSuggestionsFlowInFlight = false; } catch (e) {}
-}
+    // Clear the in-flight guard so the user can run another pass
+    try { window.__deckSuggestionsFlowInFlight = false; } catch (e) { }
+  }
 }
 
 /**
@@ -743,7 +759,7 @@ function appendResultBlock(effectiveType, slotType, count, requested, isError, m
 
     const block = document.createElement('div');
     block.className = `p-3 rounded-lg border ${isError ? 'bg-red-900/20 border-red-700/50' : 'bg-gray-800/60 border-gray-700/50'}`;
-    
+
     let title = '';
     if (slotType && effectiveType !== slotType) {
       title = `${effectiveType} (for ${slotType} slot)`;
@@ -778,7 +794,7 @@ function saveSuggestionMetadata(deckId) {
 
   // Get *only* the selected cards
   const selectedIds = new Set(Array.from(document.querySelectorAll('.deck-suggestion-checkbox:checked')).map(cb => cb.dataset.firestoreId));
-  
+
   const metadataToSave = []; // FIX: Initialize as an array
   for (const id of selectedIds) {
     if (allSuggestedMap[id]) {
@@ -793,7 +809,7 @@ function saveSuggestionMetadata(deckId) {
       });
     }
   }
-  
+
   const statusEl = document.getElementById('deck-suggestions-save-status');
   const retryBtn = document.getElementById('deck-suggestions-save-retry-btn');
   statusEl.textContent = 'Saving AI metadata...';
@@ -829,7 +845,7 @@ function escapeHtml(str) {
 function reRenderPreviewTable() {
   const previewBody = document.getElementById('deck-suggestions-preview-body');
   if (!previewBody) return;
-  
+
   previewBody.innerHTML = '';
   const arr = Object.values(allSuggestedMap);
 
@@ -845,11 +861,11 @@ function reRenderPreviewTable() {
   arr.forEach(s => {
     const tr = document.createElement('tr');
     tr.className = 'border-b border-gray-700/50 hover:bg-gray-800/60 transition-colors';
-    
+
     // Get checkbox state. If table is re-rendering, maintain checked state.
     // Default to checked if it's a new card.
     const isChecked = selectedIds.has(s.firestoreId) || !selectedIds.size; // Default to checked
-    
+
     const oracle = s.oracle_text || '';
     const cmc = s.cmc ?? '';
     const colors = (s.colors || []).join(', ');
@@ -894,72 +910,72 @@ async function callGeminiWithRetries(payload, retries = 3, initialDelay = 1000) 
 
   // Store the promise while the request resolves (including retries)
   window.__geminiInFlightMap[key] = (async () => {
-  
-  // Resolve per-user Gemini URL at runtime (require per-user key; do not rely on hard-coded global)
-  const url = (typeof window.getGeminiUrl === 'function') ? await window.getGeminiUrl() : null;
-  if (!url) {
-    console.error('[deckSuggestions] Gemini API Key is not configured.');
-    try { if (typeof window.renderGeminiSettings === 'function') window.renderGeminiSettings(); } catch (e) {}
-    try { if (typeof window.showView === 'function') window.showView('settings'); } catch (e) {}
-    if (typeof showToast === 'function') showToast('No Gemini API key configured. Add it in Settings to enable AI features.', 'error');
-    return null;
-  }
 
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      const resp = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (!resp.ok) {
-        const body = await resp.text();
-        console.error(`[deckSuggestions] Gemini API error (Attempt ${attempt}):`, resp.status, body);
-        throw new Error(`APIError: ${resp.status}`);
-      }
-
-      const data = await resp.json();
-      
-      // Check for blocked content
-      if (!data.candidates || data.candidates.length === 0) {
-        const blockReason = data.promptFeedback?.blockReason;
-        if (blockReason) {
-          console.error(`[deckSuggestions] Gemini request blocked: ${blockReason}`, data.promptFeedback);
-          showToast(`Request blocked by AI: ${blockReason}`, 'error');
-          return null; // Don't retry on content block
-        }
-        throw new Error('Empty response from Gemini');
-      }
-
-      const part = data.candidates?.[0]?.content?.parts?.[0];
-      if (!part || !part.text) {
-        console.warn(`[deckSuggestions] Malformed response part (Attempt ${attempt}):`, data);
-        throw new Error('Malformed response part');
-      }
-
-      // With native JSON mode, part.text is a string *containing* JSON.
-      const parsedJson = JSON.parse(part.text);
-      return parsedJson; // Success!
-
-    } catch (err) {
-      console.warn(`[deckSuggestions] Gemini attempt ${attempt} failed:`, err.message);
-      if (attempt === retries) {
-        showToast('AI suggestions failed after multiple retries.', 'error');
-        return null;
-      }
-      await new Promise(res => setTimeout(res, delay));
-      delay = Math.min(delay * 2, 10000); // Exponential backoff, max 10s
+    // Resolve per-user Gemini URL at runtime (require per-user key; do not rely on hard-coded global)
+    const url = (typeof window.getGeminiUrl === 'function') ? await window.getGeminiUrl() : null;
+    if (!url) {
+      console.error('[deckSuggestions] Gemini API Key is not configured.');
+      try { if (typeof window.renderGeminiSettings === 'function') window.renderGeminiSettings(); } catch (e) { }
+      try { if (typeof window.showView === 'function') window.showView('settings'); } catch (e) { }
+      if (typeof showToast === 'function') showToast('No Gemini API key configured. Add it in Settings to enable AI features.', 'error');
+      return null;
     }
-  }
-  return null;
+
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!resp.ok) {
+          const body = await resp.text();
+          console.error(`[deckSuggestions] Gemini API error (Attempt ${attempt}):`, resp.status, body);
+          throw new Error(`APIError: ${resp.status}`);
+        }
+
+        const data = await resp.json();
+
+        // Check for blocked content
+        if (!data.candidates || data.candidates.length === 0) {
+          const blockReason = data.promptFeedback?.blockReason;
+          if (blockReason) {
+            console.error(`[deckSuggestions] Gemini request blocked: ${blockReason}`, data.promptFeedback);
+            showToast(`Request blocked by AI: ${blockReason}`, 'error');
+            return null; // Don't retry on content block
+          }
+          throw new Error('Empty response from Gemini');
+        }
+
+        const part = data.candidates?.[0]?.content?.parts?.[0];
+        if (!part || !part.text) {
+          console.warn(`[deckSuggestions] Malformed response part (Attempt ${attempt}):`, data);
+          throw new Error('Malformed response part');
+        }
+
+        // With native JSON mode, part.text is a string *containing* JSON.
+        const parsedJson = JSON.parse(part.text);
+        return parsedJson; // Success!
+
+      } catch (err) {
+        console.warn(`[deckSuggestions] Gemini attempt ${attempt} failed:`, err.message);
+        if (attempt === retries) {
+          showToast('AI suggestions failed after multiple retries.', 'error');
+          return null;
+        }
+        await new Promise(res => setTimeout(res, delay));
+        delay = Math.min(delay * 2, 10000); // Exponential backoff, max 10s
+      }
+    }
+    return null;
   })();
 
   try {
     return await window.__geminiInFlightMap[key];
   } finally {
     // Clean up entry for this payload so future requests can run
-    try { delete window.__geminiInFlightMap[key]; } catch (e) {}
+    try { delete window.__geminiInFlightMap[key]; } catch (e) { }
   }
 }
 
