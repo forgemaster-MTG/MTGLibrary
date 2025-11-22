@@ -16,6 +16,8 @@ firebase-debug.*.log*
 # dotenv environment variables file
 .env
 
+.serviceAccountKey.json
+
 .sql
 
 # Firebase config
