@@ -120,9 +120,37 @@
     </div>
 
     <!-- Main Application Container -->
-    <div id="app-wrapper" class="hidden w-full h-screen flex">
+    <div id="app-wrapper" class="hidden w-full h-screen flex relative">
+      <!-- Mobile Header (visible only on small screens) -->
+      <div id="mobile-header" class="md:hidden fixed top-0 left-0 right-0 bg-gray-800 border-b border-gray-700 z-40 flex items-center justify-between px-4 py-3">
+        <button id="mobile-menu-toggle" class="text-white p-2 hover:bg-gray-700 rounded-lg transition-colors">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
+        </button>
+        <h1 class="text-lg font-bold bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent">
+          MTG Forge
+        </h1>
+        <div class="w-10"></div> <!-- Spacer for centering -->
+      </div>
+
+      <!-- Mobile Backdrop -->
+      <div id="mobile-backdrop" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden"></div>
+
       <!-- Sidebar Navigation -->
-      <nav class="w-64 bg-gray-800 flex-shrink-0 flex flex-col p-4">
+      <nav id="sidebar" class="
+        fixed md:static
+        w-64 
+        bg-gray-800 
+        flex-shrink-0 
+        flex flex-col 
+        p-4
+        h-full
+        transition-transform duration-300 ease-in-out
+        -translate-x-full md:translate-x-0
+        z-50
+        md:z-auto
+      ">
         <div class="flex items-center gap-3 mb-8">
           <svg
             class="w-10 h-10 text-purple-400"
@@ -274,7 +302,7 @@
       <!-- Main Content -->
       <div
         id="app-content"
-        class="flex-1 flex flex-col h-screen overflow-y-auto"
+        class="flex-1 flex flex-col h-screen overflow-y-auto pt-16 md:pt-0"
       >
         <header
           class="bg-gray-800/80 backdrop-blur-sm sticky top-0 z-10 p-4 flex justify-between items-center border-b border-gray-700"
