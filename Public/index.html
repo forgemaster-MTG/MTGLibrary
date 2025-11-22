@@ -728,209 +728,265 @@
           </div>
 
           <!-- Settings View -->
-          <div id="settings-view" class="hidden space-y-8">
-            <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
-              <h2
-                class="text-2xl font-semibold mb-4 border-b border-gray-700 pb-2"
-              >
-                Account
-              </h2>
-              <div class="space-y-4">
-                <div>
-                  <label class="text-sm text-gray-400">User Email</label>
-                  <p
-                    id="user-email"
-                    class="text-lg bg-gray-700 p-2 rounded-md"
-                  ></p>
-                </div>
-                <button
-                  id="logout-btn"
-                  class="w-full sm:w-auto bg-red-800 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2"
-                >
-                  <svg
-                    class="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                    ></path>
-                  </svg>
-                  Logout
+          <div id="settings-view" class="hidden">
+            <!-- Tab Navigation -->
+            <div class="mb-6">
+              <nav class="flex gap-1 border-b-2 border-gray-700 overflow-x-auto" id="settings-tabs-nav">
+                <button class="settings-tab px-6 py-3 font-semibold text-gray-400 border-b-4 border-transparent hover:text-white hover:border-gray-600 transition-all whitespace-nowrap flex items-center gap-2" data-tab="general">
+                  <span class="text-xl">🏠</span>
+                  <span>General</span>
                 </button>
-              </div>
+                <button class="settings-tab px-6 py-3 font-semibold text-gray-400 border-b-4 border-transparent hover:text-white hover:border-gray-600 transition-all whitespace-nowrap flex items-center gap-2" data-tab="ai">
+                  <span class="text-xl">🤖</span>
+                  <span>AI & Integrations</span>
+                </button>
+                <button class="settings-tab px-6 py-3 font-semibold text-gray-400 border-b-4 border-transparent hover:text-white hover:border-gray-600 transition-all whitespace-nowrap flex items-center gap-2" data-tab="display">
+                  <span class="text-xl">👁️</span>
+                  <span>Display</span>
+                </button>
+                <button class="settings-tab px-6 py-3 font-semibold text-gray-400 border-b-4 border-transparent hover:text-white hover:border-gray-600 transition-all whitespace-nowrap flex items-center gap-2" data-tab="data">
+                  <span class="text-xl">💾</span>
+                  <span>Data</span>
+                </button>
+                <button class="settings-tab px-6 py-3 font-semibold text-gray-400 border-b-4 border-transparent hover:text-white hover:border-gray-600 transition-all whitespace-nowrap flex items-center gap-2" data-tab="views">
+                  <span class="text-xl">📋</span>
+                  <span>Saved Views</span>
+                </button>
+                <button class="settings-tab px-6 py-3 font-semibold text-gray-400 border-b-4 border-transparent hover:text-white hover:border-gray-600 transition-all whitespace-nowrap flex items-center gap-2" data-tab="advanced">
+                  <span class="text-xl">⚙️</span>
+                  <span>Advanced</span>
+                </button>
+              </nav>
             </div>
-            <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
-              <h2
-                class="text-2xl font-semibold mb-4 border-b border-gray-700 pb-2"
-              >
-                Saved Views
-              </h2>
-              <div id="settings-saved-views" class="space-y-4">
-                <div id="settings-saved-views-list"></div>
-                <!-- builder panel will appear below when editing/creating -->
-                <div id="view-builder-panel" class="mt-3 hidden bg-gray-900 p-4 rounded">
-                  <div id="filters-list" class="space-y-2"></div>
-                  <div class="flex gap-2 mt-2">
-                    <select id="filter-column-select" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
-                      <option value="name">Name</option>
-                      <option value="type_line">Type</option>
-                      <option value="rarity">Rarity</option>
-                      <option value="color_identity">Color Identity</option>
-                      <option value="cmc">Mana Value</option>
-                      <option value="set_name">Set</option>
-                      <option value="count">Count</option>
-                      <option value="deck">Deck</option>
-                    </select>
-                    <select id="filter-op-select" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
-                      <option value="contains">contains</option>
-                      <option value="equals">equals</option>
-                      <option value="gt">&gt;</option>
-                      <option value="lt">&lt;</option>
-                    </select>
-                    <input id="filter-value-input" class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm" placeholder="value">
-                    <button id="add-filter-rule-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold py-1 px-3 rounded">Add</button>
-                  </div>
-                  <div class="mt-4">
-                    <label class="text-sm text-gray-400">Sort Rules (top priority first)</label>
-                    <div id="sorts-list" class="space-y-2 mt-2"></div>
-                    <div class="flex gap-2 mt-2">
-                      <select id="sort-column-select" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
-                        <option value="name">Name</option>
-                        <option value="count">Count</option>
-                        <option value="cmc">Mana Value</option>
-                        <option value="rarity">Rarity</option>
-                        <option value="price">Price</option>
-                      </select>
-                      <select id="sort-dir-select" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
-                        <option value="asc">asc</option>
-                        <option value="desc">desc</option>
-                      </select>
-                      <button id="add-sort-rule-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold py-1 px-3 rounded">Add</button>
-                    </div>
-                  </div>
-                  <div class="mt-4 flex items-center gap-2">
-                    <label class="text-sm text-gray-400">Group By</label>
-                    <select id="view-group-by-1" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
-                      <option value="">None</option>
-                      <option value="type_line">Type</option>
-                      <option value="rarity">Rarity</option>
-                      <option value="color_identity">Color</option>
-                      <option value="cmc">Mana Value</option>
-                      <option value="set_name">Set</option>
-                      <option value="deck">Deck</option>
-                    </select>
-                    <select id="view-group-by-2" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
-                      <option value="">None</option>
-                      <option value="type_line">Type</option>
-                      <option value="rarity">Rarity</option>
-                      <option value="color_identity">Color</option>
-                      <option value="cmc">Mana Value</option>
-                      <option value="set_name">Set</option>
-                      <option value="deck">Deck</option>
-                    </select>
-                    <label class="text-sm text-gray-400 ml-4">Hide In Decks</label>
-                    <input type="checkbox" id="view-hide-in-deck">
-                  </div>
-                  <div class="mt-4 flex items-center gap-2">
-                    <input id="view-name-input" placeholder="View name" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
-                    <label class="text-sm text-gray-400 flex items-center gap-2"><input type="checkbox" id="view-default-checkbox"> Set as default</label>
-                  </div>
-                  <div class="mt-3 flex items-center gap-4">
+
+            <!-- Tab Panels -->
+            <div class="settings-tab-content">
+              <!-- General Tab -->
+              <div id="settings-tab-general" class="settings-tab-panel space-y-6">
+                <!-- Account Section -->
+                <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
+                  <h3 class="text-xl font-bold mb-4 flex items-center gap-2 text-white">
+                    <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                    </svg>
+                    Account
+                  </h3>
+                  <div class="space-y-4">
                     <div>
-                      <label class="text-sm text-gray-400 block">View Mode</label>
-                      <select id="view-view-mode" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
-                        <option value="grid">Grid</option>
-                        <option value="table">Table</option>
-                      </select>
+                      <label class="text-sm text-gray-400 font-medium">User Email</label>
+                      <p id="user-email" class="text-lg bg-gray-700 p-3 rounded-lg mt-1"></p>
                     </div>
-                    <div>
-                      <label class="text-sm text-gray-400 block">Grid Size</label>
-                      <select id="view-grid-size" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
-                        <option value="sm">Small</option>
-                        <option value="md">Medium</option>
-                        <option value="lg">Large</option>
-                      </select>
-                    </div>
-                    <div class="flex-1 text-right">
-                      <button id="save-view-confirm-btn" class="bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-1 px-3 rounded">Save</button>
-                      <button id="cancel-view-builder-btn" class="bg-gray-600 hover:bg-gray-700 text-white text-sm font-bold py-1 px-3 rounded ml-2">Cancel</button>
-                    </div>
+                    <button id="logout-btn" class="bg-red-800 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center gap-2">
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                      </svg>
+                      Logout
+                    </button>
+                  </div>
+                </div>
+
+                <!-- UI Preferences Section -->
+                <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
+                  <h3 class="text-xl font-bold mb-4 flex items-center gap-2 text-white">
+                    <svg class="w-6 h-6 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+                    </svg>
+                    UI Preferences
+                  </h3>
+                  <div id="ui-preferences-container" class="space-y-4">
+                    <!-- Will be populated by renderUIPreferences() -->
                   </div>
                 </div>
               </div>
-            </div>
-            <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
-              <h2
-                class="text-2xl font-semibold mb-4 border-b border-gray-700 pb-2"
-              >
-                Deck Management
-              </h2>
-              <p class="text-gray-400 mb-4">
-                Enable "Edit Mode" from the top bar to delete decks.
-              </p>
-              <div id="settings-deck-list" class="space-y-4">
-                <!-- Deck list for deletion will be populated here -->
+
+              <!-- AI & Integrations Tab -->
+              <div id="settings-tab-ai" class="settings-tab-panel hidden space-y-6">
+                <div id="settings-gemini-section-container">
+                  <!-- Will be populated by renderGeminiSettings() -->
+                </div>
               </div>
-            </div>
-            <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
-              <h2
-                class="text-2xl font-semibold mb-4 border-b border-gray-700 pb-2"
-              >
-                Data Management
-              </h2>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <button
-                  id="export-all-data-btn"
-                  class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg"
-                >
-                  Export All Data
-                </button>
-                <label
-                  class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg cursor-pointer text-center flex items-center justify-center"
-                >
-                  <span>Import All Data</span>
-                  <input
-                    type="file"
-                    id="import-all-data-input"
-                    class="hidden"
-                    accept=".json"
-                  />
-                </label>
-                <!-- Export Deck moved to single deck view for better UX -->
-                <label
-                  class="flex-1 bg-green-800 hover:bg-green-900 text-white font-bold py-2 px-4 rounded-lg cursor-pointer text-center flex items-center justify-center"
-                >
-                  <span>Import Deck</span>
-                  <input
-                    type="file"
-                    id="import-deck-data-input"
-                    class="hidden"
-                    accept=".txt,.json"
-                  />
-                </label>
+
+              <!-- Display Tab -->
+              <div id="settings-tab-display" class="settings-tab-panel hidden space-y-6">
+                <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
+                  <h3 class="text-xl font-bold mb-4 flex items-center gap-2 text-white">
+                    <svg class="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                    </svg>
+                    Card Modal Visibility
+                  </h3>
+                  <p class="text-sm text-gray-400 mb-4">Choose which fields to display when viewing card details</p>
+                  <div id="modal-visibility-settings" class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <!-- Will be populated by renderModalVisibilitySettings() -->
+                  </div>
+                </div>
               </div>
-            </div>
-            <div
-              class="bg-red-900/50 border border-red-700 p-6 rounded-lg shadow-lg"
-            >
-              <h2 class="text-2xl font-semibold mb-4 text-red-300">
-                Danger Zone
-              </h2>
-              <p class="text-red-200 mb-4">
-                This action is irreversible and will permanently delete your
-                entire collection and all your decks.
-              </p>
-              <button
-                id="clear-data-btn"
-                class="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg"
-              >
-                Clear All Account Data
-              </button>
+
+              <!-- Data Tab -->
+              <div id="settings-tab-data" class="settings-tab-panel hidden space-y-6">
+                <!-- Import/Export Section -->
+                <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
+                  <h3 class="text-xl font-bold mb-4 flex items-center gap-2 text-white">
+                    <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                    </svg>
+                    Import & Export
+                  </h3>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <button id="export-all-data-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2">
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                      Export All Data
+                    </button>
+                    <label class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg cursor-pointer text-center transition-colors flex items-center justify-center gap-2">
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                      Import All Data
+                      <input type="file" id="import-all-data-input" class="hidden" accept=".json" />
+                    </label>
+                    <label class="bg-green-800 hover:bg-green-900 text-white font-bold py-3 px-4 rounded-lg cursor-pointer text-center transition-colors col-span-full sm:col-span-1 flex items-center justify-center gap-2">
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                      Import Deck
+                      <input type="file" id="import-deck-data-input" class="hidden" accept=".txt,.json" />
+                    </label>
+                  </div>
+                </div>
+
+                <!-- Deck Management Section -->
+                <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
+                  <h3 class="text-xl font-bold mb-4 flex items-center gap-2 text-white">
+                    <svg class="w-6 h-6 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                    </svg>
+                    Deck Management
+                  </h3>
+                  <p class="text-gray-400 mb-4">Enable "Edit Mode" from the top bar to delete decks.</p>
+                  <div id="settings-deck-list" class="space-y-4">
+                    <!-- Deck list will be populated here -->
+                  </div>
+                </div>
+              </div>
+
+              <!-- Saved Views Tab -->
+              <div id="settings-tab-views" class="settings-tab-panel hidden">
+                <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
+                  <h2 class="text-2xl font-semibold mb-4 border-b border-gray-700 pb-2">Saved Views</h2>
+                  <div id="settings-saved-views" class="space-y-4">
+                    <div id="settings-saved-views-list"></div>
+                    <!-- builder panel will appear below when editing/creating -->
+                    <div id="view-builder-panel" class="mt-3 hidden bg-gray-900 p-4 rounded">
+                      <div id="filters-list" class="space-y-2"></div>
+                      <div class="flex gap-2 mt-2">
+                        <select id="filter-column-select" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
+                          <option value="name">Name</option>
+                          <option value="type_line">Type</option>
+                          <option value="rarity">Rarity</option>
+                          <option value="color_identity">Color Identity</option>
+                          <option value="cmc">Mana Value</option>
+                          <option value="set_name">Set</option>
+                          <option value="count">Count</option>
+                          <option value="deck">Deck</option>
+                        </select>
+                        <select id="filter-op-select" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
+                          <option value="contains">contains</option>
+                          <option value="equals">equals</option>
+                          <option value="gt">&gt;</option>
+                          <option value="lt">&lt;</option>
+                        </select>
+                        <input id="filter-value-input" class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm" placeholder="value">
+                        <button id="add-filter-rule-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold py-1 px-3 rounded">Add</button>
+                      </div>
+                      <div class="mt-4">
+                        <label class="text-sm text-gray-400">Sort Rules (top priority first)</label>
+                        <div id="sorts-list" class="space-y-2 mt-2"></div>
+                        <div class="flex gap-2 mt-2">
+                          <select id="sort-column-select" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
+                            <option value="name">Name</option>
+                            <option value="count">Count</option>
+                            <option value="cmc">Mana Value</option>
+                            <option value="rarity">Rarity</option>
+                            <option value="price">Price</option>
+                          </select>
+                          <select id="sort-dir-select" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
+                            <option value="asc">asc</option>
+                            <option value="desc">desc</option>
+                          </select>
+                          <button id="add-sort-rule-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold py-1 px-3 rounded">Add</button>
+                        </div>
+                      </div>
+                      <div class="mt-4 flex items-center gap-2">
+                        <label class="text-sm text-gray-400">Group By</label>
+                        <select id="view-group-by-1" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
+                          <option value="">None</option>
+                          <option value="type_line">Type</option>
+                          <option value="rarity">Rarity</option>
+                          <option value="color_identity">Color</option>
+                          <option value="cmc">Mana Value</option>
+                          <option value="set_name">Set</option>
+                          <option value="deck">Deck</option>
+                        </select>
+                        <select id="view-group-by-2" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
+                          <option value="">None</option>
+                          <option value="type_line">Type</option>
+                          <option value="rarity">Rarity</option>
+                          <option value="color_identity">Color</option>
+                          <option value="cmc">Mana Value</option>
+                          <option value="set_name">Set</option>
+                          <option value="deck">Deck</option>
+                        </select>
+                        <label class="text-sm text-gray-400 ml-4">Hide In Decks</label>
+                        <input type="checkbox" id="view-hide-in-deck">
+                      </div>
+                      <div class="mt-4 flex items-center gap-2">
+                        <input id="view-name-input" placeholder="View name" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
+                        <label class="text-sm text-gray-400 flex items-center gap-2"><input type="checkbox" id="view-default-checkbox"> Set as default</label>
+                      </div>
+                      <div class="mt-3 flex items-center gap-4">
+                        <div>
+                          <label class="text-sm text-gray-400 block">View Mode</label>
+                          <select id="view-view-mode" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
+                            <option value="grid">Grid</option>
+                            <option value="table">Table</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label class="text-sm text-gray-400 block">Grid Size</label>
+                          <select id="view-grid-size" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-sm">
+                            <option value="sm">Small</option>
+                            <option value="md">Medium</option>
+                            <option value="lg">Large</option>
+                          </select>
+                        </div>
+                        <div class="flex-1 text-right">
+                          <button id="save-view-confirm-btn" class="bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-1 px-3 rounded">Save</button>
+                          <button id="cancel-view-builder-btn" class="bg-gray-600 hover:bg-gray-700 text-white text-sm font-bold py-1 px-3 rounded ml-2">Cancel</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Advanced Tab -->
+              <div id="settings-tab-advanced" class="settings-tab-panel hidden space-y-6">
+                <!-- Precons Admin (injected dynamically for admin users) -->
+                <div id="settings-precons-admin-container"></div>
+                
+                <!-- Danger Zone -->
+                <div class="bg-red-900/50 border-2 border-red-700 p-6 rounded-xl shadow-lg">
+                  <h3 class="text-2xl font-semibold mb-4 text-red-300 flex items-center gap-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                    Danger Zone
+                  </h3>
+                  <p class="text-red-200 mb-4">
+                    This action is irreversible and will permanently delete your entire collection and all your decks.
+                  </p>
+                  <button id="clear-data-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                    Clear All Account Data
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
           <!-- Playstyle widget removed from embedded Settings view; use header Playstyle button to open floating panel -->
@@ -940,6 +996,76 @@
 
     <!-- Toast Container -->
     <div id="toast-container"></div>
+
+    <!-- Settings Tabs Styles & Script -->
+    <style>
+      /* Settings Tab Styles */
+      .settings-tab {
+        position: relative;
+        cursor: pointer;
+        user-select: none;
+      }
+
+      .settings-tab.active {
+        color: white !important;
+        border-bottom-color: #6366F1 !important; /* indigo-500 */
+      }
+
+      .settings-tab:not(.active):hover {
+        color: white;
+        border-bottom-color: #4B5563; /* gray-600 */
+      }
+
+      .settings-tab-panel {
+        animation: fadeIn 0.15s ease-in;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(-8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    </style>
+
+    <script>
+      // Initialize Settings Tabs
+      function initSettingsTabs() {
+        const tabs = document.querySelectorAll('.settings-tab');
+        const panels = document.querySelectorAll('.settings-tab-panel');
+        
+        if (!tabs.length || !panels.length) return;
+        
+        // Set first tab as active by default
+        tabs[0]?.classList.add('active');
+        
+        tabs.forEach((tab, index) => {
+          tab.addEventListener('click', () => {
+            const targetTab = tab.dataset.tab;
+            
+            // Remove active from all tabs and hide all panels
+            tabs.forEach(t => t.classList.remove('active'));
+            panels.forEach(p => p.classList.add('hidden'));
+            
+            // Activate clicked tab and show corresponding panel
+            tab.classList.add('active');
+            const targetPanel = document.getElementById(`settings-tab-${targetTab}`);
+            if (targetPanel) {
+              targetPanel.classList.remove('hidden');
+            }
+          });
+        });
+      }
+      
+      // Call when Settings view becomes visible
+      if (typeof window !== 'undefined') {
+        window.initSettingsTabs = initSettingsTabs;
+      }
+    </script>
 
     <!-- Floating Playstyle Panel (hidden by default) -->
     <div id="playstyle-floating-panel" class="fixed top-16 right-6 z-[80] hidden w-96 max-w-[90vw] bg-transparent">
@@ -2788,71 +2914,103 @@
             .map((c) => colorSymbols[c])
             .join("");
 
+          const commanderArt = deck.commander?.image_uris?.art_crop || deck.commander?.image_uris?.normal || '';
+          
           views.singleDeck.innerHTML = `
-            <div class="space-y-6">
-                <!-- Top Header Section -->
-                <div class="bg-gray-800 p-4 rounded-lg shadow-lg">
-                    <div class="flex flex-col sm:flex-row justify-between items-start gap-4">
+            <div class="space-y-6 animate-fade-in">
+                <!-- Banner Header -->
+                <div class="relative w-full h-64 bg-gray-900 rounded-xl overflow-hidden shadow-2xl group">
+                    <div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105" style="background-image: url('${commanderArt}'); opacity: 0.6;"></div>
+                    <div class="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/60 to-transparent"></div>
+                    
+                    <div class="absolute bottom-0 left-0 p-6 w-full flex flex-col md:flex-row justify-between items-end gap-4">
                         <div>
-                             <h2 class="text-3xl font-bold mb-2">${deck.name}</h2>
-                             <p class="text-gray-400">Format: ${deck.format}</p>
+                            <h2 class="text-4xl font-bold text-white mb-2 drop-shadow-lg tracking-tight">${deck.name}</h2>
+                            <div class="flex items-center gap-3 text-gray-300">
+                                <span class="bg-indigo-600/80 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm">${deck.format}</span>
+                                <div class="flex items-center gap-1 bg-gray-800/60 backdrop-blur-sm px-2 py-1 rounded-full">${colorIcons}</div>
+                            </div>
                         </div>
-                         <div class="flex items-center gap-2">
-                          ${colorIcons}
-                          <button id="add-cards-to-deck-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg ml-4">Add Cards</button>
-                          <button id="deck-delete-btn" data-deck-id="${deckId}" class="delete-button bg-red-800 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">Delete Deck</button>
-                         </div>
+                        <div class="flex items-center gap-3">
+                            <button id="add-cards-to-deck-btn" class="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-6 rounded-lg shadow-lg transition-all transform hover:-translate-y-0.5 flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                Add Cards
+                            </button>
+                            <div class="relative group/menu">
+                                <button class="bg-gray-700/80 hover:bg-gray-600 text-white p-2 rounded-lg backdrop-blur-sm transition-colors">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg>
+                                </button>
+                                <div class="absolute right-0 bottom-full mb-2 w-48 bg-gray-800 rounded-lg shadow-xl border border-gray-700 hidden group-hover/menu:block overflow-hidden z-10">
+                                    <button id="deck-delete-btn" data-deck-id="${deckId}" class="w-full text-left px-4 py-3 text-red-400 hover:bg-gray-700 hover:text-red-300 transition-colors flex items-center gap-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                        Delete Deck
+                                    </button>
+                                    <button id="export-deck-btn" data-deck-id="${deckId}" class="w-full text-left px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-white transition-colors border-t border-gray-700">
+                                        Export List
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Main Content Grid -->
-                <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
-                    <!-- Left Column: Commander & Stats -->
-                    <div class="lg:col-span-2 space-y-6">
-                        ${
-                          deck.commander
-                            ? `
-                        <div class="bg-gray-800 p-4 rounded-lg shadow-lg">
-                            <h3 class="text-xl font-semibold mb-3">Commander</h3>
-                            <div class="relative group">
-                                <div class="card-image-container rounded-lg overflow-hidden">
-                                    <img src="${deck.commander.image_uris?.normal}" class="card-image" alt="${deck.commander.name}">
-                                </div>
-                                <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                    <button class="view-card-details-btn bg-white/20 backdrop-blur-sm text-white font-bold py-2 px-4 rounded-lg" data-firestore-id="${deck.commander.firestoreId}">View Details</button>
-                                </div>
-                            </div>
-                        </div>`
-                            : ""
-                        }
-                       
-                        <div class="bg-gray-800 p-4 rounded-lg shadow-lg">
-                            <h3 class="text-xl font-semibold mb-3">Statistics</h3>
-                            <div class="grid grid-cols-2 gap-3">
-                                ${kpiHtml}
+                <!-- Stats Bar -->
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+                    ${kpiHtml}
+                </div>
+
+                <!-- Main Content Area -->
+                <div class="flex flex-col lg:flex-row gap-6">
+                    <!-- Left: Decklist (Flexible Width) -->
+                    <div class="flex-1 min-w-0 bg-gray-800 rounded-xl shadow-lg p-1">
+                        <div class="flex items-center justify-between px-4 py-3 border-b border-gray-700/50">
+                            <h3 class="text-lg font-bold text-white">Decklist</h3>
+                            <div class="flex bg-gray-900/50 rounded-lg p-1 gap-1">
+                                <button id="view-toggle-grid" class="p-1.5 rounded-md text-gray-400 hover:text-white hover:bg-gray-700/50 transition-all" title="Grid View">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                                </button>
+                                <button id="view-toggle-table" class="p-1.5 rounded-md text-gray-400 hover:text-white hover:bg-gray-700/50 transition-all" title="Table View">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+                                </button>
                             </div>
                         </div>
-
-                         <div class="bg-gray-800 p-4 rounded-lg shadow-lg">
-                             <h3 class="text-xl font-semibold mb-3">Mana Curve</h3>
-                             <canvas id="mana-curve-chart"></canvas>
-                         </div>
-
-                        <div class="bg-gray-800 p-4 rounded-lg shadow-lg">
-                            <h3 class="text-xl font-semibold mb-3">Deck Tools</h3>
-                            <div class="space-y-3">
-                ${deck.aiBlueprint ? `<div class="space-y-2"><button id="view-strategy-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg">View AI Strategy</button><button id="rerun-ai-summary-btn" class="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg">Rerun AI Summary</button></div>` : ''}
-                <button id="ai-suggestions-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg">Deck Suggestions</button>
-                <button id="deck-help-btn" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-lg">Deck Help</button>
-                <button id="export-deck-btn" data-deck-id="${deckId}" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">Export Decklist (.txt)</button>
-                            </div>
+                        <div id="decklist-container" class="p-4">
+                            <!-- Decklist rendered here -->
                         </div>
                     </div>
-                     <!-- Right Column: Decklist -->
-                    <div class="lg:col-span-3 bg-gray-800 p-4 rounded-lg shadow-lg">
-                        <h3 class="text-2xl font-semibold mb-4">Decklist</h3>
-                        <div id="decklist-container" class="space-y-4">
-                            <!-- Decklist will be populated here -->
+
+                    <!-- Right: Tools & Charts (Fixed Width on Desktop) -->
+                    <div class="w-full lg:w-80 space-y-6 shrink-0">
+                        <!-- Commander Mini-View (if needed, or just keep it in banner) -->
+                        ${deck.commander ? `
+                        <div class="bg-gray-800 p-4 rounded-xl shadow-lg">
+                            <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Commander</h3>
+                            <div class="relative group cursor-pointer" onclick="if(typeof window.renderCardDetailsModal === 'function') window.renderCardDetailsModal(window.localCollection['${deck.commander.firestoreId}'])">
+                                <img src="${deck.commander.image_uris?.normal}" class="w-full rounded-lg shadow-md hover:shadow-indigo-500/30 transition-shadow duration-300" alt="${deck.commander.name}">
+                            </div>
+                        </div>` : ''}
+
+                        <div class="bg-gray-800 p-4 rounded-xl shadow-lg">
+                            <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Mana Curve</h3>
+                            <div class="h-32">
+                                <canvas id="mana-curve-chart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-800 p-4 rounded-xl shadow-lg">
+                            <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">AI Tools</h3>
+                            <div class="space-y-2">
+                                ${deck.aiBlueprint ? `
+                                <button id="view-strategy-btn" class="w-full bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-600/50 hover:border-purple-500 font-bold py-2 px-4 rounded-lg transition-all text-sm">View Strategy</button>
+                                <button id="rerun-ai-summary-btn" class="w-full bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-300 border border-yellow-600/50 hover:border-yellow-500 font-bold py-2 px-4 rounded-lg transition-all text-sm">Update Strategy</button>
+                                ` : ''}
+                                <button id="ai-suggestions-btn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-4 rounded-lg shadow-lg transition-all text-sm">
+                                    ✨ Deck Suggestions
+                                </button>
+                                <button id="deck-help-btn" class="w-full bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 border border-teal-600/50 hover:border-teal-500 font-bold py-2 px-4 rounded-lg transition-all text-sm">
+                                    💬 Ask AI Helper
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

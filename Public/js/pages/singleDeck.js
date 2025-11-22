@@ -46,7 +46,7 @@ async function fetchAndReplacePlaceholders(mappings, deckId, uid) {
       console.warn('[reconcile] failed to fetch new collection doc', m.newId, e);
     }
   }
-  try { updateCardAssignments(); if (typeof window.renderSingleDeck === 'function') window.renderSingleDeck(deckId); } catch (e) {}
+  try { updateCardAssignments(); if (typeof window.renderSingleDeck === 'function') window.renderSingleDeck(deckId); } catch (e) { }
 }
 
 function getUserId() {
@@ -68,7 +68,7 @@ function showConfirmationModal(title, message, onConfirm) {
       const btn = document.getElementById('confirm-action-btn');
       if (btn) {
         btn.onclick = async () => {
-          try { if (typeof window.closeModal === 'function') window.closeModal('confirmation-modal'); } catch (e) {}
+          try { if (typeof window.closeModal === 'function') window.closeModal('confirmation-modal'); } catch (e) { }
           try { await onConfirm(); } catch (e) { /* allow caller to handle errors */ }
           btn.onclick = null;
         };
@@ -95,7 +95,7 @@ export function isColorIdentityValid(cardColors, commanderColors) {
 
 const deckChartInstances = {};
 
-export function renderDecklist(deckId) {
+export function renderDecklist(deckId, viewMode = 'grid') {
   const container = document.getElementById('decklist-container');
   if (!container) return;
   const deck = localDecks[deckId];
@@ -105,101 +105,198 @@ export function renderDecklist(deckId) {
     if (!cardData) return null;
     return { ...cardData, countInDeck: deck.cards[firestoreId].count };
   }).filter(Boolean);
-  // Build a small filter/group UI atop the decklist so users can search or group like the collection view
+
+  // --- View Toggle Logic ---
+  const gridBtn = document.getElementById('view-toggle-grid');
+  const tableBtn = document.getElementById('view-toggle-table');
+  if (gridBtn && tableBtn) {
+    if (viewMode === 'grid') {
+      gridBtn.classList.add('bg-indigo-600', 'text-white');
+      gridBtn.classList.remove('text-gray-400', 'hover:text-white');
+      tableBtn.classList.remove('bg-indigo-600', 'text-white');
+      tableBtn.classList.add('text-gray-400', 'hover:text-white');
+    } else {
+      tableBtn.classList.add('bg-indigo-600', 'text-white');
+      tableBtn.classList.remove('text-gray-400', 'hover:text-white');
+      gridBtn.classList.remove('bg-indigo-600', 'text-white');
+      gridBtn.classList.add('text-gray-400', 'hover:text-white');
+    }
+  }
+
+  // --- Capture State ---
   const filterId = 'single-deck-filter';
   const groupById = 'single-deck-groupby';
+  const currentFilter = document.getElementById(filterId)?.value || '';
+  const currentGroup = document.getElementById(groupById)?.value || 'type_line';
+
   const filterHtml = `
-    <div class="mb-3 flex items-center gap-2">
-      <input id="${filterId}" placeholder="Filter cards by name or set..." class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm" />
-      <select id="${groupById}" class="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm">
-        <option value="">No Group</option>
+    <div class="mb-4 flex flex-col sm:flex-row items-center gap-3 bg-gray-900/50 p-3 rounded-lg border border-gray-700/50">
+      <div class="relative flex-1 w-full">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        <input id="${filterId}" placeholder="Search cards..." class="w-full bg-gray-800 border border-gray-700 rounded-lg pl-9 pr-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" />
+      </div>
+      <select id="${groupById}" class="w-full sm:w-auto bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all">
         <option value="type_line">Group by Type</option>
         <option value="rarity">Group by Rarity</option>
         <option value="set_name">Group by Set</option>
+        <option value="cmc">Group by Mana Value</option>
+        <option value="">No Grouping</option>
       </select>
     </div>`;
 
-  // Helper to render a table for a set of cards
+  // --- Render Helpers ---
+  function renderGridItem(card) {
+    const img = card.image_uris?.normal || card.image_uris?.art_crop || 'https://placehold.co/250x350?text=No+Image';
+    const price = card.finish === 'foil' ? (card.prices?.usd_foil || card.prices?.usd) : (card.prices?.usd || 'N/A');
+    const count = card.countInDeck || 1;
+    return `
+        <div class="relative group aspect-[2.5/3.5] rounded-xl overflow-hidden shadow-lg bg-gray-900 transition-transform duration-200 hover:scale-105 hover:shadow-indigo-500/20 hover:z-10">
+            <img src="${img}" alt="${card.name}" class="w-full h-full object-cover" loading="lazy">
+            ${count > 1 ? `<div class="absolute top-2 right-2 bg-indigo-600 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md z-20">x${count}</div>` : ''}
+            <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-end p-3">
+                <div class="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-200">
+                    <div class="font-bold text-white text-sm leading-tight mb-1">${card.name}</div>
+                    <div class="flex justify-between items-center text-xs text-gray-300 mb-2">
+                        <span>${(card.type_line || '').split('—')[0].trim()}</span>
+                        <span class="text-green-400 font-mono">${price !== 'N/A' ? '$' + price : ''}</span>
+                    </div>
+                    <div class="flex gap-2 justify-between">
+                        <button class="view-card-details-btn flex-1 bg-gray-700 hover:bg-gray-600 text-white py-1.5 rounded text-xs font-medium transition-colors" data-firestore-id="${card.firestoreId}">View</button>
+                        <button class="remove-card-from-deck-btn bg-red-900/50 hover:bg-red-600 text-red-200 hover:text-white p-1.5 rounded transition-colors" data-firestore-id="${card.firestoreId}" data-deck-id="${deckId}" title="Remove">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+  }
+
   function renderTable(cards) {
-    if (!cards || cards.length === 0) return `<div class="text-gray-500">This deck is empty. Click \"Add Cards\" to get started.</div>`;
+    if (!cards || cards.length === 0) return `<div class="text-gray-500 italic p-4 text-center bg-gray-800/50 rounded-lg">No cards in this section.</div>`;
     const rows = cards.map(card => {
-      const img = card.image_uris?.art_crop || card.image_uris?.normal || '';
-      const type = (card.type_line||'').split(' — ')[0];
+      const type = (card.type_line || '').split(' — ')[0];
       const price = card.finish === 'foil' ? (card.prices?.usd_foil || card.prices?.usd) : (card.prices?.usd || 'N/A');
       return `
-        <tr class="border-b border-gray-700 hover:bg-gray-700/50">
-          <td class="px-4 py-3 text-center">${card.countInDeck || 1}</td>
-          <td class="px-4 py-3"><div class="flex items-center gap-3"><img src="${img}" alt="${card.name}" class="w-12 h-16 object-cover rounded-sm"/><div><div class="font-medium">${card.name}</div><div class="text-xs text-gray-400">${card.set_name || ''} · ${card.collector_number || ''}</div></div></div></td>
-          <td class="px-4 py-3">${type}</td>
-          <td class="px-4 py-3 text-center">${card.rarity || ''}</td>
-          <td class="px-4 py-3 text-right">${price && price !== 'N/A' ? `$${Number(price).toFixed(2)}` : 'N/A'}</td>
-          <td class="px-4 py-3 text-right">
-            <button class="view-card-details-btn p-2 text-gray-400 hover:text-white" data-firestore-id="${card.firestoreId}" title="View card"></button>
-            <button class="delete-button remove-card-from-deck-btn p-2 text-red-400 hover:text-red-300 ml-2" data-firestore-id="${card.firestoreId}" data-deck-id="${deckId}" title="Remove card from deck"></button>
-            <button class="delete-button return-card-to-collection-btn p-2 text-green-400 hover:text-green-300 ml-2 flex items-center gap-2" data-firestore-id="${card.firestoreId}" data-deck-id="${deckId}" title="Remove and return to collection">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1.707-9.707a1 1 0 00-1.414-1.414L8 9.172V6a1 1 0 10-2 0v5a1 1 0 001 1h5a1 1 0 100-2h-3.172l2.879-2.879z" clip-rule="evenodd"/></svg>
-              <span class="text-xs">Return</span>
+        <tr class="border-b border-gray-700/50 hover:bg-gray-700/30 transition-colors group">
+          <td class="px-3 py-2 text-center font-mono text-indigo-300 font-bold">${card.countInDeck || 1}</td>
+          <td class="px-3 py-2">
+            <div class="flex items-center gap-3">
+                <div class="relative w-8 h-8 rounded overflow-hidden hidden sm:block group-hover:scale-150 transition-transform origin-left z-10 shadow-sm">
+                    <img src="${card.image_uris?.art_crop}" class="w-full h-full object-cover">
+                </div>
+                <div class="font-medium text-gray-200 group-hover:text-indigo-300 transition-colors cursor-pointer view-card-details-btn" data-firestore-id="${card.firestoreId}">${card.name}</div>
+            </div>
+          </td>
+          <td class="px-3 py-2 text-gray-400 text-xs hidden sm:table-cell">${type}</td>
+          <td class="px-3 py-2 text-center text-xs text-gray-500">${card.rarity ? card.rarity[0].toUpperCase() : '-'}</td>
+          <td class="px-3 py-2 text-right font-mono text-xs text-gray-300">${price && price !== 'N/A' ? `$${Number(price).toFixed(2)}` : '-'}</td>
+          <td class="px-3 py-2 text-right opacity-0 group-hover:opacity-100 transition-opacity">
+            <button class="remove-card-from-deck-btn text-red-400 hover:text-red-300 p-1 rounded hover:bg-red-900/30 transition-colors" data-firestore-id="${card.firestoreId}" data-deck-id="${deckId}" title="Remove">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
           </td>
         </tr>`;
     }).join('');
 
     return `
-      <div class="overflow-auto">
+      <div class="overflow-hidden rounded-lg border border-gray-700/50 bg-gray-800/40">
         <table class="w-full text-sm text-left text-gray-300">
-          <thead class="text-xs text-gray-400 uppercase bg-gray-700 sticky top-0">
+          <thead class="text-xs text-gray-500 uppercase bg-gray-900/50 border-b border-gray-700">
             <tr>
-              <th class="px-4 py-2 text-center">#</th>
-              <th class="px-4 py-2">Card</th>
-              <th class="px-4 py-2">Type</th>
-              <th class="px-4 py-2 text-center">Rarity</th>
-              <th class="px-4 py-2 text-right">Price</th>
-              <th class="px-4 py-2 text-right">Actions</th>
+              <th class="px-3 py-2 text-center w-12">#</th>
+              <th class="px-3 py-2">Card</th>
+              <th class="px-3 py-2 hidden sm:table-cell">Type</th>
+              <th class="px-3 py-2 text-center">R</th>
+              <th class="px-3 py-2 text-right">$$</th>
+              <th class="px-3 py-2 text-right w-10"></th>
             </tr>
           </thead>
-          <tbody>
-            ${rows}
-          </tbody>
+          <tbody>${rows}</tbody>
         </table>
       </div>`;
   }
 
-  // Compose grouped or ungrouped view based on selection
-  function composeHtml() {
-    const filterVal = (document.getElementById(filterId)?.value || '').toLowerCase();
-    const groupBy = (document.getElementById(groupById)?.value || '');
-    let filtered = allCards.filter(c => {
-      if (!filterVal) return true;
-      try {
-        return (c.name||'').toLowerCase().includes(filterVal) || (c.set_name||'').toLowerCase().includes(filterVal) || (c.type_line||'').toLowerCase().includes(filterVal);
-      } catch (e) { return true; }
-    });
+  // --- Compose Content ---
+  let filtered = allCards.filter(c => {
+    if (!currentFilter) return true;
+    const val = currentFilter.toLowerCase();
+    try {
+      return (c.name || '').toLowerCase().includes(val) || (c.set_name || '').toLowerCase().includes(val) || (c.type_line || '').toLowerCase().includes(val);
+    } catch (e) { return true; }
+  });
+  filtered.sort((a, b) => a.name.localeCompare(b.name));
 
-    if (!groupBy) {
-      // simple table
-      return filterHtml + renderTable(filtered.sort((a,b) => a.name.localeCompare(b.name)));
-    }
-    // group
+  let content = '';
+  if (!currentGroup) {
+    if (viewMode === 'grid') content = `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">${filtered.map(renderGridItem).join('')}</div>`;
+    else content = renderTable(filtered);
+  } else {
     const groups = filtered.reduce((acc, card) => {
-      const key = (groupBy === 'type_line') ? ((card.type_line||'').split(' — ')[0]) : (card[groupBy] || 'Other');
+      let key = 'Other';
+      if (currentGroup === 'type_line') {
+        const type = (card.type_line || '').toLowerCase();
+        if (type.includes('land')) key = 'Lands';
+        else if (type.includes('creature')) key = 'Creatures';
+        else if (type.includes('instant')) key = 'Instants';
+        else if (type.includes('sorcery')) key = 'Sorceries';
+        else if (type.includes('artifact')) key = 'Artifacts';
+        else if (type.includes('enchantment')) key = 'Enchantments';
+        else if (type.includes('planeswalker')) key = 'Planeswalkers';
+        else key = 'Other';
+      } else if (currentGroup === 'cmc') {
+        const cmc = Math.floor(card.cmc || 0);
+        key = `${cmc} Mana`;
+        if (cmc >= 7) key = '7+ Mana';
+      } else {
+        key = card[currentGroup] || 'Other';
+      }
       (acc[key] = acc[key] || []).push(card);
       return acc;
     }, {});
-    const groupKeys = Object.keys(groups).sort();
-    return filterHtml + groupKeys.map(k => {
-      const cards = groups[k].sort((a,b) => a.name.localeCompare(b.name));
-      const count = cards.reduce((s,c) => s + (c.countInDeck||1), 0);
-      return `<div class="mb-4"><h4 class="text-lg font-semibold text-indigo-400 mb-2">${k} (${count})</h4>${renderTable(cards)}</div>`;
+
+    const typeOrder = ['Creatures', 'Instants', 'Sorceries', 'Artifacts', 'Enchantments', 'Planeswalkers', 'Lands', 'Other'];
+    let groupKeys = Object.keys(groups);
+    if (currentGroup === 'type_line') {
+      groupKeys.sort((a, b) => {
+        const ia = typeOrder.indexOf(a);
+        const ib = typeOrder.indexOf(b);
+        return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+      });
+    } else {
+      groupKeys.sort();
+    }
+
+    content = groupKeys.map(k => {
+      const cards = groups[k];
+      const count = cards.reduce((s, c) => s + (c.countInDeck || 1), 0);
+      let innerContent = (viewMode === 'grid')
+        ? `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">${cards.map(renderGridItem).join('')}</div>`
+        : renderTable(cards);
+      return `
+          <div class="mb-8">
+              <div class="flex items-center gap-3 mb-3 border-b border-gray-700 pb-2">
+                  <h4 class="text-lg font-bold text-indigo-300">${k}</h4>
+                  <span class="bg-gray-700 text-gray-300 text-xs font-bold px-2 py-0.5 rounded-full">${count}</span>
+              </div>
+              ${innerContent}
+          </div>`;
     }).join('');
   }
 
-  container.innerHTML = composeHtml();
+  container.innerHTML = filterHtml + content;
 
-  // Wire filter/group change handlers (idempotent). Re-run the full render so new DOM nodes get wired correctly.
+  // --- Restore State & Listeners ---
   const fEl = document.getElementById(filterId);
   const gEl = document.getElementById(groupById);
-  if (fEl && !fEl._handler) { fEl._handler = () => { renderDecklist(deckId); }; fEl.addEventListener('input', fEl._handler); }
-  if (gEl && !gEl._handler) { gEl._handler = () => { renderDecklist(deckId); }; gEl.addEventListener('change', gEl._handler); }
+
+  if (fEl) {
+    fEl.value = currentFilter;
+    fEl.addEventListener('keyup', (e) => { if (e.key === 'Enter') renderDecklist(deckId, viewMode); });
+  }
+  if (gEl) {
+    gEl.value = currentGroup;
+    gEl.addEventListener('change', () => renderDecklist(deckId, viewMode));
+  }
 }
 
 export function renderManaCurveChart(manaCurveData) {
@@ -207,7 +304,7 @@ export function renderManaCurveChart(manaCurveData) {
   if (!ctx) return;
   const chartId = 'mana-curve-chart';
   if (deckChartInstances[chartId]) deckChartInstances[chartId].destroy();
-  const labels = ['0','1','2','3','4','5','6','7+'];
+  const labels = ['0', '1', '2', '3', '4', '5', '6', '7+'];
   const data = labels.map((label, index) => {
     const cmc = parseInt(label);
     if (index < 7) return manaCurveData[cmc] || 0;
@@ -232,7 +329,7 @@ export function openAddCardsToDeckModal(deckId) {
   const deck = window.localDecks?.[deckId] || localDecks[deckId];
   if (!deck) { showToast('Could not find the specified deck.', 'error'); return; }
   document.getElementById('add-cards-modal-title').textContent = `Add Cards to "${deck.name}"`;
-  const commanderColors = deck.commander?.color_identity || ['W','U','B','R','G'];
+  const commanderColors = deck.commander?.color_identity || ['W', 'U', 'B', 'R', 'G'];
   const tableBody = document.getElementById('add-cards-modal-table-body');
   const filterInput = document.getElementById('add-card-modal-filter');
   const jsonFilterInput = document.getElementById('add-card-modal-json-filter');
@@ -264,7 +361,7 @@ export function openAddCardsToDeckModal(deckId) {
         }
         return true;
       })
-      .sort((a,b) => a.name.localeCompare(b.name));
+      .sort((a, b) => a.name.localeCompare(b.name));
 
     if (eligibleCards.length === 0) {
       tableBody.innerHTML = `<tr><td colspan="4" class="text-center p-4 text-gray-500">No eligible cards in your collection.</td></tr>`;
@@ -277,7 +374,7 @@ export function openAddCardsToDeckModal(deckId) {
             </div>
           </td>
           <td class="px-6 py-4 font-medium whitespace-nowrap">${card.name}</td>
-          <td class="px-6 py-4">${(card.type_line||'').split(' — ')[0]}</td>
+          <td class="px-6 py-4">${(card.type_line || '').split(' — ')[0]}</td>
           <td class="px-6 py-4 text-center">${card.count}</td>
         </tr>
       `).join('');
@@ -334,7 +431,7 @@ export async function handleAddSelectedCardsToDeck(deckId, firestoreIds) {
   for (const fid of firestoreIds) {
     const assigns = window.cardDeckAssignments?.[fid] || [];
     if (assigns.length > 0) {
-      const assignment = assigns[0]; if (assignment.deckId !== deckId) { showToast(`Card "${(window.localCollection||localCollection)[fid].name}" is already in another deck.`, 'error'); return; }
+      const assignment = assigns[0]; if (assignment.deckId !== deckId) { showToast(`Card "${(window.localCollection || localCollection)[fid].name}" is already in another deck.`, 'error'); return; }
     }
   }
 
@@ -353,8 +450,8 @@ export async function handleAddSelectedCardsToDeck(deckId, firestoreIds) {
     const newCollectionRef = doc(collection(db, `artifacts/${appId}/users/${userId}/collection`));
     const newCardDoc = Object.assign({}, collectionCard, { count: 1, addedAt: new Date().toISOString() });
     delete newCardDoc.firestoreId; // avoid copying an existing id into the new doc
-  batch.set(newCollectionRef, newCardDoc);
-  createdMappings.push({ orig: fid, newId: newCollectionRef.id, name: collectionCard.name, type_line: collectionCard.type_line });
+    batch.set(newCollectionRef, newCardDoc);
+    createdMappings.push({ orig: fid, newId: newCollectionRef.id, name: collectionCard.name, type_line: collectionCard.type_line });
 
     // Decrement or remove the original stack
     if ((collectionCard.count || 0) > 1) {
@@ -391,15 +488,15 @@ export async function handleAddSelectedCardsToDeck(deckId, firestoreIds) {
         const collectionCard = (window.localCollection || localCollection)[orig];
         if (!collectionCard) return;
         if ((collectionCard.count || 0) > 1) {
-          collectionCard.count = Math.max((collectionCard.count||0)-1,0);
+          collectionCard.count = Math.max((collectionCard.count || 0) - 1, 0);
           // create a local placeholder for the new collection doc
           window.localCollection[newId] = Object.assign({}, collectionCard, { count: 1, firestoreId: newId, pending: true, name, type_line });
-          if (localDeck.cards[newId]) localDeck.cards[newId].count = (localDeck.cards[newId].count||0) + 1; else localDeck.cards[newId] = { count: 1, name, type_line };
+          if (localDeck.cards[newId]) localDeck.cards[newId].count = (localDeck.cards[newId].count || 0) + 1; else localDeck.cards[newId] = { count: 1, name, type_line };
         } else {
           // original had count 1: remove it and add deck entry referencing newId
           delete window.localCollection[orig];
           window.localCollection[newId] = Object.assign({}, collectionCard, { count: 1, firestoreId: newId, pending: true, name, type_line });
-          if (localDeck.cards[newId]) localDeck.cards[newId].count = (localDeck.cards[newId].count||0) + 1; else localDeck.cards[newId] = { count: 1, name, type_line };
+          if (localDeck.cards[newId]) localDeck.cards[newId].count = (localDeck.cards[newId].count || 0) + 1; else localDeck.cards[newId] = { count: 1, name, type_line };
         }
       });
       updateCardAssignments();
@@ -516,7 +613,7 @@ export async function batchAddCardsWithProgress(deckId, firestoreIds) {
           const collectionCard = (window.localCollection || localCollection)[orig];
           if (collectionCard) {
             if ((collectionCard.count || 0) > 1) {
-              collectionCard.count = Math.max((collectionCard.count||0)-1,0);
+              collectionCard.count = Math.max((collectionCard.count || 0) - 1, 0);
             } else {
               // removed original
               delete window.localCollection[orig];
@@ -524,7 +621,7 @@ export async function batchAddCardsWithProgress(deckId, firestoreIds) {
           }
           // create local placeholder for the new collection doc
           window.localCollection[newId] = Object.assign({}, collectionCard || {}, { count: 1, firestoreId: newId, pending: true, name, type_line });
-          if (localDeck.cards[newId]) localDeck.cards[newId].count = (localDeck.cards[newId].count||0) + 1; else localDeck.cards[newId] = { count: 1, name, type_line };
+          if (localDeck.cards[newId]) localDeck.cards[newId].count = (localDeck.cards[newId].count || 0) + 1; else localDeck.cards[newId] = { count: 1, name, type_line };
         });
         updateCardAssignments();
         if (typeof window.renderSingleDeck === 'function') window.renderSingleDeck(deckId);
@@ -582,7 +679,7 @@ export function attachSuggestionMetadataToDeck(deckId, suggestions) {
     const existing = deck.aiSuggestions.find(x => x.firestoreId === s.firestoreId);
     if (existing) Object.assign(existing, s); else deck.aiSuggestions.push(Object.assign({}, s));
   });
-  try { renderDeckSuggestionSummary(deckId); } catch (e) {}
+  try { renderDeckSuggestionSummary(deckId); } catch (e) { }
 
   // Persist to Firestore under the deck document for the current user
   return (async () => {
@@ -590,11 +687,11 @@ export function attachSuggestionMetadataToDeck(deckId, suggestions) {
       const uid = getUserId();
       if (!uid) { console.debug('[attachSuggestionMetadataToDeck] no user signed in, skipping persistence'); return; }
       // Show saving status in modal if present
-      try { const statusEl = document.getElementById('deck-suggestions-save-status'); if (statusEl) statusEl.innerHTML = '<span class="tiny-spinner"></span>Saving...'; } catch (e) {}
+      try { const statusEl = document.getElementById('deck-suggestions-save-status'); if (statusEl) statusEl.innerHTML = '<span class="tiny-spinner"></span>Saving...'; } catch (e) { }
       const deckRef = doc(db, `artifacts/${appId}/users/${uid}/decks`, deckId);
       // Write only the aiSuggestions field to avoid clobbering other data
       await updateDoc(deckRef, { aiSuggestions: deck.aiSuggestions });
-      try { const statusEl = document.getElementById('deck-suggestions-save-status'); if (statusEl) statusEl.textContent = 'Saved'; const retry = document.getElementById('deck-suggestions-save-retry-btn'); if (retry) retry.classList.add('hidden'); } catch (e) {}
+      try { const statusEl = document.getElementById('deck-suggestions-save-status'); if (statusEl) statusEl.textContent = 'Saved'; const retry = document.getElementById('deck-suggestions-save-retry-btn'); if (retry) retry.classList.add('hidden'); } catch (e) { }
       // Optionally refresh localDecks from server copy for consistency
       try {
         const snap = await getDoc(deckRef);
@@ -602,13 +699,13 @@ export function attachSuggestionMetadataToDeck(deckId, suggestions) {
           const serverDeck = snap.data();
           // merge server aiSuggestions back into local optimistic copy
           deck.aiSuggestions = serverDeck.aiSuggestions || deck.aiSuggestions;
-          try { renderDeckSuggestionSummary(deckId); } catch (e) {}
+          try { renderDeckSuggestionSummary(deckId); } catch (e) { }
         }
       } catch (e) { /* non-fatal */ }
     } catch (err) {
       console.error('[attachSuggestionMetadataToDeck] failed to persist', err);
       showToast('Failed to save AI suggestion metadata. It will remain local until you refresh.', 'warning');
-      try { const statusEl = document.getElementById('deck-suggestions-save-status'); if (statusEl) statusEl.textContent = 'Save failed'; const retry = document.getElementById('deck-suggestions-save-retry-btn'); if (retry) retry.classList.remove('hidden'); } catch (e) {}
+      try { const statusEl = document.getElementById('deck-suggestions-save-status'); if (statusEl) statusEl.textContent = 'Save failed'; const retry = document.getElementById('deck-suggestions-save-retry-btn'); if (retry) retry.classList.remove('hidden'); } catch (e) { }
       // Re-throw so callers (who expect a Promise) can handle errors
       throw err;
     }
@@ -623,7 +720,7 @@ export function renderDeckSuggestionSummary(deckId) {
     container.innerHTML = '<div class="text-sm text-gray-400">No AI suggestions</div>';
     return;
   }
-  const lines = deck.aiSuggestions.slice(0,5).map(s => `<div class="text-sm text-gray-200">${s.rating ? `<strong>${s.rating}/10</strong> ` : ''}${s.name || (window.localCollection||localCollection)[s.firestoreId]?.name || 'Card'} - ${escapeHtml((s.reason||s.note||'').slice(0,120))}</div>`);
+  const lines = deck.aiSuggestions.slice(0, 5).map(s => `<div class="text-sm text-gray-200">${s.rating ? `<strong>${s.rating}/10</strong> ` : ''}${s.name || (window.localCollection || localCollection)[s.firestoreId]?.name || 'Card'} - ${escapeHtml((s.reason || s.note || '').slice(0, 120))}</div>`);
   container.innerHTML = `<div class="space-y-1">${lines.join('')}</div>`;
 }
 
@@ -650,13 +747,20 @@ export async function deleteDeck(deckId, alsoDeleteCards) {
 
 export function addSingleDeckListeners(deckId) {
   const addBtn = document.getElementById('add-cards-to-deck-btn'); if (addBtn) addBtn.addEventListener('click', () => openAddCardsToDeckModal(deckId));
-  document.querySelector('#single-deck-view .view-card-details-btn')?.addEventListener('click', (e) => { const fid = e.currentTarget.dataset.firestoreId; const card = (window.localCollection||localCollection)[fid]; if (card) { if (typeof window.renderCardDetailsModal === 'function') window.renderCardDetailsModal(card); if (typeof window.openModal === 'function') window.openModal('card-details-modal'); } });
+
+  // View Toggles
+  const gridBtn = document.getElementById('view-toggle-grid');
+  const tableBtn = document.getElementById('view-toggle-table');
+  if (gridBtn) gridBtn.onclick = () => renderDecklist(deckId, 'grid');
+  if (tableBtn) tableBtn.onclick = () => renderDecklist(deckId, 'table');
+
+  document.querySelector('#single-deck-view .view-card-details-btn')?.addEventListener('click', (e) => { const fid = e.currentTarget.dataset.firestoreId; const card = (window.localCollection || localCollection)[fid]; if (card) { if (typeof window.renderCardDetailsModal === 'function') window.renderCardDetailsModal(card); if (typeof window.openModal === 'function') window.openModal('card-details-modal'); } });
   document.getElementById('deck-delete-btn')?.addEventListener('click', (e) => { const id = e.currentTarget.dataset.deckId; if (typeof window.openDeckDeleteOptions === 'function') window.openDeckDeleteOptions(id); });
   document.getElementById('ai-suggestions-btn')?.addEventListener('click', () => openDeckSuggestionsModal(deckId));
   // Render suggestion summary if present
-  try { renderDeckSuggestionSummary(deckId); } catch (e) {}
+  try { renderDeckSuggestionSummary(deckId); } catch (e) { }
   document.getElementById('export-deck-btn')?.addEventListener('click', (e) => { const id = e.currentTarget.dataset.deckId; if (typeof window.exportDeck === 'function') window.exportDeck(id); });
-  document.getElementById('view-strategy-btn')?.addEventListener('click', () => { const deck = (window.localDecks||localDecks)[deckId]; if (deck && deck.aiBlueprint && typeof window.renderAiBlueprintModal === 'function') { window.renderAiBlueprintModal(deck.aiBlueprint, deck.name, true); window.openModal('ai-blueprint-modal'); } });
+  document.getElementById('view-strategy-btn')?.addEventListener('click', () => { const deck = (window.localDecks || localDecks)[deckId]; if (deck && deck.aiBlueprint && typeof window.renderAiBlueprintModal === 'function') { window.renderAiBlueprintModal(deck.aiBlueprint, deck.name, true); window.openModal('ai-blueprint-modal'); } });
   // Delegated handlers for decklist actions (view, remove). Using delegation so rows can be re-rendered.
   const decklistContainer = document.getElementById('decklist-container');
   if (decklistContainer && !decklistContainer._delegatedHandler) {
@@ -664,7 +768,7 @@ export function addSingleDeckListeners(deckId) {
       const viewBtn = e.target.closest && e.target.closest('.view-card-details-btn');
       if (viewBtn) {
         const fid = viewBtn.dataset.firestoreId;
-        const card = (window.localCollection||localCollection)[fid];
+        const card = (window.localCollection || localCollection)[fid];
         if (card) {
           if (typeof window.renderCardDetailsModal === 'function') window.renderCardDetailsModal(card);
           if (typeof window.openModal === 'function') window.openModal('card-details-modal');

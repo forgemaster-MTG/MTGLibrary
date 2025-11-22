@@ -345,12 +345,14 @@ export function initSettingsModule() {
     window.deleteViewFromFirestore = deleteViewFromFirestore;
     window.setActiveViewById = setActiveViewById;
     window.renderGeminiSettings = renderGeminiSettings;
+    window.renderUIPreferences = renderUIPreferences;
+    window.renderPreconsAdmin = renderPreconsAdmin;
     // expose current saved views and active id for legacy inline code
     try { window.savedViews = savedViews; window.activeViewId = activeViewId; } catch (e) { }
     // Removed localStorage fallback: saved views are Firestore-only. UI will be updated after loadSavedViewsFromFirestore is called with a valid userId.
   }
   // Try to hook into Settings view rendering without editing index-live.html.
-  // When the Settings nav is clicked or the settings view becomes visible, render the Gemini settings block.
+  // When the Settings nav is clicked or the settings view becomes visible, render all settings sections.
   try {
     document.addEventListener('click', (ev) => {
       try {
@@ -358,15 +360,31 @@ export function initSettingsModule() {
         if (!t) return;
         if (t.id === 'nav-settings' || (t.closest && t.closest('#nav-settings'))) {
           // Delay slightly to allow the view switch to complete in the legacy UI
-          setTimeout(() => { try { renderGeminiSettings(); } catch (_) { } }, 80);
+          setTimeout(() => {
+            try {
+              // Initialize tabs first
+              if (typeof window.initSettingsTabs === 'function') window.initSettingsTabs();
+              // Then render all sections
+              renderGeminiSettings();
+              renderModalVisibilitySettings();
+              renderUIPreferences();
+              renderPreconsAdmin();
+            } catch (_) { }
+          }, 80);
         }
       } catch (_) { }
     });
-    // If the settings view is already visible on load, render the block once.
+    // If the settings view is already visible on load, render everything once.
     setTimeout(() => {
       try {
         const sv = document.getElementById('settings-view');
-        if (sv && !sv.classList.contains('hidden')) renderGeminiSettings();
+        if (sv && !sv.classList.contains('hidden')) {
+          if (typeof window.initSettingsTabs === 'function') window.initSettingsTabs();
+          renderGeminiSettings();
+          renderModalVisibilitySettings();
+          renderUIPreferences();
+          renderPreconsAdmin();
+        }
       } catch (_) { }
     }, 200);
   } catch (e) { console.debug('[Settings] settings view hook failed', e); }
@@ -388,10 +406,10 @@ export function initSettingsModule() {
         if (firstSection && firstSection.parentElement) firstSection.parentElement.insertBefore(banner, firstSection.nextSibling);
         else nav.insertBefore(banner, nav.firstChild);
         banner.addEventListener('click', (e) => {
-          try { if (typeof window.showView === 'function') window.showView('settings'); } catch (er) {}
-          try { renderGeminiSettings(); } catch (er) {}
+          try { if (typeof window.showView === 'function') window.showView('settings'); } catch (er) { }
+          try { renderGeminiSettings(); } catch (er) { }
           // focus settings visually
-          try { const el = document.getElementById('settings-gemini-section'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (er) {}
+          try { const el = document.getElementById('settings-gemini-section'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (er) { }
         });
         return banner;
       } catch (e) { console.debug('[Settings] createNavBannerIfNeeded failed', e); return null; }
@@ -408,14 +426,14 @@ export function initSettingsModule() {
         }
         if (banner) banner.style.display = (!hasKey ? '' : 'none');
         // Also update the settings block status if it's present
-        try { const statusEl = document.getElementById('gemini-status'); if (statusEl) { statusEl.textContent = hasKey ? 'A Gemini API key is saved for your account.' : 'No Gemini API key saved.'; } } catch (e) {}
+        try { const statusEl = document.getElementById('gemini-status'); if (statusEl) { statusEl.textContent = hasKey ? 'A Gemini API key is saved for your account.' : 'No Gemini API key saved.'; } } catch (e) { }
       } catch (e) { console.debug('[Settings] updateGeminiUiState failed', e); }
     }
 
     // run an initial update and also update when auth/user changes
     setTimeout(updateGeminiUiState, 200);
-  window.addEventListener('user:changed', updateGeminiUiState);
-  window.addEventListener('gemini:changed', updateGeminiUiState);
+    window.addEventListener('user:changed', updateGeminiUiState);
+    window.addEventListener('gemini:changed', updateGeminiUiState);
     // also poll briefly during startup to catch late auth binds
     let tries = 0;
     const iv = setInterval(() => { tries++; updateGeminiUiState(); if (tries > 10) clearInterval(iv); }, 500);
@@ -423,17 +441,101 @@ export function initSettingsModule() {
   console.log('[Settings] Module initialized');
 }
 
+// Render UI Preferences in the General tab
+export function renderUIPreferences() {
+  const container = document.getElementById('ui-preferences-container');
+  if (!container) return;
+
+  // Get current preferences
+  const prefs = window.uiPreferences || uiPreferences;
+
+  container.innerHTML = `
+    <div class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-300 mb-2">Default View Mode</label>
+        <div class="flex gap-3">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="ui-view-mode" value="grid" ${prefs.viewMode === 'grid' ? 'checked' : ''} class="w-4 h-4 text-indigo-600">
+            <span class="text-sm text-gray-300">Grid</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="ui-view-mode" value="table" ${prefs.viewMode === 'table' ? 'checked' : ''} class="w-4 h-4 text-indigo-600">
+            <span class="text-sm text-gray-300">Table</span>
+          </label>
+        </div>
+      </div>
+      
+      <div>
+        <label class="block text-sm font-medium text-gray-300 mb-2">Default Grid Size</label>
+        <div class="flex gap-3">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="ui-grid-size" value="sm" ${prefs.gridSize === 'sm' ? 'checked' : ''} class="w-4 h-4 text-indigo-600">
+            <span class="text-sm text-gray-300">Small</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="ui-grid-size" value="md" ${prefs.gridSize === 'md' ? 'checked' : ''} class="w-4 h-4 text-indigo-600">
+            <span class="text-sm text-gray-300">Medium</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="ui-grid-size" value="lg" ${prefs.gridSize === 'lg' ? 'checked' : ''} class="w-4 h-4 text-indigo-600">
+            <span class="text-sm text-gray-300">Large</span>
+          </label>
+        </div>
+      </div>
+      
+      <div>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" id="ui-hide-in-decks" ${prefs.hideInDecks ? 'checked' : ''} class="w-4 h-4 text-indigo-600 rounded">
+          <span class="text-sm text-gray-300">Hide cards that are in decks when browsing collection</span>
+        </label>
+      </div>
+    </div>
+  `;
+
+  // Attach listeners
+  container.querySelectorAll('input[name="ui-view-mode"]').forEach(input => {
+    input.addEventListener('change', async (e) => {
+      uiPreferences.viewMode = e.target.value;
+      window.uiPreferences = uiPreferences;
+      await persistSettingsForUser(window.userId);
+      showToast('View mode preference saved', 'success');
+    });
+  });
+
+  container.querySelectorAll('input[name="ui-grid-size"]').forEach(input => {
+    input.addEventListener('change', async (e) => {
+      uiPreferences.gridSize = e.target.value;
+      window.uiPreferences = uiPreferences;
+      await persistSettingsForUser(window.userId);
+      showToast('Grid size preference saved', 'success');
+    });
+  });
+
+  document.getElementById('ui-hide-in-decks')?.addEventListener('change', async (e) => {
+    uiPreferences.hideInDecks = e.target.checked;
+    window.uiPreferences = uiPreferences;
+    await persistSettingsForUser(window.userId);
+    showToast('Hide in-deck preference saved', 'success');
+    if (typeof window.renderPaginatedCollection === 'function') window.renderPaginatedCollection();
+  });
+}
+
 // Render a small UI block in Settings to manage the user's Gemini API key.
 export function renderGeminiSettings(containerId = 'settings-gemini-block') {
-  // find settings view and append block near saved views / deck management
-  let container = document.getElementById('settings-view');
+  // Target the AI tab container
+  let container = document.getElementById('settings-gemini-section-container');
+  if (!container) {
+    // Fallback to old location if tab structure not found
+    container = document.getElementById('settings-view');
+  }
   if (!container) return;
+
   // If an existing block exists, remove it so re-render is idempotent
   const existing = document.getElementById(containerId);
   if (existing) existing.remove();
   const block = document.createElement('div');
   block.id = containerId;
-  block.className = 'bg-gray-800 p-6 rounded-lg shadow-lg';
+  block.className = 'bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700';
   block.innerHTML = `
     <h2 class="text-2xl font-semibold mb-4 border-b border-gray-700 pb-2">AI / Gemini API Key</h2>
     <p class="text-sm text-gray-400 mb-2">This app requires a per-user Gemini API key. Keys are encrypted in your account settings before saving.</p>
@@ -487,24 +589,9 @@ export function renderGeminiSettings(containerId = 'settings-gemini-block') {
       <div id="gemini-status" class="text-sm text-gray-400"></div>
     </div>
   `;
-  // Place the Gemini block in its own dedicated section inside the Settings view.
-  // Create the section wrapper if it doesn't exist so the block is clearly separated from Saved Views.
-  let geminiSection = document.getElementById('settings-gemini-section');
-  if (!geminiSection) {
-    geminiSection = document.createElement('section');
-    geminiSection.id = 'settings-gemini-section';
-    // Match the visual style of other settings panels so it appears as its own card
-    geminiSection.className = 'bg-gray-800 p-6 rounded-lg shadow-lg mb-6';
-    // Insert before the entire Saved Views panel if present, otherwise prepend to the settings view
-    const savedViewsEl = document.getElementById('settings-saved-views');
-    let savedViewsPanel = null;
-    try { if (savedViewsEl && savedViewsEl.closest) savedViewsPanel = savedViewsEl.closest('.bg-gray-800'); } catch (e) { savedViewsPanel = null; }
-    if (savedViewsPanel && savedViewsPanel.parentElement) savedViewsPanel.parentElement.insertBefore(geminiSection, savedViewsPanel);
-    else container.insertBefore(geminiSection, container.firstChild);
-  }
-  // Ensure idempotency: clear existing contents then append our block
-  geminiSection.innerHTML = '';
-  geminiSection.appendChild(block);
+  // Place the Gemini block in the AI tab container
+  container.innerHTML = '';
+  container.appendChild(block);
 
   const input = document.getElementById('gemini-api-key-input');
   const saveBtn = document.getElementById('save-gemini-key-btn');
@@ -535,7 +622,7 @@ export function renderGeminiSettings(containerId = 'settings-gemini-block') {
       showToast('Gemini API key saved (encrypted).', 'success');
       input.value = '';
       await refreshStatus();
-      try { window.dispatchEvent(new Event('gemini:changed')); } catch (e) {}
+      try { window.dispatchEvent(new Event('gemini:changed')); } catch (e) { }
     } catch (err) { console.error(err); showToast('Failed to save key.', 'error'); }
     saveBtn.disabled = false;
   });
@@ -545,7 +632,7 @@ export function renderGeminiSettings(containerId = 'settings-gemini-block') {
     if (!uid) { showToast('Sign in to clear your API key.', 'warning'); return; }
     if (!confirm('Clear your saved Gemini API key?')) return;
     try { await Gemini.clearGeminiKeyForUser(uid); showToast('Gemini key cleared.', 'success'); await refreshStatus(); } catch (e) { console.error(e); showToast('Failed to clear key.', 'error'); }
-    try { window.dispatchEvent(new Event('gemini:changed')); } catch (e) {}
+    try { window.dispatchEvent(new Event('gemini:changed')); } catch (e) { }
   });
 
   helpBtn.addEventListener('click', () => { helpArea.classList.toggle('hidden'); });
@@ -563,8 +650,14 @@ export function renderGeminiSettings(containerId = 'settings-gemini-block') {
  */
 export function renderPreconsAdmin(containerId = 'settings-precons-admin') {
   try {
-    const settingsView = document.getElementById('settings-view');
+    // Target the Advanced tab container
+    let settingsView = document.getElementById('settings-precons-admin-container');
+    if (!settingsView) {
+      // Fallback to old location
+      settingsView = document.getElementById('settings-view');
+    }
     if (!settingsView) return;
+
     // remove existing block if present
     const existing = document.getElementById(containerId);
     if (existing) existing.remove();
@@ -580,7 +673,7 @@ export function renderPreconsAdmin(containerId = 'settings-precons-admin') {
 
     const block = document.createElement('section');
     block.id = containerId;
-    block.className = 'bg-gray-800 p-6 rounded-lg shadow-lg mb-6';
+    block.className = 'bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700 mb-6';
     block.innerHTML = `
       <h2 class="text-2xl font-semibold mb-3">Precons Admin</h2>
       <p class="text-sm text-gray-400 mb-3">Upload all JSON files from <code>/precons</code> into Firestore so they can be served from the database.</p>
@@ -615,23 +708,21 @@ export function renderPreconsAdmin(containerId = 'settings-precons-admin') {
     `;
     block.appendChild(help);
 
-    // insert near top of settings view, below Gemini section if present
-    const gem = document.getElementById('settings-gemini-section');
-    if (gem && gem.parentElement) gem.parentElement.insertBefore(block, gem.nextSibling);
-    else settingsView.insertBefore(block, settingsView.firstChild);
+    // Append to the Advanced tab container
+    settingsView.appendChild(block);
 
     const uploadBtn = document.getElementById('precons-upload-btn');
     const regenBtn = document.getElementById('precons-regenerate-index-btn');
     const statusEl = document.getElementById('precons-upload-status');
     const resultsEl = document.getElementById('precons-upload-results');
 
-  // Clear precons cache button (admin only)
-  const clearCacheBtn = document.createElement('button');
-  clearCacheBtn.id = 'precons-clear-cache-btn';
-  clearCacheBtn.className = 'bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-2 rounded';
-  clearCacheBtn.textContent = 'Clear Precons Cache';
-  // insert after upload/regenerate controls
-  if (regenBtn && regenBtn.parentElement) regenBtn.parentElement.appendChild(clearCacheBtn);
+    // Clear precons cache button (admin only)
+    const clearCacheBtn = document.createElement('button');
+    clearCacheBtn.id = 'precons-clear-cache-btn';
+    clearCacheBtn.className = 'bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-2 rounded';
+    clearCacheBtn.textContent = 'Clear Precons Cache';
+    // insert after upload/regenerate controls
+    if (regenBtn && regenBtn.parentElement) regenBtn.parentElement.appendChild(clearCacheBtn);
 
     if (uploadBtn) uploadBtn.addEventListener('click', async () => {
       if (!confirm('Upload all precons from /precons to Firestore? This will overwrite existing docs with the same IDs.')) return;
