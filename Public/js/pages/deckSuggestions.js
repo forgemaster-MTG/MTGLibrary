@@ -128,73 +128,90 @@ function createModalIfNeeded() {
 
   const modalHtml = `
   <div id="deck-suggestions-modal" class="modal hidden fixed inset-0 flex items-center justify-center z-50 modal-backdrop">
-    <div class="deck-suggestions-modal-content">
-      <div class="flex items-start justify-between gap-4">
+    <div class="bg-gray-900 rounded-xl shadow-2xl border border-gray-700 w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden">
+      
+      <!-- Header -->
+      <div class="flex items-center justify-between p-4 border-b border-gray-700 bg-gray-800/50">
         <div>
-          <h3 id="deck-suggestions-title" class="text-2xl font-semibold text-indigo-400 mb-1">AI Deck builder</h3>
-          <p id="deck-suggestions-subtitle" class="text-sm text-gray-400">Use AI to build and suggest cards for this deck. Choose an action and start the pass.</p>
+          <h3 id="deck-suggestions-title" class="text-xl font-bold text-white">AI Deck Builder</h3>
+          <p id="deck-suggestions-subtitle" class="text-sm text-gray-400">Use AI to suggest cards for your deck.</p>
         </div>
-        <div class="flex items-center gap-2">
-          <label class="text-sm text-gray-300">Mode:</label>
-          <select id="deck-suggestions-mode-select" class="bg-gray-800 text-gray-200 px-2 py-1 rounded">
-            <option value="auto">Automatically apply</option>
-            <option value="preview" selected>Preview & approve</option>
-          </select>
-          <button id="deck-suggestions-cancel-btn" class="ml-2 text-gray-300 hover:text-white">✕</button>
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2 bg-gray-800 rounded-lg p-1 border border-gray-700">
+            <span class="text-xs text-gray-400 px-2">Mode:</span>
+            <select id="deck-suggestions-mode-select" class="bg-transparent text-sm text-white focus:outline-none cursor-pointer">
+              <option value="preview" selected>Preview & Approve</option>
+              <option value="auto">Auto-Apply</option>
+            </select>
+          </div>
+          <button id="deck-suggestions-start-btn" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2">
+            <span>Start Analysis</span>
+          </button>
+          <button id="deck-suggestions-cancel-btn" class="text-gray-400 hover:text-white p-2">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
         </div>
       </div>
 
-      <div class="mt-4" style="display:flex; flex:1; gap:1rem; min-height:0;">
-        <div style="flex:2; display:flex; flex-direction:column; min-height:0;">
-          <div id="deck-suggestions-status" class="text-sm text-gray-300 mb-2">Ready to start.</div>
-          <div id="deck-suggestions-results" class="space-y-3 deck-suggestions-results">
-            <!-- per-type results appended here (scrollable) -->
-            <p class="text-sm text-gray-400">Press "Start" to begin the suggestion pass.</p>
-          </div>
-          <div style="margin-top:6px; color:#9CA3AF; font-size:12px;">Note: results area is scrollable; preview remains visible below.</div>
+      <!-- Status Log (Collapsible/Scrollable) -->
+      <div class="bg-gray-950 border-b border-gray-800 p-3">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Analysis Log</span>
+          <span id="deck-suggestions-status" class="text-xs text-indigo-400 font-mono">Ready to start.</span>
         </div>
-        <div style="flex:1; display:flex; flex-direction:column; gap:8px;">
-          <div class="bg-gray-900 p-3 rounded-lg border border-gray-700">
-            <div class="mb-2 text-sm text-gray-300">Actions</div>
-            <div class="flex flex-col gap-2">
-              <button id="deck-suggestions-start-btn" class="bg-indigo-600 px-3 py-2 rounded">Start</button>
-              <button id="deck-suggestions-apply-selected-btn" class="bg-green-600 px-3 py-2 rounded hidden">Add selected</button>
-              <button id="deck-suggestions-rerun-btn" class="bg-yellow-600 px-3 py-2 rounded hidden">Find Replacements</button>
-              <div id="deck-suggestions-preview-selected-count" class="text-xs text-gray-400 mt-2">0 selected</div>
-              <div id="deck-suggestions-save-status" class="text-xs text-gray-400 mt-2">&nbsp;</div>
-              <button id="deck-suggestions-save-retry-btn" class="text-xs text-indigo-300 underline hidden">Retry save</button>
-            </div>
-          </div>
-          <div class="bg-gray-900 p-3 rounded-lg border border-gray-700" style="overflow:auto; max-height:40vh;">
-            <div class="text-sm text-gray-300 mb-2">Preview Controls</div>
-            <div class="flex items-center gap-2">
-              <label class="text-xs text-gray-400">Sort:</label>
-              <button id="deck-suggestions-sort-rating" class="text-xs text-gray-300 underline">Rating</button>
-            </div>
-            <!-- Parser mode removed as it's no longer needed -->
-          </div>
+        <div id="deck-suggestions-results" class="h-24 overflow-y-auto font-mono text-xs text-gray-400 space-y-1 pr-2 custom-scrollbar">
+          <div class="text-gray-600 italic">Waiting for start...</div>
         </div>
       </div>
-      <div id="deck-suggestions-preview" class="mt-4 hidden deck-suggestions-preview-pane">
-        <div class="bg-gray-900 rounded-lg p-2 border border-gray-700">
-          <table class="w-full text-sm text-left text-gray-300" id="deck-suggestions-preview-table">
-            <thead>
+
+      <!-- Tabs -->
+      <div class="flex items-center border-b border-gray-700 bg-gray-800/30 px-4 gap-1 overflow-x-auto" id="deck-suggestions-tabs">
+        <!-- Tabs injected dynamically -->
+        <button class="px-4 py-3 text-sm font-medium text-indigo-400 border-b-2 border-indigo-500">All Suggestions</button>
+      </div>
+
+      <!-- Content Area -->
+      <div class="flex-1 overflow-hidden relative bg-gray-900" id="deck-suggestions-content-area">
+        <!-- Preview Table -->
+        <div id="deck-suggestions-preview" class="absolute inset-0 overflow-auto custom-scrollbar p-4">
+           <table class="w-full text-sm text-left text-gray-300 border-collapse">
+            <thead class="text-xs text-gray-500 uppercase bg-gray-800/50 sticky top-0 z-10 backdrop-blur-sm">
               <tr>
-                <th class="p-2">Pick</th>
-                <th class="p-2">Name</th>
-                <th class="p-2">Type</th>
-                <th class="p-2">CMC</th>
-                <th class="p-2">Colors</th>
-                <th class="p-2">Pow/Tou</th>
-                <th class="p-2">Rating</th>
-                <th class="p-2">Reason</th>
-                <th class="p-2">Oracle (preview)</th>
+                <th class="p-3 font-medium">Add</th>
+                <th class="p-3 font-medium cursor-pointer hover:text-white group" data-sort="name">Name <span class="invisible group-hover:visible">↕</span></th>
+                <th class="p-3 font-medium cursor-pointer hover:text-white group" data-sort="type">Type <span class="invisible group-hover:visible">↕</span></th>
+                <th class="p-3 font-medium text-center">CMC</th>
+                <th class="p-3 font-medium text-center">Rating</th>
+                <th class="p-3 font-medium">Reason</th>
               </tr>
             </thead>
-            <tbody id="deck-suggestions-preview-body"></tbody>
+            <tbody id="deck-suggestions-preview-body" class="divide-y divide-gray-800">
+              <!-- Rows -->
+            </tbody>
           </table>
+          <div id="deck-suggestions-empty-state" class="hidden flex flex-col items-center justify-center h-full text-gray-500">
+            <p>No suggestions yet.</p>
+          </div>
         </div>
       </div>
+
+      <!-- Footer -->
+      <div class="p-4 border-t border-gray-700 bg-gray-800/50 flex items-center justify-between">
+        <div class="flex flex-col">
+          <div class="text-sm text-gray-400" id="deck-suggestions-preview-selected-count">0 cards selected</div>
+          <div class="flex items-center gap-2 mt-1">
+             <div id="deck-suggestions-save-status" class="text-xs text-gray-500">&nbsp;</div>
+             <button id="deck-suggestions-save-retry-btn" class="text-xs text-indigo-400 hover:text-indigo-300 underline hidden">Retry Save</button>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <button id="deck-suggestions-rerun-btn" class="text-gray-400 hover:text-white text-sm px-3 py-2 hidden">Find Replacements</button>
+          <button id="deck-suggestions-apply-selected-btn" class="bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded-lg font-bold shadow-lg shadow-green-900/20 disabled:opacity-50 disabled:cursor-not-allowed hidden">
+            Add Selected Cards
+          </button>
+        </div>
+      </div>
+
     </div>
   </div>
   `;
@@ -218,17 +235,16 @@ function openDeckSuggestionsModal(deckId, opts = {}) {
   const deck = (window.localDecks || localDecks)[deckId];
   if (!deck) { showToast('Deck not found for suggestions.', 'error'); return; }
 
-  title.textContent = `AI Deck builder: ${deck.name}`;
+  title.textContent = `AI Deck Builder: ${deck.name}`;
   allSuggestedMap = {};
 
   // If deck has persisted aiSuggestions, seed them into the preview map
   if (deck.aiSuggestions && typeof deck.aiSuggestions === 'object' && !Array.isArray(deck.aiSuggestions)) {
-    // Note: This assumes aiSuggestions is a Map/Object: { firestoreId: { ... } }
     Object.entries(deck.aiSuggestions).forEach(([id, s]) => {
       if (!s || !id) return;
       const card = (window.localCollection || localCollection)[id] || {};
       allSuggestedMap[id] = {
-        ...card, // Base data from collection (name, type_line, cmc, etc.)
+        ...card,
         firestoreId: id,
         rating: s.rating ?? null,
         reason: s.reason || s.note || '',
@@ -240,54 +256,87 @@ function openDeckSuggestionsModal(deckId, opts = {}) {
 
   // --- Reset UI states ---
   document.getElementById('deck-suggestions-status').textContent = 'Ready to start.';
-  document.getElementById('deck-suggestions-results').innerHTML = `<p class="text-sm text-gray-400">Press "Start" to begin the suggestion pass.</p>`;
+  document.getElementById('deck-suggestions-results').innerHTML = `<div class="text-gray-500 italic">Press "Start Analysis" to begin...</div>`;
   document.getElementById('deck-suggestions-preview-body').innerHTML = '';
-  document.getElementById('deck-suggestions-preview').classList.add('hidden');
+  document.getElementById('deck-suggestions-empty-state').classList.remove('hidden');
+
+  // Reset Tabs
+  const tabsContainer = document.getElementById('deck-suggestions-tabs');
+  tabsContainer.innerHTML = `<button class="px-4 py-3 text-sm font-medium text-white border-b-2 border-indigo-500 transition-colors" data-tab="all">All Suggestions</button>`;
 
   // Reset buttons
   document.getElementById('deck-suggestions-apply-selected-btn').classList.add('hidden');
   document.getElementById('deck-suggestions-rerun-btn').classList.add('hidden');
-  document.getElementById('deck-suggestions-start-btn').disabled = false;
-  document.getElementById('deck-suggestions-start-btn').textContent = 'Start';
 
-  // Wire Start button
-  document.getElementById('deck-suggestions-start-btn').onclick = () => startSuggestionFlow(deckId);
+  const startBtn = document.getElementById('deck-suggestions-start-btn');
+  startBtn.disabled = false;
+  startBtn.innerHTML = `<span>Start Analysis</span>`;
+  startBtn.onclick = () => startSuggestionFlow(deckId);
 
-  // Wire Sort control
-  const sortBtn = document.getElementById('deck-suggestions-sort-rating');
-  sortBtn.onclick = () => {
-    previewSort.dir = (previewSort.dir === -1 ? 1 : -1);
-    // Note: No text content change on this button in old UI
-    reRenderPreviewTable();
-  };
-
+  // Wire Sort control (header clicks)
+  document.querySelectorAll('#deck-suggestions-preview thead th[data-sort]').forEach(th => {
+    th.onclick = () => {
+      const field = th.dataset.sort;
+      if (previewSort.field === field) {
+        previewSort.dir = previewSort.dir * -1;
+      } else {
+        previewSort.field = field;
+        previewSort.dir = 1; // Default asc for text, desc for rating? 
+        if (field === 'rating') previewSort.dir = -1;
+      }
+      reRenderPreviewTable();
+    };
+  });
 
   // --- Event Listeners for checkboxes ---
   const updateCheckboxCount = () => {
     const cnt = document.querySelectorAll('.deck-suggestion-checkbox:checked').length;
     const el = document.getElementById('deck-suggestions-preview-selected-count');
-    if (el) el.textContent = `${cnt} selected`;
+    if (el) el.textContent = `${cnt} cards selected`;
+
+    const applyBtn = document.getElementById('deck-suggestions-apply-selected-btn');
+    if (cnt > 0) {
+      applyBtn.disabled = false;
+      applyBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    } else {
+      applyBtn.disabled = true;
+      applyBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    }
   };
 
   // Need to use event delegation on the body since table rows are dynamic
   document.body.removeEventListener('change', handleModalChangeEvents); // Remove old listener
   document.body.addEventListener('change', handleModalChangeEvents); // Add new one
 
+  // Also listen for tab clicks
+  tabsContainer.onclick = (e) => {
+    if (e.target.tagName === 'BUTTON') {
+      // clear active state
+      tabsContainer.querySelectorAll('button').forEach(b => {
+        b.classList.remove('text-white', 'border-indigo-500');
+        b.classList.add('text-gray-400', 'border-transparent', 'hover:text-gray-200');
+      });
+      // set active
+      e.target.classList.remove('text-gray-400', 'border-transparent', 'hover:text-gray-200');
+      e.target.classList.add('text-white', 'border-indigo-500');
+
+      // Filter view
+      const type = e.target.dataset.tab;
+      reRenderPreviewTable(type);
+    }
+  };
+
   openModal('deck-suggestions-modal');
 
   // If we seeded suggestions, render preview immediately
   if (Object.keys(allSuggestedMap).length > 0) {
-    document.getElementById('deck-suggestions-preview').classList.remove('hidden');
+    document.getElementById('deck-suggestions-empty-state').classList.add('hidden');
     reRenderPreviewTable();
     // Show buttons
     document.getElementById('deck-suggestions-apply-selected-btn').classList.remove('hidden');
     document.getElementById('deck-suggestions-rerun-btn').classList.remove('hidden');
     updateCheckboxCount();
   }
-
-  // Wire retry button (for metadata save)
-  const retryBtn = document.getElementById('deck-suggestions-save-retry-btn');
-  retryBtn.onclick = () => saveSuggestionMetadata(deckId);
 }
 
 /**
@@ -679,6 +728,21 @@ async function startSuggestionFlow(deckId, opts = {}) {
         console.debug(`[deckSuggestions] Reached request limit of ${numToRequest} for ${type} slot, skipping remaining AI suggestions.`);
         break; // Stop processing suggestions for this type
       }
+
+      // Check if card is already in the deck (do this BEFORE adding to mapped)
+      if ((deck.cards || {})[card.firestoreId]) {
+        appendResultBlock(
+          `Already in Deck`,
+          'Info',
+          1,
+          1,
+          false,
+          `${card.name} (${card.type_line}) already in deck, skipping`
+        );
+        console.debug(`[deckSuggestions] Card ${card.name} already in deck, skipping`);
+        continue;
+      }
+
       mapped.push(card);
       // --- END FIX ---
 
@@ -704,11 +768,19 @@ async function startSuggestionFlow(deckId, opts = {}) {
       // Append incremental per-type UI block
       appendResultBlock(effectiveType, type, mapped.length, numToRequest, false, '');
 
+      // Add Tab for this type if not exists
+      const tabsContainer = document.getElementById('deck-suggestions-tabs');
+      if (tabsContainer && !tabsContainer.querySelector(`[data-tab="${type}"]`)) {
+        const btn = document.createElement('button');
+        btn.className = 'px-4 py-3 text-sm font-medium text-gray-400 border-b-2 border-transparent hover:text-gray-200 transition-colors whitespace-nowrap';
+        btn.dataset.tab = type;
+        btn.textContent = `${type} (${mapped.length})`;
+        tabsContainer.appendChild(btn);
+      }
+
       // Live update the preview table as each type returns
       try {
-        if (!document.getElementById('deck-suggestions-preview').classList.contains('hidden')) {
-          reRenderPreviewTable();
-        }
+        reRenderPreviewTable();
       } catch (e) { console.debug('preview re-render failed', e); }
     } else if (suggestions.length > 0) {
       appendResultBlock(effectiveType, type, 0, numToRequest, true, 'AI suggested cards we already have.');
@@ -727,7 +799,40 @@ async function startSuggestionFlow(deckId, opts = {}) {
   // --- Auto-Add Basic Lands ---
   try {
     const deckObj = (window.localDecks || localDecks)[deckId];
-    const basicLandNeeds = calculateBasicLandNeeds(deckObj, targetTotal);
+    // Fix: Pass a reasonable land target (e.g. 37 for commander, 24 for 60-card) instead of the full deck size
+    // We try to find a custom land count in the deck or blueprint first.
+    const getDeckLandTarget = (d) => {
+      if (d.customLandCount) return Number(d.customLandCount);
+      if (d.landCount) return Number(d.landCount);
+      if (d.aiBlueprint) {
+        if (d.aiBlueprint.totalLandCount) return Number(d.aiBlueprint.totalLandCount);
+        if (d.aiBlueprint.counts && d.aiBlueprint.counts.Land) return Number(d.aiBlueprint.counts.Land);
+      }
+      return (d.format === 'commander' || !d.format) ? 37 : 24;
+    };
+    const targetLandCount = getDeckLandTarget(deckObj);
+
+    // Temporarily add suggested cards to localCollection so calculateBasicLandNeeds can access them
+    if (!window.localCollection) window.localCollection = {};
+    const tempCollectionBackup = {};
+    Object.keys(allSuggestedMap).forEach(id => {
+      if (!window.localCollection[id]) {
+        window.localCollection[id] = allSuggestedMap[id];
+        tempCollectionBackup[id] = true; // Track what we added
+      }
+    });
+
+    // Create a temp deck object that includes the suggested cards to get accurate basic land count
+    const tempDeck = {
+      ...deckObj,
+      cards: tempDeckList
+    };
+    const basicLandNeeds = calculateBasicLandNeeds(tempDeck, targetLandCount);
+
+    // Clean up temporary additions
+    Object.keys(tempCollectionBackup).forEach(id => {
+      delete window.localCollection[id];
+    });
 
     const manaColors = {
       W: 'Plains',
@@ -745,38 +850,54 @@ async function startSuggestionFlow(deckId, opts = {}) {
       if (needed === 0) return;
 
       const basicName = manaColors[colorCode];
-      // Find this basic land in collection
-      const basicLand = Object.values(col).find(c =>
+      let basicLand = Object.values(col).find(c =>
         c.name === basicName && c.type_line?.includes('Basic Land')
       );
 
-      if (basicLand) {
-        // Add to suggestions map
+      // If not found in collection, create a virtual one
+      if (!basicLand) {
+        console.warn(`[deckSuggestions] Basic land ${basicName} not found in collection. Creating virtual entry.`);
+        const virtualId = `virtual-basic-${colorCode}-${deckId}`;
+        basicLand = {
+          firestoreId: virtualId,
+          name: basicName,
+          type_line: `Basic Land — ${basicName.split(' ').pop()}`,
+          cmc: 0,
+          color_identity: [colorCode],
+          image_uris: { normal: `https://c1.scryfall.com/file/scryfall-cards/normal/front/0/0/00000000-0000-0000-0000-000000000000.jpg` },
+          isVirtual: true
+        };
+
+        const art = {
+          'Plains': 'https://cards.scryfall.io/normal/front/d/1/d1286953-f761-4c8d-8b19-5d283e762c56.jpg',
+          'Island': 'https://cards.scryfall.io/normal/front/6/8/68654196-d969-425e-be2c-090e036998b9.jpg',
+          'Swamp': 'https://cards.scryfall.io/normal/front/1/8/184a196e-8604-49d2-a66a-6f7c0eafd5de.jpg',
+          'Mountain': 'https://cards.scryfall.io/normal/front/4/c/4c7d3c9a-919b-4102-8794-34f504413348.jpg',
+          'Forest': 'https://cards.scryfall.io/normal/front/9/3/9366c5cd-a657-4321-98ca-596a97bb30d0.jpg'
+        };
+        if (art[basicName]) basicLand.image_uris = { normal: art[basicName], small: art[basicName] };
+      }
+
+      if (basicLand && !((deck.cards || {})[basicLand.firestoreId])) {
         allSuggestedMap[basicLand.firestoreId] = {
           ...basicLand,
           rating: 5,
-          reason: `${needed}x basic ${basicName} for ${colorCode} mana (calculated from deck pips)`,
+          reason: `${needed}x basic ${basicName} for ${colorCode} mana`,
           sourceType: 'Land',
           slotType: 'Land',
           count: needed,
           isAutoBasicLand: true
         };
-
         basicLandsAdded.push(`${needed}x ${basicName}`);
-
-        // Also add to temp deck list for accurate count
         tempDeckList[basicLand.firestoreId] = {
           count: needed,
           name: basicLand.name,
           type_line: basicLand.type_line,
           slotType: 'Land'
         };
-      } else {
-        console.warn(`[deckSuggestions] Basic land ${basicName} not found in collection`);
       }
     });
 
-    // Log basic lands added
     if (basicLandsAdded.length > 0) {
       appendResultBlock('Basic Lands', 'Land', basicLandsAdded.length, basicLandsAdded.length, false, basicLandsAdded.join(', '));
       console.log(`[deckSuggestions] Auto-added basic lands: ${basicLandsAdded.join(', ')}`);
@@ -784,13 +905,11 @@ async function startSuggestionFlow(deckId, opts = {}) {
   } catch (e) {
     console.error('[deckSuggestions] Failed to calculate basic lands', e);
   }
-  // --- End Basic Lands ---
 
   // --- Done gathering ---
   statusEl.textContent = `Suggestion pass complete. ${countNonCommander() - Object.keys(deck.cards).length} new cards suggested.`;
   document.getElementById('deck-suggestions-start-btn').disabled = false;
   document.getElementById('deck-suggestions-start-btn').textContent = 'Run Another Pass';
-
 
   const mode = document.getElementById('deck-suggestions-mode-select')?.value || 'preview';
 
@@ -799,12 +918,14 @@ async function startSuggestionFlow(deckId, opts = {}) {
     const idsToAdd = Object.keys(allSuggestedMap).filter(id => !(deck.cards || {})[id]);
     if (idsToAdd.length === 0) { try { window.__deckSuggestionsFlowInFlight = false; } catch (e) { }; showToast('No new cards to add.', 'info'); return; }
 
-    // Persist metadata for these suggested cards (include name and scryfall id)
     try {
       saveSuggestionMetadata(deckId, idsToAdd);
     } catch (e) { console.warn('[deckSuggestions] saveSuggestionMetadata (auto) failed', e); }
 
-    if (typeof window.handleAddSelectedCardsToDeck === 'function') {
+    if (typeof window.batchAddCardsWithProgress === 'function') {
+      closeModal('deck-suggestions-modal');
+      window.batchAddCardsWithProgress(deckId, idsToAdd, allSuggestedMap);
+    } else if (typeof window.handleAddSelectedCardsToDeck === 'function') {
       closeModal('deck-suggestions-modal');
       window.handleAddSelectedCardsToDeck(deckId, idsToAdd);
     } else {
@@ -814,24 +935,18 @@ async function startSuggestionFlow(deckId, opts = {}) {
     // Preview mode
     if (Object.keys(allSuggestedMap).length > 0) {
       document.getElementById('deck-suggestions-preview').classList.remove('hidden');
-      reRenderPreviewTable(); // Final render
+      reRenderPreviewTable();
 
-      // Show controls
       document.getElementById('deck-suggestions-apply-selected-btn').classList.remove('hidden');
       document.getElementById('deck-suggestions-rerun-btn').classList.remove('hidden');
       document.getElementById('deck-suggestions-preview-selected-count').textContent = `${Object.keys(allSuggestedMap).length} selected`;
 
-      // Wire buttons
       document.getElementById('deck-suggestions-apply-selected-btn').onclick = () => {
         const ids = Array.from(document.querySelectorAll('.deck-suggestion-checkbox:checked')).map(cb => cb.dataset.firestoreId);
-
-        // Save metadata first
         saveSuggestionMetadata(deckId);
-
-        // Close modal and add cards
         closeModal('deck-suggestions-modal');
         if (typeof window.batchAddCardsWithProgress === 'function') {
-          window.batchAddCardsWithProgress(deckId, ids);
+          window.batchAddCardsWithProgress(deckId, ids, allSuggestedMap);
         } else if (typeof window.handleAddSelectedCardsToDeck === 'function') {
           window.handleAddSelectedCardsToDeck(deckId, ids);
         } else {
@@ -840,28 +955,18 @@ async function startSuggestionFlow(deckId, opts = {}) {
       };
 
       document.getElementById('deck-suggestions-rerun-btn').onclick = () => {
-        // User wants replacements.
-        // 1. Get selected IDs
         const selectedIds = new Set(Array.from(document.querySelectorAll('.deck-suggestion-checkbox:checked')).map(cb => cb.dataset.firestoreId));
-
-        // 2. Remove unselected cards from the aggregate map
         Object.keys(allSuggestedMap).forEach(id => {
-          if (!selectedIds.has(id)) {
-            delete allSuggestedMap[id];
-          }
+          if (!selectedIds.has(id)) delete allSuggestedMap[id];
         });
-
-        // 3. Clear results log and re-run
         document.getElementById('deck-suggestions-results').innerHTML = `<p class="text-sm text-gray-400">Finding replacements...</p>`;
-        reRenderPreviewTable(); // Update preview to show only selected
+        reRenderPreviewTable();
         startSuggestionFlow(deckId);
       };
-
     } else {
       appendResultBlock('Complete', '', 0, 0, true, 'No new suggestions found for this deck.');
       document.getElementById('deck-suggestions-preview').classList.add('hidden');
     }
-    // Clear the in-flight guard so the user can run another pass
     try { window.__deckSuggestionsFlowInFlight = false; } catch (e) { }
   }
 }
@@ -875,35 +980,33 @@ async function startSuggestionFlow(deckId, opts = {}) {
  * @param {boolean} isError - If true, styles as an error/warning
  * @param {string} message - An optional message
  */
+/**
+ * Appends a result block to the "Suggestion Log" (scrollable area).
+ */
 function appendResultBlock(effectiveType, slotType, count, requested, isError, message) {
   try {
     const resultsDiv = document.getElementById('deck-suggestions-results');
-    // Clear initial message
-    if (resultsDiv.querySelector('p')) {
+    // Remove initial placeholder if present
+    if (resultsDiv.querySelector('.italic')) {
       resultsDiv.innerHTML = '';
     }
 
     const block = document.createElement('div');
-    block.className = `p-3 rounded-lg border ${isError ? 'bg-red-900/20 border-red-700/50' : 'bg-gray-800/60 border-gray-700/50'}`;
+    block.className = `flex items-center justify-between p-2 rounded ${isError ? 'bg-red-900/20 text-red-300' : 'bg-gray-800/40 text-gray-400'} border border-gray-800`;
 
-    let title = '';
+    let title = effectiveType;
     if (slotType && effectiveType !== slotType) {
-      title = `${effectiveType} (for ${slotType} slot)`;
-    } else {
-      title = effectiveType;
+      title = `${effectiveType} (for ${slotType})`;
     }
 
-    const countColor = count === 0 ? 'text-gray-400' : 'text-green-400';
-    const countText = message ? `<span class="text-yellow-400">${message}</span>` : `Found ${count} / ${requested}`;
+    const countText = message ? `<span class="${isError ? 'text-red-400' : 'text-yellow-500'}">${message}</span>` : `<span class="text-green-400 font-mono">Found ${count}/${requested}</span>`;
 
     block.innerHTML = `
-      <div class="flex items-center justify-between">
-        <div class="text-sm text-gray-200 font-medium">${title}</div>
-        <div class="text-xs ${isError ? 'text-red-300' : countColor}">${countText}</div>
-      </div>
+      <span class="font-medium">${title}</span>
+      <span class="text-xs">${countText}</span>
     `;
     resultsDiv.appendChild(block);
-    resultsDiv.scrollTop = resultsDiv.scrollHeight; // Auto-scroll
+    resultsDiv.scrollTop = resultsDiv.scrollHeight;
   } catch (e) { console.debug('UI append failed', e); }
 }
 
@@ -977,47 +1080,108 @@ function escapeHtml(str) {
 /**
  * Re-renders the entire preview table from the aggregated `allSuggestedMap`.
  */
-function reRenderPreviewTable() {
+/**
+ * Re-renders the entire preview table from the aggregated `allSuggestedMap`.
+ * @param {string} filterType - Optional slotType to filter by (matches tab data-tab)
+ */
+function reRenderPreviewTable(filterType = null) {
   const previewBody = document.getElementById('deck-suggestions-preview-body');
   if (!previewBody) return;
 
+  // If no filter passed, try to find active tab
+  if (!filterType) {
+    const activeTab = document.querySelector('#deck-suggestions-tabs button.border-indigo-500');
+    if (activeTab) filterType = activeTab.dataset.tab;
+  }
+  if (filterType === 'all') filterType = null;
+
   previewBody.innerHTML = '';
-  const arr = Object.values(allSuggestedMap);
+  let arr = Object.values(allSuggestedMap);
+
+  // Filter
+  if (filterType) {
+    arr = arr.filter(s => s.slotType === filterType || s.sourceType === filterType);
+  }
 
   // Sort
   arr.sort((a, b) => {
-    const af = (a.rating === null || a.rating === undefined) ? -Infinity : a.rating;
-    const bf = (b.rating === null || b.rating === undefined) ? -Infinity : b.rating;
-    return (previewSort.dir || -1) * (af - bf);
+    let valA = a[previewSort.field];
+    let valB = b[previewSort.field];
+
+    // Handle numeric/nulls
+    if (previewSort.field === 'rating' || previewSort.field === 'cmc') {
+      valA = (valA === null || valA === undefined) ? -Infinity : Number(valA);
+      valB = (valB === null || valB === undefined) ? -Infinity : Number(valB);
+    } else {
+      valA = (valA || '').toString().toLowerCase();
+      valB = (valB || '').toString().toLowerCase();
+    }
+
+    if (valA < valB) return -1 * previewSort.dir;
+    if (valA > valB) return 1 * previewSort.dir;
+    return 0;
   });
 
   const selectedIds = new Set(Array.from(document.querySelectorAll('.deck-suggestion-checkbox:checked')).map(cb => cb.dataset.firestoreId));
 
+  if (arr.length === 0) {
+    document.getElementById('deck-suggestions-empty-state').classList.remove('hidden');
+    document.getElementById('deck-suggestions-empty-state').innerHTML = `<p>No suggestions found for this category.</p>`;
+  } else {
+    document.getElementById('deck-suggestions-empty-state').classList.add('hidden');
+  }
+
   arr.forEach(s => {
     const tr = document.createElement('tr');
-    tr.className = 'border-b border-gray-700/50 hover:bg-gray-800/60 transition-colors';
+    tr.className = 'hover:bg-gray-800/50 transition-colors group';
 
     // Get checkbox state. If table is re-rendering, maintain checked state.
     // Default to checked if it's a new card.
-    const isChecked = selectedIds.has(s.firestoreId) || !selectedIds.size; // Default to checked
+    // Logic: If selectedIds has entries, use that. If empty, it might be first render, so check if we should default to all.
+    // Actually, simpler: If the ID is in selectedIds, check it. 
+    // If selectedIds is EMPTY, it means either nothing selected OR first render.
+    // We want default to be CHECKED.
+    // So we need to track if the user has explicitly unselected things? 
+    // For now, let's just say: if it's in the set, it's checked. If the set is empty, we check EVERYTHING (first render assumption).
+    // But wait, if user unchecks everything, set is empty, and then it re-checks everything? That's bad.
+    // Better: Initialize selectedIds with all IDs when we first create the map?
+    // Or just check the DOM?
+
+    // Current approach:
+    // If we are re-rendering, we grabbed selectedIds from the DOM *before* clearing.
+    // If that set was empty, it implies either nothing selected OR this is the first render.
+    // We can distinguish by checking if there were any checkboxes at all.
+    // Always default to checked
+    let isChecked = true;
 
     const oracle = s.oracle_text || '';
-    const cmc = s.cmc ?? '';
-    const colors = (s.colors || []).join(', ');
-    const pt = (s.power || s.toughness) ? `${s.power || '?'}/${s.toughness || '?'}` : '';
+    const cmc = s.cmc ?? '-';
     const rating = s.rating !== undefined && s.rating !== null ? s.rating : '';
     const reason = s.reason || '';
 
+    // Type icon/text
+    const typeLine = (s.type_line || '').split('—')[0].trim();
+
     tr.innerHTML = `
-      <td class="p-3"><input type="checkbox" class="deck-suggestion-checkbox" data-firestore-id="${s.firestoreId}" ${isChecked ? 'checked' : ''}></td>
-      <td class="p-3 font-medium whitespace-nowrap text-gray-100">${escapeHtml(s.name)}</td>
-      <td class="p-3 text-sm text-gray-400">${escapeHtml(s.sourceType)}</td>
-      <td class="p-3 text-sm text-gray-400">${cmc}</td>
-      <td class="p-3 text-sm text-gray-400">${colors}</td>
-      <td class="p-3 text-sm text-gray-400">${pt}</td>
-      <td class="p-3 text-sm"><input type="number" min="1" max="10" class="deck-suggestion-rating bg-gray-800 rounded p-1 border border-gray-600 w-16 text-center" data-firestore-id="${s.firestoreId}" value="${rating}"></td>
-      <td class="p-3 text-sm text-gray-400 max-w-xs truncate" title="${escapeHtml(reason)}">${escapeHtml(reason)}</td>
-      <td class="p-3 text-sm text-gray-500 max-w-xs truncate" title="${escapeHtml(oracle)}">${escapeHtml(oracle)}</td>
+      <td class="p-3 w-10 text-center">
+        <input type="checkbox" class="deck-suggestion-checkbox w-4 h-4 rounded border-gray-600 text-indigo-600 focus:ring-indigo-500 bg-gray-700" data-firestore-id="${s.firestoreId}" ${isChecked ? 'checked' : ''}>
+      </td>
+      <td class="p-3 font-medium text-white">
+        <div class="flex flex-col">
+          <span>${escapeHtml(s.name)}</span>
+          <span class="text-[10px] text-gray-500 sm:hidden">${typeLine}</span>
+        </div>
+      </td>
+      <td class="p-3 text-sm text-gray-400 hidden sm:table-cell">${escapeHtml(typeLine)}</td>
+      <td class="p-3 text-sm text-gray-400 text-center font-mono">${cmc}</td>
+      <td class="p-3 text-center">
+        <div class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-800 border border-gray-700 font-bold text-sm ${rating >= 8 ? 'text-green-400 border-green-900' : 'text-indigo-400'}">
+          ${rating}
+        </div>
+      </td>
+      <td class="p-3 text-sm text-gray-400 max-w-md">
+        <div class="line-clamp-2" title="${escapeHtml(reason)}">${escapeHtml(reason)}</div>
+      </td>
     `;
     previewBody.appendChild(tr);
   });

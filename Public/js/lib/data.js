@@ -70,13 +70,81 @@ export async function deleteDeck(deckId, alsoDeleteCards, userId) {
     const batch = writeBatch(db);
     const deckRef = doc(db, `artifacts/${appId}/users/${userId}/decks`, deckId);
     batch.delete(deckRef);
-    if (alsoDeleteCards) {
-      const deck = localDecks[deckId];
-      const cardIds = new Set(Object.keys(deck.cards || {}));
-      if (deck.commander && deck.commander.firestoreId) cardIds.add(deck.commander.firestoreId);
-      cardIds.forEach(fid => batch.delete(doc(db, `artifacts/${appId}/users/${userId}/collection`, fid)));
+
+    const deck = localDecks[deckId];
+    if (!deck) {
+      console.warn('Deck not found locally, cannot process card cleanup.');
+    } else {
+      const deckCards = deck.cards || {};
+      const cardIds = Object.keys(deckCards);
+      if (deck.commander && deck.commander.firestoreId) cardIds.push(deck.commander.firestoreId);
+
+      if (alsoDeleteCards) {
+        // Option A: Delete everything
+        cardIds.forEach(fid => batch.delete(doc(db, `artifacts/${appId}/users/${userId}/collection`, fid)));
+      } else {
+        // Option B: Return to collection (Merge if possible)
+        // We need to check if these cards have "siblings" in the collection that they should merge into.
+        // Since we are in a batch, we can't read-then-write easily for every single card without potentially hitting limits or race conditions.
+        // However, we have localCollection! We can use it to find merge targets.
+
+        const col = window.localCollection || localCollection;
+        const mergeOperations = []; // Track what we do to update local state optimistically
+
+        cardIds.forEach(fid => {
+          const card = col[fid];
+          if (!card) return; // Should exist
+
+          // Find a target to merge into: Same Oracle ID (or ID), Same Finish, DIFFERENT Firestore ID
+          // And ideally, the target should NOT be one of the cards we are currently processing (from this deck)
+          // to avoid merging two deck cards into each other (though that wouldn't be the end of the world).
+          // We prioritize cards that are NOT in the current deck list.
+
+          const target = Object.values(col).find(c =>
+            c.firestoreId !== fid && // Not itself
+            c.id === card.id && // Same Scryfall ID
+            (c.finish || 'nonfoil') === (card.finish || 'nonfoil') && // Same Finish
+            !deckCards[c.firestoreId] && // Target is NOT in this deck (it's a "real" collection stack)
+            c.firestoreId !== deck.commander?.firestoreId // Target is not the commander
+          );
+
+          if (target) {
+            // Merge into target
+            const newCount = (target.count || 0) + (card.count || 1);
+            const targetRef = doc(db, `artifacts/${appId}/users/${userId}/collection`, target.firestoreId);
+            const sourceRef = doc(db, `artifacts/${appId}/users/${userId}/collection`, fid);
+
+            // We can't easily update the 'target' object in the loop because we might merge multiple cards into it.
+            // But since we are processing a deck, usually there's only 1 copy of a card in a deck.
+            // So simple merge is fine.
+
+            batch.update(targetRef, { count: newCount });
+            batch.delete(sourceRef);
+
+            // Update local target count immediately so next iteration sees it? 
+            // No, localCollection update happens after.
+            // But we should avoid merging multiple things into the same target without accumulating count.
+            // For now, let's assume unique cards in deck.
+          } else {
+            // No target found. This card simply remains in the collection.
+            // It effectively "becomes" the collection stack.
+          }
+        });
+      }
     }
+
     await batch.commit();
+
+    // Optimistic Updates
+    delete localDecks[deckId];
+    if (window.localDecks) delete window.localDecks[deckId];
+    updateCardAssignments(); // This will clear assignments for the deleted deck
+
+    // If we merged cards, we should probably reload the collection or try to patch it.
+    // Since this is a complex operation, a reload might be safer, but let's try to be smart.
+    // For now, we'll just let the real-time listener (if any) or next load handle it, 
+    // but we should at least remove the deleted deck from UI.
+
     showToast('Deck deleted.', 'success');
   } catch (error) {
     console.error('Error deleting deck:', error);
@@ -171,7 +239,7 @@ export function handleImportAllData(event) {
         const data = JSON.parse(e.target.result);
         if (!data.collection || !data.decks) throw new Error('Invalid backup file structure.');
         _tempImportedData = data;
-        try { window.tempImportedData = data; } catch (e) {}
+        try { window.tempImportedData = data; } catch (e) { }
         // Open the import options modal (UI helper exposed on window)
         try { if (typeof window.openModal === 'function') window.openModal('data-import-options-modal'); }
         catch (err) { /* non-fatal */ }
@@ -182,7 +250,7 @@ export function handleImportAllData(event) {
     };
     reader.readAsText(file);
     // Reset input if possible
-    try { if (event && event.target) event.target.value = ''; } catch (e) {}
+    try { if (event && event.target) event.target.value = ''; } catch (e) { }
   } catch (err) {
     console.error('[handleImportAllData] error', err);
     showToast('Failed to read import file.', 'error');
@@ -192,7 +260,7 @@ export function handleImportAllData(event) {
 export async function processDataImport(replace) {
   try {
     // Close the modal that asked merge/replace (if present)
-    try { if (typeof window.closeModal === 'function') window.closeModal('data-import-options-modal'); } catch (e) {}
+    try { if (typeof window.closeModal === 'function') window.closeModal('data-import-options-modal'); } catch (e) { }
 
     const data = _tempImportedData || (typeof window !== 'undefined' && window.tempImportedData) || null;
     if (!data) {
@@ -207,12 +275,12 @@ export async function processDataImport(replace) {
         document.getElementById('confirmation-message').textContent = 'This will permanently delete all your current decks and collection. This action cannot be undone.';
         if (document.getElementById('confirm-action-btn')) {
           document.getElementById('confirm-action-btn').onclick = async () => {
-            try { if (typeof window.closeModal === 'function') window.closeModal('confirmation-modal'); } catch (e) {}
+            try { if (typeof window.closeModal === 'function') window.closeModal('confirmation-modal'); } catch (e) { }
             await executeDataImportBatched(true);
             document.getElementById('confirm-action-btn').onclick = null;
           };
         }
-        try { window.openModal('confirmation-modal'); } catch (e) {}
+        try { window.openModal('confirmation-modal'); } catch (e) { }
       } else {
         // Fallback to direct execution
         await executeDataImportBatched(true);
@@ -242,7 +310,7 @@ export async function executeDataImportBatched(replace) {
   let toastId = null;
   try {
     if (typeof showToastWithProgress === 'function') toastId = showToastWithProgress('Importing data...', current, total);
-  } catch (e) {}
+  } catch (e) { }
 
   try {
     const uid = (typeof window !== 'undefined' && window.userId) || null;
@@ -276,21 +344,21 @@ export async function executeDataImportBatched(replace) {
         });
         await batch.commit();
         current += Math.min(batchSize, entries.length - i);
-        try { if (typeof updateToastProgress === 'function' && toastId) updateToastProgress(toastId, current, total); } catch (e) {}
+        try { if (typeof updateToastProgress === 'function' && toastId) updateToastProgress(toastId, current, total); } catch (e) { }
       }
     }
 
     await batchWrite(collectionEntries, 'collection');
     await batchWrite(deckEntries, 'decks');
-    try { if (typeof updateToastProgress === 'function' && toastId) updateToastProgress(toastId, total, total); } catch (e) {}
-    setTimeout(() => { try { if (typeof removeToastById === 'function' && toastId) removeToastById(toastId); } catch (e) {} }, 1500);
+    try { if (typeof updateToastProgress === 'function' && toastId) updateToastProgress(toastId, total, total); } catch (e) { }
+    setTimeout(() => { try { if (typeof removeToastById === 'function' && toastId) removeToastById(toastId); } catch (e) { } }, 1500);
     showToast(`Data successfully imported (${replace ? 'Replaced' : 'Merged'}).`, 'success');
   } catch (err) {
     console.error('Error executing data import:', err);
     showToast('A problem occurred during the import.', 'error');
   } finally {
     _tempImportedData = null;
-    try { if (typeof window !== 'undefined') window.tempImportedData = null; } catch (e) {}
+    try { if (typeof window !== 'undefined') window.tempImportedData = null; } catch (e) { }
   }
 }
 

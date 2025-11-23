@@ -1,8 +1,8 @@
-import { localDecks, localCollection, addCardToCollection, updateCardAssignments, deleteDeck as dataDeleteDeck } from '../lib/data.js';
+import { localDecks, localCollection, cardDeckAssignments, addCardToCollection, updateCardAssignments, deleteDeck as dataDeleteDeck } from '../lib/data.js';
 import { showToast, openModal, closeModal } from '../lib/ui.js';
 import { openDeckSuggestionsModal } from './deckSuggestions.js';
 import { db, appId } from '../main/index.js';
-import { writeBatch, doc, updateDoc, runTransaction, deleteField, collection, getDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+import { writeBatch, doc, updateDoc, runTransaction, deleteField, collection, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 
 // Helper: add a single card to deck by splitting the collection stack (creates a new collection doc)
 async function addSingleCardWithSplit(uid, deckId, fid) {
@@ -428,48 +428,101 @@ export function openAddCardsToDeckModal(deckId) {
   if (filterInput) filterInput.value = '';
   if (jsonFilterInput) jsonFilterInput.value = '';
 
+  // Helper to render mana cost with simple colors
+  const renderManaCost = (manaCost) => {
+    if (!manaCost) return '';
+    return manaCost.replace(/\{([^}]+)\}/g, (match, symbol) => {
+      symbol = symbol.toUpperCase();
+      let colorClass = 'text-gray-400';
+      let bgClass = 'bg-gray-700';
+      if (symbol === 'W') { colorClass = 'text-yellow-100'; bgClass = 'bg-yellow-600/50'; }
+      else if (symbol === 'U') { colorClass = 'text-blue-100'; bgClass = 'bg-blue-600/50'; }
+      else if (symbol === 'B') { colorClass = 'text-gray-100'; bgClass = 'bg-gray-600/50'; }
+      else if (symbol === 'R') { colorClass = 'text-red-100'; bgClass = 'bg-red-600/50'; }
+      else if (symbol === 'G') { colorClass = 'text-green-100'; bgClass = 'bg-green-600/50'; }
+      else if (!isNaN(parseInt(symbol))) { colorClass = 'text-gray-300'; bgClass = 'bg-gray-700'; }
+
+      return `<span class="inline-flex items-center justify-center w-4 h-4 text-[10px] font-bold rounded-full ${bgClass} ${colorClass} mx-[1px]" title="{${symbol}}">${symbol}</span>`;
+    });
+  };
+
   const renderTable = () => {
     const filterText = (filterInput?.value || '').toLowerCase();
     const jsonFilterTextRaw = (jsonFilterInput?.value || '') || '';
     const jsonFilterText = jsonFilterTextRaw.trim().toLowerCase();
     const col = window.localCollection || localCollection;
+
+    // Use window.cardDeckAssignments if imported one is empty (fallback)
+    const assignments = window.cardDeckAssignments || cardDeckAssignments || {};
+
     const eligibleCards = Object.values(col)
-      .filter(card => (card.count || 0) > 0 && isColorIdentityValid(card.color_identity, commanderColors))
       .filter(card => {
-        // Name filter (existing behavior)
+        // 1. Must have count > 0
+        if ((card.count || 0) <= 0) return false;
+
+        // 2. Must match color identity
+        if (!isColorIdentityValid(card.color_identity, commanderColors)) return false;
+
+        // 3. Must NOT be in any deck
+        const cardAssignments = assignments[card.firestoreId] || [];
+        if (cardAssignments.length > 0) return false;
+
+        return true;
+      })
+      .filter(card => {
+        // Name filter
         if (filterText && !(card.name || '').toLowerCase().includes(filterText)) return false;
 
-        // JSON / full-text filter: if provided, search the serialized card JSON
+        // JSON / full-text filter
         if (jsonFilterText) {
           try {
             const cardJson = JSON.stringify(card).toLowerCase();
             if (cardJson.includes(jsonFilterText)) return true;
-            // If the user provided an object-like string, also try to extract values and match them roughly
-            // (fallback behavior already covered by substring search)
             return false;
-          } catch (e) {
-            return false;
-          }
+          } catch (e) { return false; }
         }
         return true;
       })
       .sort((a, b) => a.name.localeCompare(b.name));
 
     if (eligibleCards.length === 0) {
-      tableBody.innerHTML = `<tr><td colspan="4" class="text-center p-4 text-gray-500">No eligible cards in your collection.</td></tr>`;
+      tableBody.innerHTML = `<tr><td colspan="5" class="text-center p-4 text-gray-500">No eligible cards found (assigned cards are hidden).</td></tr>`;
     } else {
-      tableBody.innerHTML = eligibleCards.map(card => `
-        <tr class="border-b border-gray-700 hover:bg-gray-700/50">
-          <td class="p-4">
-            <div class="flex items-center">
-              <input id="checkbox-${card.firestoreId}" type="checkbox" data-firestore-id="${card.firestoreId}" class="add-card-checkbox w-4 h-4">
+      tableBody.innerHTML = eligibleCards.map(card => {
+        const manaHtml = renderManaCost(card.mana_cost);
+        const oracleText = (card.oracle_text || '').slice(0, 100) + ((card.oracle_text || '').length > 100 ? '...' : '');
+        let finishBadge = '';
+        if (card.finish === 'foil') finishBadge = '<span class="text-[10px] px-1.5 py-0.5 bg-yellow-900/40 text-yellow-200 rounded border border-yellow-700/50">Foil</span>';
+        else if (card.finish === 'etched') finishBadge = '<span class="text-[10px] px-1.5 py-0.5 bg-green-900/40 text-green-200 rounded border border-green-700/50">Etched</span>';
+        else finishBadge = '<span class="text-[10px] px-1.5 py-0.5 bg-gray-700 text-gray-300 rounded border border-gray-600">Non-Foil</span>';
+
+        return `
+        <tr class="border-b border-gray-700 hover:bg-gray-700/50 transition-colors">
+          <td class="p-4 w-10">
+            <div class="flex items-center justify-center">
+              <input id="checkbox-${card.firestoreId}" type="checkbox" data-firestore-id="${card.firestoreId}" class="add-card-checkbox w-4 h-4 rounded border-gray-600 text-indigo-600 focus:ring-indigo-500 bg-gray-700">
             </div>
           </td>
-          <td class="px-6 py-4 font-medium whitespace-nowrap">${card.name}</td>
-          <td class="px-6 py-4">${(card.type_line || '').split(' — ')[0]}</td>
-          <td class="px-6 py-4 text-center">${card.count}</td>
+          <td class="px-4 py-3 align-top">
+            <div class="flex flex-col">
+                <div class="font-bold text-white text-sm mb-0.5 flex items-center gap-2">
+                    ${card.name}
+                    <span class="flex items-center">${manaHtml}</span>
+                </div>
+                <div class="text-xs text-gray-400">${(card.type_line || '').split(' — ')[0]}</div>
+            </div>
+          </td>
+          <td class="px-4 py-3 align-top hidden sm:table-cell">
+            <div class="text-xs text-gray-300 italic leading-snug max-w-xs">${oracleText}</div>
+          </td>
+          <td class="px-4 py-3 align-top text-center">
+            ${finishBadge}
+          </td>
+          <td class="px-4 py-3 align-top text-center font-mono text-indigo-300 font-bold">
+            ${card.count}
+          </td>
         </tr>
-      `).join('');
+      `}).join('');
     }
     updateSelectedCount();
   };
@@ -613,61 +666,93 @@ export async function handleAddSelectedCardsToDeck(deckId, firestoreIds) {
 }
 
 // Batch-add cards to deck with progress toasts. Uses the same logic as handleAddSelectedCardsToDeck
-export async function batchAddCardsWithProgress(deckId, firestoreIds) {
+export async function batchAddCardsWithProgress(deckId, firestoreIds, sourceMap = null) {
   if (!deckId || !firestoreIds || firestoreIds.length === 0) return;
   const deck = window.localDecks?.[deckId] || localDecks[deckId];
   if (!deck) return;
   const uid = getUserId(); if (!uid) { showToast('User not signed in.', 'error'); return; }
-  // We'll commit in small batches to show progress
-  const batchSize = 50;
+
+  const batchSize = 200;
   let processed = 0;
   const failedIds = [];
-  const toastId = showToastWithProgress('Adding cards to deck...', 0, firestoreIds.length);
+  const virtualIdMap = new Map();
+  let toastId = null;
+
   try {
+    toastId = showToastWithProgress('Adding cards to deck...', 'info', 0, firestoreIds.length);
+
     for (let i = 0; i < firestoreIds.length; i += batchSize) {
       const chunk = firestoreIds.slice(i, i + batchSize);
-      // Prefetch any missing collection docs for this chunk to avoid skipping them
+
+      // Prefetch and handle virtual cards
       for (const fid of chunk) {
         const existing = (window.localCollection || localCollection)[fid];
         if (!existing) {
-          try {
-            const snap = await getDoc(doc(db, `artifacts/${appId}/users/${uid}/collection`, fid));
-            if (snap && snap.exists()) {
-              const data = snap.data(); data.firestoreId = fid;
-              if (!window.localCollection) window.localCollection = window.localCollection || {};
-              window.localCollection[fid] = data;
+          const virtualCard = sourceMap ? sourceMap[fid] : null;
+          if (virtualCard && virtualCard.isVirtual) {
+            try {
+              const newCollectionRef = doc(collection(db, `artifacts/${appId}/users/${uid}/collection`));
+              const cardData = {
+                name: virtualCard.name,
+                type_line: virtualCard.type_line,
+                cmc: virtualCard.cmc || 0,
+                color_identity: virtualCard.color_identity || [],
+                count: 1,
+                addedAt: new Date().toISOString(),
+                image_uris: virtualCard.image_uris || {}
+              };
+              await setDoc(newCollectionRef, cardData);
+              if (!window.localCollection) window.localCollection = {};
+              window.localCollection[newCollectionRef.id] = { ...cardData, firestoreId: newCollectionRef.id };
+              virtualIdMap.set(fid, newCollectionRef.id);
+              console.log(`[batchAdd] Created collection doc for virtual card ${virtualCard.name}: ${fid} -> ${newCollectionRef.id}`);
+            } catch (e) {
+              console.warn('[batchAdd] failed to create collection doc for virtual card', fid, e);
             }
-          } catch (e) {
-            console.warn('[batchAdd] prefetch failed for', fid, e);
+          } else {
+            try {
+              const snap = await getDoc(doc(db, `artifacts/${appId}/users/${uid}/collection`, fid));
+              if (snap && snap.exists()) {
+                const data = snap.data(); data.firestoreId = fid;
+                if (!window.localCollection) window.localCollection = {};
+                window.localCollection[fid] = data;
+              }
+            } catch (e) {
+              console.warn('[batchAdd] prefetch failed for', fid, e);
+            }
           }
         }
       }
-      // Exclude any ids that are already assigned to other decks to avoid touching other decks' cards
-      const filteredChunk = (chunk || []).filter(fid => {
+
+      const mappedChunk = chunk.map(fid => virtualIdMap.get(fid) || fid);
+
+      // Create reverse mapping from real ID to original ID for sourceMap lookup
+      const reverseMap = new Map();
+      chunk.forEach((origId, idx) => {
+        const realId = mappedChunk[idx];
+        reverseMap.set(realId, origId);
+      });
+
+      const filteredChunk = (mappedChunk || []).filter(fid => {
         try {
           const assigns = (window.cardDeckAssignments || {})[fid] || [];
-          // If assigned to another deck (not the target deck), skip it here
           return !(assigns.length > 0 && assigns.some(a => a && a.deckId && a.deckId !== deckId));
         } catch (e) { return true; }
       });
-      const skippedInChunk = chunk.filter(fid => !filteredChunk.includes(fid));
+
+      const skippedInChunk = mappedChunk.filter(fid => !filteredChunk.includes(fid));
       if (skippedInChunk.length) {
-        // Record skipped ids so we can inform the user later
         failedIds.push(...skippedInChunk);
         console.warn('[batchAdd] skipping ids assigned to other decks:', skippedInChunk);
       }
-      // Build batch and collect per-fid ops so we can retry the whole batch on failure
-      // For this chunk we will collect the new collection doc ids we create so we can update local state
+
       const newIdsForChunk = [];
       const makeBatch = () => {
         const b = writeBatch(db);
         for (const fid of filteredChunk) {
           const collectionCard = (window.localCollection || localCollection)[fid];
           if (!collectionCard) continue;
-          const cardInDeck = deck.cards?.[fid];
           const deckRef = doc(db, `artifacts/${appId}/users/${uid}/decks`, deckId);
-
-          // Create a new collection doc to represent the unit moved into the deck
           const origCollectionRef = doc(db, `artifacts/${appId}/users/${uid}/collection`, fid);
           const newCollectionRef = doc(collection(db, `artifacts/${appId}/users/${uid}/collection`));
           const newCardDoc = Object.assign({}, collectionCard, { count: 1, addedAt: new Date().toISOString() });
@@ -675,7 +760,6 @@ export async function batchAddCardsWithProgress(deckId, firestoreIds) {
           b.set(newCollectionRef, newCardDoc);
           newIdsForChunk.push({ orig: fid, newId: newCollectionRef.id, name: collectionCard.name, type_line: collectionCard.type_line });
 
-          // Decrement or delete the original stack ONLY if that original doc is not used by another deck
           try {
             const assigns = (window.cardDeckAssignments || {})[fid] || [];
             const assignedElsewhere = assigns.some(a => a && a.deckId && a.deckId !== deckId);
@@ -685,20 +769,19 @@ export async function batchAddCardsWithProgress(deckId, firestoreIds) {
               } else {
                 b.delete(origCollectionRef);
               }
-            } else {
-              // leave the original doc intact
-              console.debug('[batchAdd] source doc assigned to other deck; not decrementing:', fid);
             }
           } catch (e) {
             console.warn('[batchAdd] assignment check failed for', fid, e);
           }
 
-          // Add deck entry referencing the new collection id (always create a dedicated deck entry for the new doc)
-          b.set(deckRef, { cards: { [newCollectionRef.id]: { count: 1, name: (collectionCard && collectionCard.name) || '', type_line: (collectionCard && collectionCard.type_line) || '' } } }, { merge: true });
+          // Get the count from sourceMap for basic lands
+          const originalId = reverseMap.get(fid) || fid;
+          const suggestedCount = sourceMap && sourceMap[originalId] && sourceMap[originalId].isAutoBasicLand ? (sourceMap[originalId].count || 1) : 1;
+          b.set(deckRef, { cards: { [newCollectionRef.id]: { count: suggestedCount, name: collectionCard.name, type_line: collectionCard.type_line } } }, { merge: true });
         }
         return b;
       };
-      // commit with retries
+
       let attempts = 0;
       const maxAttempts = 3;
       let chunkCommitted = false;
@@ -709,31 +792,27 @@ export async function batchAddCardsWithProgress(deckId, firestoreIds) {
           processed += chunk.length;
           updateToastProgress(toastId, Math.min(processed, firestoreIds.length), firestoreIds.length);
           chunkCommitted = true;
-          break; // success
+          break;
         } catch (err) {
           attempts += 1;
           console.warn(`[batchAdd] commit attempt ${attempts} failed`, err);
           if (attempts >= maxAttempts) {
-            // Log and continue with the next chunk rather than aborting the entire process so partial progress is preserved.
             console.error(`[batchAdd] chunk commit failed after ${attempts} attempts. Continuing with next chunk.`, chunk);
             break;
           }
-          // wait with exponential backoff before retry
           await new Promise(res => setTimeout(res, 500 * Math.pow(2, attempts)));
         }
       }
-      // optimistic local update only for the successfully committed chunk
+
       if (!chunkCommitted) {
-        // mark these ids as failed in console for troubleshooting and collect them
         console.warn('[batchAdd] skipping optimistic update for failed chunk', chunk);
         failedIds.push(...chunk);
         continue;
       }
-      // optimistic local update
+
       try {
         const localDeck = window.localDecks[deckId] || localDecks[deckId];
         localDeck.cards = localDeck.cards || {};
-        // Apply optimistic updates based on newIdsForChunk mapping
         (newIdsForChunk || []).forEach(mapping => {
           const { orig, newId, name, type_line } = mapping;
           const collectionCard = (window.localCollection || localCollection)[orig];
@@ -741,21 +820,19 @@ export async function batchAddCardsWithProgress(deckId, firestoreIds) {
             if ((collectionCard.count || 0) > 1) {
               collectionCard.count = Math.max((collectionCard.count || 0) - 1, 0);
             } else {
-              // removed original
               delete window.localCollection[orig];
             }
           }
-          // create local placeholder for the new collection doc
           window.localCollection[newId] = Object.assign({}, collectionCard || {}, { count: 1, firestoreId: newId, pending: true, name, type_line });
           if (localDeck.cards[newId]) localDeck.cards[newId].count = (localDeck.cards[newId].count || 0) + 1; else localDeck.cards[newId] = { count: 1, name, type_line };
         });
         updateCardAssignments();
         if (typeof window.renderSingleDeck === 'function') window.renderSingleDeck(deckId);
       } catch (e) { console.warn('Local optimistic update failed:', e); }
-      // Reconcile server docs for this chunk's new ids
+
       try { await fetchAndReplacePlaceholders(newIdsForChunk, deckId, uid); } catch (e) { console.warn('[batchAdd] reconcile failed for chunk', e); }
     }
-    // If some chunks failed, retry failed ids individually
+
     const finalFailed = [];
     if (failedIds.length > 0) {
       const retryMax = 3;
@@ -766,7 +843,6 @@ export async function batchAddCardsWithProgress(deckId, firestoreIds) {
           attempts += 1;
           try {
             const res = await addSingleCardWithSplit(uid, deckId, fid);
-            // reconcile this single created doc
             await fetchAndReplacePlaceholders([{ orig: fid, newId: res.newId, name: res.name, type_line: res.type_line }], deckId, uid);
             ok = true;
           } catch (err) {
@@ -777,6 +853,7 @@ export async function batchAddCardsWithProgress(deckId, firestoreIds) {
         if (!ok) finalFailed.push(fid);
       }
     }
+
     const allFailed = finalFailed.length > 0 ? finalFailed : [];
     if (failedIds.length === 0 && allFailed.length === 0) {
       showToast('All selected cards added to deck.', 'success');
@@ -1030,6 +1107,7 @@ export async function removeCardFromDeckAndReturnToCollection(deckId, firestoreI
 if (typeof window !== 'undefined') {
   window.openAddCardsToDeckModal = openAddCardsToDeckModal;
   window.handleAddSelectedCardsToDeck = handleAddSelectedCardsToDeck;
+  window.batchAddCardsWithProgress = batchAddCardsWithProgress;
   window.deleteDeck = deleteDeck; // override earlier shim with wrapper
   window.addSingleDeckListeners = addSingleDeckListeners;
   window.removeCardFromDeckAndReturnToCollection = removeCardFromDeckAndReturnToCollection;

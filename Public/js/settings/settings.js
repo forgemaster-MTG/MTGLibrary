@@ -1,6 +1,6 @@
 import { db, appId, getGeminiUrlForCurrentUser } from '../main/index.js';
 import * as Gemini from '../firebase/gemini.js';
-import { doc, getDoc, setDoc, collection, addDoc, getDocs, deleteDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+import { doc, getDoc, setDoc, collection, addDoc, getDocs, deleteDoc, writeBatch, deleteField } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 import { showToast } from '../lib/ui.js';
 import { calculateBasicLandsInUse } from '../lib/manaCalculator.js';
 
@@ -1533,4 +1533,127 @@ export function renderBasicLandsSection() {
       });
     }
   }, 100);
+}
+
+/**
+ * Scans the user's collection for duplicate cards (same Scryfall ID + Finish)
+ * and merges them into a single entry. Updates all decks to point to the merged entry.
+ */
+export async function cleanupCollectionDuplicates() {
+  const userId = window.userId;
+  if (!userId) {
+    showToast('You must be signed in to cleanup collection.', 'error');
+    return;
+  }
+
+  if (!confirm('This will merge all duplicate cards in your collection into single entries. This cannot be undone. Are you sure?')) return;
+
+  showToast('Starting collection cleanup... This may take a moment.', 'info');
+
+  try {
+    const col = window.localCollection || {};
+    const decks = window.localDecks || {};
+
+    // Group by ID + Finish
+    const groups = {};
+    Object.values(col).forEach(card => {
+      // Use oracle_id if available for grouping? No, strictly Scryfall ID + Finish
+      // because different printings (different Scryfall IDs) are effectively different cards in collection.
+      const key = `${card.id}_${card.finish || 'nonfoil'}`;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(card);
+    });
+
+    const batch = writeBatch(db);
+    let operationCount = 0;
+    let mergedCount = 0;
+    let groupsProcessed = 0;
+
+    // Process groups
+    for (const key in groups) {
+      const cards = groups[key];
+      if (cards.length > 1) {
+        // Pick master (first one)
+        const master = cards[0];
+        const victims = cards.slice(1);
+
+        let totalCount = master.count || 1;
+
+        victims.forEach(victim => {
+          totalCount += (victim.count || 1);
+
+          // Delete victim doc
+          const victimRef = doc(db, `artifacts/${appId}/users/${userId}/collection`, victim.firestoreId);
+          batch.delete(victimRef);
+          operationCount++;
+
+          // Update decks referencing victim
+          Object.values(decks).forEach(deck => {
+            let deckUpdated = false;
+            const deckUpdates = {};
+
+            // Check cards map
+            if (deck.cards && deck.cards[victim.firestoreId]) {
+              const victimInDeck = deck.cards[victim.firestoreId];
+
+              // Remove victim ref
+              deckUpdates[`cards.${victim.firestoreId}`] = deleteField();
+
+              // Add/Update master ref
+              const existingMasterInDeck = deck.cards[master.firestoreId];
+              if (existingMasterInDeck) {
+                // Master already in deck, add victim's count to it
+                // Note: We can't read-modify-write easily in batch without knowing current value.
+                // But we have localDecks! So we know the current value.
+                const newDeckCount = (existingMasterInDeck.count || 1) + (victimInDeck.count || 1);
+                deckUpdates[`cards.${master.firestoreId}`] = { count: newDeckCount };
+              } else {
+                // Master not in deck, add it
+                deckUpdates[`cards.${master.firestoreId}`] = { count: victimInDeck.count || 1 };
+              }
+              deckUpdated = true;
+            }
+
+            // Commander check
+            if (deck.commander && deck.commander.firestoreId === victim.firestoreId) {
+              deckUpdates[`commander.firestoreId`] = master.firestoreId;
+              deckUpdated = true;
+            }
+
+            if (deckUpdated) {
+              const deckRef = doc(db, `artifacts/${appId}/users/${userId}/decks`, deck.id);
+              batch.update(deckRef, deckUpdates);
+              operationCount++;
+            }
+          });
+        });
+
+        // Update master doc count
+        const masterRef = doc(db, `artifacts/${appId}/users/${userId}/collection`, master.firestoreId);
+        batch.update(masterRef, { count: totalCount });
+        operationCount++;
+        mergedCount += victims.length;
+        groupsProcessed++;
+      }
+    }
+
+    if (operationCount > 0) {
+      await batch.commit();
+      showToast(`Cleanup complete. Merged ${mergedCount} duplicate entries across ${groupsProcessed} groups.`, 'success');
+      console.log(`[Cleanup] Merged ${mergedCount} duplicates. Operations: ${operationCount}`);
+
+      // Force reload to ensure local state is perfectly synced
+      setTimeout(() => window.location.reload(), 2000);
+    } else {
+      showToast('No duplicates found in collection.', 'success');
+    }
+
+  } catch (e) {
+    console.error('Cleanup failed', e);
+    showToast('Cleanup failed: ' + e.message, 'error');
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.cleanupCollectionDuplicates = cleanupCollectionDuplicates;
 }

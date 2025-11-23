@@ -64,7 +64,7 @@ function renderCardImageHtml(card, sizeKey = 'normal', imgClass = '') {
   const front = imgs.front || imgs.back || '';
   const PLACEHOLDER_SVG = 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600" viewBox="0 0 400 600"><rect width="100%" height="100%" fill="#0f1724"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#9CA3AF" font-family="Arial, Helvetica, sans-serif" font-size="20">No image</text></svg>`);
   const src = front || PLACEHOLDER_SVG;
-  return `<img src="${src}" alt="${(card.name||'card')}" class="${imgClass} card-image" loading="lazy" />`;
+  return `<img src="${src}" alt="${(card.name || 'card')}" class="${imgClass} card-image" loading="lazy" />`;
 }
 
 function computeGroupCounts(items) {
@@ -113,19 +113,85 @@ function groupCardsRecursively(cards, groupByKeys) {
 }
 
 function renderCollectionCard(card) {
-  const price = card.prices?.usd_foil && card.finish === 'foil' ? card.prices.usd_foil : card.prices?.usd;
-      const assignment = (cardDeckAssignments[card.firestoreId] || [])[0] || {};
+  // Aggregate variants (if grouped) or use single card
+  const variants = card._group ? card._group.variants : [card];
+
+  // 1. Aggregate Deck Assignments
+  const deckNames = new Set();
+  variants.forEach(v => {
+    const assignments = cardDeckAssignments[v.firestoreId] || [];
+    assignments.forEach(a => { if (a.deckName) deckNames.add(a.deckName); });
+  });
+
+  let deckDisplay = '';
+  if (deckNames.size > 0) {
+    deckDisplay = Array.from(deckNames).join(', ');
+  }
+
+  // 2. Calculate Prices (Unit Price of Rep & Total Value of Group)
+  // Representative price (current card)
+  const unitPrice = card.prices?.usd_foil && card.finish === 'foil' ? card.prices.usd_foil : card.prices?.usd;
+  const unitPriceStr = unitPrice ? `$${unitPrice}` : '';
+
+  // Total value of all variants
+  let totalValue = 0;
+  variants.forEach(v => {
+    const p = v.prices?.usd_foil && v.finish === 'foil' ? v.prices.usd_foil : v.prices?.usd;
+    totalValue += (parseFloat(p) || 0) * (v.count || 1);
+  });
+  const totalValueStr = totalValue > 0 ? `$${totalValue.toFixed(2)}` : '';
+
   return `
-    <div class="relative group rounded-lg overflow-hidden shadow-lg transition-transform transform hover:-translate-y-1 hover:shadow-indigo-500/40 collection-card-item" style="aspect-ratio:2/3">
-      ${renderCardImageHtml(card, 'normal', 'collection-card-img')}
-      <div class="absolute top-1 right-1 bg-gray-900/80 text-white text-sm font-bold px-2 py-1 rounded-full">${card.count || 1}</div>
-      <div class="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/90 to-transparent">
-        <p class="text-white text-xs font-bold truncate">${card.name}</p>
-            ${assignment.deckName ? `<p class="text-indigo-400 text-xs font-semibold truncate">${assignment.deckName}</p>` : (price ? `<p class="text-green-400 text-xs font-semibold">$${price}</p>` : '')}
+    <div class="relative group aspect-[2.5/3.5] rounded-xl overflow-hidden shadow-lg bg-gray-900 transition-transform duration-200 hover:scale-105 hover:shadow-indigo-500/20 hover:z-10 collection-card-item">
+      ${renderCardImageHtml(card, 'normal', 'w-full h-full object-cover')}
+      
+      <!-- Default View: Count & Name -->
+      <div class="absolute top-2 right-2 bg-indigo-600 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md z-20">${card._group ? card._group.total : (card.count || 1)}</div>
+      
+      <div class="absolute bottom-8 left-2 right-2 p-2 bg-black/70 backdrop-blur-sm rounded-lg group-hover:opacity-0 transition-opacity duration-200 pointer-events-none">
+         <p class="text-white text-xs font-bold text-center leading-tight">${card.name}</p>
       </div>
-      <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-2">
-        <button class="view-card-details-btn bg-white/20 backdrop-blur-sm text-white text-xs font-bold py-2 px-3 rounded-lg w-full" data-firestore-id="${card.firestoreId}">View</button>
-        <button class="delete-button bg-red-600/50 hover:bg-red-600 backdrop-blur-sm text-white text-xs font-bold py-2 px-3 rounded-lg w-full" data-firestore-id="${card.firestoreId}">Delete</button>
+
+      <!-- Hover Overlay -->
+      <div class="absolute inset-0 bg-gradient-to-t from-black/95 via-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-end p-3">
+        
+        <div class="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-200">
+            <div class="font-bold text-white text-sm leading-tight mb-1">${card.name}</div>
+            <div class="text-xs text-gray-300 mb-2 flex flex-col gap-1">
+                <div class="flex justify-between items-center">
+                    <span class="truncate max-w-[60%]">${(card.type_line || '').split('—')[0].trim()}</span>
+                    <span class="text-green-400 font-mono">${unitPriceStr}</span>
+                </div>
+                ${totalValueStr && totalValueStr !== unitPriceStr ? `<div class="text-right text-[10px] text-gray-500">Total: ${totalValueStr}</div>` : ''}
+                ${deckNames.size > 0 ? `
+                  <div class="mt-1">
+                    <div class="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-0.5">Decks:</div>
+                    <div class="flex flex-col gap-0.5">
+                      ${Array.from(deckNames).map(name => `<div class="text-indigo-300 text-xs truncate" title="${name}">${name}</div>`).join('')}
+                    </div>
+                  </div>
+                ` : ''}
+            </div>
+
+            ${card._group && card._group.variants.length > 0 ? `
+              <div class="flex flex-wrap gap-1 mb-3">
+                ${(() => {
+        const finishes = { nonfoil: 0, foil: 0, etched: 0 };
+        card._group.variants.forEach(v => {
+          const f = v.finish || 'nonfoil';
+          finishes[f] = (finishes[f] || 0) + (v.count || 1);
+        });
+        let html = '';
+        if (finishes.nonfoil > 0) html += `<span class="text-[10px] px-1.5 py-0.5 bg-gray-700 text-gray-300 rounded border border-gray-600" title="Non-Foil">${finishes.nonfoil}</span>`;
+        if (finishes.foil > 0) html += `<span class="text-[10px] px-1.5 py-0.5 bg-yellow-900/40 text-yellow-200 rounded border border-yellow-700/50" title="Foil">${finishes.foil} ★</span>`;
+        if (finishes.etched > 0) html += `<span class="text-[10px] px-1.5 py-0.5 bg-green-900/40 text-green-200 rounded border border-green-700/50" title="Etched">${finishes.etched} ⬡</span>`;
+        return html;
+      })()}
+              </div>
+            ` : ''}
+
+            <button class="view-card-details-btn w-full bg-gray-700 hover:bg-gray-600 text-white py-1.5 rounded text-xs font-medium transition-colors border border-gray-600" data-firestore-id="${card.firestoreId}">View Details</button>
+        </div>
       </div>
     </div>
   `;
@@ -169,10 +235,35 @@ export function renderPaginatedCollection() {
   } catch (syncErr) {
     console.warn('[Collection] failed to sync window state before render', syncErr);
   }
-  let cards = Object.values(localCollection || {});
+  let rawCards = Object.values(localCollection || {});
   if (document.getElementById('hide-in-deck-checkbox')?.checked) {
-    cards = cards.filter(card => !cardDeckAssignments[card.firestoreId]);
+    rawCards = rawCards.filter(card => !cardDeckAssignments[card.firestoreId]);
   }
+
+  // Filter first
+  const filterText = document.getElementById('filter-text')?.value?.toLowerCase() || '';
+  if (filterText) {
+    rawCards = rawCards.filter(card => (card.name || '').toLowerCase().includes(filterText) || (card.type_line || '').toLowerCase().includes(filterText));
+  }
+
+  // Group by Printing (Scryfall ID)
+  const groupedMap = new Map();
+  for (const card of rawCards) {
+    let key = card.id || card.scryfall_id || card.scryfallId;
+    if (!key) {
+      if (card.set && card.collector_number) key = `${card.set}_${card.collector_number}`;
+      else if (card.name && card.set) key = `${card.name}_${card.set}`;
+      else key = card.firestoreId;
+    }
+    if (!groupedMap.has(key)) {
+      const rep = { ...card, _isGroup: true, _group: { total: 0, variants: [] } };
+      groupedMap.set(key, rep);
+    }
+    const group = groupedMap.get(key);
+    group._group.total += (card.count || 1);
+    group._group.variants.push(card);
+  }
+  let cards = Array.from(groupedMap.values());
 
   if (cards.length === 0) {
     if (noCardsMsg) noCardsMsg.classList.remove('hidden');
@@ -181,11 +272,6 @@ export function renderPaginatedCollection() {
     return;
   }
   if (noCardsMsg) noCardsMsg.classList.add('hidden');
-
-  const filterText = document.getElementById('filter-text')?.value?.toLowerCase() || '';
-  if (filterText) {
-    cards = cards.filter(card => (card.name || '').toLowerCase().includes(filterText) || (card.type_line || '').toLowerCase().includes(filterText));
-  }
 
   const groupByKeys = [document.getElementById('collection-group-by-1')?.value, document.getElementById('collection-group-by-2')?.value].filter(Boolean);
 
@@ -236,10 +322,22 @@ export function renderPaginatedCollection() {
   try { initializeDfsWrappers(); } catch (e) { /* ignore */ }
 
   // Update KPIs (total / unique / price / filtered summary)
+  // Update KPIs (total / unique / price / filtered summary)
   try {
     const allCards = Object.values(localCollection || {});
     const totalCopiesAll = allCards.reduce((acc, c) => acc + (c.count || 1), 0);
-    const uniqueAll = allCards.length;
+    // Unique count based on printing (Set + Collector Number)
+    const uniquePrintings = new Set();
+    allCards.forEach(c => {
+      let key = c.id || c.scryfall_id || c.scryfallId;
+      if (!key) {
+        if (c.set && c.collector_number) key = `${c.set}_${c.collector_number}`;
+        else if (c.name && c.set) key = `${c.name}_${c.set}`;
+        else key = c.firestoreId;
+      }
+      uniquePrintings.add(key);
+    });
+    const uniqueAll = uniquePrintings.size;
     const totalPriceAll = allCards.reduce((acc, c) => acc + ((parseFloat(c.prices?.usd) || 0) * (c.count || 1)), 0);
     const filteredCopies = cards.reduce((acc, c) => acc + (c.count || 1), 0);
 
@@ -255,39 +353,39 @@ export function renderPaginatedCollection() {
   } catch (err) {
     console.warn('[Collection] KPI update failed', err);
   }
-}
 
-// Ensure any existing DFC wrappers in the DOM have sane dataset values and
-// image src attributes. This helps when markup is injected before the
-// flip CSS/handler runs or when a previous render left dataset attrs empty.
-function initializeDfsWrappers() {
-  try {
-    const wrappers = document.querySelectorAll('.dfs-flip-wrapper, .card-image-wrapper');
-    if (!wrappers || wrappers.length === 0) return;
-    wrappers.forEach(wrap => {
-      try {
-        const front = wrap.dataset.front || wrap.getAttribute('data-front') || '';
-        const back = wrap.dataset.back || wrap.getAttribute('data-back') || '';
-        if (!wrap.dataset.current) wrap.dataset.current = front ? 'front' : (back ? 'back' : 'front');
-        if (!wrap.dataset.visibleSrc) {
-          // create a small inline placeholder if neither side is present
-          const placeholder = 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600" viewBox="0 0 400 600"><rect width="100%" height="100%" fill="#0f1724"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#9CA3AF" font-family="Arial, Helvetica, sans-serif" font-size="20">No image</text></svg>`);
-          wrap.dataset.visibleSrc = front || back || (wrap.querySelector('img')?.src) || placeholder;
-        }
-        // Ensure inner imgs have src set (some render paths left empty src attributes)
-        const imgs = wrap.querySelectorAll('img');
-        imgs.forEach((img, idx) => {
-          try {
-            if (!img.getAttribute('src') || img.getAttribute('src').trim() === '') {
-              if (idx === 0) img.setAttribute('src', front || wrap.dataset.visibleSrc);
-              else img.setAttribute('src', back || wrap.dataset.visibleSrc);
-            }
-          } catch (e) { /* ignore per-image */ }
-        });
-      } catch (e) { /* ignore wrapper-level errors */ }
-    });
-  } catch (err) {
-    console.debug('[Collection] initializeDfsWrappers error', err);
+  // Ensure any existing DFC wrappers in the DOM have sane dataset values and
+  // image src attributes. This helps when markup is injected before the
+  // flip CSS/handler runs or when a previous render left dataset attrs empty.
+  function initializeDfsWrappers() {
+    try {
+      const wrappers = document.querySelectorAll('.dfs-flip-wrapper, .card-image-wrapper');
+      if (!wrappers || wrappers.length === 0) return;
+      wrappers.forEach(wrap => {
+        try {
+          const front = wrap.dataset.front || wrap.getAttribute('data-front') || '';
+          const back = wrap.dataset.back || wrap.getAttribute('data-back') || '';
+          if (!wrap.dataset.current) wrap.dataset.current = front ? 'front' : (back ? 'back' : 'front');
+          if (!wrap.dataset.visibleSrc) {
+            // create a small inline placeholder if neither side is present
+            const placeholder = 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600" viewBox="0 0 400 600"><rect width="100%" height="100%" fill="#0f1724"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#9CA3AF" font-family="Arial, Helvetica, sans-serif" font-size="20">No image</text></svg>`);
+            wrap.dataset.visibleSrc = front || back || (wrap.querySelector('img')?.src) || placeholder;
+          }
+          // Ensure inner imgs have src set (some render paths left empty src attributes)
+          const imgs = wrap.querySelectorAll('img');
+          imgs.forEach((img, idx) => {
+            try {
+              if (!img.getAttribute('src') || img.getAttribute('src').trim() === '') {
+                if (idx === 0) img.setAttribute('src', front || wrap.dataset.visibleSrc);
+                else img.setAttribute('src', back || wrap.dataset.visibleSrc);
+              }
+            } catch (e) { /* ignore per-image */ }
+          });
+        } catch (e) { /* ignore wrapper-level errors */ }
+      });
+    } catch (err) {
+      console.debug('[Collection] initializeDfsWrappers error', err);
+    }
   }
 }
 
@@ -314,7 +412,7 @@ export function initCollectionModule() {
   // sorts, groupings). This keeps cross-module wiring minimal.
   try {
     if (typeof window !== 'undefined') {
-      window.applySavedView = function(view) {
+      window.applySavedView = function (view) {
         try {
           if (!view) return;
           // view may contain: gridSize, viewMode, sorts, filters, groupBy
@@ -322,15 +420,15 @@ export function initCollectionModule() {
             window.collectionGridSize = view.gridSize;
             collectionGridSize = view.gridSize;
             // update visual active state for grid buttons if present
-            document.querySelectorAll('.grid-size-btn').forEach(b => { b.classList.remove('bg-indigo-600','text-white'); if (b.dataset && b.dataset.size === collectionGridSize) b.classList.add('bg-indigo-600','text-white'); });
+            document.querySelectorAll('.grid-size-btn').forEach(b => { b.classList.remove('bg-indigo-600', 'text-white'); if (b.dataset && b.dataset.size === collectionGridSize) b.classList.add('bg-indigo-600', 'text-white'); });
           }
           if (view.viewMode) {
             window.collectionViewMode = view.viewMode;
             collectionViewMode = view.viewMode;
             const gridBtn = document.getElementById('view-toggle-grid');
             const tableBtn = document.getElementById('view-toggle-table');
-            if (view.viewMode === 'grid') { if (gridBtn) gridBtn.classList.add('bg-indigo-600','text-white'); if (tableBtn) tableBtn.classList.remove('bg-indigo-600','text-white'); }
-            else { if (tableBtn) tableBtn.classList.add('bg-indigo-600','text-white'); if (gridBtn) gridBtn.classList.remove('bg-indigo-600','text-white'); }
+            if (view.viewMode === 'grid') { if (gridBtn) gridBtn.classList.add('bg-indigo-600', 'text-white'); if (tableBtn) tableBtn.classList.remove('bg-indigo-600', 'text-white'); }
+            else { if (tableBtn) tableBtn.classList.add('bg-indigo-600', 'text-white'); if (gridBtn) gridBtn.classList.remove('bg-indigo-600', 'text-white'); }
           }
           // apply sorts if present
           if (Array.isArray(view.sorts) && view.sorts.length) {
@@ -352,7 +450,7 @@ export function initCollectionModule() {
           } catch (e) { /* ignore */ }
 
           // update saved-views-select active value if present
-          try { const sel = document.getElementById('saved-views-select'); if (sel && view.id) sel.value = view.id; } catch (e) {}
+          try { const sel = document.getElementById('saved-views-select'); if (sel && view.id) sel.value = view.id; } catch (e) { }
 
           // finally, re-render
           if (typeof window.renderPaginatedCollection === 'function') window.renderPaginatedCollection();
@@ -362,7 +460,7 @@ export function initCollectionModule() {
   } catch (e) { console.debug('[Collection] could not expose applySavedView', e); }
   // Provide a default KPI toggle handler so clicks never silently fail
   if (!window.toggleKpiMetric) {
-    window.toggleKpiMetric = function(metric) {
+    window.toggleKpiMetric = function (metric) {
       try {
         console.log('[Collection] default toggleKpiMetric called for', metric);
         const id = 'kpi-' + String(metric || '').replace(/_/g, '-');
@@ -382,7 +480,7 @@ export function initCollectionModule() {
       addCollectionCardListeners();
       addCollectionTableListeners();
       // install floating header sync if not already
-      try { installFloatingHeaderSync(); } catch(e) { console.warn('[Collection] installFloatingHeaderSync failed', e); }
+      try { installFloatingHeaderSync(); } catch (e) { console.warn('[Collection] installFloatingHeaderSync failed', e); }
     } catch (e) {
       console.warn('[Collection] Could not install listeners during init:', e);
     }
@@ -415,7 +513,7 @@ export function initCollectionModule() {
             /* helpers for accessibility and layout */
             .backface-hidden { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
           `;
-          const s = document.createElement('style'); s.setAttribute('data-dfs-flip-styles','1'); s.appendChild(document.createTextNode(css));
+          const s = document.createElement('style'); s.setAttribute('data-dfs-flip-styles', '1'); s.appendChild(document.createTextNode(css));
           (document.head || document.documentElement).appendChild(s);
           window.__dfs_styles_injected = true;
         } catch (e) { /* ignore */ }
@@ -576,8 +674,8 @@ export function renderCardVersions(cards) {
     });
 
     grid.innerHTML = filtered.map(card => {
-        const price = card.prices?.usd ? `$${card.prices.usd}` : (card.prices?.usd_foil ? `$${card.prices.usd_foil} (Foil)` : 'N/A');
-        return `
+      const price = card.prices?.usd ? `$${card.prices.usd}` : (card.prices?.usd_foil ? `$${card.prices.usd_foil} (Foil)` : 'N/A');
+      return `
           <div class="relative group rounded-lg overflow-hidden cursor-pointer card-version-item" data-card-id="${card.id}" style="aspect-ratio:2/3">
             ${renderCardImageHtml(card, 'large', 'card-version-img')}
             <div class="absolute inset-0 bg-black/40 opacity-100 group-hover:opacity-80 transition-opacity flex flex-col justify-end p-3 text-white">
@@ -589,8 +687,8 @@ export function renderCardVersions(cards) {
         `;
     }).join('');
 
-  // Ensure any dfs wrappers created by the render have their dataset/src initialized
-  try { initializeDfsWrappers(); } catch (e) { /* ignore */ }
+    // Ensure any dfs wrappers created by the render have their dataset/src initialized
+    try { initializeDfsWrappers(); } catch (e) { /* ignore */ }
 
     // restore hover preview behavior
     const hoverPreview = document.getElementById('card-hover-preview');
@@ -622,7 +720,7 @@ export function renderCardVersions(cards) {
     } catch (e) { /* ignore */ }
 
     // click handler uses the filtered array to find selected card
-    grid.onclick = function(event) {
+    grid.onclick = function (event) {
       const cardItem = event.target.closest('.card-version-item');
       if (!cardItem) return;
       const cardId = cardItem.dataset.cardId;
@@ -642,9 +740,9 @@ export function renderCardVersions(cards) {
     filterInput._currentRenderList = renderList;
     // if a global handler isn't installed, add one and keep its own debounce state
     if (!filterInput._versionsFilterHandler) {
-      filterInput._versionsFilterHandler = (function() {
+      filterInput._versionsFilterHandler = (function () {
         let timer = null;
-        return function() {
+        return function () {
           if (timer) clearTimeout(timer);
           timer = setTimeout(() => {
             try {
@@ -680,7 +778,7 @@ export function renderCardVersions(cards) {
     if (fv) {
       // ensure async focus so callers that just opened the modal get the cursor placed
       setTimeout(() => {
-        try { fv.focus(); fv.select && fv.select(); } catch (e) {}
+        try { fv.focus(); fv.select && fv.select(); } catch (e) { }
       }, 0);
     }
   } catch (e) { /* ignore */ }
@@ -690,7 +788,7 @@ export function renderCardVersions(cards) {
 export function handleCardSelection(card) {
   console.log(`[Collection.handleCardSelection] Card selected: ${card.name} (${card.id})`);
   // set a window-scoped currentCardForAdd for existing code paths
-  try { window.currentCardForAdd = card; } catch (e) {}
+  try { window.currentCardForAdd = card; } catch (e) { }
   // close versions modal if available, render confirmation modal and open it
   window.closeModal && window.closeModal('card-versions-modal');
   renderCardConfirmationModal(card);
@@ -724,7 +822,7 @@ export function renderCardConfirmationModal(card) {
   // top-left). Build a plain <img> with sizing classes instead.
   const imgsForModal = getCardFaceImageUrls(card, 'normal');
   const modalImgSrc = imgsForModal.front || imgsForModal.back || '';
-  const modalImgHtml = `<img src="${modalImgSrc}" alt="${(card.name||'card')}" class="rounded-lg shadow-lg w-full max-w-[360px] h-auto max-h-[640px] object-contain" loading="lazy" />`;
+  const modalImgHtml = `<img src="${modalImgSrc}" alt="${(card.name || 'card')}" class="rounded-lg shadow-lg w-full max-w-[360px] h-auto max-h-[640px] object-contain" loading="lazy" />`;
 
   contentDiv.innerHTML = `
     <div class="flex justify-center md:justify-start md:col-span-1 relative">
@@ -779,7 +877,7 @@ export function renderCardConfirmationModal(card) {
       if (topFilter) {
         topFilter.value = '';
         // trigger any change handlers if present
-        try { topFilter.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
+        try { topFilter.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) { }
       }
     } catch (e) { /* ignore */ }
     // Focus the add-card search input and select all text so the user can immediately start typing a new search
@@ -802,8 +900,8 @@ function sortGroupContent(cards) {
         const dir = s.direction === 'asc' ? 1 : -1;
         let valA = a[col] ?? '';
         let valB = b[col] ?? '';
-        if (col === 'price') { valA = parseFloat(a.prices?.usd||0); valB = parseFloat(b.prices?.usd||0); }
-        if (col === 'count') { valA = a.count||1; valB = b.count||1; }
+        if (col === 'price') { valA = parseFloat(a.prices?.usd || 0); valB = parseFloat(b.prices?.usd || 0); }
+        if (col === 'count') { valA = a.count || 1; valB = b.count || 1; }
         if (typeof valA === 'string') valA = valA.toLowerCase();
         if (typeof valB === 'string') valB = valB.toLowerCase();
         if (valA < valB) return -1 * dir;
@@ -831,10 +929,10 @@ function renderCollectionGrid(cards, groupByKeys) {
     return Object.keys(groups).sort().map((groupName) => {
       const content = groups[groupName];
       const uid = `group-${groupUidCounter++}`;
-  // render caret + title with indentation; start all groups collapsed by default
+      // render caret + title with indentation; start all groups collapsed by default
       const counts = computeGroupCounts(content);
       const isLeaf = Array.isArray(content);
-  const openAttr = '';
+      const openAttr = '';
       const padding = `${1.5 + level}rem`;
       // include data-level so styling can target nested depth
       if (isLeaf) {
@@ -952,6 +1050,25 @@ function renderCollectionTable(cards, groupByKeys) {
     const price = card.prices?.usd_foil && card.finish === 'foil' ? card.prices.usd_foil : card.prices?.usd || 'N/A';
     const isCommander = (card.type_line || '').includes('Legendary');
     const assignment = (cardDeckAssignments[card.firestoreId] || [])[0];
+
+    // Calculate finish breakdown for table
+    let countDisplay = card.count || 1;
+    let finishDisplay = card.finish || 'Normal';
+
+    if (card._group) {
+      countDisplay = card._group.total;
+      const finishes = { nonfoil: 0, foil: 0, etched: 0 };
+      card._group.variants.forEach(v => {
+        const f = v.finish || 'nonfoil';
+        finishes[f] = (finishes[f] || 0) + (v.count || 1);
+      });
+      const parts = [];
+      if (finishes.nonfoil > 0) parts.push(`${finishes.nonfoil} Normal`);
+      if (finishes.foil > 0) parts.push(`${finishes.foil} Foil`);
+      if (finishes.etched > 0) parts.push(`${finishes.etched} Etched`);
+      finishDisplay = parts.join(', ');
+    }
+
     return `<tr class="bg-gray-800 border-b border-gray-700 hover:bg-gray-700/50">
       <td class="px-6 py-4">
         <div class="flex items-center gap-3">
@@ -966,43 +1083,28 @@ function renderCollectionTable(cards, groupByKeys) {
           </div>
         </div>
       </td>
-      <td class="px-6 py-4 text-center">${card.count || 1}</td>
+      <td class="px-6 py-4 text-center font-bold text-white">${countDisplay}</td>
+      <td class="px-6 py-4 text-xs text-gray-300">${finishDisplay}</td>
       <td class="px-6 py-4">${card.type_line}</td>
       <td class="px-6 py-4">${assignment ? assignment.deckName : 'None'}</td>
       <td class="px-6 py-4">${card.rarity}</td>
       <td class="px-6 py-4 text-center">${card.cmc || 0}</td>
       <td class="px-6 py-4 text-right">$${price}</td>
       <td class="px-6 py-4 text-right">
-        <button class="p-2 hover:bg-gray-600 rounded-full view-card-details-btn" data-firestore-id="${card.firestoreId}"></button>
-        ${isCommander ? `<button class="p-2 hover:bg-gray-600 rounded-full create-deck-from-commander-btn" data-firestore-id="${card.firestoreId}" title="Create Commander Deck"></button>` : ''}
-        <button class="p-2 hover:bg-red-800 rounded-full delete-button" data-firestore-id="${card.firestoreId}"></button>
+        <button class="p-2 hover:bg-gray-600 rounded-full view-card-details-btn" data-firestore-id="${card.firestoreId}" title="View Details">
+            <svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+        </button>
+        ${isCommander ? `<button class="p-2 hover:bg-gray-600 rounded-full create-deck-from-commander-btn" data-firestore-id="${card.firestoreId}" title="Create Commander Deck"><svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg></button>` : ''}
       </td>
     </tr>`;
   }).join('');
-
-  function renderRecursiveRows(groups, level) {
-    return Object.keys(groups).sort().map((groupName) => {
-      const content = groups[groupName];
-      const topOffset = 114 + (level * 44);
-      const headerRow = `
-        <tr class="bg-gray-700">
-          <th colspan="8" class="px-6 py-2 text-left text-lg font-bold text-gray-300 sticky bg-gray-700" style="top: ${topOffset}px; padding-left: ${1 + level}rem; z-index: 5;">
-            ${groupName}
-          </th>
-        </tr>`;
-      if (Array.isArray(content)) {
-        return headerRow + renderTableRows(content);
-      } else {
-        return headerRow + renderRecursiveRows(content, level + 1);
-      }
-    }).join('');
-  }
 
   const tableHeader = `
     <thead class="text-xs text-gray-400 uppercase sticky bg-gray-800" style="top: 72px; z-index: 6;">
       <tr>
         <th scope="col" class="px-6 py-3 sortable" data-sort="name">Name / Info</th>
         <th scope="col" class="px-6 py-3 sortable" data-sort="count">#</th>
+        <th scope="col" class="px-6 py-3">Finish</th>
         <th scope="col" class="px-6 py-3 sortable" data-sort="type_line">Type</th>
         <th scope="col" class="px-6 py-3 sortable" data-sort="deck">Deck</th>
         <th scope="col" class="px-6 py-3 sortable" data-sort="rarity">Rarity</th>
@@ -1108,7 +1210,7 @@ function renderCollectionTable(cards, groupByKeys) {
             overlay.style.left = `${contentRect.left}px`;
             overlay.style.width = `${contentRect.width}px`;
             overlay.style.right = 'auto';
-          } catch (e) {}
+          } catch (e) { }
           const wrappers = Array.from(contentDiv.querySelectorAll('.group-table-wrapper, .group-nest-wrapper'));
           const viewportTop = window.scrollY + top + 2; // slight offset inside
           let currentTitle = '';
@@ -1133,7 +1235,7 @@ function renderCollectionTable(cards, groupByKeys) {
       // Wire scroll and resize updates (debounced)
       let ovTimer = null;
       const ovHandler = () => { clearTimeout(ovTimer); ovTimer = setTimeout(updateOverlay, 60); };
-      window.removeEventListener('scroll', window.__collection_group_overlay_handler || (() => {}));
+      window.removeEventListener('scroll', window.__collection_group_overlay_handler || (() => { }));
       window.__collection_group_overlay_handler = ovHandler;
       window.addEventListener('scroll', ovHandler, { passive: true });
       window.addEventListener('resize', ovHandler);
@@ -1143,7 +1245,7 @@ function renderCollectionTable(cards, groupByKeys) {
       // Wire group collapse/expand toggle buttons
       try {
         contentDiv.querySelectorAll('.group-toggle-btn').forEach(btn => {
-          btn.removeEventListener('click', btn._groupToggleHandler || (() => {}));
+          btn.removeEventListener('click', btn._groupToggleHandler || (() => { }));
           const handler = (e) => {
             const wrapper = e.currentTarget.closest('.group-table-wrapper, .group-nest-wrapper');
             if (!wrapper) return;
@@ -1263,8 +1365,8 @@ export async function saveCardDetails(firestoreId) {
     }
     const cardRef = doc(window.db, `artifacts/${appId}/users/${userId}/collection`, firestoreId);
 
-  const modalVisibility = (typeof window !== 'undefined' && window.modalVisibilitySettings) ? window.modalVisibilitySettings : { count: true, finish: true, condition: true, purchasePrice: true, notes: true };
-  const newCount = modalVisibility.count ? (parseInt(document.getElementById('modal-edit-count')?.value, 10) || 0) : (localCollection[firestoreId]?.count || 0);
+    const modalVisibility = (typeof window !== 'undefined' && window.modalVisibilitySettings) ? window.modalVisibilitySettings : { count: true, finish: true, condition: true, purchasePrice: true, notes: true };
+    const newCount = modalVisibility.count ? (parseInt(document.getElementById('modal-edit-count')?.value, 10) || 0) : (localCollection[firestoreId]?.count || 0);
     if (newCount <= 0) {
       await deleteDoc(cardRef);
       showToast && showToast('Card removed from collection as count was set to 0.', 'success');
@@ -1273,10 +1375,10 @@ export async function saveCardDetails(firestoreId) {
     }
 
     const updatedData = { count: newCount };
-  if (modalVisibility.finish) updatedData.finish = document.getElementById('modal-edit-finish')?.value;
-  if (modalVisibility.condition) updatedData.condition = document.getElementById('modal-edit-condition')?.value.trim() || null;
-  if (modalVisibility.purchasePrice) updatedData.purchasePrice = parseFloat(document.getElementById('modal-edit-purchasePrice')?.value) || null;
-  if (modalVisibility.notes) updatedData.notes = document.getElementById('modal-edit-notes')?.value.trim() || null;
+    if (modalVisibility.finish) updatedData.finish = document.getElementById('modal-edit-finish')?.value;
+    if (modalVisibility.condition) updatedData.condition = document.getElementById('modal-edit-condition')?.value.trim() || null;
+    if (modalVisibility.purchasePrice) updatedData.purchasePrice = parseFloat(document.getElementById('modal-edit-purchasePrice')?.value) || null;
+    if (modalVisibility.notes) updatedData.notes = document.getElementById('modal-edit-notes')?.value.trim() || null;
 
     await updateDoc(cardRef, updatedData);
     showToast && showToast('Card details saved!', 'success');
@@ -1289,117 +1391,117 @@ export async function saveCardDetails(firestoreId) {
 }
 
 export function renderCardDetailsModal(card) {
-    // Global handler for coach widget actions (recalculate, edit, feedback)
-    try {
-      window.handleCoachAction = function(action, deckId, firestoreId) {
-        try {
-          // prefer a hosted implementation if it exists
-          if (action === 'recalculate') {
-            if (typeof window.recalculateAiSuggestion === 'function') return window.recalculateAiSuggestion(deckId, firestoreId);
-            if (typeof window.refreshAiForDeck === 'function') return window.refreshAiForDeck(deckId);
-            try { if (window.showToast) window.showToast('Recalculate not available.', 'info'); } catch(e) { console.debug('Recalculate not available'); }
-            return null;
-          }
-          if (action === 'edit') {
-            // open modal edit mode if supported
-            try { wrapper.classList.add('card-modal-edit-mode'); } catch(e) {}
-            if (typeof window.openCardEdit === 'function') return window.openCardEdit(firestoreId);
-            try { if (window.showToast) window.showToast('Edit not available.', 'info'); } catch(e) {}
-            return null;
-          }
-          if (action === 'feedback') {
-            // payload: deckId, firestoreId, thumb (+1 or -1 passed as deckId param when using inline)
-            const vote = firestoreId; // in some inline handlers we pass vote in this arg
-            if (typeof window.sendAiFeedback === 'function') return window.sendAiFeedback(deckId, vote);
-            try { if (window.showToast) window.showToast('Feedback recorded.', 'success'); } catch(e) {}
-            return null;
-          }
-        } catch (err) { console.debug('[Coach] action handler error', err); }
-      };
-    } catch (e) { /* ignore */ }
-    const contentDiv = document.getElementById('card-details-content');
-    const wrapper = document.getElementById('card-details-modal-content-wrapper');
-    if (!contentDiv || !wrapper) return;
-    // Apply blurred card art as modal background for ambience
-    try {
-      const bgUrl = card.image_uris?.art_crop || card.image_uris?.normal || card.image_uri || card.image;
-      if (bgUrl) {
-        wrapper.style.backgroundImage = `linear-gradient(rgba(6,8,15,0.75), rgba(6,8,15,0.85)), url(${bgUrl})`;
-        wrapper.style.backgroundSize = 'cover';
-        wrapper.style.backgroundPosition = 'center';
-        wrapper.style.backdropFilter = 'blur(6px)';
-        wrapper.style.WebkitBackdropFilter = 'blur(6px)';
-      } else {
-        wrapper.style.backgroundImage = '';
-      }
-    } catch (e) { /* non-fatal */ }
-    wrapper.dataset.firestoreId = card.firestoreId;
-    wrapper.classList.remove('card-modal-edit-mode');
-    const assignments = (cardDeckAssignments || {})[card.firestoreId] || [];
-    // If this card is assigned to any decks, try to pull AI suggestion metadata
-    let suggestionForModal = null;
-    try {
-      const decksMap = (typeof window !== 'undefined' && window.localDecks) ? window.localDecks : (typeof localDecks !== 'undefined' ? localDecks : {});
-      for (const a of assignments) {
-        const deck = decksMap && decksMap[a.deckId];
-        if (!deck) continue;
-        const suggestions = (deck && (deck.aiSuggestions || (deck.aiBlueprint && deck.aiBlueprint.aiSuggestions))) || [];
-        const match = suggestions && suggestions.find && suggestions.find(s => {
-          if (!s) return false;
-          if (s.firestoreId && (s.firestoreId === card.firestoreId || s.firestoreId === card.firestore_id)) return true;
-          if (s.scryfallId && (s.scryfallId === card.id || s.scryfallId === card.scryfall_id)) return true;
-          if (s.id && (s.id === card.id || s.id === card.scryfall_id)) return true;
-          return false;
-        });
-        if (match) { suggestionForModal = { match, deck }; break; }
-      }
-    } catch (err) { console.debug('[Collection] suggestion lookup failed', err); }
-
-    // Prepare suggestion HTML if found (Coach's Insight widget)
-    let suggestionHtml = '';
-    if (suggestionForModal && suggestionForModal.match) {
-      const m = suggestionForModal.match;
-      const ratingVal = (typeof m.rating !== 'undefined' && m.rating !== null) ? m.rating : null;
-      const reasonText = (m.reason || m.note || '').trim();
-      const safeEsc = s => String(s === undefined || s === null ? '' : s).replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-      // highlight common mechanical/UX terms in the explanation for scanability
-      function highlightTerms(text) {
-        if (!text) return '';
-        const terms = ['lesson', 'lessons', 'lesson subtheme', 'synergy', 'graveyard', 'draw', 'discard', 'mana', 'cmc', 'card selection', 'tempo', 'speed', 'slow', 'fast', 'removal', 'card advantage', 'mana ramp'];
-        let out = safeEsc(text);
-        terms.forEach(t => {
-          const re = new RegExp('\\b' + t.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&') + '\\b', 'ig');
-          out = out.replace(re, match => `<strong class="text-white font-semibold">${match}</strong>`);
-        });
-        return out;
-      }
-
-      function bulletsFromReason(text) {
-        if (!text) return [];
-        const lower = text.toLowerCase();
-        if (lower.includes('pros:') || lower.includes('cons:')) {
-          const parts = text.split(/pros:?|cons:?/i).map(s => s.trim()).filter(Boolean);
-          return parts.slice(0, 4);
+  // Global handler for coach widget actions (recalculate, edit, feedback)
+  try {
+    window.handleCoachAction = function (action, deckId, firestoreId) {
+      try {
+        // prefer a hosted implementation if it exists
+        if (action === 'recalculate') {
+          if (typeof window.recalculateAiSuggestion === 'function') return window.recalculateAiSuggestion(deckId, firestoreId);
+          if (typeof window.refreshAiForDeck === 'function') return window.refreshAiForDeck(deckId);
+          try { if (window.showToast) window.showToast('Recalculate not available.', 'info'); } catch (e) { console.debug('Recalculate not available'); }
+          return null;
         }
-        const sentences = text.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(Boolean);
-        if (sentences.length <= 2) return sentences;
-        return sentences.slice(0, 3);
+        if (action === 'edit') {
+          // open modal edit mode if supported
+          try { wrapper.classList.add('card-modal-edit-mode'); } catch (e) { }
+          if (typeof window.openCardEdit === 'function') return window.openCardEdit(firestoreId);
+          try { if (window.showToast) window.showToast('Edit not available.', 'info'); } catch (e) { }
+          return null;
+        }
+        if (action === 'feedback') {
+          // payload: deckId, firestoreId, thumb (+1 or -1 passed as deckId param when using inline)
+          const vote = firestoreId; // in some inline handlers we pass vote in this arg
+          if (typeof window.sendAiFeedback === 'function') return window.sendAiFeedback(deckId, vote);
+          try { if (window.showToast) window.showToast('Feedback recorded.', 'success'); } catch (e) { }
+          return null;
+        }
+      } catch (err) { console.debug('[Coach] action handler error', err); }
+    };
+  } catch (e) { /* ignore */ }
+  const contentDiv = document.getElementById('card-details-content');
+  const wrapper = document.getElementById('card-details-modal-content-wrapper');
+  if (!contentDiv || !wrapper) return;
+  // Apply blurred card art as modal background for ambience
+  try {
+    const bgUrl = card.image_uris?.art_crop || card.image_uris?.normal || card.image_uri || card.image;
+    if (bgUrl) {
+      wrapper.style.backgroundImage = `linear-gradient(rgba(6,8,15,0.75), rgba(6,8,15,0.85)), url(${bgUrl})`;
+      wrapper.style.backgroundSize = 'cover';
+      wrapper.style.backgroundPosition = 'center';
+      wrapper.style.backdropFilter = 'blur(6px)';
+      wrapper.style.WebkitBackdropFilter = 'blur(6px)';
+    } else {
+      wrapper.style.backgroundImage = '';
+    }
+  } catch (e) { /* non-fatal */ }
+  wrapper.dataset.firestoreId = card.firestoreId;
+  wrapper.classList.remove('card-modal-edit-mode');
+  const assignments = (cardDeckAssignments || {})[card.firestoreId] || [];
+  // If this card is assigned to any decks, try to pull AI suggestion metadata
+  let suggestionForModal = null;
+  try {
+    const decksMap = (typeof window !== 'undefined' && window.localDecks) ? window.localDecks : (typeof localDecks !== 'undefined' ? localDecks : {});
+    for (const a of assignments) {
+      const deck = decksMap && decksMap[a.deckId];
+      if (!deck) continue;
+      const suggestions = (deck && (deck.aiSuggestions || (deck.aiBlueprint && deck.aiBlueprint.aiSuggestions))) || [];
+      const match = suggestions && suggestions.find && suggestions.find(s => {
+        if (!s) return false;
+        if (s.firestoreId && (s.firestoreId === card.firestoreId || s.firestoreId === card.firestore_id)) return true;
+        if (s.scryfallId && (s.scryfallId === card.id || s.scryfallId === card.scryfall_id)) return true;
+        if (s.id && (s.id === card.id || s.id === card.scryfall_id)) return true;
+        return false;
+      });
+      if (match) { suggestionForModal = { match, deck }; break; }
+    }
+  } catch (err) { console.debug('[Collection] suggestion lookup failed', err); }
+
+  // Prepare suggestion HTML if found (Coach's Insight widget)
+  let suggestionHtml = '';
+  if (suggestionForModal && suggestionForModal.match) {
+    const m = suggestionForModal.match;
+    const ratingVal = (typeof m.rating !== 'undefined' && m.rating !== null) ? m.rating : null;
+    const reasonText = (m.reason || m.note || '').trim();
+    const safeEsc = s => String(s === undefined || s === null ? '' : s).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    // highlight common mechanical/UX terms in the explanation for scanability
+    function highlightTerms(text) {
+      if (!text) return '';
+      const terms = ['lesson', 'lessons', 'lesson subtheme', 'synergy', 'graveyard', 'draw', 'discard', 'mana', 'cmc', 'card selection', 'tempo', 'speed', 'slow', 'fast', 'removal', 'card advantage', 'mana ramp'];
+      let out = safeEsc(text);
+      terms.forEach(t => {
+        const re = new RegExp('\\b' + t.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&') + '\\b', 'ig');
+        out = out.replace(re, match => `<strong class="text-white font-semibold">${match}</strong>`);
+      });
+      return out;
+    }
+
+    function bulletsFromReason(text) {
+      if (!text) return [];
+      const lower = text.toLowerCase();
+      if (lower.includes('pros:') || lower.includes('cons:')) {
+        const parts = text.split(/pros:?|cons:?/i).map(s => s.trim()).filter(Boolean);
+        return parts.slice(0, 4);
       }
+      const sentences = text.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(Boolean);
+      if (sentences.length <= 2) return sentences;
+      return sentences.slice(0, 3);
+    }
 
-      const rn = (ratingVal !== null && !isNaN(Number(ratingVal))) ? Number(ratingVal) : 0;
-      let color = '#f59e0b';
-      if (rn >= 8) color = '#34d399';
-      else if (rn <= 4) color = '#f87171';
-      else color = '#f59e0b';
-      const percent = Math.max(0, Math.min(100, (rn / 10) * 100));
-      const scoreDisplay = Number.isFinite(rn) ? (Math.round(rn * 10) / 10).toFixed(1) : '0.0';
-      const bullets = bulletsFromReason(reasonText).map(s => `<li class="mb-1">${highlightTerms(s)}</li>`).join('');
-      const deckName = (suggestionForModal.deck && (suggestionForModal.deck.name || suggestionForModal.deck.title || suggestionForModal.deck.deckName)) || 'this deck';
-      const deckIdAttr = suggestionForModal.deck && (suggestionForModal.deck.id || suggestionForModal.deck.firestoreId || suggestionForModal.deck.deckId) || '';
-      const fsId = card && (card.firestoreId || card.id || card.scryfallId) || '';
+    const rn = (ratingVal !== null && !isNaN(Number(ratingVal))) ? Number(ratingVal) : 0;
+    let color = '#f59e0b';
+    if (rn >= 8) color = '#34d399';
+    else if (rn <= 4) color = '#f87171';
+    else color = '#f59e0b';
+    const percent = Math.max(0, Math.min(100, (rn / 10) * 100));
+    const scoreDisplay = Number.isFinite(rn) ? (Math.round(rn * 10) / 10).toFixed(1) : '0.0';
+    const bullets = bulletsFromReason(reasonText).map(s => `<li class="mb-1">${highlightTerms(s)}</li>`).join('');
+    const deckName = (suggestionForModal.deck && (suggestionForModal.deck.name || suggestionForModal.deck.title || suggestionForModal.deck.deckName)) || 'this deck';
+    const deckIdAttr = suggestionForModal.deck && (suggestionForModal.deck.id || suggestionForModal.deck.firestoreId || suggestionForModal.deck.deckId) || '';
+    const fsId = card && (card.firestoreId || card.id || card.scryfallId) || '';
 
-      suggestionHtml = `
+    suggestionHtml = `
         <div class="bg-gray-800 rounded-lg p-3 border border-gray-700 mt-3 shadow-sm coach-insight">
           <div class="flex items-start justify-between mb-3">
             <div>
@@ -1436,189 +1538,190 @@ export function renderCardDetailsModal(card) {
           </div>
         </div>
       `;
+  }
+
+  // Default modal visibility settings. Many Scryfall-specific or low-value fields
+  // are disabled by default (false) so they don't clutter the modal. Settings UI
+  // can override these via `window.modalVisibilitySettings`.
+  const modalVisibility = (typeof window !== 'undefined' && window.modalVisibilitySettings) ? window.modalVisibilitySettings : {
+    count: true,
+    finish: true,
+    condition: true,
+    purchasePrice: true,
+    notes: true,
+    // Scryfall / metadata fields (hidden by default)
+    textless: false,
+    set_type: false,
+    lang: false,
+    digital: false,
+    cardmarket_id: false,
+    object: false,
+    highres_image: false,
+    scryfall_set_uri: false,
+    promo: false,
+    nonfoil: false,
+    games: false,
+    purchase_uris: false,
+    related_uris: false,
+    set_search_uri: false,
+    uri: false,
+    security_stamp: false,
+    oversized: false,
+    booster: false,
+    frame: false,
+    prints_search_uri: false,
+    edhrec_rank: false,
+    variation: false,
+    image_status: false,
+    finishes: false,
+    card_faces: false,
+    reprint: false,
+    promo_types: false,
+    tcgplayer_id: false,
+    story_spotlight: false,
+    full_art: false,
+    layout: false,
+    image_uris: false
+  };
+
+  // Build a comprehensive details HTML block including common saved fields
+  try {
+    const details = [];
+    const push = (label, value) => { if (value !== undefined && value !== null && String(value) !== '') details.push({ label, value }); };
+    push('Firestore ID', card.firestoreId);
+    push('Scryfall ID', card.id || card.scryfall_id);
+    push('Name', card.name);
+    push('Mana Cost', card.mana_cost || '');
+    push('Type', card.type_line || '');
+    push('Oracle Text', card.oracle_text || '');
+    push('Power/Toughness', (card.power || card.toughness) ? `${card.power || '?'} / ${card.toughness || '?'}` : '');
+    push('Set', card.set_name || card.set || '');
+    push('Collector #', card.collector_number || '');
+    push('Rarity', card.rarity || '');
+    push('Colors', (card.colors || []).join(', '));
+    push('Color Identity', (card.color_identity || []).join(', '));
+    push('CMC', card.cmc ?? '');
+    // Prices: try to format usd and usd_foil
+    if (card.prices) {
+      const p = card.prices;
+      const priceText = [];
+      if (p.usd) priceText.push(`USD: $${Number(p.usd).toFixed(2)}`);
+      if (p.usd_foil) priceText.push(`USD (foil): $${Number(p.usd_foil).toFixed(2)}`);
+      if (priceText.length) push('Prices', priceText.join(' — '));
     }
-  
-    // Default modal visibility settings. Many Scryfall-specific or low-value fields
-    // are disabled by default (false) so they don't clutter the modal. Settings UI
-    // can override these via `window.modalVisibilitySettings`.
-    const modalVisibility = (typeof window !== 'undefined' && window.modalVisibilitySettings) ? window.modalVisibilitySettings : {
-      count: true,
-      finish: true,
-      condition: true,
-      purchasePrice: true,
-      notes: true,
-      // Scryfall / metadata fields (hidden by default)
-      textless: false,
-      set_type: false,
-      lang: false,
-      digital: false,
-      cardmarket_id: false,
-      object: false,
-      highres_image: false,
-      scryfall_set_uri: false,
-      promo: false,
-      nonfoil: false,
-      games: false,
-      purchase_uris: false,
-      related_uris: false,
-      set_search_uri: false,
-      uri: false,
-      security_stamp: false,
-      oversized: false,
-      booster: false,
-      frame: false,
-      prints_search_uri: false,
-      edhrec_rank: false,
-      variation: false,
-      image_status: false,
-      finishes: false,
-      card_faces: false,
-      reprint: false,
-      promo_types: false,
-      tcgplayer_id: false,
-      story_spotlight: false,
-      full_art: false,
-      layout: false,
-      image_uris: false
-    };
+    push('Count', card.count ?? '');
+    push('Finish', card.finish || '');
+    push('Condition', card.condition || '');
+    push('Purchase Price', (card.purchasePrice !== undefined && card.purchasePrice !== null) ? `$${Number(card.purchasePrice).toFixed(2)}` : '');
+    push('Notes', card.notes || '');
 
-    // Build a comprehensive details HTML block including common saved fields
-    try {
-      const details = [];
-      const push = (label, value) => { if (value !== undefined && value !== null && String(value) !== '') details.push({ label, value }); };
-      push('Firestore ID', card.firestoreId);
-      push('Scryfall ID', card.id || card.scryfall_id);
-      push('Name', card.name);
-      push('Mana Cost', card.mana_cost || '');
-      push('Type', card.type_line || '');
-      push('Oracle Text', card.oracle_text || '');
-      push('Power/Toughness', (card.power || card.toughness) ? `${card.power || '?'} / ${card.toughness || '?'}` : '');
-      push('Set', card.set_name || card.set || '');
-      push('Collector #', card.collector_number || '');
-      push('Rarity', card.rarity || '');
-      push('Colors', (card.colors || []).join(', '));
-      push('Color Identity', (card.color_identity || []).join(', '));
-      push('CMC', card.cmc ?? '');
-      // Prices: try to format usd and usd_foil
-      if (card.prices) {
-        const p = card.prices;
-        const priceText = [];
-        if (p.usd) priceText.push(`USD: $${Number(p.usd).toFixed(2)}`);
-        if (p.usd_foil) priceText.push(`USD (foil): $${Number(p.usd_foil).toFixed(2)}`);
-        if (priceText.length) push('Prices', priceText.join(' — '));
-      }
-      push('Count', card.count ?? '');
-      push('Finish', card.finish || '');
-      push('Condition', card.condition || '');
-      push('Purchase Price', (card.purchasePrice !== undefined && card.purchasePrice !== null) ? `$${Number(card.purchasePrice).toFixed(2)}` : '');
-      push('Notes', card.notes || '');
+    // Also include any AI suggestion we found earlier under suggestionForModal.match
+    if (suggestionForModal && suggestionForModal.match) {
+      const m = suggestionForModal.match;
+      push('AI Rating', (typeof m.rating !== 'undefined' && m.rating !== null) ? `${m.rating}/10` : '');
+      push('AI Reason', m.reason || m.note || '');
+      push('AI Source', m.sourceType || m.source || '');
+    }
 
-      // Also include any AI suggestion we found earlier under suggestionForModal.match
-      if (suggestionForModal && suggestionForModal.match) {
-        const m = suggestionForModal.match;
-        push('AI Rating', (typeof m.rating !== 'undefined' && m.rating !== null) ? `${m.rating}/10` : '');
-        push('AI Reason', m.reason || m.note || '');
-        push('AI Source', m.sourceType || m.source || '');
-      }
+    // Generic extra fields (non-empty) — show anything not already listed
+    Object.keys(card).forEach(k => {
+      // Skip core fields already represented in the details grid above
+      if (['firestoreId', 'id', 'scryfall_id', 'name', 'mana_cost', 'type_line', 'oracle_text', 'power', 'toughness', 'set_name', 'set', 'collector_number', 'rarity', 'colors', 'color_identity', 'cmc', 'prices', 'count', 'finish', 'condition', 'purchasePrice', 'notes'].includes(k)) return;
+      // Skip a set of Scryfall / low-value fields that should not appear by default
+      if (['textless', 'set_type', 'lang', 'digital', 'cardmarket_id', 'object', 'highres_image', 'scryfall_set_uri', 'promo', 'nonfoil', 'games', 'purchase_uris', 'related_uris', 'set_search_uri', 'uri', 'security_stamp', 'oversized', 'booster', 'frame', 'prints_search_uri', 'edhrec_rank', 'variation', 'image_status', 'finishes', 'card_faces', 'reprint', 'promo_types', 'tcgplayer_id', 'story_spotlight', 'full_art', 'layout', 'image_uris'].includes(k)) return;
+      const val = card[k];
+      if (val === undefined || val === null) return;
+      if ((typeof val === 'object' && Object.keys(val).length === 0) || (Array.isArray(val) && val.length === 0)) return;
+      try { push(k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), (typeof val === 'object') ? JSON.stringify(val) : String(val)); } catch (e) { }
+    });
 
-      // Generic extra fields (non-empty) — show anything not already listed
-      Object.keys(card).forEach(k => {
-        // Skip core fields already represented in the details grid above
-        if ([ 'firestoreId','id','scryfall_id','name','mana_cost','type_line','oracle_text','power','toughness','set_name','set','collector_number','rarity','colors','color_identity','cmc','prices','count','finish','condition','purchasePrice','notes' ].includes(k)) return;
-        // Skip a set of Scryfall / low-value fields that should not appear by default
-        if ([ 'textless','set_type','lang','digital','cardmarket_id','object','highres_image','scryfall_set_uri','promo','nonfoil','games','purchase_uris','related_uris','set_search_uri','uri','security_stamp','oversized','booster','frame','prints_search_uri','edhrec_rank','variation','image_status','finishes','card_faces','reprint','promo_types','tcgplayer_id','story_spotlight','full_art','layout','image_uris' ].includes(k)) return;
-        const val = card[k];
-        if (val === undefined || val === null) return;
-        if ((typeof val === 'object' && Object.keys(val).length === 0) || (Array.isArray(val) && val.length === 0)) return;
-        try { push(k.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase()), (typeof val === 'object') ? JSON.stringify(val) : String(val)); } catch (e) {}
-      });
-
-      const detailsHtml = details.map(d => `
+    const detailsHtml = details.map(d => `
             <div class="mb-3 border-b border-gray-800 pb-2">
               <div class="text-xs text-gray-400 uppercase">${d.label}</div>
               <div class="text-sm text-gray-200 mt-1">${d.value}</div>
             </div>
           `).join('');
 
-      // helper escaper and truncator
-      const esc = s => String(s === undefined || s === null ? '' : s).replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      // Render mana symbols from {W}{U}{B}{R}{G}{C}{2}{W/U} etc into styled badges
-      const renderManaSymbols = (text) => {
-        if (!text) return '';
-        // replace tokens like {2}, {W}, {W/U}, {T}
-        return String(text).replace(/\{([^}]+)\}/g, (m, token) => {
-          const key = token.toUpperCase();
-          // normalize hybrid (use slash) and phyrexian (P)
-          const display = key.replace('/', '/');
-          // color mapping for main symbols
-          const colorMap = { 'W':'#f8f5e6', 'U':'#cfe8ff', 'B':'#222222', 'R':'#ffd1cf', 'G':'#d4f5d6', 'C':'#dfe3e6' };
-          const bg = colorMap[key] || '#333';
-          const fg = (key === 'B' ? '#fff' : '#000');
-          // numeric cost or generic
-          const inner = display;
-          return `<span class="mana-symbol" style="display:inline-block;min-width:20px;height:20px;padding:0 6px;margin:0 2px;border-radius:4px;background:${bg};color:${fg};font-weight:700;font-size:12px;line-height:20px;text-align:center;border:1px solid rgba(0,0,0,0.2)">${inner}</span>`;
-        });
-      };
-      const trunc = (s, start = 6, end = 4) => {
-        const str = String(s || '');
-        if (str.length <= start + end + 3) return str;
-        return `${str.slice(0,start)}...${str.slice(-end)}`;
-      };
+    // helper escaper and truncator
+    const esc = s => String(s === undefined || s === null ? '' : s).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    // Render mana symbols from {W}{U}{B}{R}{G}{C}{2}{W/U} etc into styled badges
+    const renderManaSymbols = (text) => {
+      if (!text) return '';
+      // replace tokens like {2}, {W}, {W/U}, {T}
+      return String(text).replace(/\{([^}]+)\}/g, (m, token) => {
+        const key = token.toUpperCase();
+        // normalize hybrid (use slash) and phyrexian (P)
+        const display = key.replace('/', '/');
+        // color mapping for main symbols
+        const colorMap = { 'W': '#f8f5e6', 'U': '#cfe8ff', 'B': '#222222', 'R': '#ffd1cf', 'G': '#d4f5d6', 'C': '#dfe3e6' };
+        const bg = colorMap[key] || '#333';
+        const fg = (key === 'B' ? '#fff' : '#000');
+        // numeric cost or generic
+        const inner = display;
+        return `<span class="mana-symbol" style="display:inline-block;min-width:20px;height:20px;padding:0 6px;margin:0 2px;border-radius:4px;background:${bg};color:${fg};font-weight:700;font-size:12px;line-height:20px;text-align:center;border:1px solid rgba(0,0,0,0.2)">${inner}</span>`;
+      });
+    };
+    const trunc = (s, start = 6, end = 4) => {
+      const str = String(s || '');
+      if (str.length <= start + end + 3) return str;
+      return `${str.slice(0, start)}...${str.slice(-end)}`;
+    };
 
-      // Legalities formatted as badges (green for Legal, red for Banned, gray otherwise)
-      let legalitiesHtml = '';
+    // Legalities formatted as badges (green for Legal, red for Banned, gray otherwise)
+    let legalitiesHtml = '';
+    try {
+      const l = card.legalities || {};
+      if (l && typeof l === 'object') {
+        // Focus on a common subset; omit obscure formats to reduce noise
+        const preferred = ['standard', 'modern', 'legacy', 'vintage', 'commander', 'pioneer', 'pauper', 'historic'];
+        const formats = Object.keys(l).filter(f => preferred.includes(f.toLowerCase())).sort();
+        // If none of the preferred formats exist, fall back to showing all (first 12)
+        const show = formats.length ? formats : Object.keys(l).slice(0, 12);
+        legalitiesHtml = show.map(f => {
+          const val = String(l[f] || '').toLowerCase();
+          const label = f.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+          let bg = 'bg-gray-700 text-gray-300';
+          if (val === 'legal') bg = 'bg-green-500 text-white';
+          else if (val === 'banned' || val === 'not_legal' || val === 'not legal' || val === 'illegal') bg = 'bg-red-600 text-white';
+          else bg = 'bg-gray-600 text-white';
+          return `<span class="inline-flex items-center gap-2 px-2 py-1 rounded-full ${bg} text-xs font-semibold mr-2 mb-2">${label}: <span class="ml-2 text-sm font-normal text-white">${String(l[f])}</span></span>`;
+        }).join('');
+      }
+    } catch (e) { legalitiesHtml = ''; }
+
+    // Rulings
+    const rulingsCount = Array.isArray(card.rulings) ? card.rulings.length : 0;
+    const rulingsLink = card.rulings_uri || (card.related_uris && card.related_uris.rulings) || '';
+
+    // Collection fields
+    const totalOwned = card.count ?? 0;
+    const finish = card.finish || (Array.isArray(card.finishes) ? card.finishes.join(', ') : (card.isFoil ? 'Foil' : 'Nonfoil')) || 'Unknown';
+    const priceText = (() => {
       try {
-        const l = card.legalities || {};
-        if (l && typeof l === 'object') {
-          // Focus on a common subset; omit obscure formats to reduce noise
-          const preferred = [ 'standard','modern','legacy','vintage','commander','pioneer','pauper','historic' ];
-          const formats = Object.keys(l).filter(f => preferred.includes(f.toLowerCase())).sort();
-          // If none of the preferred formats exist, fall back to showing all (first 12)
-          const show = formats.length ? formats : Object.keys(l).slice(0,12);
-          legalitiesHtml = show.map(f => {
-            const val = String(l[f] || '').toLowerCase();
-            const label = f.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
-            let bg = 'bg-gray-700 text-gray-300';
-            if (val === 'legal') bg = 'bg-green-500 text-white';
-            else if (val === 'banned' || val === 'not_legal' || val === 'not legal' || val === 'illegal') bg = 'bg-red-600 text-white';
-            else bg = 'bg-gray-600 text-white';
-            return `<span class="inline-flex items-center gap-2 px-2 py-1 rounded-full ${bg} text-xs font-semibold mr-2 mb-2">${label}: <span class="ml-2 text-sm font-normal text-white">${String(l[f])}</span></span>`;
-          }).join('');
-        }
-      } catch (e) { legalitiesHtml = ''; }
+        const p = card.prices || {};
+        const part = [];
+        if (p.usd) part.push(`$${Number(p.usd).toFixed(2)}`);
+        if (p.usd_foil) part.push(`Foil: $${Number(p.usd_foil).toFixed(2)}`);
+        return part.join(' — ');
+      } catch (e) { return ''; }
+    })();
+    const dateAdded = card.addedAt || card.added_at || card.originalReleaseDate || '';
 
-      // Rulings
-      const rulingsCount = Array.isArray(card.rulings) ? card.rulings.length : 0;
-      const rulingsLink = card.rulings_uri || (card.related_uris && card.related_uris.rulings) || '';
+    // Art & Metadata
+    const artist = card.artist || card.artistName || card.artist_name || '';
+    const frameEffects = (card.frame_effects && card.frame_effects.join(', ')) || card.frame_effect || '';
+    const watermark = card.watermark || '';
+    const borderColor = card.borderColor || card.border_color || '';
+    const illustrationId = card.scryfallIllustrationId || (card.identifiers && card.identifiers.scryfallIllustrationId) || '';
 
-      // Collection fields
-      const totalOwned = card.count ?? 0;
-      const finish = card.finish || (Array.isArray(card.finishes) ? card.finishes.join(', ') : (card.isFoil ? 'Foil' : 'Nonfoil')) || 'Unknown';
-      const priceText = (() => {
-        try {
-          const p = card.prices || {};
-          const part = [];
-          if (p.usd) part.push(`$${Number(p.usd).toFixed(2)}`);
-          if (p.usd_foil) part.push(`Foil: $${Number(p.usd_foil).toFixed(2)}`);
-          return part.join(' — ');
-        } catch (e) { return '';} })();
-      const dateAdded = card.addedAt || card.added_at || card.originalReleaseDate || '';
+    // Links and IDs
+    const scryfallPage = card.scryfall_uri || card.scryfallUri || (card.related_uris && card.related_uris.permalink) || '';
+    const scryfallId = card.id || card.scryfallId || card.scryfall_id || '';
+    const oracleId = card.oracle_id || card.scryfallOracleId || card.scryfall_oracle_id || '';
+    const firestoreId = card.firestoreId || '';
+    const releasedAt = card.released_at || card.releasedAt || card.originalReleaseDate || '';
 
-      // Art & Metadata
-      const artist = card.artist || card.artistName || card.artist_name || '';
-      const frameEffects = (card.frame_effects && card.frame_effects.join(', ')) || card.frame_effect || '';
-      const watermark = card.watermark || '';
-      const borderColor = card.borderColor || card.border_color || '';
-      const illustrationId = card.scryfallIllustrationId || (card.identifiers && card.identifiers.scryfallIllustrationId) || '';
-
-      // Links and IDs
-      const scryfallPage = card.scryfall_uri || card.scryfallUri || (card.related_uris && card.related_uris.permalink) || '';
-      const scryfallId = card.id || card.scryfallId || card.scryfall_id || '';
-      const oracleId = card.oracle_id || card.scryfallOracleId || card.scryfall_oracle_id || '';
-      const firestoreId = card.firestoreId || '';
-      const releasedAt = card.released_at || card.releasedAt || card.originalReleaseDate || '';
-
-      contentDiv.innerHTML = `
+    contentDiv.innerHTML = `
       <div class="h-full overflow-auto pr-2">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div class="md:col-span-1 flex flex-col gap-4">
@@ -1633,7 +1736,7 @@ export function renderCardDetailsModal(card) {
                   <h2 class="text-3xl font-bold leading-tight">${esc(card.name)}</h2>
                   <div class="text-sm text-gray-300 mt-1">${renderManaSymbols(esc(card.mana_cost || card.manaCost || ''))} ${card.cmc || card.manaValue ? `| CMC: ${card.cmc ?? card.manaValue ?? ''}` : ''}</div>
                   <div class="text-sm text-gray-400 mt-2">${esc(card.type_line || card.type || '')}</div>
-                  <div class="text-sm text-gray-400 mt-1">${esc((card.set_name || card.set || '') + (card.rarity ? ` • ${String(card.rarity).charAt(0).toUpperCase()+String(card.rarity).slice(1)}` : ''))}</div>
+                  <div class="text-sm text-gray-400 mt-1">${esc((card.set_name || card.set || '') + (card.rarity ? ` • ${String(card.rarity).charAt(0).toUpperCase() + String(card.rarity).slice(1)}` : ''))}</div>
                 </div>
                 <div class="text-right">
                   <div class="text-sm text-gray-400">${esc(card.power && card.toughness ? `${card.power} / ${card.toughness}` : '')}</div>
@@ -1650,9 +1753,9 @@ export function renderCardDetailsModal(card) {
                   <div class="text-sm text-gray-200 whitespace-pre-wrap mt-1">${renderManaSymbols(esc(card.oracle_text || card.originalText || card.text || ''))}</div>
                 </div>
                 ${card.flavorText || card.flavor_text ? `<div class="mb-3 italic text-sm text-gray-400 mt-2">${esc(card.flavorText || card.flavor_text)}</div>` : ''}
-                ${card.keywords && Array.isArray(card.keywords) ? `<div class="mb-2"><div class="text-xs text-gray-400">Keywords</div><div class="text-sm text-gray-200 mt-1">${esc((card.keywords||[]).join(', '))}</div></div>` : ''}
-                ${card.power || card.toughness ? `<div class="mb-2"><div class="text-xs text-gray-400">Power / Toughness</div><div class="text-sm text-gray-200 mt-1">${esc(card.power||'') || '?'} / ${esc(card.toughness||'') || '?'}</div></div>` : ''}
-                ${card.color_identity || card.colors ? `<div class="mb-2"><div class="text-xs text-gray-400">Color Identity</div><div class="text-sm text-gray-200 mt-1">${esc((card.color_identity||card.colors||[]).join(', ') || '')}</div></div>` : ''}
+                ${card.keywords && Array.isArray(card.keywords) ? `<div class="mb-2"><div class="text-xs text-gray-400">Keywords</div><div class="text-sm text-gray-200 mt-1">${esc((card.keywords || []).join(', '))}</div></div>` : ''}
+                ${card.power || card.toughness ? `<div class="mb-2"><div class="text-xs text-gray-400">Power / Toughness</div><div class="text-sm text-gray-200 mt-1">${esc(card.power || '') || '?'} / ${esc(card.toughness || '') || '?'}</div></div>` : ''}
+                ${card.color_identity || card.colors ? `<div class="mb-2"><div class="text-xs text-gray-400">Color Identity</div><div class="text-sm text-gray-200 mt-1">${esc((card.color_identity || card.colors || []).join(', ') || '')}</div></div>` : ''}
                 <div class="mb-2"><div class="text-xs text-gray-400">Legalities</div><div class="text-sm text-gray-200 mt-1">${legalitiesHtml || '<span class="text-gray-400">No legalities data</span>'}</div></div>
                 <div class="mb-2"><div class="text-xs text-gray-400">Rulings</div><div class="text-sm text-gray-200 mt-1">${rulingsLink ? `<a href="${esc(rulingsLink)}" target="_blank" class="text-indigo-400 hover:underline">View Rulings (${rulingsCount})</a>` : `<span class="text-gray-400">${rulingsCount} rulings</span>`}</div></div>
               </div>
@@ -1662,11 +1765,38 @@ export function renderCardDetailsModal(card) {
             <details class="p-3 rounded" style="background: rgba(6,8,15,0.55); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); border:1px solid rgba(255,255,255,0.04);">
               <summary class="cursor-pointer font-semibold text-gray-200">Collection Status</summary>
               <div class="mt-3 text-sm text-gray-200">
-                <div class="mb-2"><span class="text-gray-400">Total Owned:</span> ${esc(totalOwned)}</div>
-                <div class="mb-2"><span class="text-gray-400">Finish:</span> ${esc(finish)}</div>
-                <div class="mb-2"><span class="text-gray-400">Market Price:</span> ${esc(priceText || 'N/A')}</div>
-                <div class="mb-2"><span class="text-gray-400">Date Added:</span> ${esc(dateAdded || '')}</div>
-                <div class="mb-2"><span class="text-gray-400">Collector Number:</span> ${esc(card.collector_number || card.number || '')}</div>
+                ${card._group ? `
+                  <div class="mb-2"><span class="text-gray-400">Total Owned:</span> ${esc(card._group.total)}</div>
+                  <div class="space-y-2 mt-3">
+                    ${card._group.variants.map(v => {
+      const assignments = cardDeckAssignments[v.firestoreId] || [];
+      const deckNames = assignments.map(a => a.deckName).filter(Boolean).join(', ');
+      return `
+                      <div class="flex items-center justify-between bg-gray-800/50 p-2 rounded border border-gray-700">
+                        <div>
+                          <div class="font-semibold text-indigo-300">${v.finish === 'foil' ? 'Foil' : (v.finish === 'etched' ? 'Etched' : 'Non-Foil')}</div>
+                          <div class="text-xs text-gray-400">Count: <span class="text-white">${v.count || 1}</span> • Condition: ${v.condition || 'N/A'}</div>
+                          ${v.purchasePrice ? `<div class="text-xs text-gray-500">Bought: $${v.purchasePrice}</div>` : ''}
+                          ${deckNames ? `<div class="text-xs text-indigo-400 mt-0.5">In Deck: ${esc(deckNames)}</div>` : ''}
+                        </div>
+                        <button class="delete-button text-red-400 hover:text-red-200 p-1" data-firestore-id="${v.firestoreId}" title="Delete this entry">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                      </div>
+                    `}).join('')}
+                  </div>
+                ` : `
+                  <div class="mb-2"><span class="text-gray-400">Total Owned:</span> ${esc(totalOwned)}</div>
+                  <div class="mb-2"><span class="text-gray-400">Finish:</span> ${esc(finish)}</div>
+                  <div class="mb-2"><span class="text-gray-400">Market Price:</span> ${esc(priceText || 'N/A')}</div>
+                  <div class="mb-2"><span class="text-gray-400">Date Added:</span> ${esc(dateAdded || '')}</div>
+                  <div class="mb-2"><span class="text-gray-400">Collector Number:</span> ${esc(card.collector_number || card.number || '')}</div>
+                  ${(() => {
+        const assignments = cardDeckAssignments[card.firestoreId] || [];
+        const deckNames = assignments.map(a => a.deckName).filter(Boolean).join(', ');
+        return deckNames ? `<div class="mb-2"><span class="text-gray-400">In Deck:</span> <span class="text-indigo-300">${esc(deckNames)}</span></div>` : '';
+      })()}
+                `}
               </div>
             </details>
 
@@ -1704,16 +1834,16 @@ export function renderCardDetailsModal(card) {
         </div>
       </div>
     `;
-    
-    } catch (err) {
-      console.error('[Collection.renderCardDetailsModal] error building modal', err);
-    }
+
+  } catch (err) {
+    console.error('[Collection.renderCardDetailsModal] error building modal', err);
+  }
 
 }
 
 export function selectCommander(card) {
   try {
-    try { window.currentCommanderForAdd = card; } catch(e) { currentCommanderForAdd = card; }
+    try { window.currentCommanderForAdd = card; } catch (e) { currentCommanderForAdd = card; }
     const previewContainer = document.getElementById('selected-commander-preview');
     if (!previewContainer) return;
     previewContainer.innerHTML = `
@@ -1724,7 +1854,7 @@ export function selectCommander(card) {
     previewContainer.classList.remove('hidden');
     const clearBtn = document.getElementById('clear-selected-commander');
     clearBtn && clearBtn.addEventListener('click', () => {
-      try { window.currentCommanderForAdd = null; } catch(e) { currentCommanderForAdd = null; }
+      try { window.currentCommanderForAdd = null; } catch (e) { currentCommanderForAdd = null; }
       previewContainer.innerHTML = '';
       previewContainer.classList.add('hidden');
     });
@@ -1737,13 +1867,13 @@ export function openDeckCreationModal(commanderCard = null) {
   try {
     const form = document.getElementById('deck-creation-form');
     form && form.reset();
-    try { window.currentCommanderForAdd = null; } catch(e) { currentCommanderForAdd = null; }
-    try { window.tempAiBlueprint = null; } catch(e) { tempAiBlueprint = null; }
+    try { window.currentCommanderForAdd = null; } catch (e) { currentCommanderForAdd = null; }
+    try { window.tempAiBlueprint = null; } catch (e) { tempAiBlueprint = null; }
     const preview = document.getElementById('selected-commander-preview');
     if (preview) { preview.innerHTML = ''; preview.classList.add('hidden'); }
 
     const commanderListContainer = document.getElementById('commander-collection-list');
-    const legendaryCreatures = Object.values(localCollection || {}).filter(c => (c.type_line||'').includes('Legendary') && (c.type_line||'').includes('Creature'));
+    const legendaryCreatures = Object.values(localCollection || {}).filter(c => (c.type_line || '').includes('Legendary') && (c.type_line || '').includes('Creature'));
     if (legendaryCreatures.length > 0) {
       commanderListContainer.innerHTML = legendaryCreatures.map(c => `
         <div class="flex items-center gap-2 p-1 rounded-md hover:bg-gray-700 cursor-pointer select-commander-from-collection-btn" data-firestore-id='${c.firestoreId}' tabindex="0" role="button" aria-label="Select ${c.name}">
@@ -1820,13 +1950,13 @@ export function addCollectionTableListeners() {
     addCollectionCardListeners();
 
     const table = document.querySelector('#collection-content table');
-      if (!table) return;
+    if (!table) return;
 
-      // attach to all tables inside the collection content area
-      document.querySelectorAll('#collection-content table thead th.sortable').forEach(th => {
-        th.removeEventListener('click', handleTableHeaderSortClick);
-        th.addEventListener('click', handleTableHeaderSortClick);
-      });
+    // attach to all tables inside the collection content area
+    document.querySelectorAll('#collection-content table thead th.sortable').forEach(th => {
+      th.removeEventListener('click', handleTableHeaderSortClick);
+      th.addEventListener('click', handleTableHeaderSortClick);
+    });
   } catch (err) {
     console.warn('[Collection.addCollectionTableListeners] error', err);
   }
@@ -1838,7 +1968,7 @@ function handleTableHeaderSortClick(e) {
 
   const column = th.dataset.sort;
   document.querySelectorAll('thead th.sortable').forEach(otherTh => {
-    if (otherTh !== th) otherTh.classList.remove('sort-asc','sort-desc');
+    if (otherTh !== th) otherTh.classList.remove('sort-asc', 'sort-desc');
   });
 
   if (window.collectionSortState && window.collectionSortState.column === column) {
@@ -1853,7 +1983,7 @@ function handleTableHeaderSortClick(e) {
     collectionSortState = window.collectionSortState;
   }
 
-  th.classList.remove('sort-asc','sort-desc');
+  th.classList.remove('sort-asc', 'sort-desc');
   th.classList.add(window.collectionSortState.direction === 'asc' ? 'sort-asc' : 'sort-desc');
 
   if (typeof window.renderPaginatedCollection === 'function') window.renderPaginatedCollection();
@@ -1924,42 +2054,48 @@ export async function refreshCollectionPrices(options = { persist: true }) {
   if (text) text.textContent = 'Refreshing...';
 
   try {
-    const entries = Object.values(localCollection || {}).map(c => ({ firestoreId: c.firestoreId, scryfallId: c.id } )).filter(e => e.scryfallId && e.firestoreId);
+    const entries = Object.values(localCollection || {}).map(c => ({ firestoreId: c.firestoreId, scryfallId: c.id })).filter(e => e.scryfallId && e.firestoreId);
     if (entries.length === 0) {
       showToast && showToast('No cards found in local collection to refresh.', 'info');
       return;
     }
 
-    // concurrency pool
-    const concurrency = 6;
-    let idx = 0;
+    // Process entries sequentially to avoid Scryfall rate limiting.
     const results = [];
+    const total = entries.length;
+    let processed = 0;
 
-    const fetchCard = async (entry) => {
+    // Create a progress toast if available
+    let toastId = null;
+    try {
+      if (typeof window !== 'undefined' && window.showToastWithProgress) {
+        toastId = window.showToastWithProgress('Refreshing prices...', 0, total);
+      }
+    } catch (e) { /* ignore toast errors */ }
+
+    for (const entry of entries) {
       try {
         const res = await fetch(`https://api.scryfall.com/cards/${encodeURIComponent(entry.scryfallId)}`);
         if (!res.ok) throw new Error(`Scryfall fetch failed: ${res.status}`);
         const data = await res.json();
         const prices = data.prices || null;
         // update localCollection optimistically
-        try { if (window.localCollection && window.localCollection[entry.firestoreId]) window.localCollection[entry.firestoreId].prices = prices; } catch (e) {}
+        try { if (window.localCollection && window.localCollection[entry.firestoreId]) window.localCollection[entry.firestoreId].prices = prices; } catch (e) { }
         results.push({ firestoreId: entry.firestoreId, prices });
       } catch (err) {
         console.warn('[refreshCollectionPrices] fetch error for', entry.scryfallId, err);
         results.push({ firestoreId: entry.firestoreId, prices: null, error: String(err) });
       }
-    };
+      processed += 1;
+      try {
+        if (toastId && typeof window !== 'undefined' && window.updateToastProgress) {
+          window.updateToastProgress(toastId, processed, total);
+        }
+      } catch (e) { /* ignore toast update errors */ }
+    }
 
-    const workers = new Array(concurrency).fill(null).map(async () => {
-      while (true) {
-        const i = idx++;
-        if (i >= entries.length) return;
-        const entry = entries[i];
-        await fetchCard(entry);
-      }
-    });
-
-    await Promise.all(workers);
+    // remove progress toast (it will be removed again in finally block if present)
+    try { if (toastId && typeof window !== 'undefined' && window.removeToastById) window.removeToastById(toastId); } catch (e) { }
 
     // Persist updates to Firestore in batches of 100
     if (persist && typeof window.db !== 'undefined' && window.userId && window.appId) {
@@ -2016,7 +2152,7 @@ export async function refreshCollectionPrices(options = { persist: true }) {
       }
     };
 
-  safeAssign('addCollectionCardListeners', addCollectionCardListeners);
+    safeAssign('addCollectionCardListeners', addCollectionCardListeners);
     safeAssign('addCollectionTableListeners', addCollectionTableListeners);
     safeAssign('handleCardSelection', handleCardSelection);
     safeAssign('renderCardConfirmationModal', renderCardConfirmationModal);
@@ -2025,20 +2161,20 @@ export async function refreshCollectionPrices(options = { persist: true }) {
     safeAssign('renderCollectionCard', renderCollectionCard);
     safeAssign('initCollectionModule', initCollectionModule);
     safeAssign('installFloatingHeaderSync', installFloatingHeaderSync);
-  safeAssign('refreshCollectionPrices', refreshCollectionPrices);
+    safeAssign('refreshCollectionPrices', refreshCollectionPrices);
 
-  // Additional helpers migrated from inline HTML
-  safeAssign('toggleCardDetailsEditMode', toggleCardDetailsEditMode);
-  safeAssign('saveCardDetails', saveCardDetails);
-  safeAssign('renderCardDetailsModal', renderCardDetailsModal);
-  safeAssign('selectCommander', selectCommander);
-  safeAssign('openDeckCreationModal', openDeckCreationModal);
-  safeAssign('searchForCard', searchForCard);
-  safeAssign('searchForCommander', searchForCommander);
-  safeAssign('filterCommanderCollectionList', filterCommanderCollectionList);
+    // Additional helpers migrated from inline HTML
+    safeAssign('toggleCardDetailsEditMode', toggleCardDetailsEditMode);
+    safeAssign('saveCardDetails', saveCardDetails);
+    safeAssign('renderCardDetailsModal', renderCardDetailsModal);
+    safeAssign('selectCommander', selectCommander);
+    safeAssign('openDeckCreationModal', openDeckCreationModal);
+    safeAssign('searchForCard', searchForCard);
+    safeAssign('searchForCommander', searchForCommander);
+    safeAssign('filterCommanderCollectionList', filterCommanderCollectionList);
 
     // Mark the module as loaded for delegators that poll for availability
-    try { window.__collection_module_loaded = true; } catch (e) {}
+    try { window.__collection_module_loaded = true; } catch (e) { }
   } catch (err) {
     console.warn('[Collection] exposeLegacyAPIs failed', err);
   }
