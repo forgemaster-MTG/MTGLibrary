@@ -59,15 +59,15 @@ export function ensureUiMatchesAuth() {
     const current = (auth && auth.currentUser) || (window.__firebase_auth && window.__firebase_auth.currentUser) || null;
     if (current) {
       // Hide login screen and show app UI if necessary
-      try { document.getElementById('login-screen').classList.add('hidden'); } catch(e){}
-      try { document.getElementById('app-wrapper').classList.remove('hidden'); } catch(e){}
+      try { document.getElementById('login-screen').classList.add('hidden'); } catch (e) { }
+      try { document.getElementById('app-wrapper').classList.remove('hidden'); } catch (e) { }
       // Start listeners for this user if not already running
       if (current.uid && current.uid !== currentUserId) {
         setupListenersForUser(current.uid);
       }
     } else {
-      try { document.getElementById('login-screen').classList.remove('hidden'); } catch(e){}
-      try { document.getElementById('app-wrapper').classList.add('hidden'); } catch(e){}
+      try { document.getElementById('login-screen').classList.remove('hidden'); } catch (e) { }
+      try { document.getElementById('app-wrapper').classList.add('hidden'); } catch (e) { }
     }
   } catch (e) {
     console.debug('[App] ensureUiMatchesAuth failed', e);
@@ -93,7 +93,7 @@ function startUiSyncRetry() {
 // a live debugging session.
 function installVisibilityObserver() {
   try {
-    const watchIds = ['login-screen','app-wrapper'];
+    const watchIds = ['login-screen', 'app-wrapper'];
     const elems = watchIds.map(id => document.getElementById(id)).filter(Boolean);
     if (!elems.length) return null;
     const obs = new MutationObserver((records) => {
@@ -119,22 +119,29 @@ export function initAppListeners() {
     try {
       if (authUser) {
         currentUserId = authUser.uid;
-        try { window.userId = currentUserId; } catch (e) {}
+        try { window.userId = currentUserId; } catch (e) { }
         console.log('[App] User signed in', currentUserId);
         setupListenersForUser(currentUserId);
+        // Load user settings (including basic lands)
+        try {
+          if (typeof window.loadSettingsForUser === 'function') {
+            await window.loadSettingsForUser(currentUserId);
+            console.log('[App] Settings loaded for user');
+          }
+        } catch (e) { console.debug('[App] loadSettingsForUser after sign-in failed', e); }
         // Ensure saved views are loaded for this user and UI updated
         try {
           if (typeof window.loadSavedViewsFromFirestore === 'function') {
             await window.loadSavedViewsFromFirestore(currentUserId);
-            try { if (typeof window.renderSavedViewsSelect === 'function') window.renderSavedViewsSelect(); } catch(e){}
-            try { if (typeof window.renderSettingsSavedViews === 'function') window.renderSettingsSavedViews(); } catch(e){}
+            try { if (typeof window.renderSavedViewsSelect === 'function') window.renderSavedViewsSelect(); } catch (e) { }
+            try { if (typeof window.renderSettingsSavedViews === 'function') window.renderSettingsSavedViews(); } catch (e) { }
             // If a default/active view was set in settings, ask the settings module to apply it
-            try { if (window.activeViewId && typeof window.setActiveViewById === 'function') window.setActiveViewById(window.activeViewId); } catch(e){}
+            try { if (window.activeViewId && typeof window.setActiveViewById === 'function') window.setActiveViewById(window.activeViewId); } catch (e) { }
           }
         } catch (e) { console.debug('[App] loadSavedViewsFromFirestore after sign-in failed', e); }
       } else {
         console.log('[App] No user signed in');
-        try { window.userId = null; } catch (e) {}
+        try { window.userId = null; } catch (e) { }
         // will wait for inline script to handle anonymous/custom token sign-in if present
       }
     } catch (innerErr) {
@@ -149,14 +156,14 @@ export function initAppListeners() {
       try {
         onAuthStateChanged(auth, authHandler);
         // Defensive UI sync in case restoration from persistence happens slowly
-        try { ensureUiMatchesAuth(); } catch(e) {}
+        try { ensureUiMatchesAuth(); } catch (e) { }
         // Schedule a few retry attempts to handle late UI toggles by other scripts
-        try { startUiSyncRetry(); } catch(e) {}
+        try { startUiSyncRetry(); } catch (e) { }
         // Expose a simple visibility diagnostics helper to toggle a MutationObserver
         try {
           window.startUiVisibilityDiagnostics = () => { if (window.__uiVisibilityObserver) return window.__uiVisibilityObserver; window.__uiVisibilityObserver = installVisibilityObserver(); return window.__uiVisibilityObserver; };
-          window.stopUiVisibilityDiagnostics = () => { try { if (window.__uiVisibilityObserver) { window.__uiVisibilityObserver.disconnect(); window.__uiVisibilityObserver = null; return true; } } catch(e){} return false; };
-        } catch(e) {}
+          window.stopUiVisibilityDiagnostics = () => { try { if (window.__uiVisibilityObserver) { window.__uiVisibilityObserver.disconnect(); window.__uiVisibilityObserver = null; return true; } } catch (e) { } return false; };
+        } catch (e) { }
         return;
       } catch (attachErr) {
         console.warn('[App] onAuthStateChanged attach failed, falling back to polling', attachErr);
@@ -183,7 +190,7 @@ export function initAppListeners() {
           lastUid = uid;
           try { authHandler(current); } catch (hErr) { console.error('[App] authHandler (poll) error', hErr); }
           // also ensure UI sync retries run when polling detects a change
-          try { startUiSyncRetry(); } catch(e) {}
+          try { startUiSyncRetry(); } catch (e) { }
         }
       } catch (pollErr) {
         console.warn('[App] Polling auth.currentUser error', pollErr);

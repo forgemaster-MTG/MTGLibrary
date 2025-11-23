@@ -172,19 +172,19 @@ export function renderDecklist(deckId, viewMode = 'grid') {
       cardRating = '';
       cardReason = '';
     }
-  const count = card.countInDeck || 1;
-  // Decide whether to render the reason inline or only via tooltip
-  const reasonText = (cardReason || '').trim();
-  const reasonEsc = reasonText.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  // Determine pill color by rating
-  const ratingNum = (cardRating !== '' && !isNaN(Number(cardRating))) ? Number(cardRating) : null;
-  let ratingPillClass = 'bg-gray-700 text-white';
-  if (ratingNum !== null) {
-    if (ratingNum >= 9) ratingPillClass = 'bg-green-500 text-white';
-    else if (ratingNum >= 7) ratingPillClass = 'bg-yellow-400 text-black';
-    else if (ratingNum >= 4) ratingPillClass = 'bg-amber-500 text-black';
-    else ratingPillClass = 'bg-red-600 text-white';
-  }
+    const count = card.countInDeck || 1;
+    // Decide whether to render the reason inline or only via tooltip
+    const reasonText = (cardReason || '').trim();
+    const reasonEsc = reasonText.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    // Determine pill color by rating
+    const ratingNum = (cardRating !== '' && !isNaN(Number(cardRating))) ? Number(cardRating) : null;
+    let ratingPillClass = 'bg-gray-700 text-white';
+    if (ratingNum !== null) {
+      if (ratingNum >= 9) ratingPillClass = 'bg-green-500 text-white';
+      else if (ratingNum >= 7) ratingPillClass = 'bg-yellow-400 text-black';
+      else if (ratingNum >= 4) ratingPillClass = 'bg-amber-500 text-black';
+      else ratingPillClass = 'bg-red-600 text-white';
+    }
     return `
         <div class="relative group aspect-[2.5/3.5] rounded-xl overflow-hidden shadow-lg bg-gray-900 transition-transform duration-200 hover:scale-105 hover:shadow-indigo-500/20 hover:z-10">
             <img src="${img}" alt="${card.name}" class="w-full h-full object-cover" loading="lazy">
@@ -360,7 +360,7 @@ export function renderDecklist(deckId, viewMode = 'grid') {
 
   container.innerHTML = filterHtml + content;
 
-  
+
 
   // --- Restore State & Listeners ---
   const fEl = document.getElementById(filterId);

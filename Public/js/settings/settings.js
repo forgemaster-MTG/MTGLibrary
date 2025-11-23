@@ -2,6 +2,7 @@ import { db, appId, getGeminiUrlForCurrentUser } from '../main/index.js';
 import * as Gemini from '../firebase/gemini.js';
 import { doc, getDoc, setDoc, collection, addDoc, getDocs, deleteDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 import { showToast } from '../lib/ui.js';
+import { calculateBasicLandsInUse } from '../lib/manaCalculator.js';
 
 export let modalVisibilitySettings = {
   count: true,
@@ -52,6 +53,16 @@ export let uiPreferences = {
   hideInDecks: false,
 };
 
+// Basic lands inventory tracked per-user
+export let basicLands = {
+  W: 0,  // Plains
+  U: 0,  // Island
+  B: 0,  // Swamp
+  R: 0,  // Mountain
+  G: 0,  // Forest
+  showLandShortagesInNav: true  // Show nav banner when lands are needed
+};
+
 export let savedViews = [];
 export let activeViewId = null;
 
@@ -66,18 +77,24 @@ export async function loadSettingsForUser(userId) {
       savedViews = settings.savedViews || [];
       activeViewId = settings.activeViewId || null;
       uiPreferences = settings.uiPreferences || uiPreferences;
+      basicLands = settings.basicLands || basicLands;
+      console.log('[Settings] Loaded basicLands from Firestore:', basicLands);
+      // Expose to window for debugging and cross-module access
+      if (typeof window !== 'undefined') {
+        window.basicLands = basicLands;
+      }
     }
   } catch (e) {
     console.error('Error loading settings for user', e);
   }
-  return { modalVisibilitySettings, savedViews, activeViewId };
+  return { modalVisibilitySettings, savedViews, activeViewId, basicLands };
 }
 
 export async function persistSettingsForUser(userId) {
   if (!userId) return;
   try {
     const userDocRef = doc(db, `artifacts/${appId}/users/${userId}`);
-    await setDoc(userDocRef, { settings: { ...((await getDoc(userDocRef)).data()?.settings || {}), savedViews, activeViewId, modalVisibility: modalVisibilitySettings, uiPreferences } }, { merge: true });
+    await setDoc(userDocRef, { settings: { ...((await getDoc(userDocRef)).data()?.settings || {}), savedViews, activeViewId, modalVisibility: modalVisibilitySettings, uiPreferences, basicLands } }, { merge: true });
     return true;
   } catch (e) {
     console.error('Error saving settings for user', e);
@@ -402,6 +419,7 @@ export function initSettingsModule() {
     window.renderGeminiSettings = renderGeminiSettings;
     window.renderUIPreferences = renderUIPreferences;
     window.renderPreconsAdmin = renderPreconsAdmin;
+    window.loadSettingsForUser = loadSettingsForUser;
     // expose current saved views and active id for legacy inline code
     try { window.savedViews = savedViews; window.activeViewId = activeViewId; } catch (e) { }
     // Removed localStorage fallback: saved views are Firestore-only. UI will be updated after loadSavedViewsFromFirestore is called with a valid userId.
@@ -425,6 +443,7 @@ export function initSettingsModule() {
               renderUIPreferences();
               renderPreconsAdmin();
               renderSettingsDeckList();
+              renderBasicLandsSection();
             } catch (_) { }
           }, 80);
         }
@@ -441,6 +460,7 @@ export function initSettingsModule() {
           renderUIPreferences();
           renderPreconsAdmin();
           renderSettingsDeckList();
+          renderBasicLandsSection();
         }
       } catch (_) { }
     }, 200);
@@ -495,6 +515,89 @@ export function initSettingsModule() {
     let tries = 0;
     const iv = setInterval(() => { tries++; updateGeminiUiState(); if (tries > 10) clearInterval(iv); }, 500);
   } catch (e) { console.debug('[Settings] nav banner install failed', e); }
+
+  // Install land shortages banner
+  try {
+    function createLandShortagesBannerIfNeeded() {
+      try {
+        const nav = document.querySelector('nav');
+        if (!nav) return null;
+        if (document.getElementById('nav-land-shortages-banner')) return document.getElementById('nav-land-shortages-banner');
+        const banner = document.createElement('button');
+        banner.id = 'nav-land-shortages-banner';
+        banner.className = 'nav-link w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg text-orange-300 hover:bg-orange-700';
+        banner.style.display = 'none';
+        banner.innerHTML = `<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg><span class="text-sm">Need More Basic Lands</span>`;
+        // insert after Gemini banner if it exists, otherwise near top
+        const geminiBanner = document.getElementById('nav-gemini-banner');
+        if (geminiBanner && geminiBanner.nextSibling) {
+          geminiBanner.parentElement.insertBefore(banner, geminiBanner.nextSibling);
+        } else {
+          const firstSection = nav.querySelector('.space-y-2');
+          if (firstSection && firstSection.parentElement) firstSection.parentElement.insertBefore(banner, firstSection.nextSibling);
+          else nav.insertBefore(banner, nav.firstChild);
+        }
+        banner.addEventListener('click', (e) => {
+          try { if (typeof window.showView === 'function') window.showView('settings'); } catch (er) { }
+          // Switch to Data tab
+          try {
+            const dataTab = document.querySelector('[data-tab="data"]');
+            if (dataTab) dataTab.click();
+          } catch (er) { }
+          // Scroll to basic lands section
+          try {
+            setTimeout(() => {
+              const el = document.getElementById('basic-lands-container');
+              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+          } catch (er) { }
+        });
+        return banner;
+      } catch (e) { console.debug('[Settings] createLandShortagesBannerIfNeeded failed', e); return null; }
+    }
+
+    window.updateLandShortagesBanner = async function () {
+      try {
+        const banner = createLandShortagesBannerIfNeeded();
+        if (!banner) return;
+
+        // Check if user wants to see the banner
+        const showBanner = basicLands.showLandShortagesInNav !== false;
+        if (!showBanner) {
+          banner.style.display = 'none';
+          return;
+        }
+
+        // Calculate if there are any shortages
+        const decks = window.localDecks || {};
+        const usage = calculateBasicLandsInUse(decks);
+        let hasShortage = false;
+
+        ['W', 'U', 'B', 'R', 'G'].forEach(color => {
+          const owned = basicLands[color] || 0;
+          const needed = usage[color] || 0;
+          if (needed > owned) {
+            hasShortage = true;
+          }
+        });
+
+        banner.style.display = hasShortage ? '' : 'none';
+      } catch (e) { console.debug('[Settings] updateLandShortagesBanner failed', e); }
+    };
+
+    // Run initial update
+    setTimeout(() => window.updateLandShortagesBanner(), 300);
+    // Update when user changes or decks change
+    window.addEventListener('user:changed', () => window.updateLandShortagesBanner());
+    // Poll briefly during startup
+    let landTries = 0;
+    const landIv = setInterval(() => {
+      landTries++;
+      if (typeof window.updateLandShortagesBanner === 'function') window.updateLandShortagesBanner();
+      if (landTries > 10) clearInterval(landIv);
+    }, 500);
+  } catch (e) { console.debug('[Settings] land shortages banner install failed', e); }
+
   console.log('[Settings] Module initialized');
 }
 
@@ -1232,4 +1335,202 @@ export function renderSettingsDeckList() {
   });
 
   container.innerHTML = html;
+}
+
+export function renderBasicLandsSection() {
+  const container = document.getElementById('basic-lands-container');
+  if (!container) return;
+
+  const manaColors = {
+    W: { name: 'Plains', symbol: 'https://svgs.scryfall.io/card-symbols/W.svg', color: 'bg-yellow-100' },
+    U: { name: 'Island', symbol: 'https://svgs.scryfall.io/card-symbols/U.svg', color: 'bg-blue-400' },
+    B: { name: 'Swamp', symbol: 'https://svgs.scryfall.io/card-symbols/B.svg', color: 'bg-gray-900' },
+    R: { name: 'Mountain', symbol: 'https://svgs.scryfall.io/card-symbols/R.svg', color: 'bg-red-500' },
+    G: { name: 'Forest', symbol: 'https://svgs.scryfall.io/card-symbols/G.svg', color: 'bg-green-500' }
+  };
+
+  // Get decks and calculate usage statistics
+  const decks = window.localDecks || {};
+  const usage = calculateBasicLandsInUse(decks);
+
+  let html = '<div class="space-y-4">';
+
+  // Input fields
+  html += '<div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">';
+
+  // Use window.basicLands if available (for debugging/state sync), fallback to module basicLands
+  const currentBasicLands = (typeof window !== 'undefined' && window.basicLands) ? window.basicLands : basicLands;
+  console.log('[BasicLands] Rendering with data:', currentBasicLands);
+
+  Object.keys(manaColors).forEach(colorCode => {
+    const color = manaColors[colorCode];
+    const count = currentBasicLands[colorCode] || 0;
+    html += `
+      <div class="flex flex-col items-center p-3 bg-gray-700 rounded-lg border border-gray-600">
+        <img src="${color.symbol}" class="w-8 h-8 mb-2" alt="${color.name}">
+        <span class="text-sm text-gray-300 mb-2">${color.name}</span>
+        <input 
+          type="number" 
+          id="basic-land-${colorCode}"
+          class="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-center text-white"
+          value="${count}"
+          min="0"
+          placeholder="0"
+        >
+      </div>
+    `;
+  });
+  html += '</div>';
+
+  // Save button
+  html += `
+    <button 
+      id="save-basic-lands-btn"
+      class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition-colors w-full md:w-auto"
+    >
+      Save Basic Lands
+    </button>
+  `;
+
+  // Checkbox to toggle nav banner
+  const showInNav = currentBasicLands.showLandShortagesInNav !== false; // default true
+  html += `
+    <div class="mt-3">
+      <label class="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+        <input 
+          type="checkbox" 
+          id="show-land-shortages-in-nav"
+          class="h-4 w-4 rounded"
+          ${showInNav ? 'checked' : ''}
+        >
+        <span>Show reminder in navigation when I need more basic lands</span>
+      </label>
+    </div>
+  `;
+
+  html += '<div id="basic-lands-usage-stats" class="mt-6">';
+
+  if (Object.keys(decks).length > 0) {
+    html += '<h4 class="text-md font-semibold text-white mb-3">Usage Across Decks</h4>';
+    html += '<div class="grid grid-cols-2 md:grid-cols-5 gap-3">';
+
+    Object.keys(manaColors).forEach(colorCode => {
+      const color = manaColors[colorCode];
+      const owned = currentBasicLands[colorCode] || 0;
+      const needed = usage[colorCode] || 0;
+      const shortage = Math.max(0, needed - owned);
+
+      const statusClass = shortage > 0 ? 'border-red-500 bg-red-900/20' : 'border-green-500/30 bg-gray-700';
+      const textClass = shortage > 0 ? 'text-red-300' : 'text-gray-300';
+
+      html += `
+        <div class="flex flex-col items-center p-3 ${statusClass} rounded-lg border">
+          <img src="${color.symbol}" class="w-6 h-6 mb-1" alt="${color.name}">
+          <div class="text-xs ${textClass} text-center">
+            <div class="font-bold">${owned} owned</div>
+            <div>${needed} needed</div>
+            ${shortage > 0 ? `<div class="text-red-400 font-semibold mt-1">⚠️ Need ${shortage}</div>` : '<div class="text-green-400 mt-1">✓</div>'}
+          </div>
+        </div>
+      `;
+    });
+
+    html += '</div>';
+
+    // Show per-deck breakdown
+    if (usage.byDeck && Object.keys(usage.byDeck).length > 0) {
+      html += '<details class="mt-4">';
+      html += '<summary class="cursor-pointer text-sm text-gray-400 hover:text-gray-300">Show breakdown by deck</summary>';
+      html += '<div class="mt-2 space-y-2 text-xs text-gray-400">';
+
+      Object.keys(usage.byDeck).forEach(deckId => {
+        const deckInfo = usage.byDeck[deckId];
+        const deckNeeds = deckInfo.needs;
+        const nonZeroColors = Object.keys(deckNeeds).filter(c => deckNeeds[c] > 0);
+
+        if (nonZeroColors.length > 0) {
+          html += `<div class="pl-3 border-l-2 border-gray-700">`;
+          html += `<div class="font-semibold text-gray-300">${deckInfo.name}</div>`;
+          html += `<div class="flex gap-2 mt-1">`;
+          nonZeroColors.forEach(color => {
+            html += `<span><img src="${manaColors[color].symbol}" class="w-4 h-4 inline" alt="${color}"> ${deckNeeds[color]}</span>`;
+          });
+          html += `</div></div>`;
+        }
+      });
+
+      html += '</div></details>';
+    }
+  } else {
+    html += '<p class="text-sm text-gray-400 italic">Create some decks to see usage statistics.</p>';
+  }
+
+  html += '</div>';
+
+  html += '</div>';
+  container.innerHTML = html;
+
+  // Wire up save button
+  const saveBtn = document.getElementById('save-basic-lands-btn');
+  if (saveBtn) {
+    saveBtn.addEventListener('click', async () => {
+      const userId = window.userId;
+      if (!userId) {
+        showToast('Please log in to save basic lands', 'error');
+        return;
+      }
+
+      // Collect values from inputs
+      Object.keys(manaColors).forEach(colorCode => {
+        const input = document.getElementById(`basic-land-${colorCode}`);
+        if (input) {
+          basicLands[colorCode] = parseInt(input.value) || 0;
+        }
+      });
+
+      // Collect checkbox state
+      const navCheckbox = document.getElementById('show-land-shortages-in-nav');
+      if (navCheckbox) {
+        basicLands.showLandShortagesInNav = navCheckbox.checked;
+      }
+
+      console.log('[BasicLands] Saving:', basicLands);
+
+      // Update window reference
+      if (typeof window !== 'undefined') {
+        window.basicLands = basicLands;
+      }
+
+      // Save to Firestore
+      const success = await persistSettingsForUser(userId);
+      if (success) {
+        showToast('Basic lands saved successfully', 'success');
+        // Re-render to update usage statistics
+        renderBasicLandsSection();
+        // Update nav banner visibility
+        if (typeof window.updateLandShortagesBanner === 'function') {
+          window.updateLandShortagesBanner();
+        }
+      } else {
+        showToast('Failed to save basic lands', 'error');
+      }
+    });
+  }
+
+  // Wire up checkbox for immediate feedback (without saving)
+  setTimeout(() => {
+    const navCheckbox = document.getElementById('show-land-shortages-in-nav');
+    if (navCheckbox) {
+      navCheckbox.addEventListener('change', (e) => {
+        basicLands.showLandShortagesInNav = e.target.checked;
+        if (typeof window !== 'undefined') {
+          window.basicLands = basicLands;
+        }
+        // Update banner immediately
+        if (typeof window.updateLandShortagesBanner === 'function') {
+          window.updateLandShortagesBanner();
+        }
+      });
+    }
+  }, 100);
 }

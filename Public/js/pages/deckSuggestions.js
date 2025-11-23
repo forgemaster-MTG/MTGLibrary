@@ -21,6 +21,7 @@
 
 import { showToast, openModal, closeModal } from '../lib/ui.js';
 import { localCollection, localDecks } from '../lib/data.js';
+import { calculateBasicLandNeeds } from '../lib/manaCalculator.js';
 
 // --- JSON Schemas for Gemini ---
 
@@ -335,7 +336,20 @@ function buildCandidateMapForType(type, commanderColors, tempDeckList) {
       const mainType = (card.type_line || '').split(' — ')[0];
       if (mainType !== 'Land') continue;
 
-      // 3. Add to map. We DON'T check tempDeckList or assignments for lands.
+      // 3. Check if it's a basic land
+      const isBasic = card.type_line?.includes('Basic');
+
+      // 4. For NON-basic lands, check if already in deck or assigned elsewhere
+      if (!isBasic) {
+        // Check if already in temp deck (from this session OR original)
+        if (tempDeckList[card.firestoreId]) continue;
+
+        // Check if assigned to *any* other deck
+        const assigns = (window.cardDeckAssignments || {})[card.firestoreId] || [];
+        if (assigns.length > 0) continue;
+      }
+      // Basic lands can always be added (no uniqueness check)
+
       candidateMap.set(card.firestoreId, card);
     }
   }
@@ -580,6 +594,7 @@ async function startSuggestionFlow(deckId, opts = {}) {
     // 4. Process results
     const suggestions = result.suggestions || [];
     const mapped = []; // This will hold the cards we ACTUALLY add
+    const addedNonBasicLands = new Set(); // Track non-basic lands we've already added in this batch
 
     for (const suggestion of suggestions) {
       let card = candidateMap.get(suggestion.firestoreId);
@@ -613,6 +628,22 @@ async function startSuggestionFlow(deckId, opts = {}) {
         console.warn(`[deckSuggestions] AI suggested card ID ${suggestion.firestoreId} not in candidate map.`);
         continue;
       }
+
+      // --- Check for duplicate non-basic lands ---
+      const isLand = card.type_line && card.type_line.includes('Land');
+      const isBasic = card.type_line?.includes('Basic');
+
+      if (isLand && !isBasic) {
+        // This is a non-basic land
+        if (addedNonBasicLands.has(card.firestoreId)) {
+          console.debug(`[deckSuggestions] Skipping duplicate non-basic land: ${card.name} (${card.firestoreId})`);
+          continue; // Skip this duplicate
+        }
+        // Track that we've added this non-basic land
+        addedNonBasicLands.add(card.firestoreId);
+      }
+      // Basic lands are allowed to be duplicated (no check needed)
+      // --- End duplicate check ---
 
       // --- !! CRITICAL FIX !! ---
       // Enforce the numToRequest limit.
@@ -664,6 +695,68 @@ async function startSuggestionFlow(deckId, opts = {}) {
     await new Promise(res => setTimeout(res, 250));
   }
   // --- End Main Loop ---
+
+  // --- Auto-Add Basic Lands ---
+  try {
+    const deckObj = (window.localDecks || localDecks)[deckId];
+    const basicLandNeeds = calculateBasicLandNeeds(deckObj, targetTotal);
+
+    const manaColors = {
+      W: 'Plains',
+      U: 'Island',
+      B: 'Swamp',
+      R: 'Mountain',
+      G: 'Forest'
+    };
+
+    const col = window.localCollection || localCollection;
+    const basicLandsAdded = [];
+
+    ['W', 'U', 'B', 'R', 'G'].forEach(colorCode => {
+      const needed = basicLandNeeds[colorCode];
+      if (needed === 0) return;
+
+      const basicName = manaColors[colorCode];
+      // Find this basic land in collection
+      const basicLand = Object.values(col).find(c =>
+        c.name === basicName && c.type_line?.includes('Basic Land')
+      );
+
+      if (basicLand) {
+        // Add to suggestions map
+        allSuggestedMap[basicLand.firestoreId] = {
+          ...basicLand,
+          rating: 5,
+          reason: `${needed}x basic ${basicName} for ${colorCode} mana (calculated from deck pips)`,
+          sourceType: 'Land',
+          slotType: 'Land',
+          count: needed,
+          isAutoBasicLand: true
+        };
+
+        basicLandsAdded.push(`${needed}x ${basicName}`);
+
+        // Also add to temp deck list for accurate count
+        tempDeckList[basicLand.firestoreId] = {
+          count: needed,
+          name: basicLand.name,
+          type_line: basicLand.type_line,
+          slotType: 'Land'
+        };
+      } else {
+        console.warn(`[deckSuggestions] Basic land ${basicName} not found in collection`);
+      }
+    });
+
+    // Log basic lands added
+    if (basicLandsAdded.length > 0) {
+      appendResultBlock('Basic Lands', 'Land', basicLandsAdded.length, basicLandsAdded.length, false, basicLandsAdded.join(', '));
+      console.log(`[deckSuggestions] Auto-added basic lands: ${basicLandsAdded.join(', ')}`);
+    }
+  } catch (e) {
+    console.error('[deckSuggestions] Failed to calculate basic lands', e);
+  }
+  // --- End Basic Lands ---
 
   // --- Done gathering ---
   statusEl.textContent = `Suggestion pass complete. ${countNonCommander() - Object.keys(deck.cards).length} new cards suggested.`;

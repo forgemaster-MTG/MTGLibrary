@@ -855,6 +855,20 @@
                     <!-- Deck list will be populated here -->
                   </div>
                 </div>
+
+                <!-- Basic Land Inventory Section -->
+                <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
+                  <h3 class="text-xl font-bold mb-2 flex items-center gap-2 text-white">
+                    <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21l18-10L3 1v8l15 2L3 13v8z"></path>
+                    </svg>
+                    Basic Land Inventory
+                  </h3>
+                  <p class="text-sm text-gray-400 mb-4">Track your basic lands. These can be freely added to decks without being in your collection.</p>
+                  <div id="basic-lands-container">
+                    <!-- Basic lands inputs and usage stats will be rendered here -->
+                  </div>
+                </div>
               </div>
 
               <!-- Saved Views Tab -->
@@ -2876,6 +2890,44 @@
             },
           ];
 
+          // Add basic lands breakdown if mana calculator is available
+          let basicLandsHtml = '';
+          try {
+            if (typeof window.calculateBasicLandNeeds === 'function') {
+              const targetLandCount = 37; // Commander default
+              const basicNeeds = window.calculateBasicLandNeeds(deck, targetLandCount);
+              const manaColors = { W: 'Plains', U: 'Island', B: 'Swamp', R: 'Mountain', G: 'Forest' };
+              const colorSymbols = {
+                W: '<img src="https://svgs.scryfall.io/card-symbols/W.svg" class="inline-block w-4 h-4" alt="W">',
+                U: '<img src="https://svgs.scryfall.io/card-symbols/U.svg" class="inline-block w-4 h-4" alt="U">',
+                B: '<img src="https://svgs.scryfall.io/card-symbols/B.svg" class="inline-block w-4 h-4" alt="B">',
+                R: '<img src="https://svgs.scryfall.io/card-symbols/R.svg" class="inline-block w-4 h-4" alt="R">',
+                G: '<img src="https://svgs.scryfall.io/card-symbols/G.svg" class="inline-block w-4 h-4" alt="G">'
+              };
+
+              const basicLandPills = ['W', 'U', 'B', 'R', 'G']
+                .filter(color => basicNeeds[color] > 0)
+                .map(color => {
+                  const needed = basicNeeds[color];
+                  return `<div class="flex items-center gap-1 text-xs bg-gray-800/70 px-2 py-1 rounded">${colorSymbols[color]} ${needed}x ${manaColors[color]}</div>`;
+                })
+                .join('');
+
+              if (basicLandPills) {
+                basicLandsHtml = `
+                  <div class="bg-gray-700/50 p-3 rounded-lg mt-2">
+                    <div class="text-sm text-gray-400 mb-2">Recommended Basic Lands</div>
+                    <div class="flex flex-wrap gap-2">
+                      ${basicLandPills}
+                    </div>
+                  </div>
+                `;
+              }
+            }
+          } catch (e) {
+            console.debug('[renderSingleDeck] Basic lands calculation failed', e);
+          }
+
           const kpiHtml = kpiData
             .map((kpi) => {
               const hasTarget = kpi.target !== null && kpi.target !== undefined;
@@ -2972,6 +3024,9 @@
                 <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
                     ${kpiHtml}
                 </div>
+                
+                <!-- Basic Lands Breakdown -->
+                ${basicLandsHtml}
 
                 <!-- Main Content Area -->
                 <div class="flex flex-col lg:flex-row gap-6">
