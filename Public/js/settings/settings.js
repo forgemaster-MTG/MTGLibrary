@@ -202,11 +202,11 @@ export function renderModalVisibilitySettings() {
   if (additionalContainer) additionalContainer.innerHTML = '';
 
   // Define which fields are core (default) vs additional (advanced/metadata)
-  const coreFields = [ 'count', 'finish', 'condition', 'purchasePrice', 'notes', 'deckAssignments' ];
+  const coreFields = ['count', 'finish', 'condition', 'purchasePrice', 'notes', 'deckAssignments'];
   const allFields = Object.keys(modalVisibilitySettings || {});
   const additionalFields = allFields.filter(f => !coreFields.includes(f)).sort();
 
-  const labelize = (s) => String(s).replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase());
+  const labelize = (s) => String(s).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
   const renderCheckbox = (field, containerEl) => {
     const id = `modal-vis-${field}`;
@@ -424,6 +424,7 @@ export function initSettingsModule() {
               renderModalVisibilitySettings();
               renderUIPreferences();
               renderPreconsAdmin();
+              renderSettingsDeckList();
             } catch (_) { }
           }, 80);
         }
@@ -439,6 +440,7 @@ export function initSettingsModule() {
           renderModalVisibilitySettings();
           renderUIPreferences();
           renderPreconsAdmin();
+          renderSettingsDeckList();
         }
       } catch (_) { }
     }, 200);
@@ -1195,3 +1197,39 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+
+export function renderSettingsDeckList() {
+  const container = document.getElementById('settings-deck-list');
+  if (!container) return;
+
+  const decks = window.localDecks || {};
+  const deckIds = Object.keys(decks);
+
+  if (deckIds.length === 0) {
+    container.innerHTML = '<p class="text-gray-500 italic">No decks found.</p>';
+    return;
+  }
+
+  let html = '';
+  deckIds.forEach(id => {
+    const deck = decks[id];
+    if (!deck) return;
+    html += `
+      <div class="flex items-center justify-between bg-gray-700 p-3 rounded-lg border border-gray-600">
+        <div>
+          <h4 class="font-bold text-white">${deck.name || 'Unnamed Deck'}</h4>
+          <p class="text-xs text-gray-400">${deck.format || 'Commander'} • ${Object.keys(deck.cards || {}).length} cards</p>
+        </div>
+        <button 
+          class="text-red-400 hover:text-red-300 hover:bg-red-900/30 p-2 rounded transition-colors"
+          onclick="window.openDeckDeleteOptions('${id}')"
+          title="Delete Deck"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+        </button>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}

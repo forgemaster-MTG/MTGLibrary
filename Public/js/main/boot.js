@@ -430,6 +430,17 @@ export function setupGlobalListeners() {
     const deleteDeckOnly = document.getElementById('delete-deck-only-btn'); if (deleteDeckOnly) deleteDeckOnly.addEventListener('click', (e) => { const id = e.currentTarget.dataset.deckId || e.currentTarget.dataset.id; if (typeof window.deleteDeck === 'function') window.deleteDeck(id, false); });
     const deleteDeckAndCards = document.getElementById('delete-deck-and-cards-btn'); if (deleteDeckAndCards) deleteDeckAndCards.addEventListener('click', (e) => { const id = e.currentTarget.dataset.deckId || e.currentTarget.dataset.id; if (typeof window.deleteDeck === 'function') window.deleteDeck(id, true); });
 
+    // Listen for delete requests from decks.js
+    window.addEventListener('delete-deck-request', (e) => {
+      if (e.detail && e.detail.deckId) {
+        if (typeof window.openDeckDeleteOptions === 'function') {
+          window.openDeckDeleteOptions(e.detail.deckId);
+        } else {
+          console.warn('openDeckDeleteOptions not available');
+        }
+      }
+    });
+
     // Settings & Data Management
     const logoutBtn = document.getElementById('logout-btn'); if (logoutBtn) logoutBtn.addEventListener('click', () => { if (typeof window.signOut === 'function') { window.signOut(window.auth).then(() => { location.reload(); }).catch(() => { location.reload(); }); } else { location.reload(); } });
     const clearDataBtn = document.getElementById('clear-data-btn'); if (clearDataBtn) clearDataBtn.addEventListener('click', () => {

@@ -2954,12 +2954,12 @@
                                 <button class="bg-gray-700/80 hover:bg-gray-600 text-white p-2 rounded-lg backdrop-blur-sm transition-colors">
                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg>
                                 </button>
-                                <div class="absolute right-0 bottom-full mb-2 w-48 bg-gray-800 rounded-lg shadow-xl border border-gray-700 hidden group-hover/menu:block overflow-hidden z-10">
-                                    <button id="deck-delete-btn" data-deck-id="${deckId}" class="w-full text-left px-4 py-3 text-red-400 hover:bg-gray-700 hover:text-red-300 transition-colors flex items-center gap-2">
+                                <div class="absolute right-0 bottom-full mb-2 w-48 bg-gray-800 rounded-lg shadow-xl border border-gray-700 hidden group-hover/menu:block overflow-visible z-10 before:absolute before:-bottom-2 before:left-0 before:w-full before:h-2 before:content-['']">
+                                    <button id="deck-delete-btn" data-deck-id="${deckId}" class="w-full text-left px-4 py-3 text-red-400 hover:bg-gray-700 hover:text-red-300 transition-colors flex items-center gap-2 rounded-t-lg">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                                         Delete Deck
                                     </button>
-                                    <button id="export-deck-btn" data-deck-id="${deckId}" class="w-full text-left px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-white transition-colors border-t border-gray-700">
+                                    <button id="export-deck-btn" data-deck-id="${deckId}" class="w-full text-left px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-white transition-colors border-t border-gray-700 rounded-b-lg">
                                         Export List
                                     </button>
                                 </div>
