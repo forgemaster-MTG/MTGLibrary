@@ -15,7 +15,22 @@ async function addSingleCardWithSplit(uid, deckId, fid) {
   const newCard = Object.assign({}, collectionCard, { count: 1, addedAt: new Date().toISOString() });
   delete newCard.firestoreId;
   batch.set(newRef, newCard);
-  if ((collectionCard.count || 0) > 1) batch.update(origRef, { count: (collectionCard.count || 0) - 1 }); else batch.delete(origRef);
+  // If the original collection doc is assigned to any other deck, do NOT decrement/delete it
+  // because that would remove cards from that other deck. Only split the stack when the
+  // original doc is purely a collection item (not assigned elsewhere) or assigned to this deck.
+  try {
+    const assigns = (window.cardDeckAssignments || {})[fid] || [];
+    const assignedElsewhere = assigns.some(a => a && a.deckId && a.deckId !== deckId);
+    if (!assignedElsewhere) {
+      if ((collectionCard.count || 0) > 1) batch.update(origRef, { count: (collectionCard.count || 0) - 1 }); else batch.delete(origRef);
+    } else {
+      // Leave original doc untouched; we still add a new dedicated collection doc for this deck
+      console.debug('[addSingleCardWithSplit] source doc assigned to another deck, leaving original intact:', fid);
+    }
+  } catch (e) {
+    // Defensive: if anything goes wrong, avoid touching the original doc
+    console.warn('[addSingleCardWithSplit] assignment check failed, skipping decrement/delete for', fid, e);
+  }
   const deckRef = doc(db, `artifacts/${appId}/users/${uid}/decks`, deckId);
   batch.set(deckRef, { cards: { [newRef.id]: { count: 1, name: collectionCard.name, type_line: collectionCard.type_line } } }, { merge: true });
   await batch.commit();
@@ -530,11 +545,21 @@ export async function handleAddSelectedCardsToDeck(deckId, firestoreIds) {
     batch.set(newCollectionRef, newCardDoc);
     createdMappings.push({ orig: fid, newId: newCollectionRef.id, name: collectionCard.name, type_line: collectionCard.type_line });
 
-    // Decrement or remove the original stack
-    if ((collectionCard.count || 0) > 1) {
-      batch.update(origCollectionRef, { count: (collectionCard.count || 0) - 1 });
-    } else {
-      batch.delete(origCollectionRef);
+    // Decrement or remove the original stack only when it's safe (i.e., not used by another deck)
+    try {
+      const assigns = (window.cardDeckAssignments || {})[fid] || [];
+      const assignedElsewhere = assigns.some(a => a && a.deckId && a.deckId !== deckId);
+      if (!assignedElsewhere) {
+        if ((collectionCard.count || 0) > 1) {
+          batch.update(origCollectionRef, { count: (collectionCard.count || 0) - 1 });
+        } else {
+          batch.delete(origCollectionRef);
+        }
+      } else {
+        console.debug('[handleAddSelectedCardsToDeck] source doc assigned to other deck; not decrementing:', fid);
+      }
+    } catch (e) {
+      console.warn('[handleAddSelectedCardsToDeck] assignment check failed, skipping decrement/delete for', fid, e);
     }
 
     // Add the new collection doc id into the deck's cards map
@@ -617,16 +642,29 @@ export async function batchAddCardsWithProgress(deckId, firestoreIds) {
           }
         }
       }
+      // Exclude any ids that are already assigned to other decks to avoid touching other decks' cards
+      const filteredChunk = (chunk || []).filter(fid => {
+        try {
+          const assigns = (window.cardDeckAssignments || {})[fid] || [];
+          // If assigned to another deck (not the target deck), skip it here
+          return !(assigns.length > 0 && assigns.some(a => a && a.deckId && a.deckId !== deckId));
+        } catch (e) { return true; }
+      });
+      const skippedInChunk = chunk.filter(fid => !filteredChunk.includes(fid));
+      if (skippedInChunk.length) {
+        // Record skipped ids so we can inform the user later
+        failedIds.push(...skippedInChunk);
+        console.warn('[batchAdd] skipping ids assigned to other decks:', skippedInChunk);
+      }
       // Build batch and collect per-fid ops so we can retry the whole batch on failure
       // For this chunk we will collect the new collection doc ids we create so we can update local state
       const newIdsForChunk = [];
       const makeBatch = () => {
         const b = writeBatch(db);
-        for (const fid of chunk) {
+        for (const fid of filteredChunk) {
           const collectionCard = (window.localCollection || localCollection)[fid];
           if (!collectionCard) continue;
-          const deckCardId = fid;
-          const cardInDeck = deck.cards?.[deckCardId];
+          const cardInDeck = deck.cards?.[fid];
           const deckRef = doc(db, `artifacts/${appId}/users/${uid}/decks`, deckId);
 
           // Create a new collection doc to represent the unit moved into the deck
@@ -637,11 +675,22 @@ export async function batchAddCardsWithProgress(deckId, firestoreIds) {
           b.set(newCollectionRef, newCardDoc);
           newIdsForChunk.push({ orig: fid, newId: newCollectionRef.id, name: collectionCard.name, type_line: collectionCard.type_line });
 
-          // Decrement or delete the original stack
-          if ((collectionCard.count || 0) > 1) {
-            b.update(origCollectionRef, { count: collectionCard.count - 1 });
-          } else {
-            b.delete(origCollectionRef);
+          // Decrement or delete the original stack ONLY if that original doc is not used by another deck
+          try {
+            const assigns = (window.cardDeckAssignments || {})[fid] || [];
+            const assignedElsewhere = assigns.some(a => a && a.deckId && a.deckId !== deckId);
+            if (!assignedElsewhere) {
+              if ((collectionCard.count || 0) > 1) {
+                b.update(origCollectionRef, { count: collectionCard.count - 1 });
+              } else {
+                b.delete(origCollectionRef);
+              }
+            } else {
+              // leave the original doc intact
+              console.debug('[batchAdd] source doc assigned to other deck; not decrementing:', fid);
+            }
+          } catch (e) {
+            console.warn('[batchAdd] assignment check failed for', fid, e);
           }
 
           // Add deck entry referencing the new collection id (always create a dedicated deck entry for the new doc)

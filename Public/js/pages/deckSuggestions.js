@@ -320,9 +320,10 @@ function handleModalChangeEvents(e) {
  * @param {string} type - The card type (e.g., 'Creature')
  * @param {string[]} commanderColors - The deck's color identity
  * @param {Object} tempDeckList - The current list of cards in the deck
+ * @param {string} deckId - The ID of the current deck (to exclude from assignment checks)
  * @returns {Map<string, Object>}
  */
-function buildCandidateMapForType(type, commanderColors, tempDeckList) {
+function buildCandidateMapForType(type, commanderColors, tempDeckList, deckId) {
   const col = window.localCollection || localCollection;
   const candidateMap = new Map();
 
@@ -344,9 +345,23 @@ function buildCandidateMapForType(type, commanderColors, tempDeckList) {
         // Check if already in temp deck (from this session OR original)
         if (tempDeckList[card.firestoreId]) continue;
 
-        // Check if assigned to *any* other deck
-        const assigns = (window.cardDeckAssignments || {})[card.firestoreId] || [];
-        if (assigns.length > 0) continue;
+        // Strict Check: Is this card ID present in ANY other deck's card list?
+        // We check localDecks directly to be 100% sure, bypassing potential stale cardDeckAssignments
+        let isAssigned = false;
+        const allDecks = window.localDecks || {};
+        for (const otherDeckId in allDecks) {
+          if (otherDeckId === deckId) continue; // Ignore current deck (already checked via tempDeckList/deck.cards)
+          const otherDeck = allDecks[otherDeckId];
+          if (otherDeck.cards && otherDeck.cards[card.firestoreId]) {
+            isAssigned = true;
+            break;
+          }
+          if (otherDeck.commander && otherDeck.commander.firestoreId === card.firestoreId) {
+            isAssigned = true;
+            break;
+          }
+        }
+        if (isAssigned) continue;
       }
       // Basic lands can always be added (no uniqueness check)
 
@@ -365,9 +380,22 @@ function buildCandidateMapForType(type, commanderColors, tempDeckList) {
       // 3. Check if already in temp deck (from this session OR original)
       if (tempDeckList[card.firestoreId]) continue;
 
-      // 4. Check if assigned to *any* other deck
-      const assigns = (window.cardDeckAssignments || {})[card.firestoreId] || [];
-      if (assigns.length > 0) continue;
+      // 4. Strict Check: Is this card assigned to ANY other deck?
+      let isAssigned = false;
+      const allDecks = window.localDecks || {};
+      for (const otherDeckId in allDecks) {
+        if (otherDeckId === deckId) continue;
+        const otherDeck = allDecks[otherDeckId];
+        if (otherDeck.cards && otherDeck.cards[card.firestoreId]) {
+          isAssigned = true;
+          break;
+        }
+        if (otherDeck.commander && otherDeck.commander.firestoreId === card.firestoreId) {
+          isAssigned = true;
+          break;
+        }
+      }
+      if (isAssigned) continue;
 
       candidateMap.set(card.firestoreId, card);
     }
@@ -479,7 +507,7 @@ async function startSuggestionFlow(deckId, opts = {}) {
 
     let effectiveType = type;
     let isFallback = false;
-    let candidateMap = buildCandidateMapForType(effectiveType, commanderColors, tempDeckList);
+    let candidateMap = buildCandidateMapForType(effectiveType, commanderColors, tempDeckList, deckId);
 
     // --- FALLBACK LOGIC ---
     if (candidateMap.size === 0 && (type === 'Planeswalker' || type === 'Enchantment' || type === 'Artifact')) {
@@ -487,7 +515,7 @@ async function startSuggestionFlow(deckId, opts = {}) {
       console.warn(`[deckSuggestions] No ${type} candidates found. Falling back to ${fallbackType}.`);
       effectiveType = fallbackType;
       isFallback = true;
-      candidateMap = buildCandidateMapForType(effectiveType, commanderColors, tempDeckList);
+      candidateMap = buildCandidateMapForType(effectiveType, commanderColors, tempDeckList, deckId);
     }
     // --- END FALLBACK LOGIC ---
 

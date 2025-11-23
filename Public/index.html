@@ -2823,6 +2823,32 @@
           }
 
 
+          // --- Inject Calculated Basic Lands for Stats ---
+          // If we have a mana calculator, we can project what basic lands are needed and count them as if they were in the deck.
+          if (typeof window.calculateBasicLandNeeds === 'function') {
+            try {
+              const targetLandCount = 37; // Standard Commander target
+              const basicNeeds = window.calculateBasicLandNeeds(deck, targetLandCount);
+              const manaColors = { W: 'Plains', U: 'Island', B: 'Swamp', R: 'Mountain', G: 'Forest' };
+              
+              Object.entries(basicNeeds).forEach(([color, count]) => {
+                if (count > 0) {
+                  // Create a virtual card entry for the stats
+                  allDeckCards.push({
+                    name: manaColors[color],
+                    type_line: 'Basic Land',
+                    cmc: 0,
+                    count: count,
+                    prices: { usd: 0 }, // Basic lands usually negligible for deck value
+                    isVirtual: true // Flag to identify if needed
+                  });
+                }
+              });
+            } catch (e) {
+              console.warn('[renderSingleDeck] Failed to calculate virtual basic lands for stats', e);
+            }
+          }
+
           const totalCost = allDeckCards.reduce((acc, card) => {
             const price =
               card.finish === "foil"
