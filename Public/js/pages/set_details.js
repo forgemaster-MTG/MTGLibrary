@@ -5,11 +5,12 @@ import { renderCollectionCard } from './collection.js';
 let currentSetCode = null;
 let currentSetCards = [];
 let currentViewMode = 'grid'; // 'grid' | 'table'
-let interactionMode = 'details'; // 'details' | 'add'
+let interactionMode = 'details'; // 'details' | 'add' | 'manage'
 let activeFilters = {
   owned: false,
   missing: false
 };
+let groupBy = ''; // '' | 'number' | 'type' | 'rarity'
 
 // --- Main Entry Point ---
 export async function showSetView(code) {
@@ -22,6 +23,7 @@ export async function showSetView(code) {
     currentSetCards = [];
     activeFilters = { owned: false, missing: false };
     interactionMode = 'details'; // Default to details
+    groupBy = '';
     updateFilterUI();
 
     // Show Loading
@@ -85,6 +87,14 @@ function renderSetHeader(code, cards) {
   // Update Stats
   updateSetStats();
 
+  // Wire Back Button
+  const backBtn = document.getElementById('set-details-back-btn');
+  if (backBtn) {
+    backBtn.onclick = () => {
+      if (typeof window.showView === 'function') window.showView('sets');
+    };
+  }
+
   // Render Controls (Filters & Toggles)
   renderControls();
 }
@@ -140,44 +150,83 @@ function renderControls() {
     };
   }
 
-  // Interaction Mode Toggle
-  // We'll inject this dynamically if it doesn't exist, or we can reuse the "Add Cards" button area?
-  // The user wants a toggle between "Details" and "Add Cards".
-  // Let's replace the "Add Cards" button with a segmented control or toggle.
-  // Or add it next to the filters.
+  // Interaction Mode Toggle & Grouping
+  // Inject next to view toggles
+  const viewControlsContainer = document.querySelector('#set-details-view .flex.items-center.gap-2.bg-gray-700');
+  if (viewControlsContainer && viewControlsContainer.parentElement) {
+    // We want to inject BEFORE the view controls container, or inside the parent flex container
+    const parent = viewControlsContainer.parentElement; // The container holding "View" label and the toggle div
+    const grandParent = parent.parentElement; // The main controls bar
 
-  // Let's find the container for filters and inject/update the toggle.
-  const controlsContainer = document.querySelector('#set-details-view .flex.items-center.gap-3');
-  if (controlsContainer) {
-    // Check if we already added the toggle
-    let toggleContainer = document.getElementById('set-interaction-toggle');
-    if (!toggleContainer) {
-      toggleContainer = document.createElement('div');
-      toggleContainer.id = 'set-interaction-toggle';
-      toggleContainer.className = 'flex bg-gray-900 rounded-lg p-1 border border-gray-600 ml-4';
-      toggleContainer.innerHTML = `
-                <button id="set-mode-details" class="px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                    Details
-                </button>
-                <button id="set-mode-add" class="px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                    Add Cards
-                </button>
-            `;
-      // Remove the old "Add Cards" button if it exists to avoid confusion?
-      const oldBtn = document.getElementById('set-add-cards-modal-btn');
-      if (oldBtn) oldBtn.remove();
+    // Let's find the "View" label and toggle div wrapper
+    // Actually, let's just append to the main controls bar if we can find it
+    // The structure is: div.bg-gray-800... -> [Filters] [View Toggles]
 
-      controlsContainer.appendChild(toggleContainer);
+    // Let's look for the container that holds the View Toggles
+    // It's the last child of the controls bar usually
+
+    let controlsGroup = document.getElementById('set-controls-group');
+    if (!controlsGroup) {
+      controlsGroup = document.createElement('div');
+      controlsGroup.id = 'set-controls-group';
+      controlsGroup.className = 'flex flex-wrap items-center gap-4';
+
+      // Move existing View Toggles into this group if they aren't already
+      // Actually, let's just insert our new controls before the View Toggles
+      const viewLabel = Array.from(grandParent.children).find(el => el.textContent.includes('View'));
+      if (viewLabel) {
+        grandParent.insertBefore(controlsGroup, viewLabel);
+      } else {
+        grandParent.appendChild(controlsGroup);
+      }
     }
 
-    // Bind events
-    const btnDetails = document.getElementById('set-mode-details');
-    const btnAdd = document.getElementById('set-mode-add');
+    controlsGroup.innerHTML = ''; // Clear to rebuild
 
-    if (btnDetails) btnDetails.onclick = () => { interactionMode = 'details'; updateModeToggle(); };
-    if (btnAdd) btnAdd.onclick = () => { interactionMode = 'add'; updateModeToggle(); };
+    // 1. Interaction Mode Toggle
+    const toggleContainer = document.createElement('div');
+    toggleContainer.className = 'flex bg-gray-900 rounded-lg p-1 border border-gray-600';
+    toggleContainer.innerHTML = `
+            <button id="set-mode-details" class="px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2" title="View Card Details">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                Details
+            </button>
+            <button id="set-mode-add" class="px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2" title="Quick Add Modal">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                Add
+            </button>
+            <button id="set-mode-manage" class="px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-2" title="Quick Edit Mode">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                Edit
+            </button>
+        `;
+    controlsGroup.appendChild(toggleContainer);
+
+    // 2. Grouping Dropdown
+    const groupContainer = document.createElement('div');
+    groupContainer.className = 'flex items-center gap-2 ml-2';
+    groupContainer.innerHTML = `
+            <label class="text-sm text-gray-400">Group:</label>
+            <select id="set-group-select" class="bg-gray-900 border border-gray-600 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <option value="">None</option>
+                <option value="number">Number (50s)</option>
+                <option value="type">Type</option>
+                <option value="rarity">Rarity</option>
+            </select>
+        `;
+    controlsGroup.appendChild(groupContainer);
+
+    // Bind events
+    document.getElementById('set-mode-details').onclick = () => { interactionMode = 'details'; updateModeToggle(); renderSetContent(); };
+    document.getElementById('set-mode-add').onclick = () => { interactionMode = 'add'; updateModeToggle(); renderSetContent(); };
+    document.getElementById('set-mode-manage').onclick = () => { interactionMode = 'manage'; updateModeToggle(); renderSetContent(); };
+
+    const groupSelect = document.getElementById('set-group-select');
+    groupSelect.value = groupBy;
+    groupSelect.onchange = (e) => {
+      groupBy = e.target.value;
+      renderSetContent();
+    };
 
     updateModeToggle();
   }
@@ -203,17 +252,14 @@ function updateViewTabs() {
 function updateModeToggle() {
   const btnDetails = document.getElementById('set-mode-details');
   const btnAdd = document.getElementById('set-mode-add');
+  const btnManage = document.getElementById('set-mode-manage');
 
-  if (btnDetails) {
-    btnDetails.className = interactionMode === 'details'
-      ? 'px-3 py-1.5 rounded-md text-sm font-medium bg-indigo-600 text-white shadow-sm transition-all flex items-center gap-2'
-      : 'px-3 py-1.5 rounded-md text-sm font-medium text-gray-400 hover:text-white transition-all flex items-center gap-2';
-  }
-  if (btnAdd) {
-    btnAdd.className = interactionMode === 'add'
-      ? 'px-3 py-1.5 rounded-md text-sm font-medium bg-indigo-600 text-white shadow-sm transition-all flex items-center gap-2'
-      : 'px-3 py-1.5 rounded-md text-sm font-medium text-gray-400 hover:text-white transition-all flex items-center gap-2';
-  }
+  const activeClass = 'px-3 py-1.5 rounded-md text-sm font-medium bg-indigo-600 text-white shadow-sm transition-all flex items-center gap-2';
+  const inactiveClass = 'px-3 py-1.5 rounded-md text-sm font-medium text-gray-400 hover:text-white transition-all flex items-center gap-2';
+
+  if (btnDetails) btnDetails.className = interactionMode === 'details' ? activeClass : inactiveClass;
+  if (btnAdd) btnAdd.className = interactionMode === 'add' ? activeClass : inactiveClass;
+  if (btnManage) btnManage.className = interactionMode === 'manage' ? activeClass : inactiveClass;
 }
 
 function updateFilterUI() {
@@ -269,8 +315,78 @@ function renderSetContent() {
   if (currentViewMode === 'table') {
     renderTable(content, filtered);
   } else {
-    renderGrid(content, filtered);
+    // Grouping Logic for Grid
+    if (groupBy) {
+      renderGroupedGrid(content, filtered);
+    } else {
+      renderGrid(content, filtered);
+    }
   }
+}
+
+function renderGroupedGrid(container, cards) {
+  const groups = {};
+
+  cards.forEach(card => {
+    let key = 'Other';
+    if (groupBy === 'type') {
+      key = card.type_line.split('—')[0].trim();
+    } else if (groupBy === 'rarity') {
+      key = card.rarity.charAt(0).toUpperCase() + card.rarity.slice(1);
+    } else if (groupBy === 'number') {
+      const num = parseInt(card.collector_number) || 0;
+      const chunk = Math.floor((num - 1) / 50);
+      const start = chunk * 50 + 1;
+      const end = (chunk + 1) * 50;
+      key = `${start}-${end}`;
+    }
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(card);
+  });
+
+  container.innerHTML = '';
+  container.className = 'space-y-8';
+
+  // Sort keys
+  let keys = Object.keys(groups);
+  if (groupBy === 'number') {
+    keys.sort((a, b) => parseInt(a.split('-')[0]) - parseInt(b.split('-')[0]));
+  } else if (groupBy === 'rarity') {
+    const order = ['Common', 'Uncommon', 'Rare', 'Mythic', 'Special', 'Bonus'];
+    keys.sort((a, b) => order.indexOf(a) - order.indexOf(b));
+  } else {
+    keys.sort();
+  }
+
+  keys.forEach(key => {
+    const groupSection = document.createElement('div');
+    // Default collapsed (hidden content), with toggle icon
+    groupSection.innerHTML = `
+            <h3 class="text-xl font-bold text-gray-300 mb-4 border-b border-gray-700 pb-2 sticky top-0 bg-gray-900/90 backdrop-blur-sm z-20 flex items-center justify-between cursor-pointer hover:text-white transition-colors group-header">
+                <span>${key} <span class="text-sm font-normal text-gray-500 ml-2">(${groups[key].length})</span></span>
+                <svg class="w-5 h-5 transform transition-transform -rotate-90 group-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </h3>
+            <div class="group-grid-content hidden"></div>
+        `;
+
+    const header = groupSection.querySelector('.group-header');
+    const content = groupSection.querySelector('.group-grid-content');
+    const icon = groupSection.querySelector('.group-icon');
+
+    header.onclick = () => {
+      const isHidden = content.classList.contains('hidden');
+      if (isHidden) {
+        content.classList.remove('hidden');
+        icon.classList.remove('-rotate-90');
+      } else {
+        content.classList.add('hidden');
+        icon.classList.add('-rotate-90');
+      }
+    };
+
+    renderGrid(content, groups[key]);
+    container.appendChild(groupSection);
+  });
 }
 
 function renderGrid(container, cards) {
@@ -283,6 +399,9 @@ function renderGrid(container, cards) {
     const totalCount = inCol.reduce((sum, c) => sum + (c.count || 0), 0);
     const isOwned = totalCount > 0;
 
+    const nonfoilCount = inCol.find(c => c.finish === 'nonfoil')?.count || 0;
+    const foilCount = inCol.find(c => c.finish === 'foil')?.count || 0;
+
     // Visuals
     const opacity = isOwned ? 'opacity-100' : 'opacity-60 grayscale hover:grayscale-0 hover:opacity-100 transition-all';
     const border = isOwned ? 'border-indigo-500/50' : 'border-transparent';
@@ -290,11 +409,45 @@ function renderGrid(container, cards) {
     // Image
     const img = card.image_uris?.normal || card.card_faces?.[0]?.image_uris?.normal || '';
 
+    // Quick Edit Overlay
+    let quickEditHTML = '';
+    let aspectRatio = 'aspect-[2.5/3.5]';
+    let imgPadding = '';
+
+    if (interactionMode === 'manage') {
+      aspectRatio = 'aspect-[3.2/3.5]'; // Wider to accommodate bar
+      imgPadding = 'pr-16'; // Make space on right
+      quickEditHTML = `
+                <div class="absolute inset-y-0 right-0 w-16 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center gap-2 p-1 z-20 border-l border-gray-700" onclick="event.stopPropagation()">
+                    
+                    <!-- Non-Foil -->
+                    <div class="flex flex-col items-center gap-0.5 w-full">
+                        <button class="w-full bg-gray-700 hover:bg-gray-600 text-white text-[10px] rounded-t py-1" onclick="window.quickUpdate('${card.id}', 'nonfoil', 1)">▲</button>
+                        <div class="w-full bg-gray-800 text-center text-xs font-bold text-gray-200 py-0.5 border-x border-gray-700">${nonfoilCount}</div>
+                        <button class="w-full bg-gray-700 hover:bg-gray-600 text-white text-[10px] rounded-b py-1" onclick="window.quickUpdate('${card.id}', 'nonfoil', -1)">▼</button>
+                        <span class="text-[9px] text-gray-500 uppercase mt-0.5">Normal</span>
+                    </div>
+
+                    <div class="w-full h-px bg-gray-700 my-1"></div>
+
+                    <!-- Foil -->
+                    <div class="flex flex-col items-center gap-0.5 w-full">
+                        <button class="w-full bg-indigo-900/50 hover:bg-indigo-800/50 text-indigo-200 text-[10px] rounded-t py-1" onclick="window.quickUpdate('${card.id}', 'foil', 1)">▲</button>
+                        <div class="w-full bg-gray-800 text-center text-xs font-bold text-indigo-300 py-0.5 border-x border-gray-700">${foilCount}</div>
+                        <button class="w-full bg-indigo-900/50 hover:bg-indigo-800/50 text-indigo-200 text-[10px] rounded-b py-1" onclick="window.quickUpdate('${card.id}', 'foil', -1)">▼</button>
+                        <span class="text-[9px] text-indigo-400 uppercase mt-0.5">Foil</span>
+                    </div>
+
+                </div>
+            `;
+    }
+
     return `
-      <div class="relative group aspect-[2.5/3.5] bg-gray-900 rounded-xl overflow-hidden border-2 ${border} ${opacity} cursor-pointer set-card-item" data-card-id="${card.id}">
-        <img src="${img}" class="w-full h-full object-cover" loading="lazy" />
-        ${isOwned ? `<div class="absolute top-2 right-2 bg-indigo-600 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md">${totalCount}</div>` : ''}
-        <div class="absolute bottom-0 left-0 right-0 bg-black/80 p-2 transform translate-y-full group-hover:translate-y-0 transition-transform">
+      <div class="relative group ${aspectRatio} bg-gray-900 rounded-xl overflow-hidden border-2 ${border} ${opacity} cursor-pointer set-card-item" data-card-id="${card.id}">
+        ${quickEditHTML}
+        <img src="${img}" class="w-full h-full object-cover ${imgPadding}" loading="lazy" />
+        ${isOwned && interactionMode !== 'manage' ? `<div class="absolute top-2 right-2 bg-indigo-600 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md">${totalCount}</div>` : ''}
+        <div class="absolute bottom-0 left-0 right-0 bg-black/80 p-2 transform translate-y-full group-hover:translate-y-0 transition-transform z-10">
           <div class="text-xs font-bold text-white truncate">${card.name}</div>
           <div class="text-[10px] text-gray-400">#${card.collector_number} • ${card.rarity}</div>
         </div>
@@ -309,6 +462,8 @@ function renderGrid(container, cards) {
 }
 
 function handleCardClick(cardId) {
+  if (interactionMode === 'manage') return; // Click handled by overlay buttons
+
   if (interactionMode === 'add') {
     openAddCardModal(cardId);
   } else {
@@ -395,6 +550,33 @@ window.handleSetTableClick = (cardId) => handleCardClick(cardId);
 
 // --- Interaction Handlers ---
 
+window.quickUpdate = async (cardId, finish, delta) => {
+  const card = currentSetCards.find(c => c.id === cardId);
+  if (!card) return;
+
+  // Find existing
+  const existing = Object.values(localCollection).find(c => c.id === cardId && c.finish === finish);
+  const currentCount = existing ? existing.count : 0;
+
+  if (currentCount + delta < 0) return;
+
+  await addCardToCollection({
+    ...card,
+    finish,
+    count: delta,
+    scryfall_id: card.id,
+    set: card.set,
+    collector_number: card.collector_number,
+    image_uris: card.image_uris,
+    prices: card.prices
+  });
+
+  updateSetStats();
+  // Re-render only the specific card if possible, or full content
+  // Full content is safer to ensure stats/visuals update correctly
+  renderSetContent();
+};
+
 async function handleMassUpdate(input) {
   const cardId = input.dataset.cardId;
   const finish = input.dataset.finish;
@@ -411,9 +593,6 @@ async function handleMassUpdate(input) {
   const diff = newCount - currentCount;
 
   if (diff === 0) return;
-
-  // Optimistic update for UI responsiveness (optional, but good)
-  // We rely on data.js to toast and update
 
   await addCardToCollection({
     ...card,
@@ -442,17 +621,20 @@ function openAddCardModal(startCardId) {
   modalCurrentIndex = modalCards.findIndex(c => c.id === startCardId);
   if (modalCurrentIndex === -1) modalCurrentIndex = 0;
 
-  renderModalContent();
-
-  // Show modal (assuming a generic modal container exists or we create one)
-  // We'll create a custom overlay for this specific flow
+  // Ensure modal exists
   let modal = document.getElementById('set-add-modal');
   if (!modal) {
     modal = document.createElement('div');
     modal.id = 'set-add-modal';
     modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm hidden';
+    // Close on click outside
+    modal.onclick = (e) => {
+      if (e.target === modal) modal.classList.add('hidden');
+    };
     document.body.appendChild(modal);
   }
+
+  renderModalContent();
   modal.classList.remove('hidden');
 }
 
