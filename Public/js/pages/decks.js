@@ -73,10 +73,10 @@ export function renderDecksList() {
           </div>
 
           <div class="mt-auto pt-4 border-t border-gray-700 flex gap-2">
-            <button class="view-deck-btn flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold py-2 px-3 rounded-lg transition-colors" data-deck-id="${deck.id}">
+            <button class="view-deck-btn flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold py-3 px-4 rounded-lg transition-colors min-h-[44px] flex items-center justify-center" data-deck-id="${deck.id}">
               View
             </button>
-            <button class="delete-button bg-gray-700 hover:bg-red-900/50 hover:text-red-200 text-gray-300 p-2 rounded-lg transition-colors" data-deck-id="${deck.id}" title="Delete Deck">
+            <button class="delete-button bg-gray-700 hover:bg-red-900/50 hover:text-red-200 text-gray-300 p-3 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center" data-deck-id="${deck.id}" title="Delete Deck">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
             </button>
           </div>

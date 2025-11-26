@@ -1,28 +1,55 @@
+/**
+ * gemini.js
+ * 
+ * Handles interaction with the Google Gemini API.
+ * 
+ * SECURITY NOTE:
+ * This module implements Client-Side Encryption to protect the user's API Key.
+ * The key is encrypted using a key derived from the user's Firebase UID before storage.
+ * It is decrypted only in browser memory when making requests.
+ * 
+ * WARNING: This is obfuscation, not true server-side security. 
+ * The UID is public information. This prevents the raw key from sitting in the DB,
+ * but a determined attacker with the UID could derive the key if they access the DB.
+ */
+
 import { db, appId } from '../main/index.js';
 import { doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+// Helper functions
+const enc = new TextEncoder();
+const dec = new TextDecoder();
 
-// Minimal client-side encryption helpers using Web Crypto API.
-// WARNING: Deriving a key from the Firebase UID is obfuscation only — the UID
-// is not a secret. For production secrecy use a server-side proxy and KMS.
+function toBase64(buffer) {
+  return btoa(String.fromCharCode(...new Uint8Array(buffer)));
+}
 
-function toBase64(buf) { return btoa(String.fromCharCode(...new Uint8Array(buf))); }
-function fromBase64(b64) { const s = atob(b64); const arr = new Uint8Array(s.length); for (let i=0;i<s.length;i++) arr[i]=s.charCodeAt(i); return arr.buffer; }
+function fromBase64(base64) {
+  return Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+}
 
-async function deriveKeyFromPassphrase(passphrase, salt, iterations = 200000) {
-  const enc = new TextEncoder();
-  const passKey = await crypto.subtle.importKey('raw', enc.encode(passphrase), { name: 'PBKDF2' }, false, ['deriveKey']);
+async function deriveKeyFromPassphrase(passphrase, saltBuffer) {
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    enc.encode(passphrase),
+    { name: 'PBKDF2' },
+    false,
+    ['deriveKey']
+  );
   return await crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt: salt, iterations, hash: 'SHA-256' },
-    passKey,
+    {
+      name: 'PBKDF2',
+      salt: saltBuffer,
+      iterations: 100000,
+      hash: 'SHA-256'
+    },
+    keyMaterial,
     { name: 'AES-GCM', length: 256 },
     false,
-    ['encrypt','decrypt']
+    ['encrypt', 'decrypt']
   );
 }
 
 export async function encryptApiKeyForUser(uid, apiKeyPlain) {
-  if (!uid) throw new Error('uid required to encrypt');
-  const enc = new TextEncoder();
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const key = await deriveKeyFromPassphrase(uid, salt.buffer);

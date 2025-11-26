@@ -1,12 +1,29 @@
+/**
+ * boot.js
+ * 
+ * The entry point for the MTG Library application.
+ * Responsible for:
+ * 1. Initializing core feature modules (Collection, Decks, etc.).
+ * 2. Setting up global event listeners for navigation and UI interactions.
+ * 3. Handling dynamic imports for lazy-loaded features (Playstyle, Chat).
+ * 4. Wiring up modal interactions.
+ */
+
 import './index.js'; // ensures firebase, auth, settings are loaded and window globals set
 import { initCollectionModule } from '../pages/collection.js';
 import { initDecksModule } from '../pages/decks.js';
 import { initSingleDeckModule } from '../pages/singleDeck.js';
 
+/**
+ * Main bootstrap function called when the DOM is ready.
+ * Initializes the primary modules required for the initial view.
+ */
 export function bootApp() {
+  // Initialize core page modules
   initCollectionModule();
   initDecksModule();
   initSingleDeckModule();
+
   // Do not preload/render the playstyle widget site-wide. It will be loaded on demand from the header button.
   // Attempt to load saved views for the signed-in user so the Saved Views
   // dropdown is populated and any active view can be applied early.
@@ -99,6 +116,16 @@ if (typeof document !== 'undefined') {
 }
 
 // --- Global listener wiring (migrated from inline HTML) ---
+
+/**
+ * Sets up global event listeners for the application.
+ * This function is designed to be idempotent (safe to call multiple times).
+ * It handles:
+ * - Navigation menu clicks
+ * - Header button actions (Settings, Chat, etc.)
+ * - Global modal interactions
+ * - Fallback handlers for legacy support
+ */
 export function setupGlobalListeners() {
   // Make idempotent: avoid installing handlers more than once even if called repeatedly
   try {
@@ -120,41 +147,60 @@ export function setupGlobalListeners() {
       precons: document.getElementById('nav-precons'),
       settings: document.getElementById('nav-settings'),
       ruleLookup: document.getElementById('nav-rule-lookup'),
-      generalChat: document.getElementById('nav-general-chat')
+      generalChat: document.getElementById('nav-general-chat'),
+      // Mobile Bottom Nav Links
+      mobileCollection: document.getElementById('mobile-nav-collection'),
+      mobileDecks: document.getElementById('mobile-nav-decks'),
+      mobileSets: document.getElementById('mobile-nav-sets'),
+      mobileRules: document.getElementById('mobile-nav-rules'),
+      mobileChat: document.getElementById('mobile-nav-chat'),
+      mobileSettings: document.getElementById('mobile-nav-settings')
     };
+
+    console.log('[Boot] Nav links found:', {
+      mobileChat: !!navLinks.mobileChat,
+      mobileCollection: !!navLinks.mobileCollection,
+      mobileDecks: !!navLinks.mobileDecks,
+      mobileSets: !!navLinks.mobileSets,
+      mobileRules: !!navLinks.mobileRules,
+      mobileSettings: !!navLinks.mobileSettings
+    });
 
     Object.keys(navLinks).forEach((key) => {
       const el = navLinks[key];
       if (!el) return;
       el.addEventListener('click', () => {
         try {
-          console.debug('[Boot] nav click handler invoked for', key, 'showView=', typeof window.showView, 'renderPaginatedCollection=', typeof window.renderPaginatedCollection);
-          if (key === 'ruleLookup') {
+          // Map mobile keys to standard view keys
+          let viewKey = key;
+          if (key === 'mobileCollection') viewKey = 'collection';
+          if (key === 'mobileDecks') viewKey = 'decks';
+          if (key === 'mobileSets') viewKey = 'sets';
+          if (key === 'mobileRules') viewKey = 'ruleLookup';
+          if (key === 'mobileChat') viewKey = 'generalChat';
+          if (key === 'mobileSettings') viewKey = 'settings';
+
+          console.debug('[Boot] nav click handler invoked for', key, 'mapped to', viewKey);
+
+          if (viewKey === 'ruleLookup') {
             if (typeof window.openModal === 'function') window.openModal('rule-lookup-modal');
-          } else if (key === 'generalChat') {
+          } else if (viewKey === 'generalChat') {
             if (typeof window.openModal === 'function') window.openModal('mtg-chat-modal');
           } else {
             if (typeof window.showView === 'function') {
-              console.debug('[Boot] calling window.showView for', key);
-              window.showView(key);
-              if (key === 'sets') {
-                // lazy-load sets modules and render
-                try { import('../pages/sets.js').then(mod => { if (typeof mod.initSetsModule === 'function') mod.initSetsModule(); }); } catch (e) { console.debug('[Boot] lazy-load sets module failed', e); }
+              window.showView(viewKey);
+              if (viewKey === 'sets') {
+                try { import('../pages/sets.js').then(mod => { if (typeof mod.initSetsModule === 'function') mod.initSetsModule(); }); } catch (e) { }
               }
-              if (key === 'precons') {
-                // lazy-load precons module and render
-                try { import('../pages/precons.js').then(mod => { if (typeof mod.initPreconsModule === 'function') mod.initPreconsModule(); }); } catch (e) { console.debug('[Boot] lazy-load precons module failed', e); }
+              if (viewKey === 'precons') {
+                try { import('../pages/precons.js').then(mod => { if (typeof mod.initPreconsModule === 'function') mod.initPreconsModule(); }); } catch (e) { }
               }
-              // If user opened Settings, ensure playstyle module is loaded and rendered
-              if (key === 'settings') {
+              if (viewKey === 'settings') {
                 try { import('../settings/playstyle.js').then(mod => { if (window.userId && typeof mod.loadPlaystyleForUser === 'function') mod.loadPlaystyleForUser(window.userId); }); } catch (e) { }
               }
-            } else if (typeof window.renderPaginatedCollection === 'function' && key === 'collection') {
-              // fallback to rendering collection view
+            } else if (typeof window.renderPaginatedCollection === 'function' && viewKey === 'collection') {
               if (typeof window.showView === 'function') window.showView('collection');
               window.renderPaginatedCollection();
-            } else {
-              console.debug('[Boot] No showView or renderPaginatedCollection available for', key);
             }
           }
         } catch (e) {

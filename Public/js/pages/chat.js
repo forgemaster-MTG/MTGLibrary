@@ -1,3 +1,15 @@
+/**
+ * chat.js
+ * 
+ * Manages the MTG Chat feature (AI Assistant).
+ * Responsible for:
+ * 1. Handling user input from the chat modal.
+ * 2. Managing chat history state.
+ * 3. Interacting with the Gemini API via `gemini.js`.
+ * 4. Injecting context (Playstyle) into the AI system instruction.
+ * 5. Exporting chat history.
+ */
+
 import { getGeminiUrlForCurrentUser } from '../firebase/gemini.js';
 import { showToast } from '../lib/ui.js';
 
@@ -6,7 +18,8 @@ let isRequestInFlight = false;
 
 /**
  * Initializes the chat module.
- * Wires up event listeners for the chat modal.
+ * Wires up event listeners for the chat modal (Submit, Save, Export).
+ * Uses cloning to ensure clean event binding (removes legacy listeners).
  */
 export function initChatModule() {
     const form = document.getElementById('mtg-chat-form');
@@ -45,7 +58,14 @@ export function initChatModule() {
 
 /**
  * Handles sending a message to the MTG Chat AI.
- * @param {string} userMessage 
+ * Flow:
+ * 1. Updates UI to loading state.
+ * 2. Adds user message to local history and renders it.
+ * 3. Constructs the System Instruction (including Playstyle context).
+ * 4. Sends request to Gemini API.
+ * 5. Processes response and updates UI.
+ * 
+ * @param {string} userMessage - The text entered by the user.
  */
 export async function handleMtgChat(userMessage) {
     if (isRequestInFlight) return;

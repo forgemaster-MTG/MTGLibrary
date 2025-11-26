@@ -1,8 +1,19 @@
+/**
+ * playstyleLogic.js
+ * 
+ * Contains the core business logic for the Playstyle feature.
+ * Responsible for:
+ * 1. Generating dynamic questions via Gemini API.
+ * 2. Synthesizing the final Playstyle Profile from user answers.
+ * 3. Managing data persistence (Load/Save/Clear) for playstyle data.
+ * 4. Providing helper functions to inject playstyle context into other AI prompts.
+ */
+
 import { db, appId } from '../main/index.js';
 import { doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 import { showToast } from '../lib/ui.js';
 
-// Shared state
+// Shared state object holding the current profile and answers
 export let playstyleState = {
     summary: null,
     answers: []
@@ -49,6 +60,13 @@ async function callGeminiWithRetry(payload, retries = 3, delay = 1000) {
 
 // --- Logic Functions ---
 
+/**
+ * Generates the next question for the wizard using Gemini.
+ * Uses the history of previous answers to tailor the next question.
+ * 
+ * @param {Array} priorAnswers - List of {question, answer} objects.
+ * @returns {Object} - { question: string, choices: string[] }
+ */
 export async function askNextQuestion(priorAnswers) {
     const systemInstruction = `You are an expert survey designer for Magic: The Gathering (MTG) players. Your goal is to create the most informative question to understand a user's playstyle based on their previous answers. Questions should be clear and concise, with 3-5 distinct multiple-choice answers. Avoid repeating questions. Focus on different aspects of MTG playstyles, such as deck preferences, game strategies, social interaction styles, and risk tolerance.`;
 
@@ -96,6 +114,17 @@ export async function askNextQuestion(priorAnswers) {
     }
 }
 
+/**
+ * Synthesizes a structured Playstyle Profile from the collected answers.
+ * Requests a JSON object from Gemini containing:
+ * - Summary text
+ * - Tags (e.g., "Combo", "Spike")
+ * - Numeric scores (Aggression, Consistency, etc.)
+ * - Suggested archetypes
+ * 
+ * @param {Array} answers - The full list of user answers.
+ * @returns {Object|null} - The synthesized profile object or null on error.
+ */
 export async function synthesizeStructuredPlaystyle(answers) {
     const uid = window.userId || null;
     const systemInstruction = `You are an expert MTG coach and psychographic analyst. Your task is to analyze a player's answers and synthesize a detailed playstyle profile. The summary should be a concise paragraph that can inform other AI agents about the user's preferences. Scores must be between 0 and 100.`;

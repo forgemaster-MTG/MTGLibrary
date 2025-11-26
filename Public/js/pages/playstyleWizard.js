@@ -1,12 +1,24 @@
+/**
+ * playstyleWizard.js
+ * 
+ * Manages the UI and state for the Playstyle Quiz Wizard.
+ * Responsible for:
+ * 1. Managing the wizard state (open/closed, current question, answers).
+ * 2. Rendering the question and completion screens.
+ * 3. Handling user interactions (answering questions, retrying).
+ * 4. Triggering the final profile synthesis via `playstyleLogic.js`.
+ */
+
 import { openModal, closeModal, showToast } from '../lib/ui.js';
 import { askNextQuestion, synthesizeStructuredPlaystyle, playstyleState } from '../settings/playstyleLogic.js';
 
+// Internal state for the wizard session
 let currentWizardState = {
     isOpen: false,
-    answers: [],
+    answers: [],      // Accumulates {questionId, question, answer} objects
     loading: false,
     questionCount: 0,
-    maxQuestions: 7 // Ask enough to get a full picture
+    maxQuestions: 7   // Ask enough to get a full picture
 };
 
 export function initPlaystyleWizard() {
@@ -32,6 +44,14 @@ export function closePlaystyleWizard() {
     closeModal('playstyle-wizard-modal');
 }
 
+/**
+ * Renders the current step of the wizard based on state.
+ * Handles:
+ * - Loading state (fetching next question)
+ * - Completion state (all questions answered)
+ * - Question rendering (displaying options)
+ * - Error handling (retry logic)
+ */
 async function renderWizardStep() {
     const container = document.getElementById('playstyle-wizard-content');
     if (!container) return;

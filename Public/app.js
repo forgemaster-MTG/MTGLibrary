@@ -87,8 +87,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // --- Advanced View Builder Button Event Listeners ---
   // Saved Views dropdown wiring — delegated to settings module for management UI.
   const savedViewsSelect = document.getElementById('saved-views-select');
-    const saveViewConfirmBtn = document.getElementById('save-view-confirm-btn');
-    const viewBuilderPanel = document.getElementById('view-builder-panel');
+  const saveViewConfirmBtn = document.getElementById('save-view-confirm-btn');
+  const viewBuilderPanel = document.getElementById('view-builder-panel');
   if (savedViewsSelect) {
     savedViewsSelect.addEventListener('change', (e) => {
       const id = e.target.value || null;
@@ -98,8 +98,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-    // Guarded save button handler — only attach if the button exists
-    saveViewConfirmBtn?.addEventListener('click', async () => {
+  // Guarded save button handler — only attach if the button exists
+  saveViewConfirmBtn?.addEventListener('click', async () => {
     const name = document.getElementById('view-name-input').value || 'Untitled View';
     const groupBy1 = document.getElementById('view-group-by-1').value;
     const groupBy2 = document.getElementById('view-group-by-2').value;
@@ -119,15 +119,15 @@ document.addEventListener("DOMContentLoaded", () => {
       gridSize,
       isDefault
     };
-  await saveViewToFirestore(view);
-  if (viewBuilderPanel) viewBuilderPanel.classList.add('hidden');
+    await saveViewToFirestore(view);
+    if (viewBuilderPanel) viewBuilderPanel.classList.add('hidden');
   });
 
-  window.renderViewBuilderLists = function() {
+  window.renderViewBuilderLists = function () {
     const filtersList = document.getElementById('filters-list');
     const sortsList = document.getElementById('sorts-list');
-    filtersList.innerHTML = (window.viewFilterRules||[]).map((r, i) => `<div class="flex items-center gap-2"><span class="text-sm text-gray-200">${r.column} ${r.operator} "${r.value}"</span><button data-i="${i}" class="remove-filter-btn text-sm text-red-400 ml-2">Remove</button></div>`).join('') || '<div class="text-sm text-gray-500">No filters</div>';
-    sortsList.innerHTML = (window.viewSortRules||[]).map((s, i) => `<div class="flex items-center gap-2"><span class="text-sm text-gray-200">${i+1}. ${s.column} ${s.direction}</span><button data-i="${i}" class="remove-sort-btn text-sm text-red-400 ml-2">Remove</button></div>`).join('') || '<div class="text-sm text-gray-500">No sorts</div>';
+    filtersList.innerHTML = (window.viewFilterRules || []).map((r, i) => `<div class="flex items-center gap-2"><span class="text-sm text-gray-200">${r.column} ${r.operator} "${r.value}"</span><button data-i="${i}" class="remove-filter-btn text-sm text-red-400 ml-2">Remove</button></div>`).join('') || '<div class="text-sm text-gray-500">No filters</div>';
+    sortsList.innerHTML = (window.viewSortRules || []).map((s, i) => `<div class="flex items-center gap-2"><span class="text-sm text-gray-200">${i + 1}. ${s.column} ${s.direction}</span><button data-i="${i}" class="remove-sort-btn text-sm text-red-400 ml-2">Remove</button></div>`).join('') || '<div class="text-sm text-gray-500">No sorts</div>';
     document.querySelectorAll('.remove-filter-btn').forEach(btn => btn.addEventListener('click', (e) => {
       const idx = parseInt(btn.dataset.i);
       window.viewFilterRules.splice(idx, 1);
@@ -175,19 +175,19 @@ document.addEventListener("DOMContentLoaded", () => {
   // 2. If the per-user runtime getter is unavailable or returns null, surface the Settings UI and show a friendly toast.
   async function getGeminiUrlOrShowSettings() {
     try {
-  const url = (typeof window.getGeminiUrl === 'function') ? await window.getGeminiUrl() : null;
+      const url = (typeof window.getGeminiUrl === 'function') ? await window.getGeminiUrl() : null;
       if (!url) {
         // Try to surface the Gemini settings UI so users can add their key.
-        try { if (typeof window.renderGeminiSettings === 'function') window.renderGeminiSettings(); } catch (e) {}
-        try { if (typeof window.showView === 'function') window.showView('settings'); } catch (e) {}
-        try { if (typeof window.showModal === 'function') window.showModal('settings-modal'); } catch (e) {}
+        try { if (typeof window.renderGeminiSettings === 'function') window.renderGeminiSettings(); } catch (e) { }
+        try { if (typeof window.showView === 'function') window.showView('settings'); } catch (e) { }
+        try { if (typeof window.showModal === 'function') window.showModal('settings-modal'); } catch (e) { }
         if (typeof window.showToast === 'function') window.showToast('No Gemini API key found. Please add it in Settings to enable AI features.', 'error');
         return null;
       }
       return url;
     } catch (e) {
       console.error('[getGeminiUrlOrShowSettings] error', e);
-      try { if (typeof window.showToast === 'function') window.showToast('Error resolving Gemini API key. Check Settings.', 'error'); } catch (er) {}
+      try { if (typeof window.showToast === 'function') window.showToast('Error resolving Gemini API key. Check Settings.', 'error'); } catch (er) { }
       return null;
     }
   }
@@ -219,7 +219,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (typeof window.renderSavedViewsSelect === 'function') return window.renderSavedViewsSelect(savedViews || []);
     const select = document.getElementById('saved-views-select');
     if (!select) return;
-    select.innerHTML = '<option value="">(Default)</option>' + (savedViews||[]).map(v => `<option value="${v.id}">${v.name}${v.isDefault ? ' (Default)' : ''}</option>`).join('');
+    select.innerHTML = '<option value="">(Default)</option>' + (savedViews || []).map(v => `<option value="${v.id}">${v.name}${v.isDefault ? ' (Default)' : ''}</option>`).join('');
     select.value = activeViewId || '';
   }
 
@@ -229,7 +229,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const views = await window.loadSavedViewsFromFirestore(userId);
         savedViews = views || [];
         // allow the settings module to manage activeViewId/uiPreferences; keep local sync
-        try { activeViewId = window.activeViewId || activeViewId; } catch (e) {}
+        try { activeViewId = window.activeViewId || activeViewId; } catch (e) { }
         renderSavedViewsSelect();
         if (typeof window.setActiveViewById === 'function') window.setActiveViewById(activeViewId);
         return views;
@@ -259,7 +259,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       if (cardVal === undefined || cardVal === null) cardVal = '';
       cardVal = (typeof cardVal === 'string') ? cardVal.toLowerCase() : cardVal;
-      switch(op) {
+      switch (op) {
         case 'contains': return String(cardVal).includes(String(val).toLowerCase());
         case 'equals': return String(cardVal) === String(val).toLowerCase();
         case 'gt': return Number(cardVal) > Number(val);
@@ -276,14 +276,14 @@ document.addEventListener("DOMContentLoaded", () => {
       result = result.filter(pred);
     }
     if (viewSortRules.length > 0) {
-      result.sort((a,b) => {
+      result.sort((a, b) => {
         for (const s of viewSortRules) {
           const col = s.column;
           const dir = s.direction === 'asc' ? 1 : -1;
           let valA = a[col] ?? '';
           let valB = b[col] ?? '';
-          if (col === 'price') { valA = parseFloat(a.prices?.usd||0); valB = parseFloat(b.prices?.usd||0); }
-          if (col === 'count') { valA = a.count||1; valB = b.count||1; }
+          if (col === 'price') { valA = parseFloat(a.prices?.usd || 0); valB = parseFloat(b.prices?.usd || 0); }
+          if (col === 'count') { valA = a.count || 1; valB = b.count || 1; }
           if (typeof valA === 'string') valA = valA.toLowerCase();
           if (typeof valB === 'string') valB = valB.toLowerCase();
           if (valA < valB) return -1 * dir;
@@ -311,7 +311,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const codeBlocks = [];
     const placeholder = (i) => `\u0000CODEBLOCK${i}\u0000`;
     let working = md.replace(/```([^\n]*)\n([\s\S]*?)```/g, (m, lang, code) => {
-      codeBlocks.push({ lang: (lang||'').trim(), code });
+      codeBlocks.push({ lang: (lang || '').trim(), code });
       return placeholder(codeBlocks.length - 1);
     });
 
@@ -381,7 +381,7 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       if (!container) return;
       // links open in new tab safely
-      container.querySelectorAll('a.chat-link').forEach(a => { a.setAttribute('target','_blank'); a.setAttribute('rel','noopener noreferrer'); });
+      container.querySelectorAll('a.chat-link').forEach(a => { a.setAttribute('target', '_blank'); a.setAttribute('rel', 'noopener noreferrer'); });
       // wire copy buttons for code blocks
       container.querySelectorAll('button.chat-code-copy').forEach(btn => {
         if (btn.__wired) return; btn.__wired = true;
@@ -403,8 +403,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (typeof window.saveViewToFirestore === 'function') {
       const saved = await window.saveViewToFirestore(userId || null, view);
       // sync local cache
-      try { savedViews = window.savedViews || savedViews; } catch (e) {}
-      try { activeViewId = window.activeViewId || activeViewId; } catch (e) {}
+      try { savedViews = window.savedViews || savedViews; } catch (e) { }
+      try { activeViewId = window.activeViewId || activeViewId; } catch (e) { }
       renderSavedViewsSelect();
       return saved;
     }
@@ -423,8 +423,8 @@ document.addEventListener("DOMContentLoaded", () => {
   async function deleteViewFromFirestore(viewId) {
     if (typeof window.deleteViewFromFirestore === 'function') {
       const ok = await window.deleteViewFromFirestore(userId || null, viewId);
-      try { savedViews = window.savedViews || savedViews; } catch (e) {}
-      try { activeViewId = window.activeViewId || activeViewId; } catch (e) {}
+      try { savedViews = window.savedViews || savedViews; } catch (e) { }
+      try { activeViewId = window.activeViewId || activeViewId; } catch (e) { }
       renderSavedViewsSelect();
       return ok;
     }
@@ -443,7 +443,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const view = savedViews.find(v => v.id === viewId);
     if (view && typeof window.applySavedView === 'function') {
       window.applySavedView(view);
-      try { if (typeof window.persistSettingsForUser === 'function' && userId) window.persistSettingsForUser(userId); } catch (e) {}
+      try { if (typeof window.persistSettingsForUser === 'function' && userId) window.persistSettingsForUser(userId); } catch (e) { }
       renderSavedViewsSelect();
       return;
     }
@@ -487,7 +487,7 @@ document.addEventListener("DOMContentLoaded", () => {
           console.log("[Auth] Successfully signed in with custom token.");
         } catch (error) {
           // capture error for tests and show login UI
-          try { window.__lastAuthError = { message: error?.message || String(error), code: error?.code || null, stack: error?.stack || null }; } catch(e){ window.__lastAuthError = { message: String(error) }; }
+          try { window.__lastAuthError = { message: error?.message || String(error), code: error?.code || null, stack: error?.stack || null }; } catch (e) { window.__lastAuthError = { message: String(error) }; }
           console.error('[Auth] Custom token sign-in failed:', window.__lastAuthError);
           document.getElementById("login-screen").classList.remove("hidden");
           document.getElementById("app-wrapper").classList.add("hidden");
@@ -501,11 +501,11 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // --- First-run setup handler ---
-  window.handleFirstRunSetup = async function(email, password) {
+  window.handleFirstRunSetup = async function (email, password) {
     if (!email || !password) return { ok: false, message: 'Email and password required' };
     try {
       console.log('[Setup] handleFirstRunSetup: creating user for', email);
-      try { window.__lastAuthResult = null; } catch(e){}
+      try { window.__lastAuthResult = null; } catch (e) { }
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       console.log('[Setup] createUserWithEmailAndPassword returned:', !!userCredential);
       // Send verification email and sign the user out until they verify
@@ -513,7 +513,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (userCredential && userCredential.user) {
           await sendEmailVerification(userCredential.user);
           console.log('[Setup] sendEmailVerification called for', userCredential.user.email);
-          try { window.__lastAuthResult = { createdUid: userCredential.user.uid, email: userCredential.user.email, verificationSent: true }; } catch(e){}
+          try { window.__lastAuthResult = { createdUid: userCredential.user.uid, email: userCredential.user.email, verificationSent: true }; } catch (e) { }
           // store a flag that verification was sent for UX
           localStorage.setItem('mtg_verification_sent', new Date().toISOString());
           // Sign out so user must verify before using the app
@@ -523,7 +523,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return { ok: true };
       } catch (ve) {
         console.error('[Setup] sendEmailVerification error:', ve && ve.message);
-        try { window.__lastAuthResult = { createdUid: userCredential && userCredential.user && userCredential.user.uid || null, email: userCredential && userCredential.user && userCredential.user.email || null, verificationSent: false, error: ve && (ve.message || String(ve)) }; } catch(e){}
+        try { window.__lastAuthResult = { createdUid: userCredential && userCredential.user && userCredential.user.uid || null, email: userCredential && userCredential.user && userCredential.user.email || null, verificationSent: false, error: ve && (ve.message || String(ve)) }; } catch (e) { }
         return { ok: true, verificationSent: false, message: 'Account created but failed to send verification email. Please try resending from the login screen.' };
       }
     } catch (error) {
@@ -533,7 +533,7 @@ document.addEventListener("DOMContentLoaded", () => {
         code: (error && error.code) || null,
         stack: (error && error.stack) || null
       };
-  try { window.__lastAuthError = JSON.parse(JSON.stringify(errObj)); } catch (e) { window.__lastAuthError = errObj; }
+      try { window.__lastAuthError = JSON.parse(JSON.stringify(errObj)); } catch (e) { window.__lastAuthError = errObj; }
       console.error('[Setup] createUser error:', errObj);
 
       // Special-case common backend config error from Identity Toolkit
@@ -546,7 +546,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // Allow resending verification email; expects a signed-in user (can be used shortly after signup)
-  window.resendVerification = async function() {
+  window.resendVerification = async function () {
     try {
       const user = auth.currentUser;
       if (!user) return { ok: false, message: 'No signed-in user to verify.' };
@@ -591,24 +591,24 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-// Helper to get or load the user's playstyle summary. Returns string or null.
-if (typeof window !== 'undefined') {
-  window.getPlaystyleSummary = async function(uid) {
-    try {
-      // Prefer window-exposed value if present
-      if (window.playstyleSummary) return window.playstyleSummary;
-      // Otherwise import the module and attempt to load for the user
-      const mod = await import('./js/settings/playstyle.js');
-      if (mod && typeof mod.loadPlaystyleForUser === 'function') {
-        const ps = await mod.loadPlaystyleForUser(uid || window.userId || null);
-        return (ps && ps.summary) ? ps.summary : (window.playstyleSummary || null);
+  // Helper to get or load the user's playstyle summary. Returns string or null.
+  if (typeof window !== 'undefined') {
+    window.getPlaystyleSummary = async function (uid) {
+      try {
+        // Prefer window-exposed value if present
+        if (window.playstyleSummary) return window.playstyleSummary;
+        // Otherwise import the module and attempt to load for the user
+        const mod = await import('./js/settings/playstyle.js');
+        if (mod && typeof mod.loadPlaystyleForUser === 'function') {
+          const ps = await mod.loadPlaystyleForUser(uid || window.userId || null);
+          return (ps && ps.summary) ? ps.summary : (window.playstyleSummary || null);
+        }
+      } catch (e) {
+        console.debug('[getPlaystyleSummary] failed to load playstyle module', e);
       }
-    } catch (e) {
-      console.debug('[getPlaystyleSummary] failed to load playstyle module', e);
-    }
-    return window.playstyleSummary || null;
-  };
-}
+      return window.playstyleSummary || null;
+    };
+  }
 
   function setupListeners() {
     console.log("[Function: setupListeners] Setting up Firestore listeners. Find in <script> block.");
@@ -718,7 +718,8 @@ if (typeof window !== 'undefined') {
     if (window.viewSortRules && viewSortRules.length > 0) {
       const sorted = [...cards].sort((a, b) => {
         for (const s of viewSortRules) {
-          const col = s.column; const dir = s.direction === 'asc' ? 1 : -1; let valA = a[col] ?? ''; let valB = b[col] ?? ''; if (col === 'price') { valA = parseFloat(a.prices?.usd||0); valB = parseFloat(b.prices?.usd||0); } if (col === 'count') { valA = a.count||1; valB = b.count||1; } if (typeof valA === 'string') valA = valA.toLowerCase(); if (typeof valB === 'string') valB = valB.toLowerCase(); if (valA < valB) return -1 * dir; if (valA > valB) return 1 * dir; }
+          const col = s.column; const dir = s.direction === 'asc' ? 1 : -1; let valA = a[col] ?? ''; let valB = b[col] ?? ''; if (col === 'price') { valA = parseFloat(a.prices?.usd || 0); valB = parseFloat(b.prices?.usd || 0); } if (col === 'count') { valA = a.count || 1; valB = b.count || 1; } if (typeof valA === 'string') valA = valA.toLowerCase(); if (typeof valB === 'string') valB = valB.toLowerCase(); if (valA < valB) return -1 * dir; if (valA > valB) return 1 * dir;
+        }
         return 0;
       });
       return sorted;
@@ -754,14 +755,14 @@ if (typeof window !== 'undefined') {
     const elUnique = document.getElementById('kpi-unique-cards');
     const elPrice = document.getElementById('kpi-total-price');
     const elFiltered = document.getElementById('kpi-filtered-summary');
-    if (elTotal) elTotal.textContent = totalCards; if (elUnique) elUnique.textContent = uniqueCards; if (elPrice) elPrice.textContent = `$${totalPrice.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`; if (elFiltered) elFiltered.textContent = `${filteredTotal}/${totalCards}`;
+    if (elTotal) elTotal.textContent = totalCards; if (elUnique) elUnique.textContent = uniqueCards; if (elPrice) elPrice.textContent = `$${totalPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`; if (elFiltered) elFiltered.textContent = `${filteredTotal}/${totalCards}`;
     if (cards.length === 0) { contentDiv.innerHTML = ""; paginationDiv.innerHTML = ""; noCardsMsg.classList.remove("hidden"); return; }
     noCardsMsg.classList.add("hidden");
     const filterText = document.getElementById("filter-text").value.toLowerCase();
     if (filterText) {
       cards = cards.filter((card) => card.name.toLowerCase().includes(filterText) || card.type_line.toLowerCase().includes(filterText));
     }
-    const groupByKeys = [ document.getElementById("collection-group-by-1").value, document.getElementById("collection-group-by-2").value ].filter(Boolean);
+    const groupByKeys = [document.getElementById("collection-group-by-1").value, document.getElementById("collection-group-by-2").value].filter(Boolean);
     if (groupByKeys.length > 0) { paginationDiv.innerHTML = ""; }
     else {
       cards = sortCards(cards);
@@ -786,17 +787,21 @@ if (typeof window !== 'undefined') {
     function renderRecursiveGroups(groups, level) {
       return Object.keys(groups).sort().map((groupName) => {
         const content = groups[groupName]; const uid = `group-${groupUidCounter++}`;
-        if (Array.isArray(content)) { const counts = computeGroupCounts(content); const headerHtml = `
+        if (Array.isArray(content)) {
+          const counts = computeGroupCounts(content); const headerHtml = `
           <details id="${uid}" class="col-span-full" ${level === 0 ? "" : "open"}>
             <summary class="group-header" style="padding-left: ${1.5 + level}rem;">${groupName} <span class="text-sm text-gray-400 ml-3">(${counts.unique} items, ${counts.copies} total)</span></summary>
             <div class="grid ${gridClass} gap-4 p-4">${sortGroupContent(content).map(renderCollectionCard).join("")}</div>
           </details>
-        `; return headerHtml; } else { const counts = computeGroupCounts(content); const subgroupHtml = `
+        `; return headerHtml;
+        } else {
+          const counts = computeGroupCounts(content); const subgroupHtml = `
           <details id="${uid}" class="col-span-full" ${level === 0 ? "" : "open"}>
             <summary class="group-header" style="padding-left: ${1.5 + level}rem;">${groupName} <span class="text-sm text-gray-400 ml-3">(${counts.unique} items, ${counts.copies} total)</span></summary>
             <div class="col-span-full">${renderRecursiveGroups(content, level + 1)}</div>
           </details>
-        `; return subgroupHtml; }
+        `; return subgroupHtml;
+        }
       }).join("");
     }
     if (groupByKeys.length > 0) { const groupedCards = groupCardsRecursively(cards, groupByKeys); groupUidCounter = 0; contentDiv.innerHTML = `<div class="grid ${gridClass} gap-4 p-4">${renderRecursiveGroups(groupedCards, 0)}</div>`; contentDiv.querySelectorAll('details summary').forEach(summary => { summary.tabIndex = 0; summary.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); const details = summary.parentElement; details.open = !details.open; } }); }); }
@@ -883,18 +888,18 @@ if (typeof window !== 'undefined') {
     }
     renderAiChat();
     // UX: disable submit and clear+focus AI chat input
-    try { setSubmitDisabled('#ai-chat-form button[type="submit"]', true); } catch (e) {}
-    try { const inputEl = document.getElementById('ai-chat-input'); if (inputEl) animateClearAndFocus(inputEl); } catch (e) {}
+    try { setSubmitDisabled('#ai-chat-form button[type="submit"]', true); } catch (e) { }
+    try { const inputEl = document.getElementById('ai-chat-input'); if (inputEl) animateClearAndFocus(inputEl); } catch (e) { }
     try {
       // Show a global toast indicating a pending AI request
       if (typeof window.showToast === 'function') {
         window.showToast('Waiting for AI response...', 'info');
       }
-  const geminiUrl = await getGeminiUrlOrShowSettings();
-  if (!geminiUrl) throw new Error('No Gemini API key configured');
-  const response = await fetch(geminiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: activeAiChatHistory }) });
-  if (!response.ok) throw new Error(`Gemini API request failed with status ${response.status}`);
-  const result = await response.json();
+      const geminiUrl = await getGeminiUrlOrShowSettings();
+      if (!geminiUrl) throw new Error('No Gemini API key configured');
+      const response = await fetch(geminiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: activeAiChatHistory }) });
+      if (!response.ok) throw new Error(`Gemini API request failed with status ${response.status}`);
+      const result = await response.json();
       const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
       if (text) activeAiChatHistory.push({ role: 'model', parts: [{ text }] }); else throw new Error('Invalid response from Gemini API.');
     } catch (error) {
@@ -906,7 +911,7 @@ if (typeof window !== 'undefined') {
         window.showToast('AI response received.', 'success');
       }
       renderAiChat();
-      try { setSubmitDisabled('#ai-chat-form button[type="submit"]', false); } catch (e) {}
+      try { setSubmitDisabled('#ai-chat-form button[type="submit"]', false); } catch (e) { }
     }
   }
 
@@ -919,7 +924,7 @@ if (typeof window !== 'undefined') {
       .mtg-input-fade.fade-out{opacity:0;transform:translateY(-6px)}
       .mtg-submit-disabled{opacity:.5;cursor:not-allowed}
       `;
-      const s = document.createElement('style'); s.setAttribute('data-mtg-chat-styles','1'); s.appendChild(document.createTextNode(css));
+      const s = document.createElement('style'); s.setAttribute('data-mtg-chat-styles', '1'); s.appendChild(document.createTextNode(css));
       (document.head || document.documentElement).appendChild(s);
       window.__mtg_chat_styles_injected = true;
     } catch (e) { /* ignore */ }
@@ -941,7 +946,7 @@ if (typeof window !== 'undefined') {
         if (textSpan) {
           if (disabled) textSpan.classList.add('opacity-75'); else textSpan.classList.remove('opacity-75');
         }
-      } catch (e) {}
+      } catch (e) { }
     } catch (e) { /* ignore */ }
   }
 
@@ -953,9 +958,9 @@ if (typeof window !== 'undefined') {
       // trigger fade-out -> clear -> focus -> fade-in
       inputEl.classList.add('fade-out');
       window.setTimeout(() => {
-        try { inputEl.value = ''; } catch (e) {}
+        try { inputEl.value = ''; } catch (e) { }
         inputEl.classList.remove('fade-out');
-        try { inputEl.focus(); } catch (e) {}
+        try { inputEl.focus(); } catch (e) { }
       }, 220);
     } catch (e) { /* ignore */ }
   }
@@ -963,8 +968,8 @@ if (typeof window !== 'undefined') {
   async function handleRuleLookup(query) {
     ruleLookupHistory.push({ role: 'user', parts: [{ text: query }] });
     renderRuleLookupChat();
-    try { setSubmitDisabled('#rule-lookup-form button[type="submit"]', true); } catch (e) {}
-    try { const inputEl = document.getElementById('rule-lookup-input'); if (inputEl) animateClearAndFocus(inputEl); } catch (e) {}
+    try { setSubmitDisabled('#rule-lookup-form button[type="submit"]', true); } catch (e) { }
+    try { const inputEl = document.getElementById('rule-lookup-input'); if (inputEl) animateClearAndFocus(inputEl); } catch (e) { }
     let prompt = `You are a Magic: The Gathering Level 3 Judge and rules expert. Your knowledge is comprehensive and up-to-date. Answer the following rules question accurately and clearly. If possible, cite the relevant Comprehensive Rule number(s). Keep your answer focused on the rules question asked.\n\nQuestion: ${query}`;
     try {
       if (window.playstyle && typeof window.playstyle.attachPlaystyleToPrompt === 'function') {
@@ -973,14 +978,14 @@ if (typeof window !== 'undefined') {
         const ps = await window.getPlaystyleSummary(null);
         if (ps) prompt += `\n\nUser Playstyle Summary:\n${ps}\n`;
       }
-    } catch (e) {}
+    } catch (e) { }
     const apiHistory = [{ role: 'user', parts: [{ text: prompt }] }];
     try {
-  const geminiUrl = await getGeminiUrlOrShowSettings();
-  if (!geminiUrl) throw new Error('No Gemini API key configured');
-  const response = await fetch(geminiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: apiHistory }) });
-  if (!response.ok) { const errorBody = await response.text(); throw new Error(`Gemini API request failed with status ${response.status}: ${errorBody}`); }
-  const result = await response.json();
+      const geminiUrl = await getGeminiUrlOrShowSettings();
+      if (!geminiUrl) throw new Error('No Gemini API key configured');
+      const response = await fetch(geminiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: apiHistory }) });
+      if (!response.ok) { const errorBody = await response.text(); throw new Error(`Gemini API request failed with status ${response.status}: ${errorBody}`); }
+      const result = await response.json();
       const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
       if (text) ruleLookupHistory.push({ role: 'model', parts: [{ text }] }); else { throw new Error('Received an invalid or empty response from the AI.'); }
     } catch (error) {
@@ -988,7 +993,7 @@ if (typeof window !== 'undefined') {
       ruleLookupHistory.push({ role: 'model', parts: [{ text: `Sorry, I encountered an error trying to look that up: ${error.message}` }] });
     } finally {
       renderRuleLookupChat();
-      try { setSubmitDisabled('#rule-lookup-form button[type="submit"]', false); } catch (e) {}
+      try { setSubmitDisabled('#rule-lookup-form button[type="submit"]', false); } catch (e) { }
     }
   }
 
@@ -1009,47 +1014,47 @@ if (typeof window !== 'undefined') {
 
   async function callGeminiChat(payload, retries = 3, delay = 1000) {
     for (let i = 0; i < retries; i++) {
-    try {
-      const geminiUrl = await getGeminiUrlOrShowSettings();
-      if (!geminiUrl) throw new Error('No Gemini API key configured');
-      const resp = await fetch(geminiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      try {
+        const geminiUrl = await getGeminiUrlOrShowSettings();
+        if (!geminiUrl) throw new Error('No Gemini API key configured');
+        const resp = await fetch(geminiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
 
-            if (!resp.ok) {
-                const errorBody = await resp.text();
-                throw new Error(`Gemini API error: ${resp.status} - ${errorBody}`);
-            }
-
-            const data = await resp.json();
-            const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (!text) {
-                throw new Error("Invalid or empty response from Gemini.");
-            }
-            return text;
-        } catch (err) {
-            console.error(`Gemini chat call attempt ${i + 1} failed:`, err);
-            if (i === retries - 1) {
-                return null; // Last retry failed
-            }
-            // Wait for the delay and then double it for the next potential retry
-            await new Promise(res => setTimeout(res, delay));
-            delay *= 2;
+        if (!resp.ok) {
+          const errorBody = await resp.text();
+          throw new Error(`Gemini API error: ${resp.status} - ${errorBody}`);
         }
+
+        const data = await resp.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!text) {
+          throw new Error("Invalid or empty response from Gemini.");
+        }
+        return text;
+      } catch (err) {
+        console.error(`Gemini chat call attempt ${i + 1} failed:`, err);
+        if (i === retries - 1) {
+          return null; // Last retry failed
+        }
+        // Wait for the delay and then double it for the next potential retry
+        await new Promise(res => setTimeout(res, delay));
+        delay *= 2;
+      }
     }
     return null;
-}
-/**
- * Handles sending a user's message to the Gemini API and updating the chat history.
- * @param {string} userMessage The user's chat message.
- */
-async function handleMtgChat(userMessage) {
+  }
+  /**
+   * Handles sending a user's message to the Gemini API and updating the chat history.
+   * @param {string} userMessage The user's chat message.
+   */
+  async function handleMtgChat(userMessage) {
     // Use a global in-flight flag to prevent concurrent requests.
     if (window.__mtgChatRequestInFlight) {
-        console.warn('[handleMtgChat] Request already in flight; ignoring duplicate call.');
-        return;
+      console.warn('[handleMtgChat] Request already in flight; ignoring duplicate call.');
+      return;
     }
     window.__mtgChatRequestInFlight = true;
 
@@ -1057,8 +1062,8 @@ async function handleMtgChat(userMessage) {
     mtgChatHistory.push({ role: 'user', parts: [{ text: userMessage }] });
     renderMtgChat();
 
-    try { setSubmitDisabled('#mtg-chat-form button[type="submit"]', true); } catch (e) {}
-    try { const inputEl = document.getElementById('mtg-chat-input'); if (inputEl) animateClearAndFocus(inputEl); } catch (e) {}
+    try { setSubmitDisabled('#mtg-chat-form button[type="submit"]', true); } catch (e) { }
+    try { const inputEl = document.getElementById('mtg-chat-input'); if (inputEl) animateClearAndFocus(inputEl); } catch (e) { }
 
     // 1. Define the core persona and instructions for the AI model.
     let systemInstructionText = `You are MTG Forge, an expert AI assistant for all things Magic: The Gathering. You are knowledgeable about card interactions, deck building strategies, the latest meta, MTG lore, and tournament results.
@@ -1074,37 +1079,37 @@ async function handleMtgChat(userMessage) {
     // 2. Attach the user's playstyle summary to the system instructions if it exists.
     const summary = window.playstyleState?.summary || window.playstyleSummary || null;
     if (summary) {
-        systemInstructionText += `\n\n- IMPORTANT: Tailor your response based on the user's playstyle profile below. Do not explicitly mention their playstyle; simply use it as context for your recommendations and analysis.\n\nUser Playstyle Summary:\n${summary}`;
+      systemInstructionText += `\n\n- IMPORTANT: Tailor your response based on the user's playstyle profile below. Do not explicitly mention their playstyle; simply use it as context for your recommendations and analysis.\n\nUser Playstyle Summary:\n${summary}`;
     }
 
     // 3. Construct the full API payload.
     const payload = {
-        systemInstruction: {
-            parts: [{ text: systemInstructionText }]
-        },
-        contents: mtgChatHistory // Send the entire ongoing conversation history.
+      systemInstruction: {
+        parts: [{ text: systemInstructionText }]
+      },
+      contents: mtgChatHistory // Send the entire ongoing conversation history.
     };
 
     try {
-        // 4. Call the API using the robust helper function.
-        const responseText = await callGeminiChat(payload);
+      // 4. Call the API using the robust helper function.
+      const responseText = await callGeminiChat(payload);
 
-        if (responseText) {
-            mtgChatHistory.push({ role: 'model', parts: [{ text: responseText }] });
-        } else {
-            throw new Error('Received an invalid or empty response from the AI.');
-        }
+      if (responseText) {
+        mtgChatHistory.push({ role: 'model', parts: [{ text: responseText }] });
+      } else {
+        throw new Error('Received an invalid or empty response from the AI.');
+      }
     } catch (error) {
-        console.error('[handleMtgChat] Gemini API error:', error);
-        const errorMessage = `<p class="text-red-400">Sorry, I encountered an error: ${error.message}</p>`;
-        mtgChatHistory.push({ role: 'model', parts: [{ text: errorMessage }] });
+      console.error('[handleMtgChat] Gemini API error:', error);
+      const errorMessage = `<p class="text-red-400">Sorry, I encountered an error: ${error.message}</p>`;
+      mtgChatHistory.push({ role: 'model', parts: [{ text: errorMessage }] });
     } finally {
-        // 5. Clear the in-flight flag and render the final response or error.
-        window.__mtgChatRequestInFlight = false;
-        renderMtgChat();
-    try { setSubmitDisabled('#mtg-chat-form button[type="submit"]', false); } catch (e) {}
+      // 5. Clear the in-flight flag and render the final response or error.
+      window.__mtgChatRequestInFlight = false;
+      renderMtgChat();
+      try { setSubmitDisabled('#mtg-chat-form button[type="submit"]', false); } catch (e) { }
     }
-}
+  }
 
 
   function renderMtgChat() {
@@ -1122,7 +1127,7 @@ async function handleMtgChat(userMessage) {
   // Save/Export helpers for Rule Lookup and MTG Chat
   function formatConversationAsText(history) {
     if (!history || history.length === 0) return '';
-    return history.map(m => `${m.role === 'model' ? 'AI' : 'User'}: ${ (m.parts?.[0]?.text || '').replace(/<[^>]+>/g,'') }`).join('\n\n');
+    return history.map(m => `${m.role === 'model' ? 'AI' : 'User'}: ${(m.parts?.[0]?.text || '').replace(/<[^>]+>/g, '')}`).join('\n\n');
   }
   function saveConversationAsTxt(history, filename = 'conversation.txt') {
     const content = formatConversationAsText(history);
@@ -1153,7 +1158,7 @@ async function handleMtgChat(userMessage) {
     window.__module_handleMtgChat = handleMtgChat;
     try {
       console.debug('[Public/app.js] Module handlers registered: __module_handleAiChat, __module_handleRuleLookup, __module_handleMtgChat');
-    } catch (e) {}
+    } catch (e) { }
   }
 
   // Save conversation as a .txt file (plain text). Formats activeAiChatHistory.
@@ -1197,47 +1202,6 @@ async function handleMtgChat(userMessage) {
     if (typeof window.showToast === 'function') window.showToast('Conversation exported as JSON.', 'success');
   }
 
-  function registerAiUiHooks() {
-    try {
-      console.debug('[registerAiUiHooks] attempting to attach AI UI hooks');
-      const saveBtn = document.getElementById('save-ai-conversation-btn');
-      console.debug('[registerAiUiHooks] saveBtn=', !!saveBtn);
-      if (saveBtn && !saveBtn.__mtg_hooked) {
-        saveBtn.addEventListener('click', (e) => { e.preventDefault(); saveAiConversationAsTxt(); });
-        saveBtn.__mtg_hooked = true;
-        console.debug('[registerAiUiHooks] saveBtn hooked');
-      }
-      // AI modal buttons
-      const exportBtn = document.getElementById('export-ai-conversation-btn');
-      console.debug('[registerAiUiHooks] exportBtn=', !!exportBtn);
-      if (exportBtn && !exportBtn.__mtg_hooked) {
-        exportBtn.addEventListener('click', (e) => { e.preventDefault(); exportAiConversationAsJson(); });
-        exportBtn.__mtg_hooked = true;
-        console.debug('[registerAiUiHooks] exportBtn hooked');
-      }
-      // Rule Lookup buttons
-      const saveRule = document.getElementById('save-rule-conversation-btn'); if (saveRule && !saveRule.__mtg_hooked) { saveRule.addEventListener('click', (e) => { e.preventDefault(); saveConversationAsTxt(ruleLookupHistory, 'rule-lookup.txt'); }); saveRule.__mtg_hooked = true; }
-      const exportRule = document.getElementById('export-rule-conversation-btn'); if (exportRule && !exportRule.__mtg_hooked) { exportRule.addEventListener('click', (e) => { e.preventDefault(); exportConversationAsJson(ruleLookupHistory, 'rule-lookup.json'); }); exportRule.__mtg_hooked = true; }
-      // MTG Chat buttons
-      const saveMtg = document.getElementById('save-mtg-conversation-btn'); if (saveMtg && !saveMtg.__mtg_hooked) { saveMtg.addEventListener('click', (e) => { e.preventDefault(); saveConversationAsTxt(mtgChatHistory, 'mtg-chat.txt'); }); saveMtg.__mtg_hooked = true; }
-      const exportMtg = document.getElementById('export-mtg-conversation-btn'); if (exportMtg && !exportMtg.__mtg_hooked) { exportMtg.addEventListener('click', (e) => { e.preventDefault(); exportConversationAsJson(mtgChatHistory, 'mtg-chat.json'); }); exportMtg.__mtg_hooked = true; }
-    } catch (e) { console.debug('[registerAiUiHooks] failed to attach AI UI hooks', e); }
-  }
-
-  // Expose a small debug helper to inspect AI hook status at runtime
-  try { window.__mtg_debugAiHooks = () => ({ domPurify: !!window.DOMPurify, saveAiBtn: !!document.getElementById('save-ai-conversation-btn'), exportAiBtn: !!document.getElementById('export-ai-conversation-btn'), saveRuleBtn: !!document.getElementById('save-rule-conversation-btn'), exportRuleBtn: !!document.getElementById('export-rule-conversation-btn'), saveMtgBtn: !!document.getElementById('save-mtg-conversation-btn'), exportMtgBtn: !!document.getElementById('export-mtg-conversation-btn') }); } catch (e) {}
-
-  // Remaining functions: renderSingleDeck, toggleEditMode, toggleCardDetailsEditMode, saveCardDetails, renderCardDetailsModal, renderModalVisibilitySettings,
-  // renderAiBlueprintModal, showToast, openModal, closeModal, renderDecksList, renderSettings, openDeckDeleteOptions, showView, selectCommander,
-  // openDeckCreationModal, handleCardSelection, renderCardConfirmationModal, addCardToCollection, handleAddSelectedCardsToDeck, getAiDeckBlueprint,
-  // handleDeckCreationSubmit, createDeckFromBlueprint, authentication handlers, searchForCard, searchForCommander, filterCommanderCollectionList,
-  // handleAiChat, handleRuleLookup, handleMtgChat, confirmClearAllData, executeClearAllData, renderCollectionCard, addCollectionCardListeners,
-  // addCollectionTableListeners, renderDecklist, renderManaCurveChart, addSingleDeckListeners, renderCardVersions, setupGlobalListeners, isColorIdentityValid,
-  // openAddCardsToDeckModal, deleteDeck, exportAllData, exportDeck, handleImportDeckData, processDeckImport, handleImportAllData, processDataImport,
-  // executeDataImportBatched, showToastWithProgress, updateToastProgress, removeToastById, and final setupGlobalListeners call.
-
-  // To avoid duplication and risking syntax errors during extraction, we keep the bulk of the code in the HTML for complex template strings. The core behaviors remain available via the functions above.
-
   try {
     if (typeof window !== 'undefined' && typeof window.setupGlobalListeners === 'function') {
       window.setupGlobalListeners();
@@ -1246,6 +1210,33 @@ async function handleMtgChat(userMessage) {
     }
   } catch (e) { console.debug('[Public/app.js] setupGlobalListeners guard failed', e); }
 });
+
+function registerAiUiHooks() {
+  try {
+    console.debug('[registerAiUiHooks] attempting to attach AI UI hooks');
+    const saveBtn = document.getElementById('save-ai-conversation-btn');
+    console.debug('[registerAiUiHooks] saveBtn=', !!saveBtn);
+    if (saveBtn && !saveBtn.__mtg_hooked) {
+      saveBtn.addEventListener('click', (e) => { e.preventDefault(); saveAiConversationAsTxt(); });
+      saveBtn.__mtg_hooked = true;
+      console.debug('[registerAiUiHooks] saveBtn hooked');
+    }
+    // AI modal buttons
+    const exportBtn = document.getElementById('export-ai-conversation-btn');
+    console.debug('[registerAiUiHooks] exportBtn=', !!exportBtn);
+    if (exportBtn && !exportBtn.__mtg_hooked) {
+      exportBtn.addEventListener('click', (e) => { e.preventDefault(); exportAiConversationAsJson(); });
+      exportBtn.__mtg_hooked = true;
+      console.debug('[registerAiUiHooks] exportBtn hooked');
+    }
+    // Rule Lookup buttons
+    const saveRule = document.getElementById('save-rule-conversation-btn'); if (saveRule && !saveRule.__mtg_hooked) { saveRule.addEventListener('click', (e) => { e.preventDefault(); saveConversationAsTxt(ruleLookupHistory, 'rule-lookup.txt'); }); saveRule.__mtg_hooked = true; }
+    const exportRule = document.getElementById('export-rule-conversation-btn'); if (exportRule && !exportRule.__mtg_hooked) { exportRule.addEventListener('click', (e) => { e.preventDefault(); exportConversationAsJson(ruleLookupHistory, 'rule-lookup.json'); }); exportRule.__mtg_hooked = true; }
+    // MTG Chat buttons
+    const saveMtg = document.getElementById('save-mtg-conversation-btn'); if (saveMtg && !saveMtg.__mtg_hooked) { saveMtg.addEventListener('click', (e) => { e.preventDefault(); saveConversationAsTxt(mtgChatHistory, 'mtg-chat.txt'); }); saveMtg.__mtg_hooked = true; }
+    const exportMtg = document.getElementById('export-mtg-conversation-btn'); if (exportMtg && !exportMtg.__mtg_hooked) { exportMtg.addEventListener('click', (e) => { e.preventDefault(); exportConversationAsJson(mtgChatHistory, 'mtg-chat.json'); }); exportMtg.__mtg_hooked = true; }
+  } catch (e) { console.debug('[registerAiUiHooks] failed to attach AI UI hooks', e); }
+}
 
 // Ensure AI modal UI hooks are attached when DOM is ready
 try {

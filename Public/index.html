@@ -115,34 +115,25 @@
     <!-- Main Application Container -->
     <div id="app-wrapper" class="hidden w-full h-screen flex relative">
       <!-- Mobile Header (visible only on small screens) -->
-      <div id="mobile-header" class="md:hidden fixed top-0 left-0 right-0 bg-gray-800 border-b border-gray-700 z-40 flex items-center justify-between px-4 py-3">
-        <button id="mobile-menu-toggle" class="text-white p-2 hover:bg-gray-700 rounded-lg transition-colors">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-          </svg>
-        </button>
+      <div id="mobile-header" class="md:hidden fixed top-0 left-0 right-0 bg-gray-800 border-b border-gray-700 z-40 flex items-center justify-center px-4 py-3">
         <h1 class="text-lg font-bold bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent">
           MTG Forge
         </h1>
-        <div class="w-10"></div> <!-- Spacer for centering -->
       </div>
 
       <!-- Mobile Backdrop -->
       <div id="mobile-backdrop" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden"></div>
 
-      <!-- Sidebar Navigation -->
+      <!-- Sidebar Navigation (Desktop Only) -->
       <nav id="sidebar" class="
-        fixed md:static
+        hidden md:flex
         w-64 
         bg-gray-800 
         flex-shrink-0 
-        flex flex-col 
+        flex-col 
         p-4
         h-full
-        transition-transform duration-300 ease-in-out
-        -translate-x-full md:translate-x-0
-        z-50
-        md:z-auto
+        border-r border-gray-700
       ">
         <div class="flex items-center justify-center mb-8">
           <img src="MTG-Forge_Logo_No_Background.png" alt="MTG Forge" class="h-32 w-auto transition-transform hover:scale-105">
@@ -281,25 +272,26 @@
       <!-- Main Content -->
       <div
         id="app-content"
-        class="flex-1 flex flex-col h-screen overflow-y-auto pt-16 md:pt-0"
+        class="flex-1 flex flex-col h-screen overflow-y-auto pt-16 md:pt-0 pb-24 md:pb-0"
       >
         <header
-          class="bg-gray-800/80 backdrop-blur-sm sticky top-0 z-10 p-4 flex justify-between items-center border-b border-gray-700"
+          class="bg-gray-800/80 backdrop-blur-sm sticky top-0 z-30 p-3 md:p-4 flex flex-wrap gap-3 justify-between items-center border-b border-gray-700"
         >
-          <h2 id="page-title" class="text-2xl font-bold">My Collection</h2>
-          <div class="flex items-center gap-4">
+          <h2 id="page-title" class="text-xl md:text-2xl font-bold truncate">My Collection</h2>
+          <div class="flex items-center gap-2 md:gap-3 flex-wrap justify-end flex-1">
               <!-- How to Start / Guided Help Button -->
               <button
                 id="how-to-start-btn"
                 title="How to Start"
-                class="bg-teal-600 hover:bg-teal-700 text-white font-medium py-2 px-3 rounded-lg transition duration-200 flex items-center gap-2"
+                class="bg-teal-600 hover:bg-teal-700 text-white font-medium p-2 md:py-2 md:px-3 rounded-lg transition duration-200 flex items-center gap-2"
               >
                 <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20c4.418 0 8-3.582 8-8s-3.582-8-8-8-8 3.582-8 8 3.582 8 8 8z"/></svg>
-                <span class="hidden sm:inline">How to Start</span>
+                <span class="hidden lg:inline">How to Start</span>
               </button>
             <button
               id="new-player-guide-btn"
-              class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 flex items-center gap-2"
+              title="New Player Guide"
+              class="bg-blue-600 hover:bg-blue-700 text-white font-bold p-2 md:py-2 md:px-4 rounded-lg transition duration-300 flex items-center gap-2"
             >
               <svg
                 class="w-5 h-5"
@@ -315,19 +307,20 @@
                   d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.79 4 4s-1.79 4-4 4c-1.742 0-3.223-.835-3.772-2M12 5v.01M12 19v.01"
                 ></path>
               </svg>
-              New Player Guide
+              <span class="hidden lg:inline">New Player Guide</span>
             </button>
             <button
               id="open-playstyle-panel-btn"
               title="Playstyle"
-              class="bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-3 rounded-lg transition duration-200 flex items-center gap-2"
+              class="bg-gray-700 hover:bg-gray-600 text-white font-medium p-2 md:py-2 md:px-3 rounded-lg transition duration-200 flex items-center gap-2"
             >
               <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 20l9-5-9-5-9 5 9 5z"/></svg>
-              <span class="hidden sm:inline">Playstyle</span>
+              <span class="hidden lg:inline">Playstyle</span>
             </button>
             <button
               id="edit-mode-toggle"
-              class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 flex items-center gap-2"
+              title="Edit Mode"
+              class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold p-2 md:py-2 md:px-4 rounded-lg transition duration-300 flex items-center gap-2"
             >
               <svg
                 class="w-5 h-5"
@@ -342,7 +335,7 @@
                   d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
                 ></path>
               </svg>
-              <span id="edit-mode-text">Edit Mode</span>
+              <span id="edit-mode-text" class="hidden lg:inline">Edit Mode</span>
             </button>
           </div>
         </header>
@@ -356,29 +349,29 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
               
               <!-- KPI Cards (Spans 2 columns on large screens) -->
-              <div id="collection-kpi-bar" class="lg:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div id="collection-kpi-bar" class="lg:col-span-2 grid grid-cols-3 gap-2 md:gap-4">
                 <!-- Total Cards -->
-                <div class="bg-gray-800 rounded-xl p-4 border border-gray-700 shadow-sm flex flex-col items-center justify-center relative overflow-hidden group">
+                <div class="bg-gray-800 rounded-xl p-2 md:p-4 border border-gray-700 shadow-sm flex flex-col items-center justify-center relative overflow-hidden group">
                   <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  <span class="text-sm text-gray-400 font-medium z-10">Total Cards</span>
-                  <span id="kpi-total-cards" data-metric="total_cards" class="text-3xl font-bold text-white mt-1 z-10">0</span>
-                  <span class="text-xs text-gray-500 z-10">All copies</span>
+                  <span class="text-[10px] md:text-sm text-gray-400 font-medium z-10 text-center">Total Cards</span>
+                  <span id="kpi-total-cards" data-metric="total_cards" class="text-xl md:text-3xl font-bold text-white mt-1 z-10">0</span>
+                  <span class="text-[10px] md:text-xs text-gray-500 z-10 hidden md:inline">All copies</span>
                 </div>
 
                 <!-- Unique Cards -->
-                <div class="bg-gray-800 rounded-xl p-4 border border-gray-700 shadow-sm flex flex-col items-center justify-center relative overflow-hidden group">
+                <div class="bg-gray-800 rounded-xl p-2 md:p-4 border border-gray-700 shadow-sm flex flex-col items-center justify-center relative overflow-hidden group">
                   <div class="absolute inset-0 bg-gradient-to-br from-pink-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  <span class="text-sm text-gray-400 font-medium z-10">Unique Cards</span>
-                  <span id="kpi-unique-cards" data-metric="unique_cards" class="text-3xl font-bold text-white mt-1 z-10">0</span>
-                  <span class="text-xs text-gray-500 z-10">Distinct names</span>
+                  <span class="text-[10px] md:text-sm text-gray-400 font-medium z-10 text-center">Unique Cards</span>
+                  <span id="kpi-unique-cards" data-metric="unique_cards" class="text-xl md:text-3xl font-bold text-white mt-1 z-10">0</span>
+                  <span class="text-[10px] md:text-xs text-gray-500 z-10 hidden md:inline">Distinct names</span>
                 </div>
 
                 <!-- Total Price -->
-                <div class="bg-gray-800 rounded-xl p-4 border border-gray-700 shadow-sm flex flex-col items-center justify-center relative overflow-hidden group">
+                <div class="bg-gray-800 rounded-xl p-2 md:p-4 border border-gray-700 shadow-sm flex flex-col items-center justify-center relative overflow-hidden group">
                   <div class="absolute inset-0 bg-gradient-to-br from-green-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  <span class="text-sm text-gray-400 font-medium z-10">Total Value</span>
-                  <span id="kpi-total-price" data-metric="total_price" class="text-3xl font-bold text-green-400 mt-1 z-10">$0.00</span>
-                  <span class="text-xs text-gray-500 z-10">Market Price (USD)</span>
+                  <span class="text-[10px] md:text-sm text-gray-400 font-medium z-10 text-center">Total Value</span>
+                  <span id="kpi-total-price" data-metric="total_price" class="text-xl md:text-3xl font-bold text-green-400 mt-1 z-10">$0.00</span>
+                  <span class="text-[10px] md:text-xs text-gray-500 z-10 hidden md:inline">Market Price (USD)</span>
                 </div>
               </div>
 
@@ -408,12 +401,12 @@
             </div>
 
             <!-- Controls Bar: Search, Filter, Sort, View -->
-            <div class="bg-gray-800 rounded-xl p-4 border border-gray-700 shadow-sm flex flex-col xl:flex-row gap-4 items-center justify-between">
+            <div class="bg-gray-800 rounded-xl p-3 md:p-4 border border-gray-700 shadow-sm flex flex-col xl:flex-row gap-3 md:gap-4 items-center justify-between">
               
               <!-- Left: Search & Filter -->
-              <div class="flex flex-col sm:flex-row gap-3 w-full xl:w-auto flex-grow">
+              <div class="flex flex-col w-full xl:w-auto gap-3 flex-grow">
                 <!-- Quick Filter -->
-                <div class="relative flex-grow max-w-md">
+                <div class="relative w-full">
                   <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <svg class="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v16a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm4 4h8v8H7V8z"/></svg>
                   </div>
@@ -425,11 +418,11 @@
                   />
                 </div>
 
-                <!-- Group By -->
-                <div class="flex gap-2">
+                <!-- Group By Row (Grid on mobile) -->
+                <div class="grid grid-cols-2 sm:flex gap-2 w-full">
                   <select
                     id="collection-group-by-1"
-                    class="bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    class="bg-gray-900 border border-gray-600 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full sm:w-auto"
                     title="Group By"
                   >
                     <option value="">No Grouping</option>
@@ -440,10 +433,10 @@
                     <option value="set_name">Set</option>
                     <option value="deck">Deck</option>
                   </select>
-                  <!-- Secondary Group By (Hidden by default or small) -->
+                  <!-- Secondary Group By -->
                   <select
                     id="collection-group-by-2"
-                    class="hidden sm:block bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    class="bg-gray-900 border border-gray-600 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full sm:w-auto"
                     title="Then By"
                   >
                     <option value="">Then By...</option>
@@ -458,11 +451,11 @@
               </div>
 
               <!-- Right: View Options & Actions -->
-              <div class="flex flex-wrap items-center gap-3 w-full xl:w-auto justify-end">
+              <div class="flex flex-wrap items-center gap-2 w-full xl:w-auto justify-between sm:justify-end">
                 
                 <!-- Saved Views -->
                  <div class="flex items-center gap-2">
-                  <select id="saved-views-select" class="bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 max-w-[120px]">
+                  <select id="saved-views-select" class="bg-gray-900 border border-gray-600 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 max-w-[100px] sm:max-w-[120px]">
                     <option value="">Views</option>
                   </select>
                 </div>
@@ -477,28 +470,30 @@
 
                 <div class="h-6 w-px bg-gray-700 mx-1 hidden sm:block"></div>
 
-                <!-- Grid Size -->
-                <div class="flex bg-gray-900 rounded-lg p-1 border border-gray-600">
-                  <button class="grid-size-btn px-2 py-1 rounded text-xs font-medium text-gray-400 hover:text-white transition-colors" data-size="sm">S</button>
-                  <button class="grid-size-btn px-2 py-1 rounded text-xs font-medium bg-gray-700 text-white shadow-sm transition-colors" data-size="md">M</button>
-                  <button class="grid-size-btn px-2 py-1 rounded text-xs font-medium text-gray-400 hover:text-white transition-colors" data-size="lg">L</button>
-                </div>
+                <div class="flex items-center gap-2 ml-auto sm:ml-0">
+                    <!-- Grid Size -->
+                    <div class="flex bg-gray-900 rounded-lg p-1 border border-gray-600">
+                      <button class="grid-size-btn px-2 py-1 rounded text-xs font-medium text-gray-400 hover:text-white transition-colors" data-size="sm">S</button>
+                      <button class="grid-size-btn px-2 py-1 rounded text-xs font-medium bg-gray-700 text-white shadow-sm transition-colors" data-size="md">M</button>
+                      <button class="grid-size-btn px-2 py-1 rounded text-xs font-medium text-gray-400 hover:text-white transition-colors" data-size="lg">L</button>
+                    </div>
 
-                <!-- View Toggle -->
-                <div class="flex bg-gray-900 rounded-lg p-1 border border-gray-600">
-                  <button id="view-toggle-grid" class="view-toggle p-1.5 rounded text-gray-400 hover:text-white transition-colors bg-gray-700 text-white shadow-sm" title="Grid">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
-                  </button>
-                  <button id="view-toggle-table" class="view-toggle p-1.5 rounded text-gray-400 hover:text-white transition-colors" title="Table">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
-                  </button>
-                </div>
+                    <!-- View Toggle -->
+                    <div class="flex bg-gray-900 rounded-lg p-1 border border-gray-600">
+                      <button id="view-toggle-grid" class="view-toggle p-1.5 rounded text-gray-400 hover:text-white transition-colors bg-gray-700 text-white shadow-sm" title="Grid">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                      </button>
+                      <button id="view-toggle-table" class="view-toggle p-1.5 rounded text-gray-400 hover:text-white transition-colors" title="Table">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+                      </button>
+                    </div>
 
-                 <!-- Refresh Prices -->
-                <button id="refresh-prices-btn" class="text-gray-400 hover:text-green-400 transition-colors p-2" title="Refresh Prices">
-                   <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                </button>
-                 <button id="reset-filters-btn" class="text-gray-400 hover:text-white transition-colors text-sm font-medium underline decoration-gray-600 hover:decoration-white">Reset</button>
+                     <!-- Refresh Prices -->
+                    <button id="refresh-prices-btn" class="text-gray-400 hover:text-green-400 transition-colors p-2" title="Refresh Prices">
+                       <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    </button>
+                     <button id="reset-filters-btn" class="text-gray-400 hover:text-white transition-colors text-sm font-medium underline decoration-gray-600 hover:decoration-white">Reset</button>
+                </div>
               </div>
             </div>
 
@@ -525,14 +520,14 @@
           <!-- Decks View -->
           <div id="decks-view" class="hidden space-y-6">
             <!-- Decks Header -->
-            <div class="flex flex-col md:flex-row justify-between items-end md:items-center gap-4 border-b border-gray-700 pb-4">
+            <div class="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 border-b border-gray-700 pb-4">
               <div>
                 <h2 class="text-3xl font-bold text-white">My Decks</h2>
                 <p class="text-gray-400 text-sm mt-1">Manage your constructed decks and commander lists.</p>
               </div>
               <button
                 id="create-deck-btn"
-                class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg shadow-lg shadow-indigo-500/20 transition-all transform hover:-translate-y-0.5 flex items-center gap-2"
+                class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg shadow-indigo-500/20 transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2 w-full md:w-auto"
               >
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 Create New Deck
@@ -542,7 +537,7 @@
             <!-- Decks Grid -->
             <div
               id="decks-list"
-              class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+              class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6"
             >
               <!-- Deck items will be dynamically inserted here -->
             </div>
@@ -757,32 +752,77 @@
           <div id="settings-view" class="hidden">
             <!-- Tab Navigation -->
             <div class="mb-6">
-              <nav class="flex gap-1 border-b-2 border-gray-700 overflow-x-auto" id="settings-tabs-nav">
-                <button class="settings-tab px-6 py-3 font-semibold text-gray-400 border-b-4 border-transparent hover:text-white hover:border-gray-600 transition-all whitespace-nowrap flex items-center gap-2" data-tab="general">
-                  <span class="text-xl">🏠</span>
-                  <span>General</span>
+              <nav class="grid grid-cols-2 gap-2 sm:flex sm:gap-1 sm:border-b-2 sm:border-gray-700 sm:overflow-x-auto" id="settings-tabs-nav">
+                <button class="settings-tab px-4 py-2 text-sm font-medium rounded-lg sm:rounded-none sm:rounded-t-lg text-gray-400 border-transparent sm:border-b-4 hover:text-white hover:bg-gray-700 sm:hover:bg-transparent focus:outline-none transition-all duration-200" data-tab="general">
+                  General
                 </button>
-                <button class="settings-tab px-6 py-3 font-semibold text-gray-400 border-b-4 border-transparent hover:text-white hover:border-gray-600 transition-all whitespace-nowrap flex items-center gap-2" data-tab="ai">
-                  <span class="text-xl">🤖</span>
-                  <span>AI & Integrations</span>
+                <button class="settings-tab px-4 py-2 text-sm font-medium rounded-lg sm:rounded-none sm:rounded-t-lg text-gray-400 border-transparent sm:border-b-4 hover:text-white hover:bg-gray-700 sm:hover:bg-transparent focus:outline-none transition-all duration-200" data-tab="ai">
+                  AI & Integrations
                 </button>
-                <button class="settings-tab px-6 py-3 font-semibold text-gray-400 border-b-4 border-transparent hover:text-white hover:border-gray-600 transition-all whitespace-nowrap flex items-center gap-2" data-tab="display">
-                  <span class="text-xl">👁️</span>
-                  <span>Display</span>
+                <button class="settings-tab px-4 py-2 text-sm font-medium rounded-lg sm:rounded-none sm:rounded-t-lg text-gray-400 border-transparent sm:border-b-4 hover:text-white hover:bg-gray-700 sm:hover:bg-transparent focus:outline-none transition-all duration-200" data-tab="display">
+                  Display
                 </button>
-                <button class="settings-tab px-6 py-3 font-semibold text-gray-400 border-b-4 border-transparent hover:text-white hover:border-gray-600 transition-all whitespace-nowrap flex items-center gap-2" data-tab="data">
-                  <span class="text-xl">💾</span>
-                  <span>Data</span>
+                <button class="settings-tab px-4 py-2 text-sm font-medium rounded-lg sm:rounded-none sm:rounded-t-lg text-gray-400 border-transparent sm:border-b-4 hover:text-white hover:bg-gray-700 sm:hover:bg-transparent focus:outline-none transition-all duration-200" data-tab="data">
+                  Data
                 </button>
-                <button class="settings-tab px-6 py-3 font-semibold text-gray-400 border-b-4 border-transparent hover:text-white hover:border-gray-600 transition-all whitespace-nowrap flex items-center gap-2" data-tab="views">
-                  <span class="text-xl">📋</span>
-                  <span>Saved Views</span>
+                <button class="settings-tab px-4 py-2 text-sm font-medium rounded-lg sm:rounded-none sm:rounded-t-lg text-gray-400 border-transparent sm:border-b-4 hover:text-white hover:bg-gray-700 sm:hover:bg-transparent focus:outline-none transition-all duration-200" data-tab="views">
+                  Saved Views
                 </button>
-                <button class="settings-tab px-6 py-3 font-semibold text-gray-400 border-b-4 border-transparent hover:text-white hover:border-gray-600 transition-all whitespace-nowrap flex items-center gap-2" data-tab="advanced">
-                  <span class="text-xl">⚙️</span>
-                  <span>Advanced</span>
+                <button class="settings-tab px-4 py-2 text-sm font-medium rounded-lg sm:rounded-none sm:rounded-t-lg text-gray-400 border-transparent sm:border-b-4 hover:text-white hover:bg-gray-700 sm:hover:bg-transparent focus:outline-none transition-all duration-200" data-tab="advanced">
+                  Advanced
                 </button>
               </nav>
+              <script>
+(function() {
+  window.initSettingsTabs = function() {
+    const tabs = document.querySelectorAll('.settings-tab');
+    const panels = document.querySelectorAll('.settings-tab-panel');
+    
+    function activateTab(tab) {
+      // Deactivate all
+      tabs.forEach(t => {
+        t.classList.remove('text-white', 'border-indigo-500', 'bg-indigo-600', 'ring-2', 'ring-indigo-500');
+        t.classList.add('text-gray-400', 'border-transparent', 'bg-gray-800', 'sm:bg-transparent');
+        // Ensure border-b-4 is reset for desktop
+        t.classList.add('sm:border-transparent'); 
+        t.classList.remove('sm:border-indigo-500');
+      });
+      
+      // Activate current
+      tab.classList.remove('text-gray-400', 'border-transparent', 'bg-gray-800', 'sm:bg-transparent', 'sm:border-transparent');
+      tab.classList.add('text-white');
+      
+      // Desktop active style (border bottom)
+      tab.classList.add('sm:border-indigo-500');
+      
+      // Mobile active style (filled background)
+      tab.classList.add('bg-indigo-600', 'border-transparent');
+      
+      // Show panel
+      const target = tab.dataset.tab;
+      panels.forEach(p => {
+        if(p.id === `settings-tab-${target}`) p.classList.remove('hidden');
+        else p.classList.add('hidden');
+      });
+    }
+
+    tabs.forEach(tab => {
+      tab.onclick = () => activateTab(tab);
+    });
+    
+    // Activate first if none active or restore active state
+    const active = document.querySelector('.settings-tab.text-white') || tabs[0];
+    if(active) activateTab(active);
+  };
+  
+  // Run when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', window.initSettingsTabs);
+  } else {
+    window.initSettingsTabs();
+  }
+})();
+</script>
             </div>
 
             <!-- Tab Panels -->
@@ -1178,6 +1218,34 @@
       </div>
     </div>
 
+    <!-- Mobile Bottom Navigation -->
+    <nav id="mobile-bottom-nav" class="md:hidden fixed bottom-0 left-0 right-0 bg-gray-800 border-t border-gray-700 z-50 flex justify-around items-center pb-safe pt-2 px-1">
+      <button id="mobile-nav-collection" class="flex flex-col items-center p-2 text-gray-400 hover:text-white w-full">
+        <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+        <span class="text-[10px]">Collection</span>
+      </button>
+      <button id="mobile-nav-decks" class="flex flex-col items-center p-2 text-gray-400 hover:text-white w-full">
+        <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+        <span class="text-[10px]">Decks</span>
+      </button>
+      <button id="mobile-nav-sets" class="flex flex-col items-center p-2 text-gray-400 hover:text-white w-full">
+        <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h18M3 12h18M3 17h18"></path></svg>
+        <span class="text-[10px]">Sets</span>
+      </button>
+      <button id="mobile-nav-rules" class="flex flex-col items-center p-2 text-gray-400 hover:text-white w-full">
+        <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.79 4 4s-1.79 4-4 4c-1.742 0-3.223-.835-3.772-2M12 5v.01M12 19v.01"></path></svg>
+        <span class="text-[10px]">Rules</span>
+      </button>
+      <button id="mobile-nav-chat" class="flex flex-col items-center p-2 text-gray-400 hover:text-white w-full">
+        <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+        <span class="text-[10px]">Chat</span>
+      </button>
+      <button id="mobile-nav-settings" class="flex flex-col items-center p-2 text-gray-400 hover:text-white w-full">
+        <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+        <span class="text-[10px]">Settings</span>
+      </button>
+    </nav>
+    
     <!-- Modals -->
 
     <!-- Add Cards to Deck Modal -->
@@ -1196,17 +1264,18 @@
         </div>
                 <div class="overflow-auto" style="max-height: calc(80vh - 150px);">
                     <table class="w-full text-sm text-left text-gray-300">
-                        <thead class="text-xs text-gray-400 uppercase bg-gray-700 sticky top-0">
+                        <thead class="text-xs text-gray-400 uppercase bg-gray-700 sticky top-0 z-10">
                             <tr>
-                                <th scope="col" class="p-4">
-                                    <div class="flex items-center">
+                                <th scope="col" class="p-2 sm:p-4 w-10">
+                                    <div class="flex items-center justify-center">
                                         <input id="add-cards-select-all" type="checkbox" class="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-600 ring-offset-gray-800 focus:ring-2">
                                         <label for="add-cards-select-all" class="sr-only">checkbox</label>
                                     </div>
                                 </th>
-                                <th scope="col" class="px-6 py-3">Card</th>
-                                <th scope="col" class="px-6 py-3">Type</th>
-                                <th scope="col" class="px-6 py-3 text-center">Available</th>
+                                <th scope="col" class="px-2 py-2 sm:px-6 sm:py-3 text-left">Card</th>
+                                <th scope="col" class="px-2 py-2 sm:px-6 sm:py-3 text-left hidden sm:table-cell">Oracle</th>
+                                <th scope="col" class="px-2 py-2 sm:px-6 sm:py-3 text-center">Finish</th>
+                                <th scope="col" class="px-2 py-2 sm:px-6 sm:py-3 text-center">Count</th>
                             </tr>
                         </thead>
                         <tbody id="add-cards-modal-table-body">
@@ -1427,9 +1496,9 @@
     <!-- Deck Creation Modal -->
     <div
       id="deck-creation-modal"
-      class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop"
+      class="fixed inset-0 z-50 hidden items-center justify-center p-0 md:p-4 modal-backdrop"
     >
-      <div class="bg-gray-800 rounded-lg shadow-2xl max-w-lg w-full">
+      <div class="bg-gray-800 rounded-none md:rounded-lg shadow-2xl max-w-lg w-full h-full md:h-auto overflow-y-auto">
         <form id="deck-creation-form">
           <div class="p-6">
             <h3 class="text-xl font-bold mb-4">Create a New Deck</h3>
@@ -1572,9 +1641,9 @@
     <!-- Generic Confirmation Modal -->
     <div
       id="confirmation-modal"
-      class="fixed inset-0 z-[80] hidden items-center justify-center p-4 modal-backdrop"
+      class="fixed inset-0 z-[80] hidden items-center justify-center p-0 md:p-4 modal-backdrop"
     >
-      <div class="bg-gray-800 rounded-lg shadow-2xl max-w-sm w-full">
+      <div class="bg-gray-800 rounded-none md:rounded-lg shadow-2xl max-w-sm w-full h-full md:h-auto flex flex-col justify-center">
         <div class="p-6 text-center">
           <h3 id="confirmation-title" class="text-xl font-bold mb-2">
             Are you sure?
@@ -1595,17 +1664,8 @@
             >
               Cancel
             </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-      <!-- Data Import Options Modal -->
-    <div
-      id="data-import-options-modal"
-      class="fixed inset-0 z-[80] hidden items-center justify-center p-4 modal-backdrop"
     >
-      <div class="bg-gray-800 rounded-lg shadow-2xl max-w-md w-full">
+      <div class="bg-gray-800 rounded-none md:rounded-lg shadow-2xl max-w-md w-full h-full md:h-auto flex flex-col justify-center">
         <div class="p-6 text-center">
           <h3 class="text-xl font-bold mb-2">Import Data</h3>
           <p class="text-gray-400 mb-6">
@@ -1639,9 +1699,9 @@
     <!-- Deck Deletion Options Modal -->
     <div
       id="deck-delete-options-modal"
-      class="fixed inset-0 z-[80] hidden items-center justify-center p-4 modal-backdrop"
+      class="fixed inset-0 z-[80] hidden items-center justify-center p-0 md:p-4 modal-backdrop"
     >
-      <div class="bg-gray-800 rounded-lg shadow-2xl max-w-md w-full">
+      <div class="bg-gray-800 rounded-none md:rounded-lg shadow-2xl max-w-md w-full h-full md:h-auto flex flex-col justify-center">
         <div class="p-6 text-center">
           <h3 class="text-xl font-bold mb-2">Delete Deck</h3>
           <p class="text-gray-400 mb-6">
@@ -1667,23 +1727,6 @@
             >
               Cancel
             </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Playstyle Profile Modal -->
-    <div
-      id="playstyle-profile-modal"
-      class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop"
-    >
-      <div
-        class="bg-gray-900 rounded-2xl shadow-2xl border border-gray-700 max-w-2xl w-full flex flex-col overflow-hidden transform transition-all scale-100"
-      >
-        <!-- Header -->
-        <div class="p-5 border-b border-gray-800 flex justify-between items-center bg-gray-900/50">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
             </div>
             <div>
@@ -1750,38 +1793,30 @@
     </div>
 
     <!-- MTG Chat Modal -->
+    <!-- MTG Chat Modal -->
     <div
       id="mtg-chat-modal"
-      class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop bg-black/80 backdrop-blur-sm transition-opacity duration-300"
+      class="fixed inset-0 z-50 hidden items-center justify-center p-0 md:p-4 modal-backdrop"
     >
-      <div
-        class="bg-gray-900 rounded-2xl shadow-2xl border border-gray-700 max-w-4xl w-full h-[85vh] flex flex-col overflow-hidden transform transition-all scale-100"
-      >
+      <div class="bg-gray-900 rounded-none md:rounded-2xl shadow-2xl border border-gray-700 w-full md:max-w-2xl h-full md:h-[85vh] flex flex-col overflow-hidden">
         <!-- Header -->
-        <div class="p-5 border-b border-gray-800 flex justify-between items-center bg-gray-900/50">
+        <div class="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-900/50">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
             </div>
             <div>
-              <h3 class="text-xl font-bold text-white">MTG Forge</h3>
-              <p class="text-xs text-indigo-400 font-medium">AI Strategy & Rules Assistant</p>
+              <h3 class="text-xl font-bold text-white">MTG Chat</h3>
+              <p class="text-xs text-indigo-400 font-medium">Your AI Magic Companion</p>
             </div>
           </div>
           <div class="flex items-center gap-2">
-             <button
-              id="save-mtg-conversation-btn"
-              class="text-gray-400 hover:text-white p-2 rounded-lg hover:bg-gray-800 transition-colors"
-              title="Save as Text"
-            >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
-            </button>
             <button
-              id="export-mtg-conversation-btn"
+              id="clear-chat-btn"
               class="text-gray-400 hover:text-white p-2 rounded-lg hover:bg-gray-800 transition-colors"
-              title="Export JSON"
+              title="Clear History"
             >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
             </button>
             <div class="h-6 w-px bg-gray-700 mx-1"></div>
             <button
@@ -1836,10 +1871,10 @@
     <!-- New Player Guide Modal -->
     <div
       id="new-player-guide-modal"
-      class="fixed inset-0 z-50 hidden items-center justify-center p-4 modal-backdrop"
+      class="fixed inset-0 z-50 hidden items-center justify-center p-0 md:p-4 modal-backdrop"
     >
       <div
-        class="bg-gray-800 rounded-lg shadow-2xl max-w-3xl w-full h-[80vh] flex flex-col"
+        class="bg-gray-800 rounded-none md:rounded-lg shadow-2xl max-w-3xl w-full h-full md:h-[80vh] flex flex-col"
       >
         <div
           class="p-4 border-b border-gray-700 flex justify-between items-center"
@@ -2014,10 +2049,10 @@
     <!-- Notification Modal -->
     <div
       id="notification-modal"
-      class="fixed inset-0 z-[90] hidden items-center justify-center p-4 modal-backdrop"
+      class="fixed inset-0 z-[90] hidden items-center justify-center p-0 md:p-4 modal-backdrop"
     >
       <div
-        class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm text-center"
+        class="bg-gray-800 rounded-none md:rounded-lg shadow-xl p-6 w-full max-w-sm text-center h-full md:h-auto flex flex-col justify-center"
       >
         <h3
           id="notification-title"
@@ -3108,18 +3143,28 @@
                     </div>
                 </div>
 
-                <!-- Stats Bar -->
-                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
-                    ${kpiHtml}
+                <!-- Stats Toggle & Content -->
+                <div class="flex justify-end mb-2">
+                    <button id="toggle-stats-btn" class="text-xs text-gray-400 hover:text-white flex items-center gap-1 transition-colors" onclick="const el = document.getElementById('deck-stats-container'); const btn = this; if(el.classList.contains('hidden')) { el.classList.remove('hidden'); btn.innerHTML = 'Hide Stats <svg class=\'w-3 h-3\' fill=\'none\' stroke=\'currentColor\' viewBox=\'0 0 24 24\'><path stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M5 15l7-7 7 7\'/></svg>'; } else { el.classList.add('hidden'); btn.innerHTML = 'Show Stats <svg class=\'w-3 h-3\' fill=\'none\' stroke=\'currentColor\' viewBox=\'0 0 24 24\'><path stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'/></svg>'; }">
+                        Hide Stats
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
+                    </button>
                 </div>
-                
-                <!-- Basic Lands Breakdown -->
-                ${basicLandsHtml}
+                <div id="deck-stats-container" class="space-y-6 transition-all duration-300">
+                    <!-- Stats Bar -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+                        ${kpiHtml}
+                    </div>
+                    
+                    <!-- Basic Lands Breakdown -->
+                    ${basicLandsHtml}
+                </div>
 
                 <!-- Main Content Area -->
                 <div class="flex flex-col lg:flex-row gap-6">
                     <!-- Left: Decklist (Flexible Width) -->
-                    <div class="flex-1 min-w-0 bg-gray-800 rounded-xl shadow-lg p-1">
+                    <!-- Mobile: Order 2 (Bottom), Desktop: Order 1 (Left) -->
+                    <div class="flex-1 min-w-0 bg-gray-800 rounded-xl shadow-lg p-1 order-2 lg:order-1">
                         <div class="flex items-center justify-between px-4 py-3 border-b border-gray-700/50">
                             <h3 class="text-lg font-bold text-white">Decklist</h3>
                             <div class="flex bg-gray-900/50 rounded-lg p-1 gap-1">
@@ -3137,12 +3182,16 @@
                     </div>
 
                     <!-- Right: Tools & Charts (Fixed Width on Desktop) -->
-                    <div class="w-full lg:w-80 space-y-6 shrink-0">
-                        <!-- Commander Mini-View (if needed, or just keep it in banner) -->
+                    <!-- Mobile: Order 1 (Top), Desktop: Order 2 (Right) -->
+                    <div class="w-full lg:w-80 space-y-6 shrink-0 order-1 lg:order-2">
+                        <!-- Commander Mini-View (Collapsible) -->
                         ${deck.commander ? `
                         <div class="bg-gray-800 p-4 rounded-xl shadow-lg">
-                            <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Commander</h3>
-                            <div class="relative group cursor-pointer" onclick="if(typeof window.renderCardDetailsModal === 'function') window.renderCardDetailsModal(window.localCollection['${deck.commander.firestoreId}'])">
+                            <div class="flex justify-between items-center mb-3 cursor-pointer" onclick="const el = document.getElementById('commander-card-content'); const icon = this.querySelector('svg'); if(el.classList.contains('hidden')) { el.classList.remove('hidden'); icon.style.transform = 'rotate(0deg)'; } else { el.classList.add('hidden'); icon.style.transform = 'rotate(180deg)'; }">
+                                <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider">Commander</h3>
+                                <svg class="w-4 h-4 text-gray-500 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </div>
+                            <div id="commander-card-content" class="relative group cursor-pointer" onclick="if(typeof window.renderCardDetailsModal === 'function') window.renderCardDetailsModal(window.localCollection['${deck.commander.firestoreId}'])">
                                 <img src="${deck.commander.image_uris?.normal}" class="w-full rounded-lg shadow-md hover:shadow-indigo-500/30 transition-shadow duration-300" alt="${deck.commander.name}">
                             </div>
                         </div>` : ''}
@@ -4207,5 +4256,40 @@
         // (bootApp() calls setupGlobalListeners once to avoid duplicate handlers.)
       });
     </script>
+    <!-- Mobile Footer Container -->
+    <footer id="mobile-footer-wrapper" class="md:hidden fixed bottom-0 left-0 right-0 z-[100] bg-gray-900 border-t border-gray-800 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+      <nav id="mobile-bottom-nav" class="flex justify-around items-center h-16 pb-safe px-2 w-full">
+        <button id="mobile-nav-collection" class="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-indigo-400 active:text-indigo-500 transition-colors">
+          <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+          <span class="text-[10px] font-medium">Collection</span>
+        </button>
+        <button id="mobile-nav-decks" class="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-indigo-400 active:text-indigo-500 transition-colors">
+          <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+          <span class="text-[10px] font-medium">Decks</span>
+        </button>
+        <button id="mobile-nav-sets" class="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-indigo-400 active:text-indigo-500 transition-colors">
+          <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h18M3 12h18M3 17h18"></path></svg>
+          <span class="text-[10px] font-medium">Sets</span>
+        </button>
+        <button id="mobile-nav-rules" class="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-indigo-400 active:text-indigo-500 transition-colors">
+          <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.79 4 4s-1.79 4-4 4c-1.742 0-3.223-.835-3.772-2M12 5v.01M12 19v.01"></path></svg>
+          <span class="text-[10px] font-medium">Rules</span>
+        </button>
+        <button id="mobile-nav-chat" class="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-indigo-400 active:text-indigo-500 transition-colors">
+          <div class="relative">
+              <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+              <span class="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-indigo-500"></span>
+              </span>
+          </div>
+          <span class="text-[10px] font-medium">Chat</span>
+        </button>
+        <button id="mobile-nav-settings" class="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-indigo-400 active:text-indigo-500 transition-colors">
+          <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+          <span class="text-[10px] font-medium">Settings</span>
+        </button>
+      </nav>
+    </footer>
   </body>
 </html>

@@ -431,7 +431,8 @@ export function initSettingsModule() {
       try {
         const t = ev.target;
         if (!t) return;
-        if (t.id === 'nav-settings' || (t.closest && t.closest('#nav-settings'))) {
+        if (t.id === 'nav-settings' || (t.closest && t.closest('#nav-settings')) ||
+          t.id === 'mobile-nav-settings' || (t.closest && t.closest('#mobile-nav-settings'))) {
           // Delay slightly to allow the view switch to complete in the legacy UI
           setTimeout(() => {
             try {

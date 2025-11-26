@@ -1,3 +1,14 @@
+/**
+ * playstyle.js
+ * 
+ * The main entry point for the Playstyle feature.
+ * Responsible for:
+ * 1. Rendering the Playstyle Profile widget in the settings/modal.
+ * 2. Integrating with `playstyleLogic.js` for data management.
+ * 3. Launching the `playstyleWizard.js` when requested.
+ * 4. Exposing the public API for other modules.
+ */
+
 import { showToast } from '../lib/ui.js';
 import {
   playstyleState,
@@ -9,7 +20,7 @@ import {
   synthesizeStructuredPlaystyle
 } from './playstyleLogic.js';
 
-// Re-export for compatibility
+// Re-export logic functions for compatibility with other modules
 export {
   playstyleState,
   loadPlaystyleForUser,
@@ -22,6 +33,15 @@ export {
 
 // --- UI Logic ---
 
+/**
+ * Renders the Playstyle Profile widget into the specified container.
+ * Displays:
+ * - Current Playstyle Summary (if exists)
+ * - "Start Quiz" or "Update Profile" button
+ * - "Clear Profile" button (if profile exists)
+ * 
+ * @param {string} containerId - The ID of the DOM element to render into.
+ */
 export function renderPlaystyleWidget(containerId = 'playstyle-profile-content') {
   // Prefer the profile modal content
   let container = typeof document !== 'undefined' ? document.getElementById(containerId) : null;

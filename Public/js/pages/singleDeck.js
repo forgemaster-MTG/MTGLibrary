@@ -498,27 +498,27 @@ export function openAddCardsToDeckModal(deckId) {
 
         return `
         <tr class="border-b border-gray-700 hover:bg-gray-700/50 transition-colors">
-          <td class="p-4 w-10">
+          <td class="p-2 sm:p-4 w-10">
             <div class="flex items-center justify-center">
               <input id="checkbox-${card.firestoreId}" type="checkbox" data-firestore-id="${card.firestoreId}" class="add-card-checkbox w-4 h-4 rounded border-gray-600 text-indigo-600 focus:ring-indigo-500 bg-gray-700">
             </div>
           </td>
-          <td class="px-4 py-3 align-top">
+          <td class="px-2 py-2 sm:px-4 sm:py-3 align-top">
             <div class="flex flex-col">
-                <div class="font-bold text-white text-sm mb-0.5 flex items-center gap-2">
+                <div class="font-bold text-white text-sm mb-0.5 flex items-center gap-2 flex-wrap">
                     ${card.name}
                     <span class="flex items-center">${manaHtml}</span>
                 </div>
                 <div class="text-xs text-gray-400">${(card.type_line || '').split(' — ')[0]}</div>
             </div>
           </td>
-          <td class="px-4 py-3 align-top hidden sm:table-cell">
+          <td class="px-2 py-2 sm:px-4 sm:py-3 align-top hidden sm:table-cell">
             <div class="text-xs text-gray-300 italic leading-snug max-w-xs">${oracleText}</div>
           </td>
-          <td class="px-4 py-3 align-top text-center">
+          <td class="px-2 py-2 sm:px-4 sm:py-3 align-top text-center">
             ${finishBadge}
           </td>
-          <td class="px-4 py-3 align-top text-center font-mono text-indigo-300 font-bold">
+          <td class="px-2 py-2 sm:px-4 sm:py-3 align-top text-center font-mono text-indigo-300 font-bold">
             ${card.count}
           </td>
         </tr>

@@ -39,15 +39,16 @@ export function openModal(modalId) {
     // Delay slightly to allow modal to become visible
     setTimeout(() => {
       if (modalId === 'ai-suggestions-modal') {
-        const el = document.getElementById('ai-chat-input'); if (el) try { el.focus(); } catch(e){}
+        const el = document.getElementById('ai-chat-input'); if (el) try { el.focus(); } catch (e) { }
       } else if (modalId === 'rule-lookup-modal') {
-        const el = document.getElementById('rule-lookup-input'); if (el) try { el.focus(); } catch(e){}
+        const el = document.getElementById('rule-lookup-input'); if (el) try { el.focus(); } catch (e) { }
       } else if (modalId === 'mtg-chat-modal') {
-        const el = document.getElementById('mtg-chat-input'); if (el) try { el.focus(); } catch(e){}
+        const el = document.getElementById('mtg-chat-input'); if (el) try { el.focus(); } catch (e) { }
       }
     }, 60);
-  } catch (e) {}
+  } catch (e) { }
 }
+if (typeof window !== 'undefined') window.openModal = openModal;
 
 export function closeModal(modalId) {
   const modal = document.getElementById(modalId);
@@ -68,7 +69,7 @@ export function showToastWithProgress(message, current, total) {
     <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
     <span>${message} <span id="${toastId}-counter">${current} / ${total}</span></span>
     <div class="w-full bg-gray-700 rounded h-2 mt-2 overflow-hidden">
-      <div id="${toastId}-bar" class="bg-green-400 h-2 transition-all duration-300" style="width:${total ? (current/total*100) : 0}%"></div>
+      <div id="${toastId}-bar" class="bg-green-400 h-2 transition-all duration-300" style="width:${total ? (current / total * 100) : 0}%"></div>
     </div>
   `;
   toast.style.animation = 'slideIn 0.5s forwards';
@@ -80,7 +81,7 @@ export function updateToastProgress(toastId, current, total) {
   const counter = document.getElementById(`${toastId}-counter`);
   const bar = document.getElementById(`${toastId}-bar`);
   if (counter) counter.textContent = `${current} / ${total}`;
-  if (bar) bar.style.width = `${total ? (current/total*100) : 0}%`;
+  if (bar) bar.style.width = `${total ? (current / total * 100) : 0}%`;
 }
 
 export function removeToastById(toastId) {
@@ -112,8 +113,8 @@ export function updateToast(id, message, type) {
     toast.innerHTML = `${icon}<span>${message}</span>`;
     // auto-dismiss after a short delay
     setTimeout(() => {
-      try { toast.style.animation = 'slideOut 0.5s forwards'; } catch (e) {}
-      setTimeout(() => { try { toast.remove(); } catch(e){}; }, 500);
+      try { toast.style.animation = 'slideOut 0.5s forwards'; } catch (e) { }
+      setTimeout(() => { try { toast.remove(); } catch (e) { }; }, 500);
     }, 4500);
   } catch (err) {
     console.error('[updateToast] error', err);
@@ -165,9 +166,9 @@ if (typeof window !== 'undefined') {
       if (buttonText) buttonText.textContent = isEditMode ? 'Exit Edit Mode' : 'Edit Mode';
       if (isEditMode) showToast && showToast('Edit mode enabled. Deletion is now possible.', 'warning');
       // Re-render views that might be affected by edit mode if renderers exist
-      try { if (typeof window.renderCollection === 'function') window.renderCollection(); } catch(e) {}
-      try { if (typeof window.renderDecksList === 'function') window.renderDecksList(); } catch(e) {}
-      try { const activeDeckId = document.getElementById('single-deck-view')?.dataset?.deckId; if (activeDeckId && typeof window.renderSingleDeck === 'function') window.renderSingleDeck(activeDeckId); } catch(e) {}
+      try { if (typeof window.renderCollection === 'function') window.renderCollection(); } catch (e) { }
+      try { if (typeof window.renderDecksList === 'function') window.renderDecksList(); } catch (e) { }
+      try { const activeDeckId = document.getElementById('single-deck-view')?.dataset?.deckId; if (activeDeckId && typeof window.renderSingleDeck === 'function') window.renderSingleDeck(activeDeckId); } catch (e) { }
     } catch (err) {
       console.warn('[UI.toggleEditMode] error', err);
     }

@@ -1,3 +1,14 @@
+/**
+ * app.js
+ * 
+ * Manages the high-level application state and authentication flow.
+ * Responsible for:
+ * 1. Listening to Firebase Auth state changes.
+ * 2. Setting up real-time Firestore listeners for user data (Collection, Decks).
+ * 3. Synchronizing local state with remote data.
+ * 4. Ensuring the UI reflects the current auth state (Login vs App view).
+ */
+
 import { db, appId } from './index.js';
 import { collection, onSnapshot, getDocs } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 import { onAuthStateChanged } from '../firebase/auth.js';
@@ -9,6 +20,15 @@ let collectionUnsubscribe = null;
 let decksUnsubscribe = null;
 let currentUserId = null;
 
+/**
+ * Sets up real-time Firestore listeners for a specific user.
+ * Subscribes to:
+ * - User's Card Collection
+ * - User's Decks
+ * Updates local cache and triggers UI refreshes on data changes.
+ * 
+ * @param {string} userId - The Firebase UID of the signed-in user.
+ */
 function setupListenersForUser(userId) {
   if (collectionUnsubscribe) collectionUnsubscribe();
   const collectionRef = collection(db, `artifacts/${appId}/users/${userId}/collection`);
@@ -113,6 +133,12 @@ function installVisibilityObserver() {
   }
 }
 
+/**
+ * Initializes the main application listeners.
+ * Primarily handles the Firebase Auth state change stream.
+ * - On Sign In: Sets up data listeners, loads settings, and restores saved views.
+ * - On Sign Out: Clears user data and resets UI.
+ */
 export function initAppListeners() {
   // Shared handler used by both the SDK listener and the polling fallback
   const authHandler = async (authUser) => {
