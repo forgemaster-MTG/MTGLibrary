@@ -1250,38 +1250,74 @@
 
     <!-- Add Cards to Deck Modal -->
     <div id="add-cards-to-deck-modal" class="fixed inset-0 z-[60] hidden items-center justify-center p-4 modal-backdrop">
-        <div class="bg-gray-800 rounded-lg shadow-2xl max-w-4xl w-full h-[90vh] flex flex-col">
+        <div class="bg-gray-800 rounded-lg shadow-2xl max-w-[95vw] w-full h-[90vh] flex flex-col">
             <div class="p-4 border-b border-gray-700 flex justify-between items-center">
                 <h3 id="add-cards-modal-title" class="text-xl font-bold">Add Cards to Deck</h3>
                 <button id="close-add-cards-modal-btn" class="text-gray-400 hover:text-white text-3xl">&times;</button>
             </div>
 
-            <div class="flex-grow p-4 overflow-y-auto no-scrollbar">
-        <div class="mb-4 space-y-2">
-          <label for="add-card-modal-json-filter" class="text-xs text-gray-400">JSON / Full-text filter (paste JSON or any text to search across card data)</label>
-          <textarea id="add-card-modal-json-filter" rows="4" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm" placeholder='Paste JSON or free-text here to search across all card fields (e.g. {"oracle_text":"draw"} or "draw card").'></textarea>
-          <input type="text" id="add-card-modal-filter" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2" placeholder="Filter cards by name...">
-        </div>
-                <div class="overflow-auto" style="max-height: calc(80vh - 150px);">
-                    <table class="w-full text-sm text-left text-gray-300">
-                        <thead class="text-xs text-gray-400 uppercase bg-gray-700 sticky top-0 z-10">
-                            <tr>
-                                <th scope="col" class="p-2 sm:p-4 w-10">
-                                    <div class="flex items-center justify-center">
-                                        <input id="add-cards-select-all" type="checkbox" class="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-600 ring-offset-gray-800 focus:ring-2">
-                                        <label for="add-cards-select-all" class="sr-only">checkbox</label>
-                                    </div>
-                                </th>
-                                <th scope="col" class="px-2 py-2 sm:px-6 sm:py-3 text-left">Card</th>
-                                <th scope="col" class="px-2 py-2 sm:px-6 sm:py-3 text-left hidden sm:table-cell">Oracle</th>
-                                <th scope="col" class="px-2 py-2 sm:px-6 sm:py-3 text-center">Finish</th>
-                                <th scope="col" class="px-2 py-2 sm:px-6 sm:py-3 text-center">Count</th>
-                            </tr>
-                        </thead>
-                        <tbody id="add-cards-modal-table-body">
-                            <!-- Rows will be injected here -->
-                        </tbody>
-                    </table>
+            <div class="flex-grow flex overflow-hidden">
+                <!-- Preview Sidebar -->
+                <div id="add-cards-preview-sidebar" class="hidden md:flex flex-col w-[500px] bg-gray-900/50 border-r border-gray-700 p-6 items-center justify-center shrink-0 transition-all duration-300">
+                    <div class="w-full shadow-2xl rounded-xl overflow-hidden">
+                        <div class="relative aspect-[2.5/3.5] w-full bg-gray-800 border border-gray-700 flex items-center justify-center">
+                            <img id="add-cards-preview-img" src="" class="w-full h-full object-cover opacity-0 transition-opacity duration-200 absolute inset-0">
+                            <p id="add-cards-preview-placeholder" class="text-gray-500 text-sm text-center px-4">Hover a card to preview</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Content -->
+                <div class="flex-grow p-4 overflow-y-auto no-scrollbar flex flex-col">
+                    <div class="mb-4 space-y-2 shrink-0">
+                      <div class="flex flex-col md:flex-row gap-4 justify-between items-end md:items-center">
+                         <div class="flex-grow w-full md:w-auto">
+                            <input type="text" id="add-card-modal-filter" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2" placeholder="Filter cards by name...">
+                         </div>
+                         <div class="flex items-center gap-3 shrink-0">
+                            <label class="flex items-center gap-2 text-sm text-gray-300 cursor-pointer select-none">
+                                <input type="checkbox" id="add-cards-show-preview-toggle" class="w-4 h-4 text-indigo-600 bg-gray-700 border-gray-600 rounded focus:ring-indigo-600">
+                                Show Preview
+                            </label>
+                            <button id="add-cards-advanced-search-btn" class="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-3 py-2 rounded-lg border border-gray-600 transition-colors">
+                                Advanced Search
+                            </button>
+                         </div>
+                      </div>
+                      
+                      <!-- Advanced Search (JSON) - Hidden by default -->
+                      <div id="add-cards-advanced-search-container" class="hidden p-3 bg-gray-700/30 rounded-lg border border-gray-700/50">
+                          <label for="add-card-modal-json-filter" class="block text-xs text-gray-400 mb-1">JSON / Full-text filter</label>
+                          <textarea id="add-card-modal-json-filter" rows="2" class="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm font-mono" placeholder='e.g. {"oracle_text":"draw"} or "draw card"'></textarea>
+                      </div>
+
+                      <!-- Card Type Tabs -->
+                      <div id="add-cards-type-tabs" class="flex flex-wrap gap-2 pt-2 border-b border-gray-700 pb-2">
+                          <!-- Tabs injected by JS -->
+                      </div>
+                    </div>
+                    
+                    <div class="overflow-auto flex-grow min-h-0">
+                        <table class="w-full text-sm text-left text-gray-300 table-fixed">
+                            <thead class="text-xs text-gray-400 uppercase bg-gray-700 sticky top-0 z-10">
+                                <tr>
+                                    <th scope="col" class="p-2 sm:p-4 w-10">
+                                        <div class="flex items-center justify-center">
+                                            <input id="add-cards-select-all" type="checkbox" class="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-600 ring-offset-gray-800 focus:ring-2">
+                                            <label for="add-cards-select-all" class="sr-only">checkbox</label>
+                                        </div>
+                                    </th>
+                                    <th scope="col" class="px-2 py-2 sm:px-6 sm:py-3 text-left w-[35%]">Card</th>
+                                    <th scope="col" class="px-2 py-2 sm:px-6 sm:py-3 text-left hidden sm:table-cell w-auto">Oracle</th>
+                                    <th scope="col" class="px-2 py-2 sm:px-6 sm:py-3 text-center w-[15%]">Finish</th>
+                                    <th scope="col" class="px-2 py-2 sm:px-6 sm:py-3 text-center w-[10%]">Count</th>
+                                </tr>
+                            </thead>
+                            <tbody id="add-cards-modal-table-body">
+                                <!-- Rows will be injected here -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
@@ -4291,5 +4327,6 @@
         </button>
       </nav>
     </footer>
+
   </body>
 </html>

@@ -425,8 +425,66 @@ export function openAddCardsToDeckModal(deckId) {
   const tableBody = document.getElementById('add-cards-modal-table-body');
   const filterInput = document.getElementById('add-card-modal-filter');
   const jsonFilterInput = document.getElementById('add-card-modal-json-filter');
+  const advancedSearchBtn = document.getElementById('add-cards-advanced-search-btn');
+  const advancedSearchContainer = document.getElementById('add-cards-advanced-search-container');
+  const tabsContainer = document.getElementById('add-cards-type-tabs');
+  const previewToggle = document.getElementById('add-cards-show-preview-toggle');
+
+  // Sidebar elements
+  const sidebar = document.getElementById('add-cards-preview-sidebar');
+  const sidebarImg = document.getElementById('add-cards-preview-img');
+  const sidebarPlaceholder = document.getElementById('add-cards-preview-placeholder');
+
   if (filterInput) filterInput.value = '';
   if (jsonFilterInput) jsonFilterInput.value = '';
+
+  // --- Advanced Search Toggle ---
+  if (advancedSearchBtn && advancedSearchContainer) {
+    advancedSearchBtn.onclick = () => {
+      advancedSearchContainer.classList.toggle('hidden');
+      advancedSearchBtn.classList.toggle('bg-gray-600');
+      advancedSearchBtn.classList.toggle('text-white');
+    };
+  }
+
+  // --- Preview Toggle Logic ---
+  const isMobile = window.innerWidth < 768;
+  const savedPreviewState = localStorage.getItem('mtg-add-cards-preview-enabled');
+  let isPreviewEnabled = savedPreviewState !== null ? (savedPreviewState === 'true') : !isMobile;
+
+  const modalContainer = document.querySelector('#add-cards-to-deck-modal > div');
+
+  const updatePreviewVisibility = () => {
+    if (sidebar && modalContainer) {
+      if (isPreviewEnabled) {
+        sidebar.classList.remove('hidden');
+        sidebar.classList.add('flex', 'md:flex');
+        // Expand modal to fit sidebar
+        modalContainer.classList.remove('max-w-5xl');
+        modalContainer.classList.add('max-w-[95vw]');
+      } else {
+        sidebar.classList.add('hidden');
+        sidebar.classList.remove('flex', 'md:flex');
+        // Shrink modal to fit just the table
+        modalContainer.classList.remove('max-w-[95vw]');
+        modalContainer.classList.add('max-w-5xl');
+      }
+    }
+  };
+
+  if (previewToggle) {
+    previewToggle.checked = isPreviewEnabled;
+    previewToggle.onchange = (e) => {
+      isPreviewEnabled = e.target.checked;
+      localStorage.setItem('mtg-add-cards-preview-enabled', isPreviewEnabled);
+      updatePreviewVisibility();
+    };
+  }
+  updatePreviewVisibility();
+
+  // --- Tabs Logic ---
+  let activeTab = 'All';
+  const cardTypes = ['All', 'Creature', 'Instant', 'Sorcery', 'Enchantment', 'Artifact', 'Planeswalker', 'Land'];
 
   // Helper to render mana cost with simple colors
   const renderManaCost = (manaCost) => {
@@ -444,6 +502,11 @@ export function openAddCardsToDeckModal(deckId) {
 
       return `<span class="inline-flex items-center justify-center w-4 h-4 text-[10px] font-bold rounded-full ${bgClass} ${colorClass} mx-[1px]" title="{${symbol}}">${symbol}</span>`;
     });
+  };
+
+  const updateSelectedCount = () => {
+    const selectedCount = document.querySelectorAll('.add-card-checkbox:checked').length;
+    const counter = document.getElementById('add-cards-selected-count'); if (counter) counter.textContent = `${selectedCount} card(s) selected`;
   };
 
   const renderTable = () => {
@@ -470,6 +533,11 @@ export function openAddCardsToDeckModal(deckId) {
         return true;
       })
       .filter(card => {
+        // Tab Filter
+        if (activeTab !== 'All') {
+          if (!card.type_line.includes(activeTab)) return false;
+        }
+
         // Name filter
         if (filterText && !(card.name || '').toLowerCase().includes(filterText)) return false;
 
@@ -490,57 +558,104 @@ export function openAddCardsToDeckModal(deckId) {
     } else {
       tableBody.innerHTML = eligibleCards.map(card => {
         const manaHtml = renderManaCost(card.mana_cost);
-        const oracleText = (card.oracle_text || '').slice(0, 100) + ((card.oracle_text || '').length > 100 ? '...' : '');
+        // Oracle text truncation
+        const fullOracleText = card.oracle_text || '';
+
         let finishBadge = '';
         if (card.finish === 'foil') finishBadge = '<span class="text-[10px] px-1.5 py-0.5 bg-yellow-900/40 text-yellow-200 rounded border border-yellow-700/50">Foil</span>';
         else if (card.finish === 'etched') finishBadge = '<span class="text-[10px] px-1.5 py-0.5 bg-green-900/40 text-green-200 rounded border border-green-700/50">Etched</span>';
         else finishBadge = '<span class="text-[10px] px-1.5 py-0.5 bg-gray-700 text-gray-300 rounded border border-gray-600">Non-Foil</span>';
 
+        const setInfo = `<span class="text-[10px] text-gray-500 bg-gray-800 px-1 rounded border border-gray-700">${(card.set || '').toUpperCase()} #${card.collector_number || ''}</span>`;
+
+        // Image for preview
+        const imgUrl = card.image_uris?.normal || card.image_uris?.large || card.image_uris?.small || '';
+
         return `
-        <tr class="border-b border-gray-700 hover:bg-gray-700/50 transition-colors">
-          <td class="p-2 sm:p-4 w-10">
-            <div class="flex items-center justify-center">
-              <input id="checkbox-${card.firestoreId}" type="checkbox" data-firestore-id="${card.firestoreId}" class="add-card-checkbox w-4 h-4 rounded border-gray-600 text-indigo-600 focus:ring-indigo-500 bg-gray-700">
-            </div>
-          </td>
-          <td class="px-2 py-2 sm:px-4 sm:py-3 align-top">
-            <div class="flex flex-col">
-                <div class="font-bold text-white text-sm mb-0.5 flex items-center gap-2 flex-wrap">
-                    ${card.name}
-                    <span class="flex items-center">${manaHtml}</span>
+        <tr class="border-b border-gray-700 hover:bg-gray-700/50 transition-colors group/row cursor-pointer" data-img="${imgUrl}">
+            <td class="p-2 sm:p-4 w-10 text-center">
+                <div class="flex items-center justify-center">
+                    <input type="checkbox" class="add-card-checkbox w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-600 ring-offset-gray-800 focus:ring-2" value="${card.firestoreId}">
                 </div>
-                <div class="text-xs text-gray-400">${(card.type_line || '').split(' — ')[0]}</div>
-            </div>
-          </td>
-          <td class="px-2 py-2 sm:px-4 sm:py-3 align-top hidden sm:table-cell">
-            <div class="text-xs text-gray-300 italic leading-snug max-w-xs">${oracleText}</div>
-          </td>
-          <td class="px-2 py-2 sm:px-4 sm:py-3 align-top text-center">
-            ${finishBadge}
-          </td>
-          <td class="px-2 py-2 sm:px-4 sm:py-3 align-top text-center font-mono text-indigo-300 font-bold">
-            ${card.count}
-          </td>
+            </td>
+            <td class="px-2 py-2 sm:px-6 sm:py-3 font-medium text-white w-[30%]">
+                <div class="flex flex-col gap-0.5">
+                    <span class="text-indigo-300 font-bold truncate">${card.name} ${manaHtml}</span>
+                    <span class="text-xs text-gray-400 truncate">${card.type_line}</span>
+                    <div class="mt-0.5">${setInfo}</div>
+                </div>
+            </td>
+            <td class="px-2 py-2 sm:px-6 sm:py-3 text-gray-300 hidden sm:table-cell w-auto whitespace-normal" title="${fullOracleText.replace(/"/g, '&quot;')}">
+                <div class="line-clamp-3 text-xs leading-relaxed">
+                    ${fullOracleText}
+                </div>
+            </td>
+            <td class="px-2 py-2 sm:px-6 sm:py-3 text-center whitespace-nowrap w-[15%]">
+                ${finishBadge}
+            </td>
+            <td class="px-2 py-2 sm:px-6 sm:py-3 text-center w-[10%]">
+                <span class="bg-gray-700 text-gray-300 text-xs font-medium px-2 py-0.5 rounded-full">${card.count || 1}</span>
+            </td>
         </tr>
-      `}).join('');
+        `;
+      }).join('');
+
+      // Add hover listeners for sidebar preview
+      tableBody.querySelectorAll('tr[data-img]').forEach(row => {
+        row.addEventListener('mouseenter', (e) => {
+          if (!isPreviewEnabled || !sidebarImg) return;
+          const img = row.dataset.img;
+          if (img) {
+            sidebarImg.src = img;
+            sidebarImg.classList.remove('opacity-0');
+            if (sidebarPlaceholder) sidebarPlaceholder.classList.add('hidden');
+          }
+        });
+      });
     }
     updateSelectedCount();
   };
 
-  const updateSelectedCount = () => {
-    const selectedCount = document.querySelectorAll('.add-card-checkbox:checked').length;
-    const counter = document.getElementById('add-cards-selected-count'); if (counter) counter.textContent = `${selectedCount} card(s) selected`;
+  const renderTabs = () => {
+    if (!tabsContainer) return;
+    tabsContainer.innerHTML = cardTypes.map(type => {
+      const isActive = type === activeTab;
+      const activeClasses = 'bg-indigo-600 text-white border-indigo-500';
+      const inactiveClasses = 'bg-gray-800 text-gray-400 border-gray-700 hover:bg-gray-700 hover:text-gray-200';
+      return `<button class="px-3 py-1 text-xs font-medium rounded-full border transition-colors ${isActive ? activeClasses : inactiveClasses}" data-type="${type}">${type}</button>`;
+    }).join('');
+
+    tabsContainer.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        activeTab = btn.dataset.type;
+        renderTabs();
+        renderTable();
+      });
+    });
   };
+  renderTabs();
+
+  if (filterInput) filterInput.oninput = renderTable;
+  if (jsonFilterInput) jsonFilterInput.oninput = renderTable;
+  if (tableBody) tableBody.addEventListener('change', updateSelectedCount);
+
+  const selectAll = document.getElementById('add-cards-select-all');
+  if (selectAll) {
+    selectAll.addEventListener('change', (e) => {
+      document.querySelectorAll('.add-card-checkbox').forEach(cb => cb.checked = e.target.checked);
+      updateSelectedCount();
+    });
+  }
+
+  const confirmBtn = document.getElementById('confirm-add-cards-to-deck-btn');
+  if (confirmBtn) {
+    confirmBtn.onclick = () => {
+      const selectedIds = Array.from(document.querySelectorAll('.add-card-checkbox:checked')).map(cb => cb.dataset.firestoreId);
+      handleAddSelectedCardsToDeck(deckId, selectedIds);
+    };
+  }
 
   renderTable();
-  filterInput && filterInput.addEventListener('input', renderTable);
-  jsonFilterInput && jsonFilterInput.addEventListener('input', renderTable);
-  tableBody && tableBody.addEventListener('change', updateSelectedCount);
-  const selectAll = document.getElementById('add-cards-select-all'); if (selectAll) selectAll.addEventListener('change', (e) => { document.querySelectorAll('.add-card-checkbox').forEach(cb => cb.checked = e.target.checked); updateSelectedCount(); });
-  document.getElementById('confirm-add-cards-to-deck-btn').onclick = () => {
-    const selectedIds = Array.from(document.querySelectorAll('.add-card-checkbox:checked')).map(cb => cb.dataset.firestoreId);
-    handleAddSelectedCardsToDeck(deckId, selectedIds);
-  };
   openModal('add-cards-to-deck-modal');
 }
 
@@ -557,7 +672,7 @@ export async function handleAddSelectedCardsToDeck(deckId, firestoreIds) {
     let collectionCard = (window.localCollection || localCollection)[fid];
     if (!collectionCard) {
       try {
-        const snap = await getDoc(doc(db, `artifacts/${appId}/users/${userId}/collection`, fid));
+        const snap = await getDoc(doc(db, `artifacts / ${appId} /users/${userId}/collection`, fid));
         if (snap && snap.exists()) {
           const data = snap.data(); data.firestoreId = fid;
           if (!window.localCollection) window.localCollection = window.localCollection || {};
