@@ -196,6 +196,11 @@ function createModalIfNeeded() {
       </div>
 
       <!-- Footer -->
+      <!-- Tab Banner: shows warning when a non-All tab is active -->
+      <div id="deck-suggestions-tab-banner" class="hidden p-3 bg-yellow-900/20 text-yellow-300 text-sm border-t border-yellow-800/30 text-center">
+        If you add selected, you will only add <span id="deck-suggestions-tab-name">cards</span> from the current tab.
+      </div>
+
       <div class="p-4 border-t border-gray-700 bg-gray-800/50 flex items-center justify-between">
         <div class="flex flex-col">
           <div class="text-sm text-gray-400" id="deck-suggestions-preview-selected-count">0 cards selected</div>
@@ -546,7 +551,7 @@ async function startSuggestionFlow(deckId, opts = {}) {
 
     // --- Calculate numToRequest based on blueprint ---
     // Use the *original* type from the loop (e.g., 'Planeswalker')
-    const targetCount = typeCounts[type] || defaultTypeCounts[type] || 10; // Use blueprint, then default, then 10
+    const targetCount = typeCounts[type] || defaultTypeCounts[type] || 0; // Use blueprint, then default, then 10
     const currentCount = getTempDeckCountForType(type); // Get current count of 'Planeswalker'
     let numToRequest = Math.max(0, targetCount - currentCount);
 
@@ -871,11 +876,11 @@ async function startSuggestionFlow(deckId, opts = {}) {
         };
 
         const art = {
-          'Plains': 'https://cards.scryfall.io/normal/front/d/1/d1286953-f761-4c8d-8b19-5d283e762c56.jpg',
-          'Island': 'https://cards.scryfall.io/normal/front/6/8/68654196-d969-425e-be2c-090e036998b9.jpg',
-          'Swamp': 'https://cards.scryfall.io/normal/front/1/8/184a196e-8604-49d2-a66a-6f7c0eafd5de.jpg',
-          'Mountain': 'https://cards.scryfall.io/normal/front/4/c/4c7d3c9a-919b-4102-8794-34f504413348.jpg',
-          'Forest': 'https://cards.scryfall.io/normal/front/9/3/9366c5cd-a657-4321-98ca-596a97bb30d0.jpg'
+          'Plains': 'https://svgs.scryfall.io/card-symbols/W.svg',
+          'Island': 'https://svgs.scryfall.io/card-symbols/U.svg',
+          'Swamp': 'https://svgs.scryfall.io/card-symbols/B.svg',
+          'Mountain': 'https://svgs.scryfall.io/card-symbols/R.svg',
+          'Forest': 'https://svgs.scryfall.io/card-symbols/G.svg'
         };
         if (art[basicName]) basicLand.image_uris = { normal: art[basicName], small: art[basicName] };
       }
@@ -951,8 +956,40 @@ async function startSuggestionFlow(deckId, opts = {}) {
       document.getElementById('deck-suggestions-preview-selected-count').textContent = `${Object.keys(allSuggestedMap).length} selected`;
 
       document.getElementById('deck-suggestions-apply-selected-btn').onclick = () => {
-        const ids = Array.from(document.querySelectorAll('.deck-suggestion-checkbox:checked')).map(cb => cb.dataset.firestoreId);
-        saveSuggestionMetadata(deckId);
+        // Collect checked IDs from the currently-rendered table (may be filtered by tab)
+        let ids = Array.from(document.querySelectorAll('.deck-suggestion-checkbox:checked')).map(cb => cb.dataset.firestoreId || cb.dataset.firestorEId);
+        // Defensive: normalize and remove falsy
+        ids = ids.filter(Boolean);
+
+        // Log what the user selected to add (preview apply) for debugging
+        try {
+          console.log('[deckSuggestions] Apply Selected clicked. selectedIds:', ids);
+          try {
+            const details = ids.map(id => ({ id, name: allSuggestedMap[id]?.name || null, isVirtual: !!allSuggestedMap[id]?.isVirtual, slotType: allSuggestedMap[id]?.slotType || null }));
+            console.log('[deckSuggestions] Apply Selected details:', details);
+          } catch (e) { console.warn('[deckSuggestions] failed to serialize selected details', e); }
+        } catch (e) { }
+
+        // If the user is only adding a subset of total suggestions (common when a single tab is active),
+        // prompt to confirm whether they intended to add only the visible subset or all suggestions.
+        try {
+          const totalSuggestions = Object.keys(allSuggestedMap).length;
+          const selectedCount = ids.length;
+          if (totalSuggestions > 0 && selectedCount > 0 && selectedCount < totalSuggestions) {
+            const confirmMsg = `You selected ${selectedCount} out of ${totalSuggestions} suggested cards (current view).
+Click OK to add only the selected cards, or Cancel to add ALL suggested cards.`;
+            const keepSelected = confirm(confirmMsg);
+            if (!keepSelected) {
+              // User chose to add all suggestions instead
+              ids = Object.keys(allSuggestedMap);
+              console.log('[deckSuggestions] User chose to add ALL suggestions instead of subset. idsToAdd:', ids);
+            }
+          }
+        } catch (e) { console.debug('[deckSuggestions] confirmation for subset selection failed', e); }
+
+        // Persist suggestion metadata for the exact ids we're about to add
+        try { saveSuggestionMetadata(deckId, ids); } catch (e) { console.warn('[deckSuggestions] saveSuggestionMetadata (preview) failed', e); }
+
         closeModal('deck-suggestions-modal');
         if (typeof window.batchAddCardsWithProgress === 'function') {
           window.batchAddCardsWithProgress(deckId, ids, allSuggestedMap);
@@ -1194,6 +1231,39 @@ function reRenderPreviewTable(filterType = null) {
     `;
     previewBody.appendChild(tr);
   });
+
+  // Update tab banner to warn when a filtered tab is active
+  try {
+    updateTabBanner();
+  } catch (e) { /* ignore */ }
+}
+
+/**
+ * Shows or hides the tab banner depending on the currently active tab.
+ * If a tab other than 'all' is active, show a small warning that only those cards
+ * will be added when the user clicks "Add Selected".
+ */
+function updateTabBanner() {
+  const banner = document.getElementById('deck-suggestions-tab-banner');
+  const nameEl = document.getElementById('deck-suggestions-tab-name');
+  if (!banner || !nameEl) return;
+
+  // Determine active tab
+  const activeTab = document.querySelector('#deck-suggestions-tabs button.border-indigo-500');
+  let tabName = null;
+  if (activeTab && activeTab.dataset && activeTab.dataset.tab) {
+    tabName = activeTab.dataset.tab;
+  }
+
+  if (!tabName || tabName === 'all') {
+    banner.classList.add('hidden');
+    return;
+  }
+
+  // Count visible items for this tab
+  const visibleCount = document.querySelectorAll('#deck-suggestions-preview-body tr').length;
+  nameEl.textContent = `${tabName} (${visibleCount})`;
+  banner.classList.remove('hidden');
 }
 
 /**

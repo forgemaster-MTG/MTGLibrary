@@ -310,7 +310,8 @@ body {
   position: fixed;
   bottom: 1.5rem;
   right: 1.5rem;
-  z-index: 100;
+  /* Ensure toasts appear above navigation, modals and other overlays */
+  z-index: 110000;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -506,7 +507,8 @@ details[open] summary:before {
   position: fixed;
   bottom: 1.5rem;
   right: 1.5rem;
-  z-index: 100;
+  /* Ensure toasts appear above navigation, modals and other overlays */
+  z-index: 110000;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -693,52 +695,166 @@ details[open] summary:before {
   position: absolute;
   bottom: 0;
   left: 0;
+  transition: width 0.5s ease-in-out;
+}
+
+
+
+details>summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+details>summary::-webkit-details-marker {
+  display: none;
+}
+
+details summary:before {
+  content: "+";
+  margin-right: 0.5rem;
+  font-weight: bold;
+}
+
+details[open] summary:before {
+  content: "-";
+}
+
+/* -----------------------------
+   Mobile / Responsive overrides
+   (Left pull-out nav drawer)
+   -----------------------------
+   These rules implement a left-side compact nav bar that stays narrow
+   by default and expands when hovered or focused (via :hover / :focus-within).
+    margin-left: 0;
+    width: 100%;
+  }
+
+  /* Toggle label inside nav (hamburger) */
+/* Fixed handle visible even when nav is hidden; placed at left edge near bottom */
+.nav-toggle-label {
+  position: fixed;
+  left: 8px;
+  bottom: 12px;
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 44px;
+  height: 12px;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  padding: 8px 6px;
+  z-index: 10001;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+  touch-action: manipulation;
+  pointer-events: auto;
+}
+
+.nav-toggle-label .bar {
+  display: block;
+  width: 18px;
+  height: 2px;
+  background: #cbd5e1;
+  /* gray-300 */
+  border-radius: 2px;
+  transition: transform 180ms ease, opacity 180ms ease;
+}
+
+/* Visual change when open */
+/* Transform the fixed handle bars to an X when open */
+/* Transform the handle bars to an X when open */
+#nav-toggle:checked+nav .nav-toggle-label .bar:nth-child(1) {
+  transform: translateY(6px) rotate(45deg);
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.delete-button {
+  display: none;
+}
+
+.edit-mode .delete-button {
+  display: inline-flex;
+}
+
+.group-header {
+  background-color: #374151;
+  color: #d1d5db;
+  padding: 0.75rem 1.5rem;
+  font-weight: bold;
+  font-size: 1.25rem;
+  margin-top: 1.5rem;
+  border-bottom: 3px solid #4f46e5;
+  position: sticky;
+  top: 72px;
+  z-index: 5;
+}
+
+.sortable {
+  cursor: pointer;
+}
+
+.sortable:hover {
+  color: #a78bfa;
+}
+
+.edit-mode .sortable {
+  cursor: default;
+}
+
+.edit-mode .sortable:hover {
+  color: inherit;
+}
+
+.sort-asc::after {
+  content: " ▲";
+  font-size: 0.8em;
+}
+
+.sort-desc::after {
+  content: " ▼";
+  font-size: 0.8em;
+}
+
+.card-modal-value-display {
+  display: block;
+}
+
+.card-modal-value-input {
+  display: none;
+}
+
+.card-modal-edit-mode .card-modal-value-display {
+  display: none;
+}
+
+.card-modal-edit-mode .card-modal-value-input {
+  display: block;
+}
+
+.oracle-text-truncate {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.kpi-gradient-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
   height: 4px;
   border-radius: 0 0 0.5rem 0.5rem;
   transition: width 0.5s ease-in-out;
 }
 
-#toast-container {
-  position: fixed;
-  bottom: 1.5rem;
-  right: 1.5rem;
-  z-index: 100;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
 
-.toast {
-  display: flex;
-  align-items: center;
-  padding: 1rem;
-  border-radius: 0.5rem;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  min-width: 300px;
-  max-width: 400px;
-  transform: translateX(120%);
-  animation: slideIn 0.5s forwards, slideOut 0.5s 4.5s forwards;
-}
-
-@keyframes slideIn {
-  from {
-    transform: translateX(120%);
-  }
-
-  to {
-    transform: translateX(0);
-  }
-}
-
-@keyframes slideOut {
-  from {
-    transform: translateX(0);
-  }
-
-  to {
-    transform: translateX(120%);
-  }
-}
 
 details>summary {
   list-style: none;
@@ -863,21 +979,7 @@ details[open] summary:before {
     gap: 0.5rem;
   }
 
-  /* Toasts should sit comfortably above bottom edge and be full width */
-  #toast-container {
-    right: 0.5rem;
-    left: 0.5rem;
-    bottom: 1rem;
-    align-items: center;
-  }
 
-  .toast {
-    min-width: unset;
-    width: 100%;
-    max-width: unset;
-    transform: translateX(0);
-    animation: none;
-  }
 
   /* Login modal should be nearly full width on phones */
   #login-screen .max-w-sm {

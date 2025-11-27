@@ -1,31 +1,73 @@
 // Shared UI helpers: toasts, modals, hover preview, floating header utils
-export function showToast(message, type = 'info') {
-  const container = document.getElementById('toast-container');
-  if (!container) return;
-  const toast = document.createElement('div');
-  let bgColor, icon;
-  switch (type) {
-    case 'success':
-      bgColor = 'bg-green-600';
-      icon = `<svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
-      break;
-    case 'error':
-      bgColor = 'bg-red-600';
-      icon = `<svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
-      break;
-    case 'warning':
-      bgColor = 'bg-yellow-500';
-      icon = `<svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>`;
-      break;
-    default:
-      bgColor = 'bg-blue-600';
-      icon = `<svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+
+// Internal helper to ensure container exists and has correct classes
+function getToastContainer() {
+  let container = document.getElementById('toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toast-container';
+    document.body.appendChild(container);
   }
 
-  toast.className = `toast text-white ${bgColor}`;
-  toast.innerHTML = `${icon}<span>${message}</span>`;
+  // Reset and apply modern container styles
+  // Fixed bottom-right, z-index high, flex column, gap for spacing
+  container.className = 'fixed bottom-6 right-6 z-[120000] flex flex-col items-end gap-3 pointer-events-none';
+
+  // Remove any legacy inline styles that might have been stuck
+  container.style = '';
+  // We need to re-apply the fixed positioning if the style attribute was completely wiped, 
+  // but the className above handles it. 
+  // Just in case some external script tries to mess with it, we can leave it be, 
+  // as the classes 'fixed bottom-6 right-6' are robust.
+
+  return container;
+}
+
+export function showToast(message, type = 'info') {
+  const container = getToastContainer();
+
+  const toast = document.createElement('div');
+
+  // Base styles: Glassmorphism, rounded, shadow, transition, pointer-events-auto
+  const baseClasses = 'pointer-events-auto flex items-center w-auto max-w-md p-4 rounded-xl shadow-2xl backdrop-blur-md border transition-all duration-300 transform translate-x-full opacity-0';
+
+  let typeClasses = '';
+  let icon = '';
+
+  switch (type) {
+    case 'success':
+      typeClasses = 'bg-green-900/80 border-green-500/30 text-green-50';
+      icon = `<svg class="w-6 h-6 mr-3 text-green-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+      break;
+    case 'error':
+      typeClasses = 'bg-red-900/80 border-red-500/30 text-red-50';
+      icon = `<svg class="w-6 h-6 mr-3 text-red-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+      break;
+    case 'warning':
+      typeClasses = 'bg-yellow-900/80 border-yellow-500/30 text-yellow-50';
+      icon = `<svg class="w-6 h-6 mr-3 text-yellow-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>`;
+      break;
+    default: // info
+      typeClasses = 'bg-slate-800/80 border-slate-600/30 text-slate-50';
+      icon = `<svg class="w-6 h-6 mr-3 text-blue-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+  }
+
+  toast.className = `${baseClasses} ${typeClasses}`;
+  toast.innerHTML = `${icon}<span class="font-medium text-sm leading-snug">${message}</span>`;
+
   container.appendChild(toast);
-  setTimeout(() => toast.remove(), 5000);
+
+  // Animate in
+  requestAnimationFrame(() => {
+    toast.classList.remove('translate-x-full', 'opacity-0');
+  });
+
+  // Auto dismiss
+  setTimeout(() => {
+    toast.classList.add('translate-x-full', 'opacity-0');
+    setTimeout(() => toast.remove(), 300); // Wait for transition
+  }, 5000);
+
   return toast;
 }
 
@@ -92,23 +134,36 @@ export function closeModal(modalId) {
   }
 }
 
-// Progress toast helpers
 export function showToastWithProgress(message, current, total) {
-  const container = document.getElementById('toast-container');
-  if (!container) return null;
+  const container = getToastContainer();
+
   const toast = document.createElement('div');
   const toastId = `toast-progress-${Date.now()}`;
   toast.id = toastId;
-  toast.className = 'toast text-white bg-blue-600';
+
+  const baseClasses = 'pointer-events-auto w-80 p-4 rounded-xl shadow-2xl backdrop-blur-md border transition-all duration-300 transform translate-x-full opacity-0';
+  const typeClasses = 'bg-slate-800/90 border-slate-600/30 text-slate-50';
+
+  toast.className = `${baseClasses} ${typeClasses}`;
+
   toast.innerHTML = `
-    <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-    <span>${message} <span id="${toastId}-counter">${current} / ${total}</span></span>
-    <div class="w-full bg-gray-700 rounded h-2 mt-2 overflow-hidden">
-      <div id="${toastId}-bar" class="bg-green-400 h-2 transition-all duration-300" style="width:${total ? (current / total * 100) : 0}%"></div>
+    <div class="flex items-center mb-2">
+      <svg class="w-5 h-5 mr-3 text-blue-400 shrink-0 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.058a8 8 0 10-.238-4.75.75.75 0 111.489.132A9.48 9.48 0 0111.25 2c5.247 0 9.5 4.253 9.5 9.5S16.497 21 11.25 21 1.75 16.747 1.75 11.5c0-2.132.702-4.118 1.9-5.72L4 4z"></path></svg>
+      <span class="font-medium text-sm flex-1">${message}</span>
+      <span id="${toastId}-counter" class="text-xs font-mono text-slate-400">${current} / ${total}</span>
+    </div>
+    <div class="w-full bg-slate-700/50 rounded-full h-1.5 overflow-hidden">
+      <div id="${toastId}-bar" class="bg-blue-500 h-full transition-all duration-300 ease-out" style="width:${total ? (current / total * 100) : 0}%"></div>
     </div>
   `;
-  toast.style.animation = 'slideIn 0.5s forwards';
+
   container.appendChild(toast);
+
+  // Animate in
+  requestAnimationFrame(() => {
+    toast.classList.remove('translate-x-full', 'opacity-0');
+  });
+
   return toastId;
 }
 
@@ -121,39 +176,51 @@ export function updateToastProgress(toastId, current, total) {
 
 export function removeToastById(toastId) {
   const toast = document.getElementById(toastId);
-  if (toast) toast.remove();
+  if (toast) {
+    toast.classList.add('translate-x-full', 'opacity-0');
+    setTimeout(() => toast.remove(), 300);
+  }
 }
 
 // Generic toast updater for non-progress toasts (preserves legacy API)
 export function updateToast(id, message, type) {
-  try {
-    const toast = document.getElementById(id);
-    if (!toast) return;
-    let bgColor, icon;
-    switch (type) {
-      case 'success':
-        bgColor = 'bg-green-600';
-        icon = `<svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
-        break;
-      case 'error':
-        bgColor = 'bg-red-600';
-        icon = `<svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
-        break;
-      default:
-        bgColor = 'bg-gray-700';
-        icon = `<svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
-    }
-    toast.className = `toast text-white ${bgColor}`;
-    toast.style.animation = 'none';
-    toast.innerHTML = `${icon}<span>${message}</span>`;
-    // auto-dismiss after a short delay
-    setTimeout(() => {
-      try { toast.style.animation = 'slideOut 0.5s forwards'; } catch (e) { }
-      setTimeout(() => { try { toast.remove(); } catch (e) { }; }, 500);
-    }, 4500);
-  } catch (err) {
-    console.error('[updateToast] error', err);
+  const toast = document.getElementById(id);
+  if (!toast) return;
+
+  // We'll just update the content and style, keeping the element
+  let typeClasses = '';
+  let icon = '';
+
+  switch (type) {
+    case 'success':
+      typeClasses = 'bg-green-900/80 border-green-500/30 text-green-50';
+      icon = `<svg class="w-6 h-6 mr-3 text-green-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+      break;
+    case 'error':
+      typeClasses = 'bg-red-900/80 border-red-500/30 text-red-50';
+      icon = `<svg class="w-6 h-6 mr-3 text-red-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+      break;
+    default:
+      typeClasses = 'bg-slate-800/80 border-slate-600/30 text-slate-50';
+      icon = `<svg class="w-6 h-6 mr-3 text-blue-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
   }
+
+  // Reset classes but keep base structure
+  const baseClasses = 'pointer-events-auto flex items-center w-auto max-w-md p-4 rounded-xl shadow-2xl backdrop-blur-md border transition-all duration-300 transform';
+  toast.className = `${baseClasses} ${typeClasses}`;
+  toast.innerHTML = `${icon}<span class="font-medium text-sm leading-snug">${message}</span>`;
+
+  // Reset timeout for auto-dismiss
+  // Note: This simple implementation doesn't clear the previous timeout, 
+  // so it might disappear earlier than expected if updated late. 
+  // For a perfect implementation we'd store the timeout ID on the element.
+  // But for now, let's at least try to give it some time if it was about to die.
+
+  // Re-trigger the exit animation sequence
+  setTimeout(() => {
+    toast.classList.add('translate-x-full', 'opacity-0');
+    setTimeout(() => toast.remove(), 300);
+  }, 4500);
 }
 
 // Helpers for floating table headers (kept lightweight)

@@ -1091,8 +1091,8 @@
       </div>
     </div>
 
-    <!-- Toast Container -->
-    <div id="toast-container"></div>
+  <!-- Toast Container (moved to end of body for stacking context isolation) -->
+  <!-- container relocated to end of document by build agent -->
 
     <!-- Settings Tabs Styles & Script -->
     <style>
@@ -2849,10 +2849,25 @@
 
           const allDeckCards = Object.keys(deck.cards || {}).map(firestoreId => {
               const cardData = localColl[firestoreId];
-              if (!cardData) return null;
+              // If we don't yet have the collection doc locally, show a lightweight placeholder
+              // so the deck UI doesn't drop the line entirely while Firestore collection writes
+              // and reconciliation are still in flight.
+              if (!cardData) {
+                const deckEntry = deck.cards && deck.cards[firestoreId] ? deck.cards[firestoreId] : {};
+                return {
+                  firestoreId,
+                  name: deckEntry.name || 'Loading...',
+                  type_line: deckEntry.type_line || 'Unknown',
+                  cmc: deckEntry.cmc || 0,
+                  count: deckEntry.count || 1,
+                  prices: deckEntry.prices || {},
+                  isPlaceholder: true,
+                  pending: true
+                };
+              }
               // The count in deck is stored on the deck object
               return { ...cardData, count: deck.cards[firestoreId].count };
-          }).filter(Boolean); // Filter out any nulls if card was deleted from collection
+          });
 
           if (deck.commander) {
             // Find the commander in the collection to get its full data, but use a count of 1
@@ -4231,9 +4246,13 @@
       </nav>
     </footer>
 
-    <!-- Global Card Hover Preview -->
-    <div id="card-hover-preview" class="fixed z-[200] hidden pointer-events-none transition-opacity duration-200" style="width: 280px;">
-        <img id="card-hover-img" src="" class="w-full rounded-xl shadow-2xl border-2 border-gray-700/50 bg-gray-900" alt="Card Preview">
-    </div>
-  </body>
+  <!-- Global Card Hover Preview -->
+  <div id="card-hover-preview" class="fixed z-[200] hidden pointer-events-none transition-opacity duration-200" style="width: 280px;">
+    <img id="card-hover-img" src="" class="w-full rounded-xl shadow-2xl border-2 border-gray-700/50 bg-gray-900" alt="Card Preview">
+  </div>
+
+  <!-- Toast Container (kept as a direct child of <body> to avoid ancestor stacking contexts) -->
+  <div id="toast-container"></div>
+
+</body>
 </html>

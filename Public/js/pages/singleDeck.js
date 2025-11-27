@@ -72,12 +72,23 @@ async function fetchAndReplacePlaceholders(mappings, deckId, uid) {
           localDeck.cards = localDeck.cards || {};
           localDeck.cards[m.newId] = localDeck.cards[m.newId] || { count: data.count || 1, name: data.name, type_line: data.type_line };
         }
+        try {
+          console.log('[reconcile] fetched new collection doc from server', { newId: m.newId, dataPreview: { name: data.name, count: data.count, type_line: data.type_line } });
+        } catch (e) { }
       }
     } catch (e) {
       console.warn('[reconcile] failed to fetch new collection doc', m.newId, e);
     }
   }
-  try { updateCardAssignments(); if (typeof window.renderSingleDeck === 'function') window.renderSingleDeck(deckId); } catch (e) { }
+  try {
+    updateCardAssignments();
+    if (typeof window.renderSingleDeck === 'function') window.renderSingleDeck(deckId);
+    try {
+      // Log local deck.cards after reconciliation to help detect mismatches between optimistic and persisted state
+      const localDeck = window.localDecks && window.localDecks[deckId];
+      console.log('[reconcile] localDeck.cards keys after replace:', localDeck && localDeck.cards ? Object.keys(localDeck.cards) : null);
+    } catch (e) { }
+  } catch (e) { }
 }
 
 function getUserId() {
@@ -1000,6 +1011,17 @@ export async function batchAddCardsWithProgress(deckId, firestoreIds, sourceMap 
         try {
           await batch.commit();
           processed += chunk.length;
+          // After a successful commit, read back the deck doc to verify server-side persistence
+          try {
+            const deckRef = doc(db, 'artifacts/' + appId + '/users/' + uid + '/decks', deckId);
+            const deckSnap = await getDoc(deckRef);
+            if (deckSnap && deckSnap.exists()) {
+              const serverDeck = deckSnap.data();
+              try { console.log('[batchAdd] server deck doc cards keys after commit:', Object.keys(serverDeck.cards || {})); } catch (e) { }
+            } else {
+              console.warn('[batchAdd] deck doc not found immediately after commit');
+            }
+          } catch (e) { console.warn('[batchAdd] failed to read deck doc after commit', e); }
           updateToastProgress(toastId, Math.min(processed, firestoreIds.length), firestoreIds.length);
           chunkCommitted = true;
           break;

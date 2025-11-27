@@ -663,6 +663,49 @@ document.addEventListener("DOMContentLoaded", () => {
     renderModalVisibilitySettings();
   }
 
+  function renderModalVisibilitySettings() {
+    const defaultContainer = document.getElementById('modal-visibility-default');
+    const additionalContainer = document.getElementById('modal-visibility-additional');
+    if (!defaultContainer || !additionalContainer) return;
+
+    defaultContainer.innerHTML = '';
+    additionalContainer.innerHTML = '';
+
+    const labels = {
+      count: 'Card Count',
+      finish: 'Finish (Foil/Etched)',
+      condition: 'Condition',
+      purchasePrice: 'Purchase Price',
+      notes: 'Notes',
+      deckAssignments: 'Deck Assignments'
+    };
+
+    const defaults = ['count', 'finish', 'condition'];
+    const additional = ['purchasePrice', 'notes', 'deckAssignments'];
+
+    const createCheckbox = (key) => {
+      const wrapper = document.createElement('label');
+      wrapper.className = 'flex items-center gap-2 cursor-pointer select-none bg-gray-900 px-3 py-2 rounded-lg border border-gray-600 hover:border-gray-500 transition-colors';
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.className = 'form-checkbox h-4 w-4 text-indigo-600 rounded bg-gray-800 border-gray-600 focus:ring-indigo-500';
+      input.checked = !!modalVisibilitySettings[key];
+      input.onchange = () => {
+        modalVisibilitySettings[key] = input.checked;
+        saveSettings();
+      };
+      const span = document.createElement('span');
+      span.className = 'text-sm text-gray-300';
+      span.textContent = labels[key] || key;
+      wrapper.appendChild(input);
+      wrapper.appendChild(span);
+      return wrapper;
+    };
+
+    defaults.forEach(key => defaultContainer.appendChild(createCheckbox(key)));
+    additional.forEach(key => additionalContainer.appendChild(createCheckbox(key)));
+  }
+
   function updateCardAssignments() {
     cardDeckAssignments = {};
     Object.values(localDecks).forEach((deck) => {
