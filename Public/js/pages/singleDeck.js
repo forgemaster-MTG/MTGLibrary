@@ -1,8 +1,24 @@
-import { localDecks, localCollection, cardDeckAssignments, addCardToCollection, updateCardAssignments, deleteDeck as dataDeleteDeck } from '../lib/data.js';
+import {
+  localDecks,
+  localCollection,
+  cardDeckAssignments,
+  addCardToCollection,
+  updateCardAssignments,
+  deleteDeck as dataDeleteDeck
+} from '../lib/data.js';
 import { showToast, openModal, closeModal } from '../lib/ui.js';
 import { openDeckSuggestionsModal } from './deckSuggestions.js';
 import { db, appId } from '../main/index.js';
-import { writeBatch, doc, updateDoc, runTransaction, deleteField, collection, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+import {
+  writeBatch,
+  doc,
+  updateDoc,
+  runTransaction,
+  deleteField,
+  collection,
+  getDoc,
+  setDoc
+} from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 
 // Helper: add a single card to deck by splitting the collection stack (creates a new collection doc)
 async function addSingleCardWithSplit(uid, deckId, fid) {
@@ -110,7 +126,16 @@ export function isColorIdentityValid(cardColors, commanderColors) {
 
 const deckChartInstances = {};
 
-export function renderDecklist(deckId, viewMode = 'grid') {
+let currentViewMode = 'grid';
+
+export function renderDecklist(deckId, viewMode = null) {
+  // Update or use persistent view mode
+  if (viewMode) {
+    currentViewMode = viewMode;
+  } else {
+    viewMode = currentViewMode;
+  }
+
   const container = document.getElementById('decklist-container');
   if (!container) return;
   const deck = localDecks[deckId];
@@ -236,7 +261,7 @@ export function renderDecklist(deckId, viewMode = 'grid') {
       const type = (card.type_line || '').split(' — ')[0];
       const price = card.finish === 'foil' ? (card.prices?.usd_foil || card.prices?.usd) : (card.prices?.usd || 'N/A');
       return `
-        <tr class="border-b border-gray-700/50 hover:bg-gray-700/30 transition-colors group">
+        <tr class="border-b border-gray-700/50 hover:bg-gray-700/30 transition-colors group" data-img="${card.image_uris?.normal || card.image_uris?.large || card.image_uris?.png || card.image_uris?.art_crop}">
           <td class="px-3 py-2 text-center font-mono text-indigo-300 font-bold">${card.countInDeck || 1}</td>
           <td class="px-3 py-2">
             <div class="flex items-center gap-3">
@@ -284,6 +309,11 @@ export function renderDecklist(deckId, viewMode = 'grid') {
     } catch (e) { return true; }
   });
   filtered.sort((a, b) => a.name.localeCompare(b.name));
+
+  // Enforce grouping by type for table view if no specific group is selected
+  if (viewMode === 'table' && !currentGroup) {
+    currentGroup = 'type_line';
+  }
 
   let content = '';
   if (!currentGroup) {
@@ -375,9 +405,7 @@ export function renderDecklist(deckId, viewMode = 'grid') {
 
   container.innerHTML = filterHtml + content;
 
-
-
-  // --- Restore State & Listeners ---
+  // Re-attach listeners
   const fEl = document.getElementById(filterId);
   const gEl = document.getElementById(groupById);
 
@@ -420,7 +448,7 @@ export function initSingleDeckModule() {
 export function openAddCardsToDeckModal(deckId) {
   const deck = window.localDecks?.[deckId] || localDecks[deckId];
   if (!deck) { showToast('Could not find the specified deck.', 'error'); return; }
-  document.getElementById('add-cards-modal-title').textContent = `Add Cards to "${deck.name}"`;
+  document.getElementById('add-cards-modal-title').textContent = 'Add Cards to "' + deck.name + '"';
   const commanderColors = deck.commander?.color_identity || ['W', 'U', 'B', 'R', 'G'];
   const tableBody = document.getElementById('add-cards-modal-table-body');
   const filterInput = document.getElementById('add-card-modal-filter');
@@ -500,13 +528,13 @@ export function openAddCardsToDeckModal(deckId) {
       else if (symbol === 'G') { colorClass = 'text-green-100'; bgClass = 'bg-green-600/50'; }
       else if (!isNaN(parseInt(symbol))) { colorClass = 'text-gray-300'; bgClass = 'bg-gray-700'; }
 
-      return `<span class="inline-flex items-center justify-center w-4 h-4 text-[10px] font-bold rounded-full ${bgClass} ${colorClass} mx-[1px]" title="{${symbol}}">${symbol}</span>`;
+      return '<span class="inline-flex items-center justify-center w-4 h-4 text-[10px] font-bold rounded-full ' + bgClass + ' ' + colorClass + ' mx-[1px]" title="{' + symbol + '}">' + symbol + '</span>';
     });
   };
 
   const updateSelectedCount = () => {
     const selectedCount = document.querySelectorAll('.add-card-checkbox:checked').length;
-    const counter = document.getElementById('add-cards-selected-count'); if (counter) counter.textContent = `${selectedCount} card(s) selected`;
+    const counter = document.getElementById('add-cards-selected-count'); if (counter) counter.textContent = selectedCount + ' card(s) selected';
   };
 
   const renderTable = () => {
@@ -554,7 +582,7 @@ export function openAddCardsToDeckModal(deckId) {
       .sort((a, b) => a.name.localeCompare(b.name));
 
     if (eligibleCards.length === 0) {
-      tableBody.innerHTML = `<tr><td colspan="5" class="text-center p-4 text-gray-500">No eligible cards found (assigned cards are hidden).</td></tr>`;
+      tableBody.innerHTML = '<tr><td colspan="5" class="text-center p-4 text-gray-500">No eligible cards found (assigned cards are hidden).</td></tr>';
     } else {
       tableBody.innerHTML = eligibleCards.map(card => {
         const manaHtml = renderManaCost(card.mana_cost);
@@ -566,38 +594,36 @@ export function openAddCardsToDeckModal(deckId) {
         else if (card.finish === 'etched') finishBadge = '<span class="text-[10px] px-1.5 py-0.5 bg-green-900/40 text-green-200 rounded border border-green-700/50">Etched</span>';
         else finishBadge = '<span class="text-[10px] px-1.5 py-0.5 bg-gray-700 text-gray-300 rounded border border-gray-600">Non-Foil</span>';
 
-        const setInfo = `<span class="text-[10px] text-gray-500 bg-gray-800 px-1 rounded border border-gray-700">${(card.set || '').toUpperCase()} #${card.collector_number || ''}</span>`;
+        const setInfo = '<span class="text-[10px] text-gray-500 bg-gray-800 px-1 rounded border border-gray-700">' + (card.set || '').toUpperCase() + ' #' + (card.collector_number || '') + '</span>';
 
         // Image for preview
         const imgUrl = card.image_uris?.normal || card.image_uris?.large || card.image_uris?.small || '';
 
-        return `
-        <tr class="border-b border-gray-700 hover:bg-gray-700/50 transition-colors group/row cursor-pointer" data-img="${imgUrl}">
-            <td class="p-2 sm:p-4 w-10 text-center">
-                <div class="flex items-center justify-center">
-                    <input type="checkbox" class="add-card-checkbox w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-600 ring-offset-gray-800 focus:ring-2" value="${card.firestoreId}">
-                </div>
-            </td>
-            <td class="px-2 py-2 sm:px-6 sm:py-3 font-medium text-white w-[30%]">
-                <div class="flex flex-col gap-0.5">
-                    <span class="text-indigo-300 font-bold truncate">${card.name} ${manaHtml}</span>
-                    <span class="text-xs text-gray-400 truncate">${card.type_line}</span>
-                    <div class="mt-0.5">${setInfo}</div>
-                </div>
-            </td>
-            <td class="px-2 py-2 sm:px-6 sm:py-3 text-gray-300 hidden sm:table-cell w-auto whitespace-normal" title="${fullOracleText.replace(/"/g, '&quot;')}">
-                <div class="line-clamp-3 text-xs leading-relaxed">
-                    ${fullOracleText}
-                </div>
-            </td>
-            <td class="px-2 py-2 sm:px-6 sm:py-3 text-center whitespace-nowrap w-[15%]">
-                ${finishBadge}
-            </td>
-            <td class="px-2 py-2 sm:px-6 sm:py-3 text-center w-[10%]">
-                <span class="bg-gray-700 text-gray-300 text-xs font-medium px-2 py-0.5 rounded-full">${card.count || 1}</span>
-            </td>
-        </tr>
-        `;
+        return '<tr class="border-b border-gray-700 hover:bg-gray-700/50 transition-colors group/row cursor-pointer" data-img="' + imgUrl + '">' +
+          '<td class="p-2 sm:p-4 w-10 text-center">' +
+          '<div class="flex items-center justify-center">' +
+          '<input type="checkbox" class="add-card-checkbox w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-600 ring-offset-gray-800 focus:ring-2" value="' + card.firestoreId + '">' +
+          '</div>' +
+          '</td>' +
+          '<td class="px-2 py-2 sm:px-6 sm:py-3 font-medium text-white w-[30%]">' +
+          '<div class="flex flex-col gap-0.5">' +
+          '<span class="text-indigo-300 font-bold truncate">' + card.name + ' ' + manaHtml + '</span>' +
+          '<span class="text-xs text-gray-400 truncate">' + card.type_line + '</span>' +
+          '<div class="mt-0.5">' + setInfo + '</div>' +
+          '</div>' +
+          '</td>' +
+          '<td class="px-2 py-2 sm:px-6 sm:py-3 text-gray-300 hidden sm:table-cell w-auto whitespace-normal" title="' + fullOracleText.replace(/"/g, '&quot;') + '">' +
+          '<div class="line-clamp-3 text-xs leading-relaxed">' +
+          fullOracleText +
+          '</div>' +
+          '</td>' +
+          '<td class="px-2 py-2 sm:px-6 sm:py-3 text-center whitespace-nowrap w-[15%]">' +
+          finishBadge +
+          '</td>' +
+          '<td class="px-2 py-2 sm:px-6 sm:py-3 text-center w-[10%]">' +
+          '<span class="bg-gray-700 text-gray-300 text-xs font-medium px-2 py-0.5 rounded-full">' + (card.count || 1) + '</span>' +
+          '</td>' +
+          '</tr>';
       }).join('');
 
       // Add hover listeners for sidebar preview
@@ -622,7 +648,7 @@ export function openAddCardsToDeckModal(deckId) {
       const isActive = type === activeTab;
       const activeClasses = 'bg-indigo-600 text-white border-indigo-500';
       const inactiveClasses = 'bg-gray-800 text-gray-400 border-gray-700 hover:bg-gray-700 hover:text-gray-200';
-      return `<button class="px-3 py-1 text-xs font-medium rounded-full border transition-colors ${isActive ? activeClasses : inactiveClasses}" data-type="${type}">${type}</button>`;
+      return '<button class="px-3 py-1 text-xs font-medium rounded-full border transition-colors ' + (isActive ? activeClasses : inactiveClasses) + '" data-type="' + type + '">' + type + '</button>';
     }).join('');
 
     tabsContainer.querySelectorAll('button').forEach(btn => {
@@ -664,15 +690,13 @@ export async function handleAddSelectedCardsToDeck(deckId, firestoreIds) {
   const deck = window.localDecks?.[deckId] || localDecks[deckId];
   if (!deck) { showToast('Deck not found.', 'error'); return; }
   const commanderColors = deck.commander?.color_identity || [];
-  // Ensure we have a userId early so we can attempt to prefetch missing collection docs
   const userId = getUserId(); if (!userId) { showToast('User not signed in.', 'error'); return; }
 
-  // Validate selected ids. If a local collection entry is missing, try fetching it from Firestore
   for (const fid of firestoreIds) {
     let collectionCard = (window.localCollection || localCollection)[fid];
     if (!collectionCard) {
       try {
-        const snap = await getDoc(doc(db, `artifacts / ${appId} /users/${userId}/collection`, fid));
+        const snap = await getDoc(doc(db, 'artifacts/' + appId + '/users/' + userId + '/collection', fid));
         if (snap && snap.exists()) {
           const data = snap.data(); data.firestoreId = fid;
           if (!window.localCollection) window.localCollection = window.localCollection || {};
@@ -684,37 +708,31 @@ export async function handleAddSelectedCardsToDeck(deckId, firestoreIds) {
       }
     }
 
-    if (!collectionCard) { showToast(`Card not found in collection: ${fid}`, 'error'); return; }
-    if (!isColorIdentityValid(collectionCard.color_identity, commanderColors)) { showToast(`Card "${collectionCard.name}" is not legal with this commander (color identity mismatch).`, 'error'); return; }
+    if (!collectionCard) { showToast('Card not found in collection: ' + fid, 'error'); return; }
+    if (!isColorIdentityValid(collectionCard.color_identity, commanderColors)) { showToast('Card "' + collectionCard.name + '" is not legal with this commander (color identity mismatch).', 'error'); return; }
   }
-  // Check assignments
+
   for (const fid of firestoreIds) {
     const assigns = window.cardDeckAssignments?.[fid] || [];
     if (assigns.length > 0) {
-      const assignment = assigns[0]; if (assignment.deckId !== deckId) { showToast(`Card "${(window.localCollection || localCollection)[fid].name}" is already in another deck.`, 'error'); return; }
+      const assignment = assigns[0]; if (assignment.deckId !== deckId) { showToast('Card "' + (window.localCollection || localCollection)[fid].name + '" is already in another deck.', 'error'); return; }
     }
   }
 
-
-  // userId already retrieved above
   const batch = writeBatch(db);
-  // track mapping from original fid -> newly created collection doc id so we can update local state optimistically
   const createdMappings = [];
   const skippedIds = [];
   for (const fid of firestoreIds) {
     const collectionCard = (window.localCollection || localCollection)[fid];
-    if (!collectionCard || collectionCard.count < 1) { console.warn(`Skipping ${fid}`); skippedIds.push(fid); continue; }
+    if (!collectionCard || collectionCard.count < 1) { console.warn('Skipping ' + fid); skippedIds.push(fid); continue; }
 
-    // Create a dedicated collection document for the card that will be associated with the deck.
-    // This splits a stack rather than reusing the same document id for both collection and deck.
-    const origCollectionRef = doc(db, `artifacts/${appId}/users/${userId}/collection`, fid);
-    const newCollectionRef = doc(collection(db, `artifacts/${appId}/users/${userId}/collection`));
+    const origCollectionRef = doc(db, 'artifacts/' + appId + '/users/' + userId + '/collection', fid);
+    const newCollectionRef = doc(collection(db, 'artifacts/' + appId + '/users/' + userId + '/collection'));
     const newCardDoc = Object.assign({}, collectionCard, { count: 1, addedAt: new Date().toISOString() });
-    delete newCardDoc.firestoreId; // avoid copying an existing id into the new doc
+    delete newCardDoc.firestoreId;
     batch.set(newCollectionRef, newCardDoc);
     createdMappings.push({ orig: fid, newId: newCollectionRef.id, name: collectionCard.name, type_line: collectionCard.type_line });
 
-    // Decrement or remove the original stack only when it's safe (i.e., not used by another deck)
     try {
       const assigns = (window.cardDeckAssignments || {})[fid] || [];
       const assignedElsewhere = assigns.some(a => a && a.deckId && a.deckId !== deckId);
@@ -731,13 +749,12 @@ export async function handleAddSelectedCardsToDeck(deckId, firestoreIds) {
       console.warn('[handleAddSelectedCardsToDeck] assignment check failed, skipping decrement/delete for', fid, e);
     }
 
-    // Add the new collection doc id into the deck's cards map
-    const deckRef = doc(db, `artifacts/${appId}/users/${userId}/decks`, deckId);
+    const deckRef = doc(db, 'artifacts/' + appId + '/users/' + userId + '/decks', deckId);
     const cardInDeck = deck.cards?.[newCollectionRef.id];
     if (!cardInDeck) {
       batch.set(deckRef, { cards: { [newCollectionRef.id]: { count: 1, name: collectionCard.name, type_line: collectionCard.type_line } } }, { merge: true });
     } else {
-      batch.update(deckRef, { [`cards.${newCollectionRef.id}.count`]: (cardInDeck.count || 0) + 1 });
+      batch.update(deckRef, { ['cards.' + newCollectionRef.id + '.count']: (cardInDeck.count || 0) + 1 });
     }
   }
 
@@ -745,26 +762,23 @@ export async function handleAddSelectedCardsToDeck(deckId, firestoreIds) {
     await batch.commit();
     const addedCount = createdMappings.length;
     if (skippedIds.length > 0) {
-      showToast(`Added ${addedCount} card(s) to ${deck.name}. ${skippedIds.length} card(s) were skipped (not in collection).`, 'warning');
+      showToast('Added ' + addedCount + ' card(s) to ' + deck.name + '. ' + skippedIds.length + ' card(s) were skipped (not in collection).', 'warning');
     } else {
-      showToast(`Added ${addedCount} card(s) to ${deck.name}.`, 'success');
+      showToast('Added ' + addedCount + ' card(s) to ' + deck.name + '.', 'success');
     }
     try {
       if (!window.localDecks) window.localDecks = localDecks;
       if (!window.localCollection) window.localCollection = localCollection;
       const localDeck = window.localDecks[deckId] || localDecks[deckId];
       localDeck.cards = localDeck.cards || {};
-      // Apply optimistic local updates according to the created mappings
       createdMappings.forEach(({ orig, newId, name, type_line }) => {
         const collectionCard = (window.localCollection || localCollection)[orig];
         if (!collectionCard) return;
         if ((collectionCard.count || 0) > 1) {
           collectionCard.count = Math.max((collectionCard.count || 0) - 1, 0);
-          // create a local placeholder for the new collection doc
           window.localCollection[newId] = Object.assign({}, collectionCard, { count: 1, firestoreId: newId, pending: true, name, type_line });
           if (localDeck.cards[newId]) localDeck.cards[newId].count = (localDeck.cards[newId].count || 0) + 1; else localDeck.cards[newId] = { count: 1, name, type_line };
         } else {
-          // original had count 1: remove it and add deck entry referencing newId
           delete window.localCollection[orig];
           window.localCollection[newId] = Object.assign({}, collectionCard, { count: 1, firestoreId: newId, pending: true, name, type_line });
           if (localDeck.cards[newId]) localDeck.cards[newId].count = (localDeck.cards[newId].count || 0) + 1; else localDeck.cards[newId] = { count: 1, name, type_line };
@@ -773,7 +787,6 @@ export async function handleAddSelectedCardsToDeck(deckId, firestoreIds) {
       updateCardAssignments();
       if (typeof window.renderSingleDeck === 'function') window.renderSingleDeck(deckId);
     } catch (e) { console.warn('Local optimistic update failed:', e); }
-    // Reconcile placeholders with server data
     try { await fetchAndReplacePlaceholders(createdMappings, deckId, userId); } catch (e) { console.warn('Reconcile after add failed', e); }
     closeModal('add-cards-to-deck-modal');
   } catch (error) {
@@ -807,7 +820,7 @@ export async function batchAddCardsWithProgress(deckId, firestoreIds, sourceMap 
           const virtualCard = sourceMap ? sourceMap[fid] : null;
           if (virtualCard && virtualCard.isVirtual) {
             try {
-              const newCollectionRef = doc(collection(db, `artifacts/${appId}/users/${uid}/collection`));
+              const newCollectionRef = doc(collection(db, 'artifacts/' + appId + '/users/' + uid + '/collection'));
               const cardData = {
                 name: virtualCard.name,
                 type_line: virtualCard.type_line,
@@ -821,13 +834,13 @@ export async function batchAddCardsWithProgress(deckId, firestoreIds, sourceMap 
               if (!window.localCollection) window.localCollection = {};
               window.localCollection[newCollectionRef.id] = { ...cardData, firestoreId: newCollectionRef.id };
               virtualIdMap.set(fid, newCollectionRef.id);
-              console.log(`[batchAdd] Created collection doc for virtual card ${virtualCard.name}: ${fid} -> ${newCollectionRef.id}`);
+              console.log('[batchAdd] Created collection doc for virtual card ' + virtualCard.name + ': ' + fid + ' -> ' + newCollectionRef.id);
             } catch (e) {
               console.warn('[batchAdd] failed to create collection doc for virtual card', fid, e);
             }
           } else {
             try {
-              const snap = await getDoc(doc(db, `artifacts/${appId}/users/${uid}/collection`, fid));
+              const snap = await getDoc(doc(db, 'artifacts/' + appId + '/users/' + uid + '/collection', fid));
               if (snap && snap.exists()) {
                 const data = snap.data(); data.firestoreId = fid;
                 if (!window.localCollection) window.localCollection = {};
@@ -856,7 +869,6 @@ export async function batchAddCardsWithProgress(deckId, firestoreIds, sourceMap 
         } catch (e) { return true; }
       });
 
-
       const skippedInChunk = mappedChunk.filter(fid => !filteredChunk.includes(fid));
       if (skippedInChunk.length) {
         failedIds.push(...skippedInChunk);
@@ -869,9 +881,9 @@ export async function batchAddCardsWithProgress(deckId, firestoreIds, sourceMap 
         for (const fid of filteredChunk) {
           const collectionCard = (window.localCollection || localCollection)[fid];
           if (!collectionCard) continue;
-          const deckRef = doc(db, `artifacts/${appId}/users/${uid}/decks`, deckId);
-          const origCollectionRef = doc(db, `artifacts/${appId}/users/${uid}/collection`, fid);
-          const newCollectionRef = doc(collection(db, `artifacts/${appId}/users/${uid}/collection`));
+          const deckRef = doc(db, 'artifacts/' + appId + '/users/' + uid + '/decks', deckId);
+          const origCollectionRef = doc(db, 'artifacts/' + appId + '/users/' + uid + '/collection', fid);
+          const newCollectionRef = doc(collection(db, 'artifacts/' + appId + '/users/' + uid + '/collection'));
           const newCardDoc = Object.assign({}, collectionCard, { count: 1, addedAt: new Date().toISOString() });
           delete newCardDoc.firestoreId;
           b.set(newCollectionRef, newCardDoc);
@@ -912,9 +924,9 @@ export async function batchAddCardsWithProgress(deckId, firestoreIds, sourceMap 
           break;
         } catch (err) {
           attempts += 1;
-          console.warn(`[batchAdd] commit attempt ${attempts} failed`, err);
+          console.warn('[batchAdd] commit attempt ' + attempts + ' failed', err);
           if (attempts >= maxAttempts) {
-            console.error(`[batchAdd] chunk commit failed after ${attempts} attempts. Continuing with next chunk.`, chunk);
+            console.error('[batchAdd] chunk commit failed after ' + attempts + ' attempts. Continuing with next chunk.', chunk);
             break;
           }
           await new Promise(res => setTimeout(res, 500 * Math.pow(2, attempts)));
@@ -963,7 +975,7 @@ export async function batchAddCardsWithProgress(deckId, firestoreIds, sourceMap 
             await fetchAndReplacePlaceholders([{ orig: fid, newId: res.newId, name: res.name, type_line: res.type_line }], deckId, uid);
             ok = true;
           } catch (err) {
-            console.warn(`[batchAdd][retry] attempt ${attempts} for ${fid} failed`, err);
+            console.warn('[batchAdd][retry] attempt ' + attempts + ' for ' + fid + ' failed', err);
             await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempts)));
           }
         }
@@ -978,7 +990,7 @@ export async function batchAddCardsWithProgress(deckId, firestoreIds, sourceMap 
       const report = allFailed.length > 0 ? allFailed : failedIds;
       console.error('[batchAddCardsWithProgress] some cards failed to persist', report);
       window.__lastBatchAddFailedIds = report;
-      showToast(`Added most cards to deck; ${report.length} card(s) failed to persist. See console.`, 'warning');
+      showToast('Added most cards to deck; ' + report.length + ' card(s) failed to persist. See console.', 'warning');
     }
   } catch (err) {
     console.error('[batchAddCardsWithProgress] failed', err);
@@ -1008,7 +1020,7 @@ export function attachSuggestionMetadataToDeck(deckId, suggestions) {
       if (!uid) { console.debug('[attachSuggestionMetadataToDeck] no user signed in, skipping persistence'); return; }
       // Show saving status in modal if present
       try { const statusEl = document.getElementById('deck-suggestions-save-status'); if (statusEl) statusEl.innerHTML = '<span class="tiny-spinner"></span>Saving...'; } catch (e) { }
-      const deckRef = doc(db, `artifacts/${appId}/users/${uid}/decks`, deckId);
+      const deckRef = doc(db, 'artifacts/' + appId + '/users/' + uid + '/decks', deckId);
       // Write only the aiSuggestions field to avoid clobbering other data
       await updateDoc(deckRef, { aiSuggestions: deck.aiSuggestions });
       try { const statusEl = document.getElementById('deck-suggestions-save-status'); if (statusEl) statusEl.textContent = 'Saved'; const retry = document.getElementById('deck-suggestions-save-retry-btn'); if (retry) retry.classList.add('hidden'); } catch (e) { }
@@ -1040,8 +1052,8 @@ export function renderDeckSuggestionSummary(deckId) {
     container.innerHTML = '<div class="text-sm text-gray-400">No AI suggestions</div>';
     return;
   }
-  const lines = deck.aiSuggestions.slice(0, 5).map(s => `<div class="text-sm text-gray-200">${s.rating ? `<strong>${s.rating}/10</strong> ` : ''}${s.name || (window.localCollection || localCollection)[s.firestoreId]?.name || 'Card'} - ${escapeHtml((s.reason || s.note || '').slice(0, 120))}</div>`);
-  container.innerHTML = `<div class="space-y-1">${lines.join('')}</div>`;
+  const lines = deck.aiSuggestions.slice(0, 5).map(s => '<div class="text-sm text-gray-200">' + (s.rating ? '<strong>' + s.rating + '/10</strong> ' : '') + (s.name || (window.localCollection || localCollection)[s.firestoreId]?.name || 'Card') + ' - ' + escapeHtml((s.reason || s.note || '').slice(0, 120)) + '</div>');
+  container.innerHTML = '<div class="space-y-1">' + lines.join('') + '</div>';
 }
 
 export async function deleteDeck(deckId, alsoDeleteCards) {
@@ -1071,8 +1083,24 @@ export function addSingleDeckListeners(deckId) {
   // View Toggles
   const gridBtn = document.getElementById('view-toggle-grid');
   const tableBtn = document.getElementById('view-toggle-table');
-  if (gridBtn) gridBtn.onclick = () => renderDecklist(deckId, 'grid');
-  if (tableBtn) tableBtn.onclick = () => renderDecklist(deckId, 'table');
+
+  if (gridBtn) {
+    gridBtn.onclick = () => {
+      console.log('[DeckView] Grid toggle clicked');
+      renderDecklist(deckId, 'grid');
+    };
+  } else {
+    console.warn('[DeckView] Grid toggle button not found');
+  }
+
+  if (tableBtn) {
+    tableBtn.onclick = () => {
+      console.log('[DeckView] Table toggle clicked');
+      renderDecklist(deckId, 'table');
+    };
+  } else {
+    console.warn('[DeckView] Table toggle button not found');
+  }
 
   document.querySelector('#single-deck-view .view-card-details-btn')?.addEventListener('click', (e) => { const fid = e.currentTarget.dataset.firestoreId; const card = (window.localCollection || localCollection)[fid]; if (card) { if (typeof window.renderCardDetailsModal === 'function') window.renderCardDetailsModal(card); if (typeof window.openModal === 'function') window.openModal('card-details-modal'); } });
   document.getElementById('deck-delete-btn')?.addEventListener('click', (e) => { const id = e.currentTarget.dataset.deckId; if (typeof window.openDeckDeleteOptions === 'function') window.openDeckDeleteOptions(id); });
@@ -1131,9 +1159,9 @@ export async function removeCardFromDeck(deckId, firestoreId) {
     }
     if (!deckId || !firestoreId) return;
     const uid = getUserId(); if (!uid) { showToast && showToast('User not signed in.', 'error'); return; }
-    const deckRef = doc(db, `artifacts/${appId}/users/${uid}/decks`, deckId);
+    const deckRef = doc(db, 'artifacts/' + appId + '/users/' + uid + '/decks', deckId);
     // If the deck locally shows a count > 1 for this card we remove the entry entirely for simplicity.
-    await updateDoc(deckRef, { [`cards.${firestoreId}`]: deleteField() });
+    await updateDoc(deckRef, { ['cards.' + firestoreId]: deleteField() });
     // Optimistic local update
     try {
       if (!window.localDecks) window.localDecks = localDecks;
@@ -1165,7 +1193,7 @@ export async function removeCardFromDeckAndReturnToCollection(deckId, firestoreI
     const uid = getUserId(); if (!uid) { showToast && showToast('User not signed in.', 'error'); return; }
 
     // Fetch the card doc we're trying to return
-    const cardSnap = await getDoc(doc(db, `artifacts/${appId}/users/${uid}/collection`, firestoreId));
+    const cardSnap = await getDoc(doc(db, 'artifacts/' + appId + '/users/' + uid + '/collection', firestoreId));
     if (!cardSnap || !cardSnap.exists()) {
       showToast && showToast('Collection entry for this card could not be found.', 'error');
       return;
@@ -1177,16 +1205,16 @@ export async function removeCardFromDeckAndReturnToCollection(deckId, firestoreI
     const existing = Object.values(col || {}).find(c => c && c.id === cardData.id && ((c.finish || '') === (cardData.finish || '')) && c.firestoreId !== firestoreId);
 
     const batch = writeBatch(db);
-    const deckRef = doc(db, `artifacts/${appId}/users/${uid}/decks`, deckId);
+    const deckRef = doc(db, 'artifacts/' + appId + '/users/' + uid + '/decks', deckId);
     // remove deck reference
-    batch.update(deckRef, { [`cards.${firestoreId}`]: deleteField() });
+    batch.update(deckRef, { ['cards.' + firestoreId]: deleteField() });
 
     if (existing && existing.firestoreId) {
-      const existingRef = doc(db, `artifacts/${appId}/users/${uid}/collection`, existing.firestoreId);
+      const existingRef = doc(db, 'artifacts/' + appId + '/users/' + uid + '/collection', existing.firestoreId);
       const newCount = (existing.count || 0) + (cardData.count || 1);
       batch.update(existingRef, { count: newCount });
       // delete the deck-specific collection doc to avoid duplicate docs
-      const thisRef = doc(db, `artifacts/${appId}/users/${uid}/collection`, firestoreId);
+      const thisRef = doc(db, 'artifacts/' + appId + '/users/' + uid + '/collection', firestoreId);
       batch.delete(thisRef);
     } else {
       // No matching stack - leave the collection doc in place (it already exists) and just removed deck ref
