@@ -2213,6 +2213,60 @@ export async function refreshCollectionPrices(options = { persist: true }) {
   }
 }
 
+/**
+ * Refresh price for a single collection entry (by its Firestore ID).
+ * This is a lightweight helper that fetches Scryfall for the card's
+ * scryfall id (if present) and updates the localCollection entry.
+ * Options:
+ *  - persist: boolean (default: false) - whether to write the price back to Firestore
+ *  - toastId: optional progress toast id to update via window.updateToastProgress
+ */
+export async function refreshCollectionPriceForId(firestoreId, options = { persist: false, toastId: null, current: 0, total: 1 }) {
+  if (!firestoreId) return null;
+  try {
+    if (!window.localCollection || !window.localCollection[firestoreId]) return null;
+    const entry = window.localCollection[firestoreId];
+    const scryId = entry.id || entry.scryfall_id || entry.scryfallId;
+    if (!scryId) return null; // nothing to fetch
+
+    // Fetch sequentially (caller may await)
+    const res = await fetch(`https://api.scryfall.com/cards/${encodeURIComponent(scryId)}`);
+    if (!res.ok) throw new Error('Scryfall fetch failed: ' + res.status);
+    const data = await res.json();
+    const prices = data.prices || null;
+    try { window.localCollection[firestoreId].prices = prices; } catch (e) { /* ignore */ }
+
+    // Optionally persist to Firestore (single update)
+    if (options && options.persist && typeof window.db !== 'undefined' && window.userId && window.appId) {
+      try {
+        const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js');
+        const ref = doc(window.db, `artifacts/${window.appId}/users/${window.userId}/collection`, firestoreId);
+        await updateDoc(ref, { prices });
+      } catch (e) {
+        console.warn('[refreshCollectionPriceForId] failed to persist price for', firestoreId, e);
+      }
+    }
+
+    // Update any toasts if provided
+    try {
+      if (options && options.toastId && typeof window.updateToastProgress === 'function') {
+        const cur = Number(options.current || 0);
+        const tot = Number(options.total || 1);
+        window.updateToastProgress(options.toastId, Math.min(cur, tot), tot);
+      }
+    } catch (e) { /* ignore toast update errors */ }
+
+    // Trigger a re-render where appropriate
+    try { if (typeof window.renderPaginatedCollection === 'function') window.renderPaginatedCollection(); } catch (e) { /* ignore */ }
+    try { if (typeof window.renderSingleDeck === 'function') { /* let caller decide, do not force */ } } catch (e) { }
+
+    return prices;
+  } catch (err) {
+    console.warn('[refreshCollectionPriceForId] error for', firestoreId, err);
+    return null;
+  }
+}
+
 // Expose legacy/global shims for backwards compatibility with inline scripts
 // and other non-module code. Do not overwrite existing window handlers if
 // they were already provided by delegators; only set missing ones.
@@ -2238,6 +2292,7 @@ export async function refreshCollectionPrices(options = { persist: true }) {
     safeAssign('initCollectionModule', initCollectionModule);
     safeAssign('installFloatingHeaderSync', installFloatingHeaderSync);
     safeAssign('refreshCollectionPrices', refreshCollectionPrices);
+  safeAssign('refreshCollectionPriceForId', refreshCollectionPriceForId);
 
     // Additional helpers migrated from inline HTML
     safeAssign('toggleCardDetailsEditMode', toggleCardDetailsEditMode);

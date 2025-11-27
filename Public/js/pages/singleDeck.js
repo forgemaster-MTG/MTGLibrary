@@ -145,6 +145,35 @@ const deckChartInstances = {};
 
 let currentViewMode = 'grid';
 
+// Ensure Chart.js is loaded in the browser when needed. This dynamically
+// injects a script tag pointing to a CDN and avoids re-loading if already in
+// progress or present. Returns a Promise that resolves once Chart is available.
+function ensureChartJsLoaded() {
+  if (typeof Chart !== 'undefined') return Promise.resolve();
+  if (window._mtg_chartjs_loading) return window._mtg_chartjs_loading;
+  window._mtg_chartjs_loading = new Promise((resolve, reject) => {
+    try {
+      const script = document.createElement('script');
+      // Use the UMD build which exposes a global `Chart` variable
+      script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+      script.async = true;
+      script.onload = () => {
+        // small nextTick to allow globals to register
+        setTimeout(() => {
+          if (typeof Chart !== 'undefined') resolve(); else reject(new Error('Chart failed to initialize'));
+          window._mtg_chartjs_loading = null;
+        }, 0);
+      };
+      script.onerror = (e) => { window._mtg_chartjs_loading = null; reject(new Error('Failed to load Chart.js')); };
+      document.head.appendChild(script);
+    } catch (err) {
+      window._mtg_chartjs_loading = null;
+      reject(err);
+    }
+  });
+  return window._mtg_chartjs_loading;
+}
+
 export function renderDecklist(deckId, viewMode = null) {
   // Update or use persistent view mode
   if (viewMode) {
@@ -436,21 +465,37 @@ export function renderDecklist(deckId, viewMode = null) {
   }
 }
 
-export function renderManaCurveChart(manaCurveData) {
-  const ctx = document.getElementById('mana-curve-chart')?.getContext('2d');
+export async function renderManaCurveChart(manaCurveData) {
+  // Ensure Chart.js is available before using it. If loading fails, bail silently
+  // so the rest of the UI can still render.
+  try {
+    await ensureChartJsLoaded();
+  } catch (err) {
+    console.warn('[renderManaCurveChart] Chart.js not available:', err);
+    return;
+  }
+
+  const canvas = document.getElementById('mana-curve-chart');
+  const ctx = canvas?.getContext && canvas.getContext('2d');
   if (!ctx) return;
   const chartId = 'mana-curve-chart';
-  if (deckChartInstances[chartId]) deckChartInstances[chartId].destroy();
+  try { if (deckChartInstances[chartId]) deckChartInstances[chartId].destroy(); } catch (e) { /* ignore */ }
   const labels = ['0', '1', '2', '3', '4', '5', '6', '7+'];
   const data = labels.map((label, index) => {
     const cmc = parseInt(label);
     if (index < 7) return manaCurveData[cmc] || 0;
     let sum = 0; for (let k in manaCurveData) if (parseInt(k) >= 7) sum += manaCurveData[k]; return sum;
   });
-  deckChartInstances[chartId] = new Chart(ctx, {
-    type: 'bar', data: { labels, datasets: [{ label: 'Card Count', data, backgroundColor: 'rgba(79, 70, 229, 0.6)', borderColor: 'rgba(129, 140, 248, 1)', borderWidth: 1 }] },
-    options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } } }
-  });
+
+  try {
+    deckChartInstances[chartId] = new Chart(ctx, {
+      type: 'bar',
+      data: { labels, datasets: [{ label: 'Card Count', data, backgroundColor: 'rgba(79, 70, 229, 0.6)', borderColor: 'rgba(129, 140, 248, 1)', borderWidth: 1 }] },
+      options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } } }
+    });
+  } catch (e) {
+    console.warn('[renderManaCurveChart] failed to instantiate chart', e);
+  }
 }
 
 export function initSingleDeckModule() {
@@ -796,14 +841,28 @@ export async function handleAddSelectedCardsToDeck(deckId, firestoreIds) {
           collectionCard.count = Math.max((collectionCard.count || 0) - 1, 0);
           window.localCollection[newId] = Object.assign({}, collectionCard, { count: 1, firestoreId: newId, pending: true, name, type_line });
           if (localDeck.cards[newId]) localDeck.cards[newId].count = (localDeck.cards[newId].count || 0) + 1; else localDeck.cards[newId] = { count: 1, name, type_line };
+          try { console.log('[handleAdd] optimistic localCollection assignment (split)', { orig, newId, name, type_line, remainingOrigCount: collectionCard.count, placeholder: window.localCollection[newId] }); } catch (e) { }
         } else {
           delete window.localCollection[orig];
           window.localCollection[newId] = Object.assign({}, collectionCard, { count: 1, firestoreId: newId, pending: true, name, type_line });
           if (localDeck.cards[newId]) localDeck.cards[newId].count = (localDeck.cards[newId].count || 0) + 1; else localDeck.cards[newId] = { count: 1, name, type_line };
+          try { console.log('[handleAdd] optimistic localCollection assignment (moved)', { orig, newId, name, type_line, placeholder: window.localCollection[newId] }); } catch (e) { }
         }
       });
       updateCardAssignments();
       if (typeof window.renderSingleDeck === 'function') window.renderSingleDeck(deckId);
+
+      // Refresh prices for each newly-created collection entry so the UI shows
+      // per-card split / price immediately rather than waiting for a later batch refresh.
+      try {
+        if (typeof window.refreshCollectionPriceForId === 'function') {
+          for (const m of createdMappings) {
+            try {
+              await window.refreshCollectionPriceForId(m.newId, { persist: false });
+            } catch (e) { console.warn('[handleAddSelectedCardsToDeck] per-card refresh failed for', m.newId, e); }
+          }
+        }
+      } catch (e) { /* non-fatal */ }
     } catch (e) { console.warn('Local optimistic update failed:', e); }
     try { await fetchAndReplacePlaceholders(createdMappings, deckId, userId); } catch (e) { console.warn('Reconcile after add failed', e); }
     closeModal('add-cards-to-deck-modal');
@@ -887,7 +946,11 @@ export async function batchAddCardsWithProgress(deckId, firestoreIds, sourceMap 
         } catch (e) { return true; }
       });
 
+      // Log filtering results for debugging: what was mapped, what was filtered out
       const skippedInChunk = mappedChunk.filter(fid => !filteredChunk.includes(fid));
+      try {
+        console.log('[batchAdd] chunk mapping summary', { mappedChunk, filteredChunk, skippedInChunk });
+      } catch (e) { console.warn('[batchAdd] failed to log chunk mapping summary', e); }
       if (skippedInChunk.length) {
         failedIds.push(...skippedInChunk);
         console.warn('[batchAdd] skipping ids assigned to other decks:', skippedInChunk);
@@ -963,7 +1026,7 @@ export async function batchAddCardsWithProgress(deckId, firestoreIds, sourceMap 
         continue;
       }
 
-      try {
+        try {
         const localDeck = window.localDecks[deckId] || localDecks[deckId];
         localDeck.cards = localDeck.cards || {};
         (newIdsForChunk || []).forEach(mapping => {
@@ -988,12 +1051,27 @@ export async function batchAddCardsWithProgress(deckId, firestoreIds, sourceMap 
           } else {
             localDeck.cards[newId] = { count: suggestedCount, name, type_line };
           }
+          // Log optimistic placeholder assignment so we can trace UI not updating
+          try { console.log('[batchAdd] optimistic localCollection assignment', { newId, orig, name, type_line, suggestedCount, placeholder: window.localCollection[newId] }); } catch (e) { }
         });
         updateCardAssignments();
         if (typeof window.renderSingleDeck === 'function') window.renderSingleDeck(deckId);
       } catch (e) { console.warn('Local optimistic update failed:', e); }
 
-      try { await fetchAndReplacePlaceholders(newIdsForChunk, deckId, uid); } catch (e) { console.warn('[batchAdd] reconcile failed for chunk', e); }
+      try {
+        // Refresh prices for each newly-created collection entry so the UI reflects
+        // the split and shows prices immediately. We keep persistence off here to
+        // avoid extra writes during a large batch; these will be picked up later
+        // by a full price refresh if desired.
+        if (typeof window.refreshCollectionPriceForId === 'function') {
+          for (const m of newIdsForChunk) {
+            try {
+              await window.refreshCollectionPriceForId(m.newId, { persist: false });
+            } catch (e) { console.warn('[batchAdd] per-card refresh failed for', m.newId, e); }
+          }
+        }
+        await fetchAndReplacePlaceholders(newIdsForChunk, deckId, uid);
+      } catch (e) { console.warn('[batchAdd] reconcile failed for chunk', e); }
     }
 
     const finalFailed = [];

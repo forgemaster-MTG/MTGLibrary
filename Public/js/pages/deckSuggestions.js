@@ -622,7 +622,7 @@ async function startSuggestionFlow(deckId, opts = {}) {
       Current deck size is ${countNonCommander()} / ${targetTotal}.
       ${currentDeckContext}
       IMPORTANT: Return the candidate's exact "firestoreId" string from the candidates list. 
-      Do NOT suggest any card that is already in the deck (listed above), unless it is a Basic Land.
+      Do NOT suggest any card that is already in the deck (listed above).
       Ensure no duplicate names within your suggestions.
       Do NOT append suffixes like "_1", "_2" to indicate duplicates. If you want duplicates of a card, either return the same "firestoreId" multiple times or include a numeric "count" field on the suggestion object. Return ONLY a JSON object matching the provided schema.
     `;
@@ -633,7 +633,7 @@ async function startSuggestionFlow(deckId, opts = {}) {
         You are an expert Magic: The Gathering deck builder.
         From the "candidates" list, select up to ${numToRequest} "Land" cards.
         The deck is a ${deckFormat} deck.
-        DUPLICATES ARE ALLOWED for lands, especially Basic Lands.
+        DUPLICATES ARE NOT ALLOWED for lands, especially Basic Lands.
         FIRST, prioritize non-basic lands that provide helpful bonuses, mana fixing, or utility and match the commander's colors.
         SECOND, after selecting useful non-basic lands, fill the remaining ${numToRequest} slots with Basic Lands (e.g., "Plains", "Island", "Forest") as needed to meet the count.
         Provide a 1-10 rating and a brief "reason" for each card you select.
@@ -917,7 +917,14 @@ async function startSuggestionFlow(deckId, opts = {}) {
 
   if (mode === 'auto') {
     // Auto-apply
+    // Log a concise preview of allSuggestedMap contents for debugging mapping issues
+    try {
+      const preview = Object.keys(allSuggestedMap).map(k => ({ id: k, name: allSuggestedMap[k]?.name || null, isVirtual: !!allSuggestedMap[k]?.isVirtual, count: allSuggestedMap[k]?.count || 1, slotType: allSuggestedMap[k]?.slotType || null }));
+      console.log('[deckSuggestions] allSuggestedMap preview:', preview);
+    } catch (e) { console.warn('[deckSuggestions] failed to serialize allSuggestedMap for logging', e); }
+
     const idsToAdd = Object.keys(allSuggestedMap).filter(id => !(deck.cards || {})[id]);
+    console.log('[deckSuggestions] idsToAdd (attempting to add):', idsToAdd);
     if (idsToAdd.length === 0) { try { window.__deckSuggestionsFlowInFlight = false; } catch (e) { }; showToast('No new cards to add.', 'info'); return; }
 
     try {
