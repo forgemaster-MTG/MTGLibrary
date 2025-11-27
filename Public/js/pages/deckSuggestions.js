@@ -411,6 +411,7 @@ function buildCandidateMapForType(type, commanderColors, tempDeckList, deckId) {
           }
         }
         if (isAssigned) continue;
+
       }
       // Basic lands can always be added (no uniqueness check)
 
@@ -445,6 +446,7 @@ function buildCandidateMapForType(type, commanderColors, tempDeckList, deckId) {
         }
       }
       if (isAssigned) continue;
+
 
       candidateMap.set(card.firestoreId, card);
     }

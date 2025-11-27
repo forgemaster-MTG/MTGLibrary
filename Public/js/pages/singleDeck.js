@@ -580,6 +580,7 @@ export async function handleAddSelectedCardsToDeck(deckId, firestoreIds) {
     }
   }
 
+
   // userId already retrieved above
   const batch = writeBatch(db);
   // track mapping from original fid -> newly created collection doc id so we can update local state optimistically
@@ -739,6 +740,7 @@ export async function batchAddCardsWithProgress(deckId, firestoreIds, sourceMap 
           return !(assigns.length > 0 && assigns.some(a => a && a.deckId && a.deckId !== deckId));
         } catch (e) { return true; }
       });
+
 
       const skippedInChunk = mappedChunk.filter(fid => !filteredChunk.includes(fid));
       if (skippedInChunk.length) {

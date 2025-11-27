@@ -769,7 +769,39 @@ document.addEventListener("DOMContentLoaded", () => {
       const totalPages = Math.ceil(cards.length / COLLECTION_PAGE_SIZE);
       if (totalPages > 1) { const start = (collectionCurrentPage - 1) * COLLECTION_PAGE_SIZE; const end = start + COLLECTION_PAGE_SIZE; const paginatedCards = cards.slice(start, end); renderPaginationControls(totalPages); cards = paginatedCards; } else { paginationDiv.innerHTML = ""; }
     }
-    if (collectionViewMode === "grid") renderCollectionGrid(cards, groupByKeys); else renderCollectionTable(cards, groupByKeys);
+    if (collectionViewMode === "grid") {
+      // Visual Combination Logic:
+      // If no explicit grouping is active, we still want to visually combine identical cards (same Name, Set, Finish)
+      // so they appear as a single stack with a total count, rather than separate items.
+      if (groupByKeys.length === 0) {
+        const combinedMap = new Map();
+        cards.forEach(card => {
+          // Key for visual combination: Name + Set + Finish + Condition (optional)
+          // We use Scryfall ID if available as a robust key, or Name+Set+Finish
+          const key = card.id ? `${card.id}-${card.finish || 'nonfoil'}` : `${card.name}-${card.set || ''}-${card.finish || 'nonfoil'}`;
+
+          if (!combinedMap.has(key)) {
+            // Clone the card to avoid mutating the original localCollection object
+            combinedMap.set(key, {
+              ...card,
+              count: (card.count || 1),
+              // Keep track of all real Firestore IDs that make up this visual stack
+              _visualStackIds: [card.firestoreId]
+            });
+          } else {
+            const existing = combinedMap.get(key);
+            existing.count += (card.count || 1);
+            existing._visualStackIds.push(card.firestoreId);
+          }
+        });
+        cards = Array.from(combinedMap.values());
+        // Re-sort the combined list since we rebuilt it
+        cards = sortCards(cards);
+      }
+      renderCollectionGrid(cards, groupByKeys);
+    } else {
+      renderCollectionTable(cards, groupByKeys);
+    }
   }
 
   function renderPaginationControls(totalPages) {
