@@ -34,6 +34,8 @@ export function updateCardAssignments() {
       if (!existing) cardDeckAssignments[firestoreId].push({ deckId: deck.id, deckName: deck.name });
     });
   });
+  // Sync global for legacy/inline access
+  if (typeof window !== 'undefined') window.cardDeckAssignments = cardDeckAssignments;
 }
 
 export async function addCardToCollection(cardData, userId) {

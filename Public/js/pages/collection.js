@@ -1,5 +1,5 @@
 import { showToast } from '../lib/ui.js';
-import { localCollection, cardDeckAssignments, updateCardAssignments } from '../lib/data.js';
+import { localCollection, localDecks, cardDeckAssignments, updateCardAssignments } from '../lib/data.js';
 
 // Local view state (seed from shared window state when available)
 let collectionViewMode = (typeof window !== 'undefined' && window.collectionViewMode) ? window.collectionViewMode : 'grid';
@@ -1764,39 +1764,115 @@ export function renderCardDetailsModal(card) {
             <!-- Collection Status -->
             <details class="p-3 rounded" style="background: rgba(6,8,15,0.55); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); border:1px solid rgba(255,255,255,0.04);">
               <summary class="cursor-pointer font-semibold text-gray-200">Collection Status</summary>
-              <div class="mt-3 text-sm text-gray-200">
-                ${card._group ? `
-                  <div class="mb-2"><span class="text-gray-400">Total Owned:</span> ${esc(card._group.total)}</div>
-                  <div class="space-y-2 mt-3">
-                    ${card._group.variants.map(v => {
-      const assignments = cardDeckAssignments[v.firestoreId] || [];
-      const deckNames = assignments.map(a => a.deckName).filter(Boolean).join(', ');
-      return `
-                      <div class="flex items-center justify-between bg-gray-800/50 p-2 rounded border border-gray-700">
-                        <div>
-                          <div class="font-semibold text-indigo-300">${v.finish === 'foil' ? 'Foil' : (v.finish === 'etched' ? 'Etched' : 'Non-Foil')}</div>
-                          <div class="text-xs text-gray-400">Count: <span class="text-white">${v.count || 1}</span> • Condition: ${v.condition || 'N/A'}</div>
-                          ${v.purchasePrice ? `<div class="text-xs text-gray-500">Bought: $${v.purchasePrice}</div>` : ''}
-                          ${deckNames ? `<div class="text-xs text-indigo-400 mt-0.5">In Deck: ${esc(deckNames)}</div>` : ''}
-                        </div>
-                        <button class="delete-button text-red-400 hover:text-red-200 p-1" data-firestore-id="${v.firestoreId}" title="Delete this entry">
-                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                        </button>
+              <div class="mt-3">
+                ${(() => {
+        const col = (typeof window !== 'undefined' && window.localCollection) ? window.localCollection : (typeof localCollection !== 'undefined' ? localCollection : {});
+        const decks = (typeof window !== 'undefined' && window.localDecks) ? window.localDecks : (typeof localDecks !== 'undefined' ? localDecks : {});
+        const assignmentsMap = (typeof window !== 'undefined' && window.cardDeckAssignments) ? window.cardDeckAssignments : (typeof cardDeckAssignments !== 'undefined' ? cardDeckAssignments : {});
+
+        const targetId = card.id || card.scryfall_id;
+        // Find all variants in collection matching this Scryfall ID
+        const variants = Object.values(col).filter(c => c.id === targetId || c.scryfall_id === targetId);
+
+        if (variants.length === 0) {
+          return '<div class="text-gray-400 italic">Not in collection</div>';
+        }
+
+        const groups = {};
+        const ensureGroup = (key, name) => {
+          if (!groups[key]) groups[key] = { deckName: name, nonFoilCount: 0, foilCount: 0, nonFoilPrice: 0, foilPrice: 0, addedAt: null };
+          return groups[key];
+        };
+
+        variants.forEach(v => {
+          const totalCount = v.count || 1;
+          let remainingCount = totalCount;
+          const assigns = assignmentsMap[v.firestoreId] || [];
+          const isFoil = v.finish === 'foil' || v.finish === 'etched';
+
+          // Distribute counts to assigned decks
+          assigns.forEach(t => {
+            const deck = decks[t.deckId];
+            if (deck && deck.cards && deck.cards[v.firestoreId]) {
+              const countInDeck = deck.cards[v.firestoreId].count || 1;
+              // We can only assign up to what we have (though technically data should be consistent)
+              const actualAssign = Math.min(countInDeck, remainingCount);
+
+              if (actualAssign > 0) {
+                const g = ensureGroup(t.deckId, t.deckName || deck.name);
+                if (isFoil) g.foilCount += actualAssign; else g.nonFoilCount += actualAssign;
+
+                // Update metadata
+                if (v.prices) {
+                  if (v.prices.usd) g.nonFoilPrice = Number(v.prices.usd);
+                  if (v.prices.usd_foil) g.foilPrice = Number(v.prices.usd_foil);
+                }
+                const date = v.addedAt || v.added_at || '';
+                if (date) {
+                  if (!g.addedAt || new Date(date) > new Date(g.addedAt)) g.addedAt = date;
+                }
+
+                remainingCount -= actualAssign;
+              }
+            }
+          });
+
+          // If there is any count left, it belongs to "No Deck"
+          if (remainingCount > 0) {
+            const g = ensureGroup('unassigned', 'No Deck');
+            if (isFoil) g.foilCount += remainingCount; else g.nonFoilCount += remainingCount;
+
+            if (v.prices) {
+              if (v.prices.usd) g.nonFoilPrice = Number(v.prices.usd);
+              if (v.prices.usd_foil) g.foilPrice = Number(v.prices.usd_foil);
+            }
+            const date = v.addedAt || v.added_at || '';
+            if (date) {
+              if (!g.addedAt || new Date(date) > new Date(g.addedAt)) g.addedAt = date;
+            }
+          }
+        });
+
+        let totalOwned = 0;
+        const rows = Object.values(groups).map(g => {
+          const total = g.nonFoilCount + g.foilCount;
+          totalOwned += total;
+          const rowTotal = (g.nonFoilCount * g.nonFoilPrice) + (g.foilCount * g.foilPrice);
+          const dateStr = g.addedAt ? new Date(g.addedAt).toLocaleDateString() : '-';
+
+          return `
+                          <tr class="border-b border-gray-700/50 hover:bg-gray-700/30">
+                              <td class="px-3 py-2 text-indigo-300 font-medium">${esc(g.deckName)}</td>
+                              <td class="px-3 py-2 text-center text-gray-300">${g.nonFoilCount}</td>
+                              <td class="px-3 py-2 text-center text-gray-300">${g.foilCount}</td>
+                              <td class="px-3 py-2 text-right text-gray-400">${g.nonFoilPrice ? '$' + g.nonFoilPrice.toFixed(2) : '-'}</td>
+                              <td class="px-3 py-2 text-right text-gray-400">${g.foilPrice ? '$' + g.foilPrice.toFixed(2) : '-'}</td>
+                              <td class="px-3 py-2 text-right text-gray-200 font-medium">$${rowTotal.toFixed(2)}</td>
+                              <td class="px-3 py-2 text-right text-xs text-gray-500">${dateStr}</td>
+                          </tr>
+                      `;
+        }).join('');
+
+        return `
+                      <div class="mb-3 text-sm text-gray-400">Total Owned: <span class="text-white font-bold">${totalOwned}</span></div>
+                      <div class="overflow-x-auto rounded-lg border border-gray-700 bg-gray-800/40">
+                          <table class="w-full text-xs text-left">
+                              <thead class="bg-gray-900/50 text-gray-500 uppercase font-semibold">
+                                  <tr>
+                                      <th class="px-3 py-2">Deck Status</th>
+                                      <th class="px-3 py-2 text-center">Non-Foil</th>
+                                      <th class="px-3 py-2 text-center">Foil</th>
+                                      <th class="px-3 py-2 text-right">NF Price</th>
+                                      <th class="px-3 py-2 text-right">F Price</th>
+                                      <th class="px-3 py-2 text-right">Total</th>
+                                      <th class="px-3 py-2 text-right">Added</th>
+                                  </tr>
+                              </thead>
+                              <tbody>${rows}</tbody>
+                          </table>
                       </div>
-                    `}).join('')}
-                  </div>
-                ` : `
-                  <div class="mb-2"><span class="text-gray-400">Total Owned:</span> ${esc(totalOwned)}</div>
-                  <div class="mb-2"><span class="text-gray-400">Finish:</span> ${esc(finish)}</div>
-                  <div class="mb-2"><span class="text-gray-400">Market Price:</span> ${esc(priceText || 'N/A')}</div>
-                  <div class="mb-2"><span class="text-gray-400">Date Added:</span> ${esc(dateAdded || '')}</div>
-                  <div class="mb-2"><span class="text-gray-400">Collector Number:</span> ${esc(card.collector_number || card.number || '')}</div>
-                  ${(() => {
-        const assignments = cardDeckAssignments[card.firestoreId] || [];
-        const deckNames = assignments.map(a => a.deckName).filter(Boolean).join(', ');
-        return deckNames ? `<div class="mb-2"><span class="text-gray-400">In Deck:</span> <span class="text-indigo-300">${esc(deckNames)}</span></div>` : '';
+                  `;
       })()}
-                `}
               </div>
             </details>
 

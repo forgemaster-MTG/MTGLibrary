@@ -491,7 +491,7 @@ async function startSuggestionFlow(deckId, opts = {}) {
   // Prefer values from blueprint.suggestedCounts if present, otherwise fall back to sane defaults.
   const defaultTypeCounts = {
     'Creature': blueprint.suggestedCounts?.Creature ?? 25,
-    'Planeswalker': blueprint.suggestedCounts?.Planeswalker ?? 5,
+    'Planeswalker': blueprint.suggestedCounts?.Planeswalker ?? 0,
     'Instant': blueprint.suggestedCounts?.Instant ?? 10,
     'Sorcery': blueprint.suggestedCounts?.Sorcery ?? 10,
     'Artifact': blueprint.suggestedCounts?.Artifact ?? 10,

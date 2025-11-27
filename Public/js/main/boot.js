@@ -473,11 +473,37 @@ export function setupGlobalListeners() {
     const notificationClose = document.getElementById('notification-close-btn'); if (notificationClose) notificationClose.addEventListener('click', () => { if (typeof window.closeModal === 'function') window.closeModal('notification-modal'); });
 
     const cancelDeleteDeckBtn = document.getElementById('cancel-delete-deck-btn'); if (cancelDeleteDeckBtn) cancelDeleteDeckBtn.addEventListener('click', () => { if (typeof window.closeModal === 'function') window.closeModal('deck-delete-options-modal'); });
-    const deleteDeckOnly = document.getElementById('delete-deck-only-btn'); if (deleteDeckOnly) deleteDeckOnly.addEventListener('click', (e) => { const id = e.currentTarget.dataset.deckId || e.currentTarget.dataset.id; if (typeof window.deleteDeck === 'function') window.deleteDeck(id, false); });
-    const deleteDeckAndCards = document.getElementById('delete-deck-and-cards-btn'); if (deleteDeckAndCards) deleteDeckAndCards.addEventListener('click', (e) => { const id = e.currentTarget.dataset.deckId || e.currentTarget.dataset.id; if (typeof window.deleteDeck === 'function') window.deleteDeck(id, true); });
+
+    // Use event delegation for delete buttons since they might not exist when this code runs
+    const deleteModal = document.getElementById('deck-delete-options-modal');
+    if (deleteModal) {
+      deleteModal.addEventListener('click', (e) => {
+        const deleteOnlyBtn = e.target.closest('#delete-deck-only-btn');
+        const deleteAndCardsBtn = e.target.closest('#delete-deck-and-cards-btn');
+
+        if (deleteOnlyBtn) {
+          console.log('[Boot] delete-deck-only-btn clicked via delegation', { deckId: deleteOnlyBtn.dataset.deckId, id: deleteOnlyBtn.dataset.id, windowDeleteDeckType: typeof window.deleteDeck });
+          const id = deleteOnlyBtn.dataset.deckId || deleteOnlyBtn.dataset.id;
+          if (typeof window.deleteDeck === 'function') {
+            window.deleteDeck(id, false);
+          } else {
+            console.error('[Boot] window.deleteDeck is not a function!', typeof window.deleteDeck);
+          }
+        } else if (deleteAndCardsBtn) {
+          console.log('[Boot] delete-deck-and-cards-btn clicked via delegation', { deckId: deleteAndCardsBtn.dataset.deckId, id: deleteAndCardsBtn.dataset.id, windowDeleteDeckType: typeof window.deleteDeck });
+          const id = deleteAndCardsBtn.dataset.deckId || deleteAndCardsBtn.dataset.id;
+          if (typeof window.deleteDeck === 'function') {
+            window.deleteDeck(id, true);
+          } else {
+            console.error('[Boot] window.deleteDeck is not a function!', typeof window.deleteDeck);
+          }
+        }
+      });
+    }
 
     // Listen for delete requests from decks.js
     window.addEventListener('delete-deck-request', (e) => {
+      console.log('[Boot] delete-deck-request event received', e.detail);
       if (e.detail && e.detail.deckId) {
         if (typeof window.openDeckDeleteOptions === 'function') {
           window.openDeckDeleteOptions(e.detail.deckId);

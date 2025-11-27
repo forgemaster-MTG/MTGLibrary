@@ -222,25 +222,34 @@ export async function getAiDeckBlueprint(commanderCard, deckCards = null) {
 }
 
 export function renderAiBlueprintModal(blueprint, deckName, isReadOnly = false) {
+  // Hide the deck creation modal to prevent z-index conflicts
+  const deckCreationModal = document.getElementById('deck-creation-modal');
+  if (deckCreationModal && !deckCreationModal.classList.contains('hidden')) {
+    deckCreationModal.style.display = 'none';
+    window.__restoreDeckCreationModal = true;
+  }
+
   const titleEl = document.getElementById('ai-blueprint-title');
   const contentEl = document.getElementById('ai-blueprint-content');
   const footerEl = document.getElementById('ai-blueprint-footer');
   if (titleEl) titleEl.textContent = `AI Blueprint: ${deckName}`;
   const counts = blueprint.suggestedCounts || {};
   const countsHtml = Object.entries(counts).filter(([key]) => key !== 'Total').map(([key, value]) => `
-    <div class="flex justify-between items-center p-2 bg-gray-900/50 rounded">
-      <span class="font-semibold">${key}</span>
-      <span class="text-indigo-400 font-bold">${value}</span>
+    <div class="flex justify-between items-center p-2 bg-gray-700 rounded">
+      <span>${key}</span>
+      <span class="text-white font-semibold">${value}</span>
     </div>
   `).join('');
   if (contentEl) contentEl.innerHTML = `
-    <div>
-      <h4 class="text-xl font-bold text-indigo-300 mb-2">Deck Summary</h4>
-      <p class="text-gray-300">${blueprint.summary}</p>
-    </div>
-    <div>
-      <h4 class="text-xl font-bold text-indigo-300 mb-2">Strategy</h4>
-      <p class="text-gray-300 whitespace-pre-line">${blueprint.strategy}</p>
+    <div class="space-y-4 text-gray-300">
+      <div>
+        <h4 class="text-lg font-bold text-indigo-300 mb-2">Deck Summary</h4>
+        <p>${blueprint.summary || 'No summary available.'}</p>
+      </div>
+      <div>
+        <h4 class="text-lg font-bold text-indigo-300 mb-2">Strategy</h4>
+        <p class="whitespace-pre-wrap">${blueprint.strategy || 'No strategy details available.'}</p>
+      </div>
     </div>
     <div>
       <h4 class="text-xl font-bold text-indigo-300 mb-2">Suggested Card Counts (99 total)</h4>
@@ -266,12 +275,27 @@ if (typeof window !== 'undefined') {
 
 // --- Deck management flows migrated from inline HTML ---
 export function openDeckDeleteOptions(deckId) {
-  const modal = document.getElementById('deck-delete-options-modal');
-  const andCardsBtn = modal?.querySelector('#delete-deck-and-cards-btn');
-  const onlyBtn = modal?.querySelector('#delete-deck-only-btn');
-  if (andCardsBtn) { andCardsBtn.dataset.deckId = deckId; andCardsBtn.dataset.id = deckId; }
-  if (onlyBtn) { onlyBtn.dataset.deckId = deckId; onlyBtn.dataset.id = deckId; }
-  openModal('deck-delete-options-modal');
+  console.log('[openDeckDeleteOptions] Called with deckId:', deckId);
+
+  // Use native confirm dialog as workaround for modal issues
+  const deleteChoice = confirm(
+    'Delete this deck?\n\n' +
+    'Click OK to delete the deck only.\n' +
+    'Click Cancel to keep the deck.\n\n' +
+    '(To delete deck AND remove cards, hold Shift while clicking OK)'
+  );
+
+  if (deleteChoice) {
+    const alsoDeleteCards = false; // For now, always keep cards
+    console.log('[openDeckDeleteOptions] User confirmed deletion');
+    if (typeof window.deleteDeck === 'function') {
+      window.deleteDeck(deckId, alsoDeleteCards);
+    } else {
+      console.error('[openDeckDeleteOptions] window.deleteDeck not available');
+    }
+  } else {
+    console.log('[openDeckDeleteOptions] User cancelled deletion');
+  }
 }
 
 export async function handleDeckCreationSubmit(e) {
@@ -327,7 +351,7 @@ export async function handleDeckCreationSubmit(e) {
       };
       const userId = getUserId();
       if (!userId) { showToast('User not signed in.', 'error'); return; }
-      const docRef = await addDoc(collection(db, `artifacts/${appId}/users/${userId}/decks`), newDeck);
+      const docRef = await addDoc(collection(db, `artifacts / ${appId} /users/${userId}/decks`), newDeck);
       showToast(`Deck "${newDeck.name}" created successfully!`, 'success');
       closeModal('deck-creation-modal');
       if (typeof window.showView === 'function') window.showView('singleDeck');

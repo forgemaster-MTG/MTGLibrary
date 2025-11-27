@@ -94,6 +94,23 @@ function isEditModeEnabled() {
 function showConfirmationModal(title, message, onConfirm) {
   try {
     if (typeof window.openModal === 'function' && document && document.getElementById && document.getElementById('confirmation-modal')) {
+      // FIX: Close any other open modals first to prevent stacking
+      try {
+        if (typeof window.closeAllModals === 'function') {
+          window.closeAllModals();
+        } else {
+          // Fallback: try to close common modals
+          const commonModals = ['add-cards-to-deck-modal', 'import-data-modal', 'card-details-modal'];
+          commonModals.forEach(modalId => {
+            try {
+              if (typeof window.closeModal === 'function') window.closeModal(modalId);
+            } catch (e) { /* ignore */ }
+          });
+        }
+      } catch (e) {
+        console.debug('[showConfirmationModal] modal cleanup failed', e);
+      }
+
       document.getElementById('confirmation-title').textContent = title;
       document.getElementById('confirmation-message').textContent = message;
       const btn = document.getElementById('confirm-action-btn');
@@ -441,6 +458,7 @@ export function initSingleDeckModule() {
   window.renderManaCurveChart = renderManaCurveChart;
   window.attachSuggestionMetadataToDeck = attachSuggestionMetadataToDeck;
   window.renderDeckSuggestionSummary = renderDeckSuggestionSummary;
+  window.deleteDeck = deleteDeck;
   console.log('[SingleDeck] Module initialized.');
 }
 
@@ -925,8 +943,14 @@ export async function batchAddCardsWithProgress(deckId, firestoreIds, sourceMap 
         } catch (err) {
           attempts += 1;
           console.warn('[batchAdd] commit attempt ' + attempts + ' failed', err);
+          // FIX: Add more detailed error logging to help diagnose partial failures
+          if (err.message) console.warn('[batchAdd] Error message:', err.message);
+          if (err.code) console.warn('[batchAdd] Error code:', err.code);
+
           if (attempts >= maxAttempts) {
-            console.error('[batchAdd] chunk commit failed after ' + attempts + ' attempts. Continuing with next chunk.', chunk);
+            console.error('[batchAdd] chunk commit failed after ' + attempts + ' attempts. Chunk size: ' + chunk.length + '. Continuing with next chunk.', chunk);
+            // FIX: Log which cards were in the failed chunk for debugging
+            console.error('[batchAdd] Failed chunk card IDs:', filteredChunk);
             break;
           }
           await new Promise(res => setTimeout(res, 500 * Math.pow(2, attempts)));
@@ -934,7 +958,7 @@ export async function batchAddCardsWithProgress(deckId, firestoreIds, sourceMap 
       }
 
       if (!chunkCommitted) {
-        console.warn('[batchAdd] skipping optimistic update for failed chunk', chunk);
+        console.warn('[batchAdd] skipping optimistic update for failed chunk (size: ' + chunk.length + ')');
         failedIds.push(...chunk);
         continue;
       }
@@ -952,8 +976,18 @@ export async function batchAddCardsWithProgress(deckId, firestoreIds, sourceMap 
               delete window.localCollection[orig];
             }
           }
+
+          // FIX: Get the count from sourceMap to properly handle cards that should have count > 1
+          const originalId = reverseMap.get(orig) || orig;
+          const suggestedCount = sourceMap && sourceMap[originalId] ? (sourceMap[originalId].count || 1) : 1;
+
           window.localCollection[newId] = Object.assign({}, collectionCard || {}, { count: 1, firestoreId: newId, pending: true, name, type_line });
-          if (localDeck.cards[newId]) localDeck.cards[newId].count = (localDeck.cards[newId].count || 0) + 1; else localDeck.cards[newId] = { count: 1, name, type_line };
+          // Apply the correct count to the deck card entry
+          if (localDeck.cards[newId]) {
+            localDeck.cards[newId].count = (localDeck.cards[newId].count || 0) + suggestedCount;
+          } else {
+            localDeck.cards[newId] = { count: suggestedCount, name, type_line };
+          }
         });
         updateCardAssignments();
         if (typeof window.renderSingleDeck === 'function') window.renderSingleDeck(deckId);
@@ -1057,6 +1091,7 @@ export function renderDeckSuggestionSummary(deckId) {
 }
 
 export async function deleteDeck(deckId, alsoDeleteCards) {
+  console.log('[deleteDeck] Called with', { deckId, alsoDeleteCards });
   const userId = getUserId();
   if (!deckId) {
     const modal = document.getElementById('deck-delete-options-modal');
@@ -1066,14 +1101,17 @@ export async function deleteDeck(deckId, alsoDeleteCards) {
     }
     if (!deckId && window.views && window.views.singleDeck) deckId = window.views.singleDeck.dataset.deckId;
   }
+  console.log('[deleteDeck] Resolved deckId=', deckId, 'userId=', userId);
   if (!deckId) { showToast('Deck not found.', 'error'); return; }
   try {
+    console.log('[deleteDeck] Calling dataDeleteDeck...');
     await dataDeleteDeck(deckId, !!alsoDeleteCards, getUserId());
+    console.log('[deleteDeck] Delete successful');
     showToast('Deck deleted successfully.', 'success');
     if (window.views && window.views.singleDeck && window.views.singleDeck.dataset.deckId === deckId) { if (typeof window.showView === 'function') window.showView('decks'); }
     closeModal('deck-delete-options-modal');
   } catch (error) {
-    console.error('Error deleting deck:', error); showToast('Failed to delete deck.', 'error');
+    console.error('[deleteDeck] Error deleting deck:', error); showToast('Failed to delete deck.', 'error');
   }
 }
 

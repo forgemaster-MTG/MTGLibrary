@@ -30,10 +30,26 @@ export function showToast(message, type = 'info') {
 }
 
 export function openModal(modalId) {
+  console.log('[openModal] Called with modalId:', modalId);
   const modal = document.getElementById(modalId);
-  if (!modal) return;
+  console.log('[openModal] Modal element:', modal, 'Classes before:', modal?.classList.toString());
+  if (!modal) {
+    console.error('[openModal] Modal not found!');
+    return;
+  }
   modal.classList.remove('hidden');
   modal.classList.add('flex');
+  // Force display with inline style to override any CSS conflicts
+  modal.style.display = 'flex';
+  modal.style.opacity = '1';
+  modal.style.visibility = 'visible';
+  modal.style.pointerEvents = 'auto';
+  // AI suggestions modal needs higher z-index to appear over deck creation modal
+  modal.style.zIndex = modalId === 'ai-suggestions-modal' ? '999999' : '99999';
+  modal.style.backgroundColor = 'rgba(0, 0, 0, 0.75)';
+  modal.style.minHeight = '100vh';
+  modal.style.height = '100vh';
+  console.log('[openModal] Modal should now be visible!');
   // Small accessibility/UX: autofocus primary inputs for known modals
   try {
     // Delay slightly to allow modal to become visible
@@ -51,10 +67,29 @@ export function openModal(modalId) {
 if (typeof window !== 'undefined') window.openModal = openModal;
 
 export function closeModal(modalId) {
+  console.log('[closeModal] Called with modalId:', modalId, 'Stack trace:', new Error().stack);
   const modal = document.getElementById(modalId);
   if (!modal) return;
   modal.classList.add('hidden');
   modal.classList.remove('flex');
+  // Clear all inline styles that openModal set
+  modal.style.display = '';
+  modal.style.opacity = '';
+  modal.style.visibility = '';
+  modal.style.pointerEvents = '';
+  modal.style.zIndex = '';
+  modal.style.backgroundColor = '';
+  modal.style.minHeight = '';
+  modal.style.height = '';
+
+  // If closing AI blueprint modal, restore deck creation modal
+  if (modalId === 'ai-blueprint-modal' && window.__restoreDeckCreationModal) {
+    const deckCreationModal = document.getElementById('deck-creation-modal');
+    if (deckCreationModal) {
+      deckCreationModal.style.display = '';
+    }
+    window.__restoreDeckCreationModal = false;
+  }
 }
 
 // Progress toast helpers
