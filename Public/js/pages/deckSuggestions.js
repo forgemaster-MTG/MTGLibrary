@@ -509,6 +509,19 @@ async function startSuggestionFlow(deckId, opts = {}) {
   // This list includes the original deck AND cards added during this session
   const tempDeckList = { ...deck.cards }; // Seed with original deck
 
+  // Merge existing suggestions (that were kept) into tempDeckList so they are counted and excluded from candidates
+  Object.keys(allSuggestedMap).forEach(id => {
+    if (!tempDeckList[id]) {
+      const s = allSuggestedMap[id];
+      tempDeckList[id] = {
+        count: s.suggestedAddCount || s.count || 1,
+        name: s.name,
+        type_line: s.type_line,
+        slotType: s.slotType
+      };
+    }
+  });
+
   // Helper to count *all* non-commander cards
   function countNonCommander() {
     // The commander is not in the .cards list, so this is fine.
@@ -764,6 +777,9 @@ async function startSuggestionFlow(deckId, opts = {}) {
         slotType: type, // The slot it FILLS (e.g., 'Planeswalker')
       }, allSuggestedMap[card.firestoreId] || {}); // Merge with any existing data
 
+      // Increment suggested count for this card
+      allSuggestedMap[card.firestoreId].suggestedAddCount = (allSuggestedMap[card.firestoreId].suggestedAddCount || 0) + 1;
+
       // Add to temp deck list for next pass
       tempDeckList[card.firestoreId] = tempDeckList[card.firestoreId] || { count: 0, name: card.name, type_line: card.type_line };
       tempDeckList[card.firestoreId].count = (tempDeckList[card.firestoreId].count || 0) + 1;
@@ -804,113 +820,116 @@ async function startSuggestionFlow(deckId, opts = {}) {
   // --- End Main Loop ---
 
   // --- Auto-Add Basic Lands ---
-  try {
-    const deckObj = (window.localDecks || localDecks)[deckId];
-    // Fix: Pass a reasonable land target (e.g. 37 for commander, 24 for 60-card) instead of the full deck size
-    // We try to find a custom land count in the deck or blueprint first.
-    const getDeckLandTarget = (d) => {
-      if (d.customLandCount) return Number(d.customLandCount);
-      if (d.landCount) return Number(d.landCount);
-      if (d.aiBlueprint) {
-        if (d.aiBlueprint.totalLandCount) return Number(d.aiBlueprint.totalLandCount);
-        if (d.aiBlueprint.counts && d.aiBlueprint.counts.Land) return Number(d.aiBlueprint.counts.Land);
+  if (!currentTypeFilter || currentTypeFilter === 'Land') {
+    try {
+      const deckObj = (window.localDecks || localDecks)[deckId];
+      // Fix: Pass a reasonable land target (e.g. 37 for commander, 24 for 60-card) instead of the full deck size
+      // We try to find a custom land count in the deck or blueprint first.
+      const getDeckLandTarget = (d) => {
+        if (d.customLandCount) return Number(d.customLandCount);
+        if (d.landCount) return Number(d.landCount);
+        if (d.aiBlueprint) {
+          if (d.aiBlueprint.totalLandCount) return Number(d.aiBlueprint.totalLandCount);
+          if (d.aiBlueprint.counts && d.aiBlueprint.counts.Land) return Number(d.aiBlueprint.counts.Land);
+        }
+        return (d.format === 'commander' || !d.format) ? 37 : 24;
+      };
+      const targetLandCount = getDeckLandTarget(deckObj);
+
+      // Temporarily add suggested cards to localCollection so calculateBasicLandNeeds can access them
+      if (!window.localCollection) window.localCollection = {};
+      const tempCollectionBackup = {};
+      Object.keys(allSuggestedMap).forEach(id => {
+        if (!window.localCollection[id]) {
+          window.localCollection[id] = allSuggestedMap[id];
+          tempCollectionBackup[id] = true; // Track what we added
+        }
+      });
+
+      // Create a temp deck object that includes the suggested cards to get accurate basic land count
+      const tempDeck = {
+        ...deckObj,
+        cards: tempDeckList
+      };
+      const basicLandNeeds = calculateBasicLandNeeds(tempDeck, targetLandCount);
+
+      // Clean up temporary additions
+      Object.keys(tempCollectionBackup).forEach(id => {
+        delete window.localCollection[id];
+      });
+
+      const manaColors = {
+        W: 'Plains',
+        U: 'Island',
+        B: 'Swamp',
+        R: 'Mountain',
+        G: 'Forest'
+      };
+
+      const col = window.localCollection || localCollection;
+      const basicLandsAdded = [];
+
+      ['W', 'U', 'B', 'R', 'G'].forEach(colorCode => {
+        const needed = basicLandNeeds[colorCode];
+        if (needed === 0) return;
+
+        const basicName = manaColors[colorCode];
+        let basicLand = Object.values(col).find(c =>
+          c.name === basicName && c.type_line?.includes('Basic Land')
+        );
+
+        // If not found in collection, create a virtual one
+        if (!basicLand) {
+          console.warn(`[deckSuggestions] Basic land ${basicName} not found in collection. Creating virtual entry.`);
+          const virtualId = `virtual-basic-${colorCode}-${deckId}`;
+          basicLand = {
+            firestoreId: virtualId,
+            name: basicName,
+            type_line: `Basic Land — ${basicName.split(' ').pop()}`,
+            cmc: 0,
+            color_identity: [colorCode],
+            image_uris: { normal: `https://c1.scryfall.com/file/scryfall-cards/normal/front/0/0/00000000-0000-0000-0000-000000000000.jpg` },
+            isVirtual: true
+          };
+
+          const art = {
+            'Plains': 'https://svgs.scryfall.io/card-symbols/W.svg',
+            'Island': 'https://svgs.scryfall.io/card-symbols/U.svg',
+            'Swamp': 'https://svgs.scryfall.io/card-symbols/B.svg',
+            'Mountain': 'https://svgs.scryfall.io/card-symbols/R.svg',
+            'Forest': 'https://svgs.scryfall.io/card-symbols/G.svg'
+          };
+          if (art[basicName]) basicLand.image_uris = { normal: art[basicName], small: art[basicName] };
+        }
+
+        if (basicLand && !((deck.cards || {})[basicLand.firestoreId])) {
+          allSuggestedMap[basicLand.firestoreId] = {
+            ...basicLand,
+            rating: 5,
+            reason: `${needed}x basic ${basicName} for ${colorCode} mana`,
+            sourceType: 'Land',
+            slotType: 'Land',
+            count: needed,
+            suggestedAddCount: needed,
+            isAutoBasicLand: true
+          };
+          basicLandsAdded.push(`${needed}x ${basicName}`);
+          tempDeckList[basicLand.firestoreId] = {
+            count: needed,
+            name: basicLand.name,
+            type_line: basicLand.type_line,
+            slotType: 'Land'
+          };
+        }
+      });
+
+      if (basicLandsAdded.length > 0) {
+        appendResultBlock('Basic Lands', 'Land', basicLandsAdded.length, basicLandsAdded.length, false, basicLandsAdded.join(', '));
+        console.log(`[deckSuggestions] Auto-added basic lands: ${basicLandsAdded.join(', ')}`);
       }
-      return (d.format === 'commander' || !d.format) ? 37 : 24;
-    };
-    const targetLandCount = getDeckLandTarget(deckObj);
-
-    // Temporarily add suggested cards to localCollection so calculateBasicLandNeeds can access them
-    if (!window.localCollection) window.localCollection = {};
-    const tempCollectionBackup = {};
-    Object.keys(allSuggestedMap).forEach(id => {
-      if (!window.localCollection[id]) {
-        window.localCollection[id] = allSuggestedMap[id];
-        tempCollectionBackup[id] = true; // Track what we added
-      }
-    });
-
-    // Create a temp deck object that includes the suggested cards to get accurate basic land count
-    const tempDeck = {
-      ...deckObj,
-      cards: tempDeckList
-    };
-    const basicLandNeeds = calculateBasicLandNeeds(tempDeck, targetLandCount);
-
-    // Clean up temporary additions
-    Object.keys(tempCollectionBackup).forEach(id => {
-      delete window.localCollection[id];
-    });
-
-    const manaColors = {
-      W: 'Plains',
-      U: 'Island',
-      B: 'Swamp',
-      R: 'Mountain',
-      G: 'Forest'
-    };
-
-    const col = window.localCollection || localCollection;
-    const basicLandsAdded = [];
-
-    ['W', 'U', 'B', 'R', 'G'].forEach(colorCode => {
-      const needed = basicLandNeeds[colorCode];
-      if (needed === 0) return;
-
-      const basicName = manaColors[colorCode];
-      let basicLand = Object.values(col).find(c =>
-        c.name === basicName && c.type_line?.includes('Basic Land')
-      );
-
-      // If not found in collection, create a virtual one
-      if (!basicLand) {
-        console.warn(`[deckSuggestions] Basic land ${basicName} not found in collection. Creating virtual entry.`);
-        const virtualId = `virtual-basic-${colorCode}-${deckId}`;
-        basicLand = {
-          firestoreId: virtualId,
-          name: basicName,
-          type_line: `Basic Land — ${basicName.split(' ').pop()}`,
-          cmc: 0,
-          color_identity: [colorCode],
-          image_uris: { normal: `https://c1.scryfall.com/file/scryfall-cards/normal/front/0/0/00000000-0000-0000-0000-000000000000.jpg` },
-          isVirtual: true
-        };
-
-        const art = {
-          'Plains': 'https://svgs.scryfall.io/card-symbols/W.svg',
-          'Island': 'https://svgs.scryfall.io/card-symbols/U.svg',
-          'Swamp': 'https://svgs.scryfall.io/card-symbols/B.svg',
-          'Mountain': 'https://svgs.scryfall.io/card-symbols/R.svg',
-          'Forest': 'https://svgs.scryfall.io/card-symbols/G.svg'
-        };
-        if (art[basicName]) basicLand.image_uris = { normal: art[basicName], small: art[basicName] };
-      }
-
-      if (basicLand && !((deck.cards || {})[basicLand.firestoreId])) {
-        allSuggestedMap[basicLand.firestoreId] = {
-          ...basicLand,
-          rating: 5,
-          reason: `${needed}x basic ${basicName} for ${colorCode} mana`,
-          sourceType: 'Land',
-          slotType: 'Land',
-          count: needed,
-          isAutoBasicLand: true
-        };
-        basicLandsAdded.push(`${needed}x ${basicName}`);
-        tempDeckList[basicLand.firestoreId] = {
-          count: needed,
-          name: basicLand.name,
-          type_line: basicLand.type_line,
-          slotType: 'Land'
-        };
-      }
-    });
-
-    if (basicLandsAdded.length > 0) {
-      appendResultBlock('Basic Lands', 'Land', basicLandsAdded.length, basicLandsAdded.length, false, basicLandsAdded.join(', '));
-      console.log(`[deckSuggestions] Auto-added basic lands: ${basicLandsAdded.join(', ')}`);
+    } catch (e) {
+      console.error('[deckSuggestions] Failed to calculate basic lands', e);
     }
-  } catch (e) {
-    console.error('[deckSuggestions] Failed to calculate basic lands', e);
   }
 
   // --- Done gathering ---

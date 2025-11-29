@@ -13,6 +13,7 @@ import './index.js'; // ensures firebase, auth, settings are loaded and window g
 import { initCollectionModule } from '../pages/collection.js';
 import { initDecksModule } from '../pages/decks.js';
 import { initSingleDeckModule } from '../pages/singleDeck.js';
+import { initBugTracker } from '../pages/bugTracker.js';
 
 /**
  * Main bootstrap function called when the DOM is ready.
@@ -23,6 +24,7 @@ export function bootApp() {
   initCollectionModule();
   initDecksModule();
   initSingleDeckModule();
+  initBugTracker();
 
   // Do not preload/render the playstyle widget site-wide. It will be loaded on demand from the header button.
   // Attempt to load saved views for the signed-in user so the Saved Views

@@ -390,8 +390,9 @@ function renderGroupedGrid(container, cards) {
 }
 
 function renderGrid(container, cards) {
-  // Reuse collection grid styles
-  container.className = 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4';
+  // Reuse collection grid styles with responsive flux
+  container.className = 'grid gap-4';
+  container.style.gridTemplateColumns = 'repeat(auto-fill, minmax(200px, 1fr))';
 
   container.innerHTML = cards.map(card => {
     // Check collection status
@@ -406,8 +407,12 @@ function renderGrid(container, cards) {
     const opacity = isOwned ? 'opacity-100' : 'opacity-60 grayscale hover:grayscale-0 hover:opacity-100 transition-all';
     const border = isOwned ? 'border-indigo-500/50' : 'border-transparent';
 
-    // Image
-    const img = card.image_uris?.normal || card.card_faces?.[0]?.image_uris?.normal || '';
+    // Image - Robust fallback for split cards
+    let img = card.image_uris?.normal || card.image_uris?.art_crop;
+    if (!img && card.card_faces && card.card_faces.length > 0) {
+      img = card.card_faces[0].image_uris?.normal || card.card_faces[0].image_uris?.art_crop;
+    }
+    img = img || '';
 
     // Quick Edit Overlay
     let quickEditHTML = '';

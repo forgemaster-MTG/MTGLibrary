@@ -1424,7 +1424,12 @@ export function renderCardDetailsModal(card) {
   if (!contentDiv || !wrapper) return;
   // Apply blurred card art as modal background for ambience
   try {
-    const bgUrl = card.image_uris?.art_crop || card.image_uris?.normal || card.image_uri || card.image;
+    // Handle 2-sided cards for background
+    let bgUrl = card.image_uris?.art_crop || card.image_uris?.normal || card.image_uri || card.image;
+    if (!bgUrl && card.card_faces && card.card_faces.length > 0) {
+      bgUrl = card.card_faces[0].image_uris?.art_crop || card.card_faces[0].image_uris?.normal;
+    }
+
     if (bgUrl) {
       wrapper.style.backgroundImage = `linear-gradient(rgba(6,8,15,0.75), rgba(6,8,15,0.85)), url(${bgUrl})`;
       wrapper.style.backgroundSize = 'cover';
@@ -1722,11 +1727,44 @@ export function renderCardDetailsModal(card) {
     const releasedAt = card.released_at || card.releasedAt || card.originalReleaseDate || '';
 
     contentDiv.innerHTML = `
+      <style>
+        .dfs-flip-wrapper { perspective: 1000px; }
+        .dfs-card { transition: transform 0.6s; transform-style: preserve-3d; position: relative; width: 100%; height: 100%; }
+        .dfs-card.is-flipped { transform: rotateY(180deg); }
+        .dfs-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+        .dfs-back { transform: rotateY(180deg); }
+      </style>
       <div class="h-full overflow-auto pr-2">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div class="md:col-span-1 flex flex-col gap-4">
             ${suggestionHtml ? `<div class="bg-gray-800 p-3 rounded text-sm">${suggestionHtml}</div>` : ''}
-            <img src="${esc(card.image_uris?.normal || card.image_uri || card.image)}" class="rounded-lg w-full max-w-[550px] h-auto object-contain">
+            ${(() => {
+        // Check for 2-sided card (Transform, MDFC, etc.) where faces have distinct images
+        if (card.card_faces && card.card_faces.length > 1 && card.card_faces[0].image_uris && card.card_faces[1].image_uris) {
+          const front = card.card_faces[0].image_uris?.normal || card.card_faces[0].image_uris?.large || '';
+          const back = card.card_faces[1].image_uris?.normal || card.card_faces[1].image_uris?.large || '';
+          return `
+                  <div class="dfs-flip-wrapper relative w-full max-w-[400px] mx-auto" style="aspect-ratio: 63/88;">
+                    <div class="dfs-card w-full h-full relative">
+                      <div class="dfs-face w-full h-full">
+                        <img src="${esc(front)}" class="w-full h-full object-contain rounded-lg shadow-2xl">
+                        <button class="dfs-toggle absolute top-4 right-4 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full backdrop-blur-sm transition-all z-10 border border-white/20" title="Flip Card">
+                          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        </button>
+                      </div>
+                      <div class="dfs-face dfs-back w-full h-full">
+                        <img src="${esc(back)}" class="w-full h-full object-contain rounded-lg shadow-2xl">
+                        <button class="dfs-toggle absolute top-4 right-4 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full backdrop-blur-sm transition-all z-10 border border-white/20" title="Flip Card">
+                          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                `;
+        }
+        // Standard single-faced card
+        return `<img src="${esc(card.image_uris?.normal || card.image_uri || card.image)}" class="rounded-lg w-full max-w-[550px] h-auto object-contain shadow-xl">`;
+      })()}
           </div>
           <div class="md:col-span-2 space-y-4">
             <!-- Header (Always Visible) -->
@@ -1911,6 +1949,15 @@ export function renderCardDetailsModal(card) {
       </div>
     `;
 
+    // Add flip listeners
+    contentDiv.querySelectorAll('.dfs-toggle').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const card = btn.closest('.dfs-card');
+        if (card) card.classList.toggle('is-flipped');
+      });
+    });
+
   } catch (err) {
     console.error('[Collection.renderCardDetailsModal] error building modal', err);
   }
@@ -1922,10 +1969,26 @@ export function selectCommander(card) {
     try { window.currentCommanderForAdd = card; } catch (e) { currentCommanderForAdd = card; }
     const previewContainer = document.getElementById('selected-commander-preview');
     if (!previewContainer) return;
+
+    const imgSrc = card.image_uris?.art_crop || card.image_uris?.normal || '';
+
     previewContainer.innerHTML = `
-      <img src="${card.image_uris?.art_crop}" class="w-16 h-12 object-cover rounded-sm">
-      <div class="flex-grow"><p class="font-bold">${card.name}</p><p class="text-xs text-gray-400">${card.type_line}</p></div>
-      <button type="button" id="clear-selected-commander" class="p-1 text-red-400 hover:text-red-200 text-2xl font-bold">&times;</button>
+      <div class="flex gap-4 items-start">
+        <div class="relative shrink-0">
+            <img src="${imgSrc}" class="w-20 h-auto rounded-lg shadow-lg border border-gray-700 object-cover aspect-[9/8]">
+        </div>
+        <div class="flex-grow min-w-0">
+            <h4 class="text-lg font-bold text-white truncate">${card.name}</h4>
+            <p class="text-xs text-indigo-400 mb-1 truncate">${card.type_line}</p>
+            <div class="flex gap-2 mt-2">
+                <span class="text-xs bg-gray-700 px-2 py-0.5 rounded text-gray-300 border border-gray-600">${card.set_name || card.set}</span>
+                ${card.cmc ? `<span class="text-xs bg-gray-700 px-2 py-0.5 rounded text-gray-300 border border-gray-600">CMC: ${card.cmc}</span>` : ''}
+            </div>
+        </div>
+        <button type="button" id="clear-selected-commander" class="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-gray-700 transition-colors" title="Remove Commander">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
     `;
     previewContainer.classList.remove('hidden');
     const clearBtn = document.getElementById('clear-selected-commander');
@@ -1950,28 +2013,34 @@ export function openDeckCreationModal(commanderCard = null) {
 
     const commanderListContainer = document.getElementById('commander-collection-list');
     const legendaryCreatures = Object.values(localCollection || {}).filter(c => (c.type_line || '').includes('Legendary') && (c.type_line || '').includes('Creature'));
+
     if (legendaryCreatures.length > 0) {
-      commanderListContainer.innerHTML = legendaryCreatures.map(c => `
-        <div class="flex items-center gap-2 p-1 rounded-md hover:bg-gray-700 cursor-pointer select-commander-from-collection-btn" data-firestore-id='${c.firestoreId}' tabindex="0" role="button" aria-label="Select ${c.name}">
-          <div style="width:64px;height:48px;position:relative;flex-shrink:0;"><img src="${c.image_uris?.art_crop}" class="collection-card-img rounded-sm" style="position:absolute;inset:0;object-fit:cover;" /></div>
-          <span class="flex-grow">${c.name}</span>
-          <button type="button" class="commander-select-btn bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold py-1 px-2 rounded ml-2" data-firestore-id='${c.firestoreId}'>Select</button>
+      commanderListContainer.innerHTML = legendaryCreatures.map(c => {
+        const imgSrc = c.image_uris?.normal || c.image_uris?.large || c.image_uris?.art_crop || '';
+        return `
+        <div class="relative group aspect-[2.5/3.5] rounded-xl overflow-hidden cursor-pointer select-commander-from-collection-btn transition-all duration-200 hover:scale-105 hover:shadow-lg hover:shadow-indigo-500/30 ring-1 ring-gray-700 hover:ring-indigo-500" data-firestore-id='${c.firestoreId}' tabindex="0" role="button" aria-label="Select ${c.name}">
+          <img src="${imgSrc}" class="w-full h-full object-cover" loading="lazy" />
+          
+          <!-- Hover Overlay -->
+          <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
+            <span class="bg-indigo-600 text-white font-bold py-2 px-4 rounded-full text-sm shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-transform">Select</span>
+          </div>
+          
+          <!-- Name Label -->
+          <div class="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/90 via-black/60 to-transparent pointer-events-none">
+            <p class="text-white text-xs font-bold truncate text-center drop-shadow-md">${c.name}</p>
+          </div>
         </div>
-      `).join('');
+      `}).join('');
 
       commanderListContainer.onclick = (e) => {
-        const selectBtn = e.target.closest('.commander-select-btn');
-        if (selectBtn) {
-          const firestoreId = selectBtn.dataset.firestoreId;
-          const card = localCollection[firestoreId];
-          if (card) return selectCommander(card);
-        }
         const btn = e.target.closest('.select-commander-from-collection-btn');
         if (!btn) return;
         const firestoreId = btn.dataset.firestoreId;
         const card = localCollection[firestoreId];
         if (card) selectCommander(card);
       };
+
       commanderListContainer.onkeydown = (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           const btn = e.target.closest('.select-commander-from-collection-btn');
@@ -1983,7 +2052,13 @@ export function openDeckCreationModal(commanderCard = null) {
         }
       };
     } else {
-      commanderListContainer.innerHTML = '<p class="text-gray-500 text-sm p-2">No legendary creatures in your collection.</p>';
+      commanderListContainer.innerHTML = `
+        <div class="col-span-full flex flex-col items-center justify-center py-12 text-gray-500">
+            <svg class="w-12 h-12 mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+            <p>No legendary creatures found in your collection.</p>
+            <button onclick="document.getElementById('commander-source-search-btn').click()" class="mt-2 text-indigo-400 hover:text-indigo-300 underline">Search Scryfall instead</button>
+        </div>
+      `;
     }
 
     if (commanderCard) selectCommander(commanderCard);
@@ -2292,7 +2367,7 @@ export async function refreshCollectionPriceForId(firestoreId, options = { persi
     safeAssign('initCollectionModule', initCollectionModule);
     safeAssign('installFloatingHeaderSync', installFloatingHeaderSync);
     safeAssign('refreshCollectionPrices', refreshCollectionPrices);
-  safeAssign('refreshCollectionPriceForId', refreshCollectionPriceForId);
+    safeAssign('refreshCollectionPriceForId', refreshCollectionPriceForId);
 
     // Additional helpers migrated from inline HTML
     safeAssign('toggleCardDetailsEditMode', toggleCardDetailsEditMode);

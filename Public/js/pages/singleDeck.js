@@ -244,7 +244,13 @@ export function renderDecklist(deckId, viewMode = null) {
 
   // --- Render Helpers ---
   function renderGridItem(card) {
-    const img = card.image_uris?.normal || card.image_uris?.art_crop || 'https://placehold.co/250x350?text=No+Image';
+    // Handle split cards / double-faced cards by checking card_faces if top-level image_uris is missing
+    let img = card.image_uris?.normal || card.image_uris?.art_crop;
+    if (!img && card.card_faces && card.card_faces.length > 0) {
+      img = card.card_faces[0].image_uris?.normal || card.card_faces[0].image_uris?.art_crop;
+    }
+    img = img || 'https://placehold.co/250x350?text=No+Image';
+
     const price = card.finish === 'foil' ? (card.prices?.usd_foil || card.prices?.usd) : (card.prices?.usd || 'N/A');
     // Lookup AI suggestion metadata for this specific card on the deck (if present).
     // Suggestions are stored on the deck as `aiSuggestions` (each item should include firestoreId and rating/reason).
@@ -286,8 +292,8 @@ export function renderDecklist(deckId, viewMode = null) {
         <div class="relative group aspect-[2.5/3.5] rounded-xl overflow-hidden shadow-lg bg-gray-900 transition-transform duration-200 hover:scale-105 hover:shadow-indigo-500/20 hover:z-10">
             <img src="${img}" alt="${card.name}" class="w-full h-full object-cover" loading="lazy">
             ${count > 1 ? `<div class="absolute top-2 right-2 bg-indigo-600 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md z-20">x${count}</div>` : ''}
-      <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-end p-3">
-                ${reasonText ? `<div class="absolute top-3 left-3 right-3 bg-black/70 backdrop-blur-sm text-gray-100 text-xs leading-snug max-h-50 overflow-hidden z-30 p-2 rounded">${reasonEsc}</div>` : ''}
+      <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col p-3">
+                ${reasonText ? `<div class="mb-auto bg-black/80 backdrop-blur-md text-gray-100 text-xs leading-snug max-h-[60%] overflow-y-auto z-30 p-2 rounded border border-gray-700/50 shadow-lg">${reasonEsc}</div>` : '<div class="mb-auto"></div>'}
         <div class="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-200">
           <div class="font-bold text-white text-sm leading-tight mb-1">${card.name}</div>
                     <div class="flex flex-col gap-2 text-xs text-gray-300 mb-2">
@@ -374,7 +380,7 @@ export function renderDecklist(deckId, viewMode = null) {
 
   let content = '';
   if (!currentGroup) {
-    if (viewMode === 'grid') content = `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">${filtered.map(renderGridItem).join('')}</div>`;
+    if (viewMode === 'grid') content = `<div class="grid gap-4" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));">${filtered.map(renderGridItem).join('')}</div>`;
     else content = renderTable(filtered);
   } else {
     const groups = filtered.reduce((acc, card) => {
@@ -447,7 +453,7 @@ export function renderDecklist(deckId, viewMode = null) {
       const cards = groups[k];
       const count = cards.reduce((s, c) => s + (c.countInDeck || 1), 0);
       let innerContent = (viewMode === 'grid')
-        ? `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">${cards.map(renderGridItem).join('')}</div>`
+        ? `<div class="grid gap-4" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));">${cards.map(renderGridItem).join('')}</div>`
         : renderTable(cards);
       return `
           <div class="mb-8">
@@ -474,6 +480,33 @@ export function renderDecklist(deckId, viewMode = null) {
     gEl.value = currentGroup;
     gEl.addEventListener('change', () => renderDecklist(deckId, viewMode));
   }
+
+  // Wire up View Details buttons explicitly to support 2-sided cards flip logic
+  container.querySelectorAll('.view-card-details-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      console.log('[SingleDeck] View Details clicked', btn.dataset.firestoreId);
+      const fid = btn.dataset.firestoreId;
+      if (!fid) return;
+      const card = (window.localCollection || localCollection)[fid];
+      if (card) {
+        if (typeof window.renderCardDetailsModal === 'function') {
+          window.renderCardDetailsModal(card);
+          if (typeof window.openModal === 'function') {
+            window.openModal('card-details-modal');
+          } else {
+            // Fallback if openModal isn't global
+            const m = document.getElementById('card-details-modal');
+            if (m) m.classList.remove('hidden');
+          }
+        } else {
+          console.error('[SingleDeck] renderCardDetailsModal not found on window');
+        }
+      } else {
+        console.warn('[SingleDeck] Card not found in localCollection', fid);
+      }
+    });
+  });
 }
 
 export async function renderManaCurveChart(manaCurveData) {
@@ -515,6 +548,8 @@ export function initSingleDeckModule() {
   window.attachSuggestionMetadataToDeck = attachSuggestionMetadataToDeck;
   window.renderDeckSuggestionSummary = renderDeckSuggestionSummary;
   window.deleteDeck = deleteDeck;
+  window.handleAddSelectedCardsToDeck = handleAddSelectedCardsToDeck;
+  window.batchAddCardsWithProgress = batchAddCardsWithProgress;
   console.log('[SingleDeck] Module initialized.');
 }
 
@@ -750,7 +785,7 @@ export function openAddCardsToDeckModal(deckId) {
   const confirmBtn = document.getElementById('confirm-add-cards-to-deck-btn');
   if (confirmBtn) {
     confirmBtn.onclick = () => {
-      const selectedIds = Array.from(document.querySelectorAll('.add-card-checkbox:checked')).map(cb => cb.dataset.firestoreId);
+      const selectedIds = Array.from(document.querySelectorAll('.add-card-checkbox:checked')).map(cb => cb.value);
       handleAddSelectedCardsToDeck(deckId, selectedIds);
     };
   }
@@ -848,14 +883,18 @@ export async function handleAddSelectedCardsToDeck(deckId, firestoreIds) {
       createdMappings.forEach(({ orig, newId, name, type_line }) => {
         const collectionCard = (window.localCollection || localCollection)[orig];
         if (!collectionCard) return;
+
+        // Clone card data before mutating the original collection entry to ensure clean state for new entry
+        const newCardData = Object.assign({}, collectionCard, { count: 1, firestoreId: newId, pending: true, name, type_line });
+
         if ((collectionCard.count || 0) > 1) {
           collectionCard.count = Math.max((collectionCard.count || 0) - 1, 0);
-          window.localCollection[newId] = Object.assign({}, collectionCard, { count: 1, firestoreId: newId, pending: true, name, type_line });
+          window.localCollection[newId] = newCardData;
           if (localDeck.cards[newId]) localDeck.cards[newId].count = (localDeck.cards[newId].count || 0) + 1; else localDeck.cards[newId] = { count: 1, name, type_line };
           try { console.log('[handleAdd] optimistic localCollection assignment (split)', { orig, newId, name, type_line, remainingOrigCount: collectionCard.count, placeholder: window.localCollection[newId] }); } catch (e) { }
         } else {
           delete window.localCollection[orig];
-          window.localCollection[newId] = Object.assign({}, collectionCard, { count: 1, firestoreId: newId, pending: true, name, type_line });
+          window.localCollection[newId] = newCardData;
           if (localDeck.cards[newId]) localDeck.cards[newId].count = (localDeck.cards[newId].count || 0) + 1; else localDeck.cards[newId] = { count: 1, name, type_line };
           try { console.log('[handleAdd] optimistic localCollection assignment (moved)', { orig, newId, name, type_line, placeholder: window.localCollection[newId] }); } catch (e) { }
         }
@@ -901,8 +940,8 @@ export async function batchAddCardsWithProgress(deckId, firestoreIds, sourceMap 
     for (let i = 0; i < firestoreIds.length; i += batchSize) {
       const chunk = firestoreIds.slice(i, i + batchSize);
 
-      // Prefetch and handle virtual cards
-      for (const fid of chunk) {
+      // Prefetch and handle virtual cards - PARALLELIZED for speed
+      const prefetchPromises = chunk.map(async (fid) => {
         const existing = (window.localCollection || localCollection)[fid];
         if (!existing) {
           const virtualCard = sourceMap ? sourceMap[fid] : null;
@@ -939,7 +978,8 @@ export async function batchAddCardsWithProgress(deckId, firestoreIds, sourceMap 
             }
           }
         }
-      }
+      });
+      await Promise.all(prefetchPromises);
 
       const mappedChunk = chunk.map(fid => virtualIdMap.get(fid) || fid);
 
@@ -973,20 +1013,34 @@ export async function batchAddCardsWithProgress(deckId, firestoreIds, sourceMap 
         for (const fid of filteredChunk) {
           const collectionCard = (window.localCollection || localCollection)[fid];
           if (!collectionCard) continue;
+
+          // Determine suggested count from sourceMap (default to 1)
+          const originalId = reverseMap.get(fid) || fid;
+          const sourceItem = sourceMap && sourceMap[originalId];
+          // Use suggestedAddCount if present (generic), fallback to count if isAutoBasicLand (legacy), else 1
+          let suggestedCount = 1;
+          if (sourceItem) {
+            if (sourceItem.suggestedAddCount) suggestedCount = sourceItem.suggestedAddCount;
+            else if (sourceItem.isAutoBasicLand && sourceItem.count) suggestedCount = sourceItem.count;
+          }
+
           const deckRef = doc(db, 'artifacts/' + appId + '/users/' + uid + '/decks', deckId);
           const origCollectionRef = doc(db, 'artifacts/' + appId + '/users/' + uid + '/collection', fid);
           const newCollectionRef = doc(collection(db, 'artifacts/' + appId + '/users/' + uid + '/collection'));
-          const newCardDoc = Object.assign({}, collectionCard, { count: 1, addedAt: new Date().toISOString() });
+
+          // Create new card doc with the correct count
+          const newCardDoc = Object.assign({}, collectionCard, { count: suggestedCount, addedAt: new Date().toISOString() });
           delete newCardDoc.firestoreId;
           b.set(newCollectionRef, newCardDoc);
-          newIdsForChunk.push({ orig: fid, newId: newCollectionRef.id, name: collectionCard.name, type_line: collectionCard.type_line });
+          newIdsForChunk.push({ orig: fid, newId: newCollectionRef.id, name: collectionCard.name, type_line: collectionCard.type_line, count: suggestedCount });
 
           try {
             const assigns = (window.cardDeckAssignments || {})[fid] || [];
             const assignedElsewhere = assigns.some(a => a && a.deckId && a.deckId !== deckId);
             if (!assignedElsewhere) {
-              if ((collectionCard.count || 0) > 1) {
-                b.update(origCollectionRef, { count: collectionCard.count - 1 });
+              // Decrement by the amount we are "moving" (suggestedCount)
+              if ((collectionCard.count || 0) > suggestedCount) {
+                b.update(origCollectionRef, { count: (collectionCard.count || 0) - suggestedCount });
               } else {
                 b.delete(origCollectionRef);
               }
@@ -995,9 +1049,6 @@ export async function batchAddCardsWithProgress(deckId, firestoreIds, sourceMap 
             console.warn('[batchAdd] assignment check failed for', fid, e);
           }
 
-          // Get the count from sourceMap for basic lands
-          const originalId = reverseMap.get(fid) || fid;
-          const suggestedCount = sourceMap && sourceMap[originalId] && sourceMap[originalId].isAutoBasicLand ? (sourceMap[originalId].count || 1) : 1;
           b.set(deckRef, { cards: { [newCollectionRef.id]: { count: suggestedCount, name: collectionCard.name, type_line: collectionCard.type_line } } }, { merge: true });
         }
         return b;
@@ -1048,7 +1099,7 @@ export async function batchAddCardsWithProgress(deckId, firestoreIds, sourceMap 
         continue;
       }
 
-        try {
+      try {
         const localDeck = window.localDecks[deckId] || localDecks[deckId];
         localDeck.cards = localDeck.cards || {};
         (newIdsForChunk || []).forEach(mapping => {

@@ -314,6 +314,7 @@ export async function handleDeckCreationSubmit(e) {
 
   if (deckFormat === 'commander' && !currentCommanderForAdd) {
     showToast('Please select a commander for this deck.', 'error');
+    window.__handleDeckCreationSubmitInFlight = false;
     return;
   }
 

@@ -1,20 +1,26 @@
 # Task List
 
 ## High Priority
-- [ ] **[Frontend/Database]** Add card inside single deck view not registering firestore ID.
-- [ ] **[Backend/Database]** Lands not always posting the count, its timing out?
-- [ ] **[Backend/AI]** Make sure its pulling in the deck when rerunning a deck.
+- [x] **[Frontend/Database]** Add card inside single deck view not registering firestore ID.
+        -Error: singleDeck.js:781 [handleAddSelectedCardsToDeck] prefetch failed for undefined TypeError: Cannot read properties of undefined (reading 'indexOf')
+                 at ResourcePath.fromString (path.ts:275:11)
+                 at doc (reference.ts:571:5)
+                 at handleAddSelectedCardsToDeck (singleDeck.js:773:35)
+                 at confirmBtn.onclick (singleDeck.js:754:7)
+- [x] **[Backend/Database]** Lands not always posting the count when adding from deck suggestions, its timing out?
+- [x] **[Backend/AI]** Make sure its pulling in the deck when rerunning a deck. When its rerun, especially to find missing cout of cards IE 3/8 instants already in the deck. It sometimes returns those 3 again, along with the additional ones.
+- [x] **[User Facing]** Add a BUG button above the settings option in the UI that opens a modal to show this txt file. Allowing them to see and track known bugs & fixes. Add a note to add a comment to the discord server bug channel for any bugs found not in this list.
+- [x] **[Frontend/Database]** Rework the front end UI for the deck creation view. Lets give some more details on the commanders they are choosing between, and make it more modern. There also seems to be a bug when you push the create button prior to selecting a commander. It makes the modal non-responsive, can you fix that?
+- [x] **[Frontend]** Finally figure out how to show the stupid 2 sided cards throughout the deck. They show correctly in the collection, but not in view details, or deck view etc. Dont make it so the JS throughout the site references one place, they all need to be doing different things. Just update each area so it refreences the correct URL and registers if its a 2 sided card. (also make sure the background of the view details works as well.)
 - [ ] **[AI/LLM]** Build the AI chat for the single deck view
 - [ ] **[Testing]** Run full mobile tests and desktop tests
 
 ## Medium Priority
 - [ ] **[Frontend]** Playstyle button not registering on desktop
-- [ ] **[Frontend]** Auto refresh after creating deck
 - [ ] **[Database/Backend]** Cleanup duplicates after deck deletion
 - [ ] **[AI/LLM]** Let Gemini give errors when it comes up instead of generic error
 - [ ] **[Frontend/Database]** Stats table showing duplicates for multi type cards. - Possible fix is to add type it was chosen for in the db.
 - [ ] **[AI/LLM / Frontend]** When creating the suggestions for deck summary and card type counts, pass in all counts of cards that would be available to the deck. Allow the user to choose between the full suggestion, or based on the cards that are in their deck currently.
-- [ ] **[Frontend]** Finally figure out how to show the stupid 2 sided cards in deck view
 - [ ] **[Frontend]** When you fail to select a commander before creating a deck, it shows an error message, but doesnt let you continue. Loop back and open the modal again?
 - [ ] **[Frontend]** Make sure the rerun suggested deck has a visual for what it replaces and make sure it actually replaces the old deck.
 - [ ] **[Database/AI]** Artifact creatues - Sparring dummy not showing in add card view, or being added through AI
