@@ -1,0 +1,29 @@
+# Task List
+
+## High Priority
+- [ ] **[Frontend/Database]** Add card inside single deck view not registering firestore ID.
+- [ ] **[Backend/Database]** Lands not always posting the count, its timing out?
+- [ ] **[Backend/AI]** Make sure its pulling in the deck when rerunning a deck.
+- [ ] **[AI/LLM]** Build the AI chat for the single deck view
+- [ ] **[Testing]** Run full mobile tests and desktop tests
+
+## Medium Priority
+- [ ] **[Frontend]** Playstyle button not registering on desktop
+- [ ] **[Frontend]** Auto refresh after creating deck
+- [ ] **[Database/Backend]** Cleanup duplicates after deck deletion
+- [ ] **[AI/LLM]** Let Gemini give errors when it comes up instead of generic error
+- [ ] **[Frontend/Database]** Stats table showing duplicates for multi type cards. - Possible fix is to add type it was chosen for in the db.
+- [ ] **[AI/LLM / Frontend]** When creating the suggestions for deck summary and card type counts, pass in all counts of cards that would be available to the deck. Allow the user to choose between the full suggestion, or based on the cards that are in their deck currently.
+- [ ] **[Frontend]** Finally figure out how to show the stupid 2 sided cards in deck view
+- [ ] **[Frontend]** When you fail to select a commander before creating a deck, it shows an error message, but doesnt let you continue. Loop back and open the modal again?
+- [ ] **[Frontend]** Make sure the rerun suggested deck has a visual for what it replaces and make sure it actually replaces the old deck.
+- [ ] **[Database/AI]** Artifact creatues - Sparring dummy not showing in add card view, or being added through AI
+- [ ] **[Frontend/AI]** Fix updating the summary when the deck is created. Pass in cards to the summary function.
+- [ ] **[Frontend]** Add a discord icon/button that links to discord server & a youtube button that links to youtube
+
+## Low Priority
+- [ ] **[Frontend]** When you dont have cards of a specific type enough to fill out the deck, add a specific error message in the deck suggestions page to notify why.
+- [ ] **[Frontend]** When creating a new deck for commanders give more info about the commander card
+- [ ] **[Frontend]** Show the deck creation after the AI picks the cards in a better manner.
+- [ ] **[AI/LLM]** remove the rule lookup chat, build that into the MTG chat
+- [ ] **[Documentation/AI]** Create a help center for the app with a chat that contains all the rules and information about the app.
