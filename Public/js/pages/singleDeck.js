@@ -203,6 +203,22 @@ export function renderDecklist(deckId, viewMode = null) {
     return { ...cardData, countInDeck: deck.cards[firestoreId].count };
   }).filter(Boolean);
 
+  // --- Pre-calculate Available Foils ---
+  const availableFoilsMap = {};
+  try {
+    const collectionValues = Object.values(localCollection || {});
+    collectionValues.forEach(c => {
+      if (c.finish === 'foil') {
+        const assignments = cardDeckAssignments[c.firestoreId] || [];
+        // Check if unassigned
+        const isAssigned = assignments.some(a => a.deckId);
+        if (!isAssigned) {
+          availableFoilsMap[c.name] = true;
+        }
+      }
+    });
+  } catch (e) { console.error('Error calculating available foils', e); }
+
   // --- View Toggle Logic ---
   const gridBtn = document.getElementById('view-toggle-grid');
   const tableBtn = document.getElementById('view-toggle-table');
@@ -292,6 +308,10 @@ export function renderDecklist(deckId, viewMode = null) {
         <div class="relative group aspect-[2.5/3.5] rounded-xl overflow-hidden shadow-lg bg-gray-900 transition-transform duration-200 hover:scale-105 hover:shadow-indigo-500/20 hover:z-10">
             <img src="${img}" alt="${card.name}" class="w-full h-full object-cover" loading="lazy">
             ${count > 1 ? `<div class="absolute top-2 right-2 bg-indigo-600 text-white text-xs font-bold px-2 py-1 rounded-full shadow-md z-20">x${count}</div>` : ''}
+            ${card.finish === 'foil'
+        ? `<div class="absolute top-2 left-2 bg-yellow-500/80 text-yellow-100 text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-md z-20 backdrop-blur-sm border border-yellow-300/50">★</div>`
+        : (availableFoilsMap[card.name] ? `<div class="absolute top-2 left-2 bg-gray-700/90 text-yellow-400 text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-md z-20 backdrop-blur-sm border border-yellow-500/30 cursor-help" title="Foil copy available in collection">☆</div>` : '')
+      }
       <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col p-3">
                 ${reasonText ? `<div class="mb-auto bg-black/80 backdrop-blur-md text-gray-100 text-xs leading-snug max-h-[60%] overflow-y-auto z-30 p-2 rounded border border-gray-700/50 shadow-lg">${reasonEsc}</div>` : '<div class="mb-auto"></div>'}
         <div class="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-200">
@@ -1445,4 +1465,543 @@ if (typeof window !== 'undefined') {
   window.deleteDeck = deleteDeck; // override earlier shim with wrapper
   window.addSingleDeckListeners = addSingleDeckListeners;
   window.removeCardFromDeckAndReturnToCollection = removeCardFromDeckAndReturnToCollection;
+  window.renderSingleDeck = renderSingleDeck;
+}
+
+// --- Refactored renderSingleDeck from index.html ---
+
+export function renderSingleDeck(deckId) {
+  console.log(
+    `[Function: renderSingleDeck] Rendering view for deck ID ${deckId}. (Refactored)`
+  );
+  const decksMap = window.localDecks || localDecks;
+  let deck = decksMap[deckId];
+  if (!deck) {
+    // Fallback: try to find a deck by scanning values in case the keying differs
+    deck = Object.values(decksMap || {}).find(d => d && (d.id === deckId || d.firestoreId === deckId || String(d.id) === String(deckId)));
+    if (deck) {
+      // Normalize deckId to the deck object's authoritative id
+      deckId = deck.id || deck.firestoreId || deckId;
+      console.log(`[renderSingleDeck] Fallback matched deck by scanning values. Resolved deckId -> ${deckId}`);
+    }
+  }
+
+  if (!deck) {
+    console.error(
+      `[renderSingleDeck] Could not find deck with ID ${deckId}. Available deck keys: ${Object.keys(decksMap || {}).join(', ')}`
+    );
+    if (typeof window.showView === 'function') window.showView("decks");
+    return;
+  }
+
+  const singleDeckView = document.getElementById("single-deck-view");
+  if (!singleDeckView) return;
+
+  singleDeckView.dataset.deckId = deckId;
+  const pageTitle = document.getElementById('page-title');
+  if (pageTitle) pageTitle.textContent = deck.name;
+
+  const localColl = window.localCollection || localCollection;
+
+  const allDeckCards = Object.keys(deck.cards || {}).map(firestoreId => {
+    const cardData = localColl[firestoreId];
+    // If we don't yet have the collection doc locally, show a lightweight placeholder
+    if (!cardData) {
+      const deckEntry = deck.cards && deck.cards[firestoreId] ? deck.cards[firestoreId] : {};
+      return {
+        firestoreId,
+        name: deckEntry.name || 'Loading...',
+        type_line: deckEntry.type_line || 'Unknown',
+        cmc: deckEntry.cmc || 0,
+        count: deckEntry.count || 1,
+        prices: deckEntry.prices || {},
+        isPlaceholder: true,
+        pending: true
+      };
+    }
+    // The count in deck is stored on the deck object
+    return { ...cardData, count: deck.cards[firestoreId].count };
+  });
+
+  if (deck.commander) {
+    // Find the commander in the collection to get its full data, but use a count of 1
+    const commanderInCollection = localColl[deck.commander.firestoreId];
+    if (commanderInCollection) {
+      allDeckCards.push({ ...commanderInCollection, count: 1 });
+    }
+  }
+
+
+  // --- Inject Calculated Basic Lands for Stats ---
+  if (typeof window.calculateBasicLandNeeds === 'function') {
+    try {
+      const targetLandCount = 37; // Standard Commander target
+      const basicNeeds = window.calculateBasicLandNeeds(deck, targetLandCount);
+      const manaColors = { W: 'Plains', U: 'Island', B: 'Swamp', R: 'Mountain', G: 'Forest' };
+
+      Object.entries(basicNeeds).forEach(([color, count]) => {
+        if (count > 0) {
+          // Create a virtual card entry for the stats
+          allDeckCards.push({
+            name: manaColors[color],
+            type_line: 'Basic Land',
+            cmc: 0,
+            count: count,
+            prices: { usd: 0 }, // Basic lands usually negligible for deck value
+            isVirtual: true // Flag to identify if needed
+          });
+        }
+      });
+    } catch (e) {
+      console.warn('[renderSingleDeck] Failed to calculate virtual basic lands for stats', e);
+    }
+  }
+
+  const totalCost = allDeckCards.reduce((acc, card) => {
+    const price =
+      card.finish === "foil"
+        ? card.prices?.usd_foil
+        : card.prices?.usd;
+    const cardCost = parseFloat(price) || 0;
+    const count = card.count || 1;
+    return acc + cardCost * count;
+  }, 0);
+
+  // Helper to count cards by type (inclusive check)
+  const countByType = (type) => {
+    return allDeckCards.reduce((sum, card) => {
+      if ((card.type_line || '').includes(type)) return sum + (card.count || 1);
+      return sum;
+    }, 0);
+  };
+
+  const blueprint = deck.aiBlueprint?.suggestedCounts;
+  const kpiData = [
+    {
+      label: "Total",
+      current: allDeckCards.reduce((acc, c) => acc + (c.count || 1), 0),
+      target: blueprint?.Total,
+    },
+    {
+      label: "Creature",
+      current: countByType("Creature"),
+      target: blueprint?.Creature,
+    },
+    {
+      label: "Land",
+      current: countByType("Land"),
+      target: blueprint?.Land,
+    },
+    {
+      label: "Instant",
+      current: countByType("Instant"),
+      target: blueprint?.Instant,
+    },
+    {
+      label: "Sorcery",
+      current: countByType("Sorcery"),
+      target: blueprint?.Sorcery,
+    },
+    {
+      label: "Enchantment",
+      current: countByType("Enchantment"),
+      target: blueprint?.Enchantment,
+    },
+    {
+      label: "Artifact",
+      current: countByType("Artifact"),
+      target: blueprint?.Artifact,
+    },
+    {
+      label: "Planeswalker",
+      current: countByType("Planeswalker"),
+      target: blueprint?.Planeswalker,
+    },
+  ];
+
+  // Add basic lands breakdown if mana calculator is available
+  let basicLandsHtml = '';
+  try {
+    if (typeof window.calculateBasicLandNeeds === 'function') {
+      const targetLandCount = 37; // Commander default
+      const basicNeeds = window.calculateBasicLandNeeds(deck, targetLandCount);
+      const manaColors = { W: 'Plains', U: 'Island', B: 'Swamp', R: 'Mountain', G: 'Forest' };
+      const colorSymbols = {
+        W: '<img src="https://svgs.scryfall.io/card-symbols/W.svg" class="inline-block w-4 h-4" alt="W">',
+        U: '<img src="https://svgs.scryfall.io/card-symbols/U.svg" class="inline-block w-4 h-4" alt="U">',
+        B: '<img src="https://svgs.scryfall.io/card-symbols/B.svg" class="inline-block w-4 h-4" alt="B">',
+        R: '<img src="https://svgs.scryfall.io/card-symbols/R.svg" class="inline-block w-4 h-4" alt="R">',
+        G: '<img src="https://svgs.scryfall.io/card-symbols/G.svg" class="inline-block w-4 h-4" alt="G">'
+      };
+
+      const basicLandPills = ['W', 'U', 'B', 'R', 'G']
+        .filter(color => basicNeeds[color] > 0)
+        .map(color => {
+          const needed = basicNeeds[color];
+          return `<div class="flex items-center gap-1 text-xs bg-gray-800/70 px-2 py-1 rounded">${colorSymbols[color]} ${needed}x ${manaColors[color]}</div>`;
+        })
+        .join('');
+
+      if (basicLandPills) {
+        basicLandsHtml = `
+            <div class="bg-gray-700/50 p-3 rounded-lg mt-2">
+              <div class="text-sm text-gray-400 mb-2">Recommended Basic Lands</div>
+              <div class="flex flex-wrap gap-2">
+                ${basicLandPills}
+              </div>
+            </div>
+          `;
+      }
+    }
+  } catch (e) {
+    console.debug('[renderSingleDeck] Basic lands calculation failed', e);
+  }
+
+  const kpiHtml = kpiData
+    .map((kpi) => {
+      const hasTarget = kpi.target !== null && kpi.target !== undefined;
+      const percentage = hasTarget
+        ? Math.min((kpi.current / kpi.target) * 100, 100)
+        : 0;
+      let barColor = "bg-gray-500";
+      if (hasTarget) {
+        if (percentage < 50) barColor = "bg-red-500";
+        else if (percentage < 90) barColor = "bg-yellow-500";
+        else barColor = "bg-green-500";
+      }
+
+      return `
+          <div class="bg-gray-700/50 p-3 rounded-lg relative overflow-hidden kpi-clickable" data-slot="${kpi.label}" title="Click to ask AI for ${kpi.label} suggestions">
+              <div class="flex justify-between items-baseline">
+                  <span class="text-sm text-gray-400">${kpi.label}</span>
+                  <span class="font-bold text-lg">${kpi.current}${hasTarget ? ` / ${kpi.target}` : ""
+        }</span>
+              </div>
+              ${hasTarget
+          ? `<div class="kpi-gradient-bar ${barColor}" style="width: ${percentage}%"></div>`
+          : ""
+        }
+          </div>
+        `;
+    })
+    .join("");
+
+  const manaCurveData = allDeckCards.reduce((acc, card) => {
+    if (card && !card.type_line.toLowerCase().includes("land")) {
+      const cmc = Math.min(card.cmc, 7); // Group 7+ cmc together
+      const count = card.count || 1;
+      acc[cmc] = (acc[cmc] || 0) + count;
+    }
+    return acc;
+  }, {});
+
+  const colorIdentity = deck.commander?.color_identity || [];
+  const colorSymbols = {
+    W: '<img src="https://svgs.scryfall.io/card-symbols/W.svg" class="w-5 h-5" alt="White Mana">',
+    U: '<img src="https://svgs.scryfall.io/card-symbols/U.svg" class="w-5 h-5" alt="Blue Mana">',
+    B: '<img src="https://svgs.scryfall.io/card-symbols/B.svg" class="w-5 h-5" alt="Black Mana">',
+    R: '<img src="https://svgs.scryfall.io/card-symbols/R.svg" class="w-5 h-5" alt="Red Mana">',
+    G: '<img src="https://svgs.scryfall.io/card-symbols/G.svg" class="w-5 h-5" alt="Green Mana">',
+  };
+  const colorIcons = colorIdentity
+    .map((c) => colorSymbols[c])
+    .join("");
+
+  // FIX: Handle 2-sided cards for banner image
+  const commanderArt = deck.commander?.image_uris?.art_crop ||
+    (deck.commander?.card_faces && deck.commander.card_faces[0]?.image_uris?.art_crop) ||
+    deck.commander?.image_uris?.normal ||
+    (deck.commander?.card_faces && deck.commander.card_faces[0]?.image_uris?.normal) || '';
+
+  // FIX: Handle 2-sided cards for mini view image
+  const commanderImage = deck.commander?.image_uris?.normal ||
+    (deck.commander?.card_faces && deck.commander.card_faces[0]?.image_uris?.normal) || '';
+
+  singleDeckView.innerHTML = `
+      <div class="space-y-6 animate-fade-in">
+          <!-- Banner Header -->
+          <div class="relative w-full h-64 bg-gray-900 rounded-xl overflow-hidden shadow-2xl group">
+              <div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105" style="background-image: url('${commanderArt}'); opacity: 0.6;"></div>
+              <div class="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/60 to-transparent"></div>
+              
+              <div class="absolute bottom-0 left-0 p-6 w-full flex flex-col md:flex-row justify-between items-end gap-4">
+                  <div>
+                      <h2 class="text-4xl font-bold text-white mb-2 drop-shadow-lg tracking-tight">${deck.name}</h2>
+                      <div class="flex items-center gap-3 text-gray-300">
+                          <span class="bg-indigo-600/80 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm">${deck.format}</span>
+          <div class="flex items-center gap-1 bg-gray-800/60 backdrop-blur-sm px-2 py-1 rounded-full">${colorIcons}</div>
+          <span class="ml-2 inline-flex items-center bg-gray-800/60 text-gray-100 text-sm font-semibold px-3 py-1 rounded-full">Deck Value: $${totalCost.toFixed(2)}</span>
+                      </div>
+                  </div>
+                  <div class="flex items-center gap-3">
+                      <button id="add-cards-to-deck-btn" class="bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-6 rounded-lg shadow-lg transition-all transform hover:-translate-y-0.5 flex items-center gap-2">
+                          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                          Add Cards
+                      </button>
+                      <div class="relative group/menu">
+                          <button class="bg-gray-700/80 hover:bg-gray-600 text-white p-2 rounded-lg backdrop-blur-sm transition-colors">
+                              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg>
+                          </button>
+                          <div class="absolute right-0 bottom-full mb-2 w-48 bg-gray-800 rounded-lg shadow-xl border border-gray-700 hidden group-hover/menu:block overflow-visible z-10 before:absolute before:-bottom-2 before:left-0 before:w-full before:h-2 before:content-['']">
+                              <button id="deck-delete-btn" data-deck-id="${deckId}" class="w-full text-left px-4 py-3 text-red-400 hover:bg-gray-700 hover:text-red-300 transition-colors flex items-center gap-2 rounded-t-lg">
+                                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                  Delete Deck
+                              </button>
+                              <button id="export-deck-btn" data-deck-id="${deckId}" class="w-full text-left px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-white transition-colors border-t border-gray-700 rounded-b-lg">
+                                  Export List
+                              </button>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+          </div>
+
+          <!-- Stats Toggle & Content -->
+          <div class="flex justify-end mb-2">
+              <button id="toggle-stats-btn" class="text-xs text-gray-400 hover:text-white flex items-center gap-1 transition-colors" onclick="const el = document.getElementById('deck-stats-container'); const btn = this; if(el.classList.contains('hidden')) { el.classList.remove('hidden'); btn.innerHTML = 'Hide Stats <svg class=\'w-3 h-3\' fill=\'none\' stroke=\'currentColor\' viewBox=\'0 0 24 24\'><path stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M5 15l7-7 7 7\'/></svg>'; } else { el.classList.add('hidden'); btn.innerHTML = 'Show Stats <svg class=\'w-3 h-3\' fill=\'none\' stroke=\'currentColor\' viewBox=\'0 0 24 24\'><path stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'/></svg>'; }">
+                  Hide Stats
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
+              </button>
+          </div>
+          <div id="deck-stats-container" class="space-y-6 transition-all duration-300">
+              <!-- Stats Bar -->
+              <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+                  ${kpiHtml}
+              </div>
+              
+              <!-- Basic Lands Breakdown -->
+              ${basicLandsHtml}
+          </div>
+
+          <!-- Main Content Area -->
+          <div class="flex flex-col lg:flex-row gap-6">
+              <!-- Left: Decklist (Flexible Width) -->
+              <!-- Mobile: Order 2 (Bottom), Desktop: Order 1 (Left) -->
+              <div class="flex-1 min-w-0 bg-gray-800 rounded-xl shadow-lg p-1 order-2 lg:order-1">
+                  <div class="flex items-center justify-between px-4 py-3 border-b border-gray-700/50">
+                      <h3 class="text-lg font-bold text-white">Decklist</h3>
+                      <div class="flex bg-gray-900/50 rounded-lg p-1 gap-1">
+                          <button id="view-toggle-grid" class="p-1.5 rounded-md text-gray-400 hover:text-white hover:bg-gray-700/50 transition-all" title="Grid View">
+                              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                          </button>
+                          <button id="view-toggle-table" class="p-1.5 rounded-md text-gray-400 hover:text-white hover:bg-gray-700/50 transition-all" title="Table View">
+                              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+                          </button>
+                      </div>
+                  </div>
+                  <div id="decklist-container" class="p-4">
+                      <!-- Decklist rendered here -->
+                  </div>
+              </div>
+
+              <!-- Right: Tools & Charts (Fixed Width on Desktop) -->
+              <!-- Mobile: Order 1 (Top), Desktop: Order 2 (Right) -->
+              <div class="w-full lg:w-80 space-y-6 shrink-0 order-1 lg:order-2">
+                  <!-- Commander Mini-View (Collapsible) -->
+                  ${deck.commander ? `
+                  <div class="bg-gray-800 p-4 rounded-xl shadow-lg">
+                      <div class="flex justify-between items-center mb-3 cursor-pointer" onclick="const el = document.getElementById('commander-card-content'); const icon = this.querySelector('svg'); if(el.classList.contains('hidden')) { el.classList.remove('hidden'); icon.style.transform = 'rotate(0deg)'; } else { el.classList.add('hidden'); icon.style.transform = 'rotate(180deg)'; }">
+                          <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider">Commander</h3>
+                          <svg class="w-4 h-4 text-gray-500 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                      </div>
+                      <div id="commander-card-content" class="relative group">
+                          ${(() => {
+        // Check for 2-sided card
+        if (deck.commander.card_faces && deck.commander.card_faces.length > 1 && deck.commander.card_faces[0].image_uris && deck.commander.card_faces[1].image_uris) {
+          const front = deck.commander.card_faces[0].image_uris?.normal || deck.commander.card_faces[0].image_uris?.large || '';
+          const back = deck.commander.card_faces[1].image_uris?.normal || deck.commander.card_faces[1].image_uris?.large || '';
+          return `
+                                <style>
+                                    .dfs-flip-wrapper { perspective: 1000px; }
+                                    .dfs-card { transition: transform 0.6s; transform-style: preserve-3d; position: relative; width: 100%; height: 100%; }
+                                    .dfs-card.is-flipped { transform: rotateY(180deg); }
+                                    .dfs-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+                                    .dfs-back { transform: rotateY(180deg); }
+                                </style>
+                                <div class="dfs-flip-wrapper relative w-full" style="aspect-ratio: 63/88;">
+                                    <div class="dfs-card w-full h-full relative" onclick="this.classList.toggle('is-flipped')">
+                                        <div class="dfs-face w-full h-full">
+                                            <img src="${front}" class="w-full rounded-lg shadow-md hover:shadow-indigo-500/30 transition-shadow duration-300 cursor-pointer" alt="${deck.commander.name}">
+                                            <button class="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white p-1.5 rounded-full backdrop-blur-sm transition-all z-10 border border-white/20" title="Flip Card" onclick="event.stopPropagation(); this.closest('.dfs-card').classList.toggle('is-flipped');">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                            </button>
+                                        </div>
+                                        <div class="dfs-face dfs-back w-full h-full">
+                                            <img src="${back}" class="w-full rounded-lg shadow-md hover:shadow-indigo-500/30 transition-shadow duration-300 cursor-pointer" alt="${deck.commander.name}">
+                                            <button class="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white p-1.5 rounded-full backdrop-blur-sm transition-all z-10 border border-white/20" title="Flip Card" onclick="event.stopPropagation(); this.closest('.dfs-card').classList.toggle('is-flipped');">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                `;
+        }
+        // Standard single-faced card
+        return `<img src="${commanderImage}" class="w-full rounded-lg shadow-md hover:shadow-indigo-500/30 transition-shadow duration-300 cursor-pointer" alt="${deck.commander.name}" onclick="if(typeof window.renderCardDetailsModal === 'function') window.renderCardDetailsModal(window.localCollection['${deck.commander.firestoreId}'])">`;
+      })()}
+                      </div>
+                  </div>` : ''}
+
+                  <div class="bg-gray-800 p-4 rounded-xl shadow-lg">
+                      <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Mana Curve</h3>
+                      <div class="h-32">
+                          <canvas id="mana-curve-chart"></canvas>
+                      </div>
+                  </div>
+
+                  <div class="bg-gray-800 p-4 rounded-xl shadow-lg">
+                      <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">AI Tools</h3>
+                      <div class="space-y-2">
+                          ${deck.aiBlueprint ? `
+                          <button id="view-strategy-btn" class="w-full bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-600/50 hover:border-purple-500 font-bold py-2 px-4 rounded-lg transition-all text-sm">View Strategy</button>
+                          <button id="rerun-ai-summary-btn" class="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-bold py-2 px-4 rounded-lg shadow-lg hover:shadow-orange-500/20 transition-all transform hover:-translate-y-0.5 text-sm flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                            Update Strategy
+                          </button>
+                          ` : ''}
+                          <button id="ai-suggestions-btn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-4 rounded-lg shadow-lg transition-all text-sm">
+                              ✨ Deck Suggestions
+                          </button>
+                          <button id="deck-help-btn" class="w-full bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 border border-teal-600/50 hover:border-teal-500 font-bold py-2 px-4 rounded-lg transition-all text-sm">
+                              💬 Ask AI Helper
+                          </button>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      </div>
+    `;
+
+  renderDecklist(deckId);
+  // Ensure chart is loaded before rendering
+  if (typeof window.renderManaCurveChart === 'function') {
+    window.renderManaCurveChart(manaCurveData);
+  } else if (typeof renderManaCurveChart === 'function') {
+    renderManaCurveChart(manaCurveData);
+  }
+
+  if (typeof window.addSingleDeckListeners === 'function') {
+    window.addSingleDeckListeners(deckId);
+  } else if (typeof addSingleDeckListeners === 'function') {
+    addSingleDeckListeners(deckId);
+  }
+
+  // Attach KPI click handlers to ask AI for a single slot/type
+  try {
+    document.querySelectorAll('.kpi-clickable').forEach(el => {
+      el.style.cursor = 'pointer';
+      el.addEventListener('click', (e) => {
+        const slot = el.dataset.slot;
+        if (!slot) return;
+        try {
+          import('./deckSuggestions.js').then(mod => {
+            if (mod.openDeckSuggestionsModal) mod.openDeckSuggestionsModal(deckId, { type: slot });
+          }).catch(err => console.debug('deckSuggestions module not available for KPI click', err));
+        } catch (err) { console.debug('KPI click handler failed', err); }
+      });
+    });
+  } catch (err) { /* ignore attach errors */ }
+
+  // Deck Help button: open a deck-scoped MTG chat helper
+  try {
+    const helpBtn = document.getElementById('deck-help-btn');
+    if (helpBtn) helpBtn.addEventListener('click', () => {
+      try { import('./deckSuggestions.js').then(mod => { if (mod.openDeckHelp) mod.openDeckHelp(deckId); else if (typeof window.openDeckHelp === 'function') window.openDeckHelp(deckId); }).catch(err => console.debug('deckSuggestions module not available for Deck Help', err)); } catch (e) { console.debug('Deck Help click handler failed', e); }
+    });
+  } catch (err) { /* ignore */ }
+
+  // Deck Suggestions (full-deck) button
+  try {
+    const suggestBtn = document.getElementById('ai-suggestions-btn');
+    if (suggestBtn) suggestBtn.addEventListener('click', () => {
+      try {
+        import('./deckSuggestions.js').then(mod => {
+          if (mod.openDeckSuggestionsModal) mod.openDeckSuggestionsModal(deckId, { type: null });
+        }).catch(err => console.debug('deckSuggestions module not available for full suggestions', err));
+      } catch (e) { console.debug('Deck Suggestions click handler failed', e); }
+    });
+  } catch (e) { /* ignore */ }
+
+  // View AI Strategy button
+  try {
+    const viewBtn = document.getElementById('view-strategy-btn');
+    if (viewBtn) viewBtn.addEventListener('click', () => {
+      try {
+        import('./decks.js').then(mod => {
+          if (mod.renderAiBlueprintModal) mod.renderAiBlueprintModal(deck.aiBlueprint || window.tempAiBlueprint || {}, deck.name, false, deckId, allDeckCards);
+          try { openModal('ai-blueprint-modal'); } catch (e) { }
+        }).catch(err => console.debug('decks module not available for View AI Strategy', err));
+      } catch (e) { console.debug('View AI Strategy click failed', e); }
+    });
+  } catch (e) { /* ignore */ }
+
+  // Rerun AI Summary button: asks Gemini for a new blueprint using the commander + current deck cards
+  try {
+    const rerunBtn = document.getElementById('rerun-ai-summary-btn');
+    if (rerunBtn) rerunBtn.addEventListener('click', async () => {
+      // Show loading state on button
+      const originalText = rerunBtn.innerHTML;
+      rerunBtn.innerHTML = '<span class="tiny-spinner"></span> Updating...';
+      rerunBtn.disabled = true;
+
+      // Show custom hammer toast
+      let toastId = null;
+      if (typeof window.showLoadingToast === 'function') {
+        toastId = window.showLoadingToast('Forging new strategy...');
+      } else if (typeof showLoadingToast === 'function') {
+        toastId = showLoadingToast('Forging new strategy...');
+      } else {
+        showToast('Forging new strategy...', 'info');
+      }
+
+      try {
+        // Load playstyle first
+        let playstyle = null;
+        try {
+          const playstyleMod = await import('../settings/playstyle.js');
+          if (playstyleMod && typeof playstyleMod.loadPlaystyleForUser === 'function' && window.userId) {
+            playstyle = await playstyleMod.loadPlaystyleForUser(window.userId);
+          }
+        } catch (e) { console.debug('Failed to load playstyle for update strat', e); }
+
+        const decksMod = await import('./decks.js');
+        const blueprint = await (decksMod.getAiDeckBlueprint ? decksMod.getAiDeckBlueprint(deck.commander, allDeckCards, playstyle) : null);
+
+        // Save the new blueprint to the deck
+        if (blueprint) {
+          // Preserve existing suggestedCounts if they exist in the current deck
+          if (deck.aiBlueprint && deck.aiBlueprint.suggestedCounts) {
+            blueprint.suggestedCounts = deck.aiBlueprint.suggestedCounts;
+          }
+
+          // Update local deck object
+          deck.aiBlueprint = blueprint;
+          // Persist to Firestore
+          try {
+            const { updateDoc, doc } = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js');
+            const { db, appId } = await import('../main/index.js');
+            const uid = getUserId();
+            if (uid) {
+              await updateDoc(doc(db, 'artifacts/' + appId + '/users/' + uid + '/decks', deckId), { aiBlueprint: blueprint });
+            }
+          } catch (err) { console.error('Failed to persist updated blueprint', err); }
+        }
+
+        window.tempAiBlueprint = blueprint;
+        if (decksMod.renderAiBlueprintModal) decksMod.renderAiBlueprintModal(blueprint, deck.name, false, deckId, allDeckCards);
+        try { openModal('ai-blueprint-modal'); } catch (e) { }
+
+        // Remove loading toast and show success
+        if (toastId && typeof window.removeToastById === 'function') window.removeToastById(toastId);
+        showToast('Strategy updated successfully!', 'success');
+      } catch (err) {
+        console.error('Rerun AI summary failed', err);
+        if (toastId && typeof window.removeToastById === 'function') window.removeToastById(toastId);
+        showToast('AI summary failed.', 'error');
+      } finally {
+        rerunBtn.innerHTML = originalText;
+        rerunBtn.disabled = false;
+      }
+    });
+  } catch (e) { /* ignore */ }
 }

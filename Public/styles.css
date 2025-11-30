@@ -1,4 +1,4 @@
-/* Extracted styles from index-dev.html */
+﻿/* Extracted styles from index-dev.html */
 body {
   font-family: "Inter", sans-serif;
 }
@@ -264,12 +264,12 @@ body {
 }
 
 .sort-asc::after {
-  content: " ▲";
+  content: " â–²";
   font-size: 0.8em;
 }
 
 .sort-desc::after {
-  content: " ▼";
+  content: " â–¼";
   font-size: 0.8em;
 }
 
@@ -461,12 +461,12 @@ details[open] summary:before {
 }
 
 .sort-asc::after {
-  content: " ▲";
+  content: " â–²";
   font-size: 0.8em;
 }
 
 .sort-desc::after {
-  content: " ▼";
+  content: " â–¼";
   font-size: 0.8em;
 }
 
@@ -658,12 +658,12 @@ details[open] summary:before {
 }
 
 .sort-asc::after {
-  content: " ▲";
+  content: " â–²";
   font-size: 0.8em;
 }
 
 .sort-desc::after {
-  content: " ▼";
+  content: " â–¼";
   font-size: 0.8em;
 }
 
@@ -812,12 +812,12 @@ details[open] summary:before {
 }
 
 .sort-asc::after {
-  content: " ▲";
+  content: " â–²";
   font-size: 0.8em;
 }
 
 .sort-desc::after {
-  content: " ▼";
+  content: " â–¼";
   font-size: 0.8em;
 }
 
@@ -1031,12 +1031,613 @@ details[open] summary:before {
   }
 
   .deck-card-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    /* fill the container without distortion */
-    display: block;
-    max-width: 600px;
-    max-height: 440px;
-  }
+
+    .oracle-text-truncate {
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+
+    .kpi-gradient-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 4px;
+      border-radius: 0 0 0.5rem 0.5rem;
+      transition: width 0.5s ease-in-out;
+    }
+
+
+
+    details>summary {
+      list-style: none;
+      cursor: pointer;
+    }
+
+    details>summary::-webkit-details-marker {
+      display: none;
+    }
+
+    details summary:before {
+      content: "+";
+      margin-right: 0.5rem;
+      font-weight: bold;
+    }
+
+    details[open] summary:before {
+      content: "-";
+    }
+
+    /* -----------------------------
+   Mobile / Responsive overrides
+   (Left pull-out nav drawer)
+   -----------------------------
+   These rules implement a left-side compact nav bar that stays narrow
+   by default and expands when hovered or focused (via :hover / :focus-within).
+*/
+
+    @media (max-width: 768px) {
+
+      /* Toggle label inside nav (hamburger) */
+      /* Fixed handle visible even when nav is hidden; placed at left edge near bottom */
+      .nav-toggle-label {
+        position: fixed;
+        left: 8px;
+        bottom: 12px;
+        display: inline-flex;
+        flex-direction: column;
+        gap: 4px;
+        width: 44px;
+        height: 12px;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        padding: 8px 6px;
+        z-index: 10001;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 8px;
+        -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+        touch-action: manipulation;
+        pointer-events: auto;
+      }
+
+      .nav-toggle-label .bar {
+        display: block;
+        width: 18px;
+        height: 2px;
+        background: #cbd5e1;
+        /* gray-300 */
+        border-radius: 2px;
+        transition: transform 180ms ease, opacity 180ms ease;
+      }
+
+      /* Visual change when open */
+      /* Transform the fixed handle bars to an X when open */
+      /* Transform the handle bars to an X when open */
+      #nav-toggle:checked+nav .nav-toggle-label .bar:nth-child(1) {
+        transform: translateY(6px) rotate(45deg);
+      }
+
+      #nav-toggle:checked+nav .nav-toggle-label .bar:nth-child(2) {
+        opacity: 0;
+      }
+
+      #nav-toggle:checked+nav .nav-toggle-label .bar:nth-child(3) {
+        transform: translateY(-6px) rotate(-45deg);
+      }
+
+      /* Accessibility helper */
+      .sr-only {
+        position: absolute !important;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      /* Keep group-header offset as original header height (if present) */
+      .group-header {
+        top: 72px;
+      }
+
+      /* Make collection/deck grids fluid and card-friendly */
+      #collection-content .grid,
+      #collection-content .grid.grid-cols-1,
+      #collection-content .grid.grid-cols-2,
+      #collection-content .grid.grid-cols-3 {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)) !important;
+        grid-auto-rows: auto;
+        gap: 0.5rem !important;
+      }
+
+      /* Keep card aspect ratios reasonable on small screens */
+      .card-image-container,
+      .collection-card-item,
+      .card-version-item {
+        aspect-ratio: 2 / 3;
+      }
+
+      .collection-card-item {
+        border-radius: 0.35rem;
+      }
+
+      /* Improve layout of stacked panels */
+      .bg-gray-800.p-4.rounded-lg .flex {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+
+
+      /* Login modal should be nearly full width on phones */
+      #login-screen .max-w-sm {
+        max-width: 95%;
+        padding: 1rem;
+      }
+
+      /* Make tables horizontally scrollable on tiny screens */
+      #collection-content table {
+        width: 100%;
+        display: block;
+        overflow-x: auto;
+      }
+
+      /* Slightly larger touch targets */
+      button,
+      .nav-link,
+      .collection-card-item {
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+      }
+
+      /* Decks grid and card sizing overrides */
+      .deck-card {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        /* Removed max-width cap to allow grid to control width */
+      }
+
+      .deck-card .relative {
+        width: 100%;
+      }
+
+      .deck-card-img {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 3 / 1;
+      }
+
+      .deck-card>.relative {
+        position: relative;
+        width: 100%;
+        /* Allow natural image ratio (600x440 ~ 15:11) while capping height */
+        aspect-ratio: 600 / 440;
+        max-height: 440px;
+        /* don't exceed source art height */
+        overflow: hidden;
+      }
+
+      .deck-card-img {
+
+        .oracle-text-truncate {
+          overflow: hidden;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          line-clamp: 2;
+          -webkit-box-orient: vertical;
+        }
+
+        .kpi-gradient-bar {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          height: 4px;
+          border-radius: 0 0 0.5rem 0.5rem;
+          transition: width 0.5s ease-in-out;
+        }
+
+
+
+        details>summary {
+          list-style: none;
+          cursor: pointer;
+        }
+
+        details>summary::-webkit-details-marker {
+          display: none;
+        }
+
+        details summary:before {
+          content: "+";
+          margin-right: 0.5rem;
+          font-weight: bold;
+        }
+
+        details[open] summary:before {
+          content: "-";
+        }
+
+        /* -----------------------------
+   Mobile / Responsive overrides
+   (Left pull-out nav drawer)
+   -----------------------------
+   These rules implement a left-side compact nav bar that stays narrow
+   by default and expands when hovered or focused (via :hover / :focus-within).
+*/
+
+        @media (max-width: 768px) {
+
+          /* Toggle label inside nav (hamburger) */
+          /* Fixed handle visible even when nav is hidden; placed at left edge near bottom */
+          .nav-toggle-label {
+            position: fixed;
+            left: 8px;
+            bottom: 12px;
+            display: inline-flex;
+            flex-direction: column;
+            gap: 4px;
+            width: 44px;
+            height: 12px;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            padding: 8px 6px;
+            z-index: 10001;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+            touch-action: manipulation;
+            pointer-events: auto;
+          }
+
+          .nav-toggle-label .bar {
+            display: block;
+            width: 18px;
+            height: 2px;
+            background: #cbd5e1;
+            /* gray-300 */
+            border-radius: 2px;
+            transition: transform 180ms ease, opacity 180ms ease;
+          }
+
+          /* Visual change when open */
+          /* Transform the fixed handle bars to an X when open */
+          /* Transform the handle bars to an X when open */
+          #nav-toggle:checked+nav .nav-toggle-label .bar:nth-child(1) {
+            transform: translateY(6px) rotate(45deg);
+          }
+
+          #nav-toggle:checked+nav .nav-toggle-label .bar:nth-child(2) {
+            opacity: 0;
+          }
+
+          #nav-toggle:checked+nav .nav-toggle-label .bar:nth-child(3) {
+            transform: translateY(-6px) rotate(-45deg);
+          }
+
+          /* Accessibility helper */
+          .sr-only {
+            position: absolute !important;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+          }
+
+          /* Keep group-header offset as original header height (if present) */
+          .group-header {
+            top: 72px;
+          }
+
+          /* Make collection/deck grids fluid and card-friendly */
+          #collection-content .grid,
+          #collection-content .grid.grid-cols-1,
+          #collection-content .grid.grid-cols-2,
+          #collection-content .grid.grid-cols-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)) !important;
+            grid-auto-rows: auto;
+            gap: 0.5rem !important;
+          }
+
+          /* Keep card aspect ratios reasonable on small screens */
+          .card-image-container,
+          .collection-card-item,
+          .card-version-item {
+            aspect-ratio: 2 / 3;
+          }
+
+          .collection-card-item {
+            border-radius: 0.35rem;
+          }
+
+          /* Improve layout of stacked panels */
+          .bg-gray-800.p-4.rounded-lg .flex {
+            flex-direction: column;
+            gap: 0.5rem;
+          }
+
+
+
+          /* Login modal should be nearly full width on phones */
+          #login-screen .max-w-sm {
+            max-width: 95%;
+            padding: 1rem;
+          }
+
+          /* Make tables horizontally scrollable on tiny screens */
+          #collection-content table {
+            width: 100%;
+            display: block;
+            overflow-x: auto;
+          }
+
+          /* Slightly larger touch targets */
+          button,
+          .nav-link,
+          .collection-card-item {
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+          }
+
+          /* Decks grid and card sizing overrides */
+          .deck-card {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            /* Removed max-width cap to allow grid to control width */
+          }
+
+          .deck-card .relative {
+            width: 100%;
+          }
+
+          .deck-card-img {
+            width: 100%;
+            height: auto;
+            aspect-ratio: 3 / 1;
+          }
+
+          .deck-card>.relative {
+            position: relative;
+            width: 100%;
+            /* Allow natural image ratio (600x440 ~ 15:11) while capping height */
+            aspect-ratio: 600 / 440;
+            max-height: 440px;
+            /* don't exceed source art height */
+            overflow: hidden;
+          }
+
+          .deck-card-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            /* fill the container without distortion */
+            display: block;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+          }
+
+          .kpi-gradient-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 4px;
+            border-radius: 0 0 0.5rem 0.5rem;
+            transition: width 0.5s ease-in-out;
+          }
+
+
+
+          details>summary {
+            list-style: none;
+            cursor: pointer;
+          }
+
+          details>summary::-webkit-details-marker {
+            display: none;
+          }
+
+          details summary:before {
+            content: "+";
+            margin-right: 0.5rem;
+            font-weight: bold;
+          }
+
+          details[open] summary:before {
+            content: "-";
+          }
+
+          /* -----------------------------
+   Mobile / Responsive overrides
+   (Left pull-out nav drawer)
+   -----------------------------
+   These rules implement a left-side compact nav bar that stays narrow
+   by default and expands when hovered or focused (via :hover / :focus-within).
+*/
+
+          @media (max-width: 768px) {
+
+            /* Toggle label inside nav (hamburger) */
+            /* Fixed handle visible even when nav is hidden; placed at left edge near bottom */
+            .nav-toggle-label {
+              position: fixed;
+              left: 8px;
+              bottom: 12px;
+              display: inline-flex;
+              flex-direction: column;
+              gap: 4px;
+              width: 44px;
+              height: 12px;
+              justify-content: center;
+              align-items: center;
+              cursor: pointer;
+              padding: 8px 6px;
+              z-index: 10001;
+              background: rgba(255, 255, 255, 0.03);
+              border-radius: 8px;
+              -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+              touch-action: manipulation;
+              pointer-events: auto;
+            }
+
+            .nav-toggle-label .bar {
+              display: block;
+              width: 18px;
+              height: 2px;
+              background: #cbd5e1;
+              /* gray-300 */
+              border-radius: 2px;
+              transition: transform 180ms ease, opacity 180ms ease;
+            }
+
+            /* Visual change when open */
+            /* Transform the fixed handle bars to an X when open */
+            /* Transform the handle bars to an X when open */
+            #nav-toggle:checked+nav .nav-toggle-label .bar:nth-child(1) {
+              transform: translateY(6px) rotate(45deg);
+            }
+
+            #nav-toggle:checked+nav .nav-toggle-label .bar:nth-child(2) {
+              opacity: 0;
+            }
+
+            #nav-toggle:checked+nav .nav-toggle-label .bar:nth-child(3) {
+              transform: translateY(-6px) rotate(-45deg);
+            }
+
+            /* Accessibility helper */
+            .sr-only {
+              position: absolute !important;
+              width: 1px;
+              height: 1px;
+              padding: 0;
+              margin: -1px;
+              overflow: hidden;
+              clip: rect(0, 0, 0, 0);
+              white-space: nowrap;
+              border: 0;
+            }
+
+            /* Keep group-header offset as original header height (if present) */
+            .group-header {
+              top: 72px;
+            }
+
+            /* Make collection/deck grids fluid and card-friendly */
+            #collection-content .grid,
+            #collection-content .grid.grid-cols-1,
+            #collection-content .grid.grid-cols-2,
+            #collection-content .grid.grid-cols-3 {
+              display: grid;
+              grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)) !important;
+              grid-auto-rows: auto;
+              gap: 0.5rem !important;
+            }
+
+            /* Keep card aspect ratios reasonable on small screens */
+            .card-image-container,
+            .collection-card-item,
+            .card-version-item {
+              aspect-ratio: 2 / 3;
+            }
+
+            .collection-card-item {
+              border-radius: 0.35rem;
+            }
+
+            /* Improve layout of stacked panels */
+            .bg-gray-800.p-4.rounded-lg .flex {
+              flex-direction: column;
+              gap: 0.5rem;
+            }
+
+
+
+            /* Login modal should be nearly full width on phones */
+            #login-screen .max-w-sm {
+              max-width: 95%;
+              padding: 1rem;
+            }
+
+            /* Make tables horizontally scrollable on tiny screens */
+            #collection-content table {
+              width: 100%;
+              display: block;
+              overflow-x: auto;
+            }
+
+            /* Slightly larger touch targets */
+            button,
+            .nav-link,
+            .collection-card-item {
+              touch-action: manipulation;
+              -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+            }
+
+            /* Decks grid and card sizing overrides */
+            .deck-card {
+              display: flex;
+              flex-direction: column;
+              width: 100%;
+              /* Removed max-width cap to allow grid to control width */
+            }
+
+            .deck-card .relative {
+              width: 100%;
+            }
+
+            .deck-card-img {
+              width: 100%;
+              height: auto;
+              aspect-ratio: 3 / 1;
+            }
+
+            .deck-card>.relative {
+              position: relative;
+              width: 100%;
+              /* Allow natural image ratio (600x440 ~ 15:11) while capping height */
+              aspect-ratio: 600 / 440;
+              max-height: 440px;
+              /* don't exceed source art height */
+              overflow: hidden;
+            }
+
+            .deck-card-img {
+              width: 100%;
+              height: 100%;
+              object-fit: cover;
+              /* fill the container without distortion */
+              display: block;
+              line-clamp: 2;
+              -webkit-box-orient: vertical;
+            }
+
+          }
+
+/* Hammer Animation for Loading Toast */
+@keyframes hammer-swing {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(-45deg); }
+  50% { transform: rotate(60deg); }
+  60% { transform: rotate(50deg); }
+  100% { transform: rotate(0deg); }
+}
+
+.animate-hammer {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: hammer-swing 1.2s infinite ease-in-out;
 }

@@ -1970,7 +1970,10 @@ export function selectCommander(card) {
     const previewContainer = document.getElementById('selected-commander-preview');
     if (!previewContainer) return;
 
-    const imgSrc = card.image_uris?.art_crop || card.image_uris?.normal || '';
+    const imgSrc = card.image_uris?.art_crop ||
+      (card.card_faces && card.card_faces[0]?.image_uris?.art_crop) ||
+      card.image_uris?.normal ||
+      (card.card_faces && card.card_faces[0]?.image_uris?.normal) || '';
 
     previewContainer.innerHTML = `
       <div class="flex gap-4 items-start">
@@ -2016,7 +2019,12 @@ export function openDeckCreationModal(commanderCard = null) {
 
     if (legendaryCreatures.length > 0) {
       commanderListContainer.innerHTML = legendaryCreatures.map(c => {
-        const imgSrc = c.image_uris?.normal || c.image_uris?.large || c.image_uris?.art_crop || '';
+        const imgSrc = c.image_uris?.normal ||
+          (c.card_faces && c.card_faces[0]?.image_uris?.normal) ||
+          c.image_uris?.large ||
+          (c.card_faces && c.card_faces[0]?.image_uris?.large) ||
+          c.image_uris?.art_crop ||
+          (c.card_faces && c.card_faces[0]?.image_uris?.art_crop) || '';
         return `
         <div class="relative group aspect-[2.5/3.5] rounded-xl overflow-hidden cursor-pointer select-commander-from-collection-btn transition-all duration-200 hover:scale-105 hover:shadow-lg hover:shadow-indigo-500/30 ring-1 ring-gray-700 hover:ring-indigo-500" data-firestore-id='${c.firestoreId}' tabindex="0" role="button" aria-label="Select ${c.name}">
           <img src="${imgSrc}" class="w-full h-full object-cover" loading="lazy" />

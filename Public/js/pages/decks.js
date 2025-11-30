@@ -40,7 +40,9 @@ export function renderDecksList() {
 
   const deckCardsHtml = decks.map(deck => {
     const commander = deck.commander;
-    const commanderImg = commander ? commander.image_uris?.art_crop : 'https://placehold.co/600x440/1f2937/4b5563?text=No+Commander';
+    const commanderImg = commander
+      ? (commander.image_uris?.art_crop || (commander.card_faces && commander.card_faces[0]?.image_uris?.art_crop) || 'https://placehold.co/600x440/1f2937/4b5563?text=No+Image')
+      : 'https://placehold.co/600x440/1f2937/4b5563?text=No+Commander';
     const cardCount = Object.keys(deck.cards || {}).reduce((sum, key) => sum + (deck.cards[key].count || 1), 0) + (commander ? 1 : 0);
 
     // Determine colors based on commander identity or default
@@ -117,7 +119,7 @@ export function initDecksModule() {
 // --- AI Blueprint helpers (migrated from inline HTML) ---
 // Use runtime getter for per-user Gemini URL (may return null if no key saved)
 
-export async function getAiDeckBlueprint(commanderCard, deckCards = null) {
+export async function getAiDeckBlueprint(commanderCard, deckCards = null, playstyle = null) {
   let prompt = `You are a world-class Magic: The Gathering deck architect specializing in the Commander format. Given the following commander card, you will generate a detailed blueprint for a 100-card deck.
 
             Your response must be a single, valid JSON object and nothing else. Do not wrap it in markdown backticks.
@@ -143,12 +145,16 @@ export async function getAiDeckBlueprint(commanderCard, deckCards = null) {
       const sample = deckCards.slice(0, 120).map(c => `${c.name} x${c.count || 1}`).join(', ');
       prompt = `${prompt}\n\nCurrent Decklist (sample up to 120 cards):\n${sample}\n\nConsider this decklist when generating the blueprint.`;
     }
-    // Prefer structured playstyle object when available
-    let structured = null;
-    try { if (window.playstyle && window.playstyleState) structured = window.playstyleState; } catch (e) { }
-    if (!structured && typeof window.playstyle === 'object' && typeof window.playstyle.loadPlaystyleForUser === 'function' && window.userId) {
-      try { structured = await window.playstyle.loadPlaystyleForUser(window.userId); } catch (e) { /* ignore */ }
+
+    // Use passed playstyle if available, otherwise try to find it in global state
+    let structured = playstyle;
+    if (!structured) {
+      try { if (window.playstyle && window.playstyleState) structured = window.playstyleState; } catch (e) { }
+      if (!structured && typeof window.playstyle === 'object' && typeof window.playstyle.loadPlaystyleForUser === 'function' && window.userId) {
+        try { structured = await window.playstyle.loadPlaystyleForUser(window.userId); } catch (e) { /* ignore */ }
+      }
     }
+
     if (structured) {
       // Append a JSON block with the structured playstyle and instruct Gemini to consider it
       prompt = `${prompt}\n\nUser Playstyle (JSON):\n${JSON.stringify(structured, null, 2)}\n\nUse this structured profile to tailor the deck blueprint and explain how cards and counts reflect the player's preferences.`;
@@ -221,7 +227,7 @@ export async function getAiDeckBlueprint(commanderCard, deckCards = null) {
   }
 }
 
-export function renderAiBlueprintModal(blueprint, deckName, isReadOnly = false) {
+export function renderAiBlueprintModal(blueprint, deckName, isReadOnly = false, deckId = null, currentDeckCards = null) {
   // Hide the deck creation modal to prevent z-index conflicts
   const deckCreationModal = document.getElementById('deck-creation-modal');
   if (deckCreationModal && !deckCreationModal.classList.contains('hidden')) {
@@ -232,36 +238,157 @@ export function renderAiBlueprintModal(blueprint, deckName, isReadOnly = false) 
   const titleEl = document.getElementById('ai-blueprint-title');
   const contentEl = document.getElementById('ai-blueprint-content');
   const footerEl = document.getElementById('ai-blueprint-footer');
-  if (titleEl) titleEl.textContent = `AI Blueprint: ${deckName}`;
+
+  if (titleEl) {
+    titleEl.innerHTML = `
+        <span class="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400">
+            ${deckName}
+        </span>
+      `;
+  }
+
   const counts = blueprint.suggestedCounts || {};
-  const countsHtml = Object.entries(counts).filter(([key]) => key !== 'Total').map(([key, value]) => `
-    <div class="flex justify-between items-center p-2 bg-gray-700 rounded">
-      <span>${key}</span>
-      <span class="text-white font-semibold">${value}</span>
+
+  // Premium UI for counts
+  const countsHtml = Object.entries(counts)
+    .filter(([key]) => key !== 'Total')
+    .map(([key, value]) => `
+    <div class="flex justify-between items-center p-3 bg-gray-800/50 border border-gray-700/50 rounded-lg hover:bg-gray-700/50 transition-colors group">
+      <span class="text-gray-400 group-hover:text-gray-200 transition-colors">${key}</span>
+      ${isReadOnly ?
+        `<span class="text-indigo-300 font-bold bg-indigo-900/20 px-2 py-0.5 rounded border border-indigo-500/20">${value}</span>` :
+        `<input type="number" data-count-type="${key}" value="${value}" class="w-16 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-right text-indigo-300 font-bold focus:outline-none focus:border-indigo-500 transition-colors" min="0">`
+      }
     </div>
   `).join('');
-  if (contentEl) contentEl.innerHTML = `
-    <div class="space-y-4 text-gray-300">
-      <div>
-        <h4 class="text-lg font-bold text-indigo-300 mb-2">Deck Summary</h4>
-        <p>${blueprint.summary || 'No summary available.'}</p>
+
+  if (contentEl) {
+    contentEl.innerHTML = `
+    <div class="space-y-8 text-gray-300">
+      <!-- Summary Section -->
+      <div class="bg-gray-800/30 p-6 rounded-xl border border-gray-700/50 backdrop-blur-sm shadow-lg">
+        <h4 class="text-lg font-bold text-white mb-3 flex items-center gap-2">
+            <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 20c4.418 0 8-3.582 8-8s-3.582-8-8-8-8 3.582-8 8 3.582 8 8 8z"></path></svg>
+            Deck Concept
+        </h4>
+        <p class="leading-relaxed text-gray-300">${blueprint.summary || 'No summary available.'}</p>
       </div>
-      <div>
-        <h4 class="text-lg font-bold text-indigo-300 mb-2">Strategy</h4>
-        <p class="whitespace-pre-wrap">${blueprint.strategy || 'No strategy details available.'}</p>
+
+      <!-- Strategy Section -->
+      <div class="bg-gray-800/30 p-6 rounded-xl border border-gray-700/50 backdrop-blur-sm shadow-lg">
+        <h4 class="text-lg font-bold text-white mb-3 flex items-center gap-2">
+            <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+            Pilot's Guide
+        </h4>
+        <div class="prose prose-invert max-w-none">
+            <p class="whitespace-pre-wrap leading-relaxed text-gray-300">${blueprint.strategy || 'No strategy details available.'}</p>
+        </div>
       </div>
-    </div>
-    <div>
-      <h4 class="text-xl font-bold text-indigo-300 mb-2">Suggested Card Counts (99 total)</h4>
-      <div class="grid grid-cols-2 gap-2 text-sm">
-        ${countsHtml}
-        <div class="flex justify-between items-center p-2 bg-gray-700 rounded col-span-2">
-          <span class="font-bold text-lg">Total</span>
-          <span class="text-white font-bold text-lg">${counts.Total || 'N/A'}</span>
+
+      <!-- Composition Section -->
+      <div>
+        <h4 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+            Deck Composition <span class="text-sm font-normal text-gray-500 ml-2">(99 cards)</span>
+        </h4>
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm" id="composition-grid">
+          ${countsHtml}
+          <div class="flex justify-between items-center p-3 bg-indigo-900/20 border border-indigo-500/30 rounded-lg col-span-2 md:col-span-3 mt-2">
+            <span class="font-bold text-indigo-200">Total Cards</span>
+            <span class="text-white font-bold text-lg" id="composition-total">${counts.Total || 'N/A'}</span>
+          </div>
+          ${!isReadOnly ? `
+            <div class="col-span-2 md:col-span-3 flex gap-2 mt-4 pt-2 border-t border-gray-700/50">
+              ${currentDeckCards ? `<button id="update-counts-btn" class="flex-1 bg-gray-700 hover:bg-gray-600 text-white text-sm font-bold py-2 px-4 rounded-lg transition-colors border border-gray-600">Update to Current</button>` : ''}
+              ${deckId ? `<button id="save-counts-btn" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold py-2 px-4 rounded-lg transition-colors shadow-lg shadow-indigo-900/20">Save Changes</button>` : ''}
+            </div>
+          ` : ''}
         </div>
       </div>
     </div>
-  `;
+    `;
+
+    // Event Listeners
+    if (!isReadOnly) {
+      const inputs = contentEl.querySelectorAll('input[data-count-type]');
+      const totalEl = document.getElementById('composition-total');
+
+      const calculateTotal = () => {
+        let total = 0;
+        inputs.forEach(input => total += parseInt(input.value || 0));
+        if (totalEl) totalEl.textContent = total;
+        return total;
+      };
+
+      inputs.forEach(input => {
+        input.addEventListener('input', calculateTotal);
+      });
+
+      const updateBtn = document.getElementById('update-counts-btn');
+      if (updateBtn && currentDeckCards) {
+        updateBtn.addEventListener('click', () => {
+          const newCounts = { 'Land': 0, 'Creature': 0, 'Instant': 0, 'Sorcery': 0, 'Artifact': 0, 'Enchantment': 0, 'Planeswalker': 0 };
+          currentDeckCards.forEach(card => {
+            const type = card.type_line || '';
+            const count = card.count || 1;
+            if (type.includes('Land')) newCounts['Land'] += count;
+            else if (type.includes('Creature')) newCounts['Creature'] += count;
+            else if (type.includes('Instant')) newCounts['Instant'] += count;
+            else if (type.includes('Sorcery')) newCounts['Sorcery'] += count;
+            else if (type.includes('Artifact')) newCounts['Artifact'] += count;
+            else if (type.includes('Enchantment')) newCounts['Enchantment'] += count;
+            else if (type.includes('Planeswalker')) newCounts['Planeswalker'] += count;
+          });
+
+          inputs.forEach(input => {
+            const type = input.dataset.countType;
+            if (newCounts[type] !== undefined) {
+              input.value = newCounts[type];
+            }
+          });
+          calculateTotal();
+          showToast('Counts updated from current deck list.', 'info');
+        });
+      }
+
+      const saveBtn = document.getElementById('save-counts-btn');
+      if (saveBtn && deckId) {
+        saveBtn.addEventListener('click', async () => {
+          const originalText = saveBtn.textContent;
+          saveBtn.textContent = 'Saving...';
+          saveBtn.disabled = true;
+
+          try {
+            const updatedCounts = { ...blueprint.suggestedCounts };
+            inputs.forEach(input => {
+              updatedCounts[input.dataset.countType] = parseInt(input.value || 0);
+            });
+            updatedCounts.Total = calculateTotal();
+
+            blueprint.suggestedCounts = updatedCounts;
+
+            // Persist to Firestore
+            const userId = getUserId();
+            if (userId) {
+              await updateDoc(doc(db, `artifacts/${appId}/users/${userId}/decks`, deckId), { aiBlueprint: blueprint });
+              showToast('Deck composition saved!', 'success');
+              // Update local cache if needed, though singleDeck.js usually re-renders or uses the object ref
+              // Since we mutated blueprint which is likely a reference to deck.aiBlueprint, it might just work.
+            } else {
+              showToast('User not signed in.', 'error');
+            }
+          } catch (err) {
+            console.error('Failed to save counts', err);
+            showToast('Failed to save changes.', 'error');
+          } finally {
+            saveBtn.textContent = originalText;
+            saveBtn.disabled = false;
+          }
+        });
+      }
+    }
+  }
+
   if (footerEl) {
     if (isReadOnly) footerEl.classList.add('hidden'); else footerEl.classList.remove('hidden');
   }

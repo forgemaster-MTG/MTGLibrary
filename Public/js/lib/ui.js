@@ -256,6 +256,7 @@ if (typeof window !== 'undefined') {
   window.updateToastProgress = updateToastProgress;
   window.removeToastById = removeToastById;
   window.updateToast = updateToast;
+  window.showLoadingToast = showLoadingToast;
   window.computeTableHeaderTop = computeTableHeaderTop;
   // Provide a default toggleEditMode implementation that focuses on UI state
   // and delegates heavy re-render work to existing window renderers if present.
@@ -275,4 +276,34 @@ if (typeof window !== 'undefined') {
       console.warn('[UI.toggleEditMode] error', err);
     }
   };
+}
+
+export function showLoadingToast(message) {
+  const container = getToastContainer();
+  const toast = document.createElement('div');
+  const toastId = `toast-loading-${Date.now()}`;
+  toast.id = toastId;
+
+  const baseClasses = 'pointer-events-auto flex items-center w-auto max-w-md p-4 rounded-xl shadow-2xl backdrop-blur-md border transition-all duration-300 transform translate-x-full opacity-0';
+  const typeClasses = 'bg-slate-800/90 border-indigo-500/30 text-indigo-50';
+
+  toast.className = `${baseClasses} ${typeClasses}`;
+
+  // Hammer SVG (simplified representation)
+  const hammerIcon = `
+    <svg class="w-8 h-8 mr-3 text-indigo-400 shrink-0 animate-hammer" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M15 12l-8.5 8.5c-.83.83-2.17.83-3 0 0 0 0 0 0 0a2.12 2.12 0 0 1 0-3L12 9" />
+      <path d="M17.64 15L22 10.64" />
+      <path d="M20.91 11.7l-1.25-1.25c-.6-.6-.93-1.4-.93-2.25V3h-6v5.2c0 .85-.33 1.65-.93 2.25L10.64 11.7" />
+    </svg>
+  `;
+
+  toast.innerHTML = `${hammerIcon}<span class="font-medium text-sm leading-snug">${message}</span>`;
+  container.appendChild(toast);
+
+  requestAnimationFrame(() => {
+    toast.classList.remove('translate-x-full', 'opacity-0');
+  });
+
+  return toastId;
 }
