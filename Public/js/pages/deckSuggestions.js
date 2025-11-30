@@ -1313,7 +1313,7 @@ async function callGeminiWithRetries(payload, retries = 3, initialDelay = 1000) 
     if (!url) {
       console.error('[deckSuggestions] Gemini API Key is not configured.');
       try { if (typeof window.renderGeminiSettings === 'function') window.renderGeminiSettings(); } catch (e) { }
-      try { if (typeof window.showView === 'function') window.showView('settings'); } catch (e) { }
+      import('../main/router.js').then(({ router }) => router.navigate('/settings'));
       if (typeof showToast === 'function') showToast('No Gemini API key configured. Add it in Settings to enable AI features.', 'error');
       return null;
     }

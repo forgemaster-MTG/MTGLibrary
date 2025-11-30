@@ -94,7 +94,7 @@ export async function showSetView(code) {
       // restore page title
       if (pageTitle) pageTitle.textContent = 'Sets';
       // ensure the Sets view is shown and re-render the sets listing
-      try { if (typeof window.showView === 'function') window.showView('sets'); } catch (e) { }
+      import('../main/router.js').then(({ router }) => router.navigate('/sets'));
       if (typeof window.renderSets === 'function') window.renderSets();
       else import('./sets.js').then(mod => { if (typeof mod.renderSets === 'function') mod.renderSets(); }).catch(() => { });
     });

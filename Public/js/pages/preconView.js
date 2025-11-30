@@ -3,13 +3,13 @@ import { renderCollectionCard } from './collection.js';
 
 // Render a single preconstructed deck JSON file into #precon-content
 export async function initPreconView(filePath, displayName) {
-  try { if (typeof window.showView === 'function') window.showView('precon'); } catch (e) {}
+  try { if (typeof window.showView === 'function') window.showView('precon'); } catch (e) { }
   const container = document.getElementById('precon-content');
   const title = document.getElementById('precon-title');
   const backBtn = document.getElementById('precon-back-btn');
   const noMsg = document.getElementById('no-precon-msg');
   if (title) title.textContent = displayName || filePath || 'Precon';
-  if (backBtn) backBtn.onclick = () => { try { if (typeof window.showView === 'function') window.showView('precons'); } catch (e) {} };
+  if (backBtn) backBtn.onclick = () => { import('../main/router.js').then(({ router }) => router.navigate('/precons')); };
   if (!container) return;
   container.innerHTML = '';
   noMsg && noMsg.classList.add('hidden');
@@ -82,7 +82,7 @@ export async function initPreconView(filePath, displayName) {
     container.innerHTML = `<div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4 p-2">${html}</div>`;
 
     // wire any view buttons inside rendered collection-card-item
-    try { if (typeof window.initializeDfsWrappers === 'function') window.initializeDfsWrappers(); } catch (e) {}
+    try { if (typeof window.initializeDfsWrappers === 'function') window.initializeDfsWrappers(); } catch (e) { }
 
   } catch (err) {
     console.error('initPreconView error', err);

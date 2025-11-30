@@ -2,6 +2,7 @@ import { localDecks, localCollection, addCardToCollection, updateCardAssignments
 import { showToast, openModal, closeModal } from '../lib/ui.js';
 import { db, appId } from '../main/index.js';
 import { collection, addDoc, doc, updateDoc, writeBatch, getDocs } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+import { router } from '../main/router.js';
 
 // Helper to resolve user id from legacy globals
 function getUserId() {
@@ -93,8 +94,7 @@ export function renderDecksList() {
   container.querySelectorAll('.view-deck-btn').forEach(btn => btn.addEventListener('click', (e) => {
     const deckId = e.currentTarget.dataset.deckId;
     try {
-      if (typeof window.showView === 'function') window.showView('singleDeck');
-      if (typeof window.renderSingleDeck === 'function') window.renderSingleDeck(deckId);
+      router.navigate('/decks/' + deckId);
       return;
     } catch (err) {
       // fallback to event dispatch
@@ -167,7 +167,7 @@ export async function getAiDeckBlueprint(commanderCard, deckCards = null, playst
     const url = (typeof window.getGeminiUrl === 'function') ? await window.getGeminiUrl() : null;
     if (!url) {
       try { if (typeof window.renderGeminiSettings === 'function') window.renderGeminiSettings(); } catch (e) { }
-      try { if (typeof window.showView === 'function') window.showView('settings'); } catch (e) { }
+      import('../main/router.js').then(({ router }) => router.navigate('/settings'));
       throw new Error('Gemini API Key is not defined (per-user key missing).');
     }
     const response = await fetch(url, {
@@ -482,8 +482,7 @@ export async function handleDeckCreationSubmit(e) {
       const docRef = await addDoc(collection(db, `artifacts / ${appId} /users/${userId}/decks`), newDeck);
       showToast(`Deck "${newDeck.name}" created successfully!`, 'success');
       closeModal('deck-creation-modal');
-      if (typeof window.showView === 'function') window.showView('singleDeck');
-      if (typeof window.renderSingleDeck === 'function') window.renderSingleDeck(docRef.id);
+      router.navigate('/decks/' + docRef.id);
     }
   } catch (error) {
     console.error('Error during deck creation process:', error);
@@ -541,8 +540,7 @@ export async function createDeckFromBlueprint() {
     // Close modals and navigate to single deck view for the newly created deck
     closeModal('ai-blueprint-modal');
     closeModal('deck-creation-modal');
-    if (typeof window.showView === 'function') window.showView('singleDeck');
-    if (typeof window.renderSingleDeck === 'function') window.renderSingleDeck(docRef.id);
+    router.navigate('/decks/' + docRef.id);
     // Return the created deck id so callers (e.g., UI buttons) can chain actions.
     return docRef.id;
   } catch (error) {

@@ -10,6 +10,7 @@
  */
 
 import './index.js'; // ensures firebase, auth, settings are loaded and window globals set
+import { router } from './router.js';
 import { initCollectionModule } from '../pages/collection.js';
 import { initDecksModule } from '../pages/decks.js';
 import { initSingleDeckModule } from '../pages/singleDeck.js';
@@ -168,10 +169,46 @@ export function setupGlobalListeners() {
       mobileSettings: !!navLinks.mobileSettings
     });
 
+    // --- Router Configuration ---
+    // Define routes mapping to views
+    router
+      .on('/', () => {
+        if (typeof window.showView === 'function') window.showView('collection');
+        if (typeof window.renderPaginatedCollection === 'function') window.renderPaginatedCollection();
+      })
+      .on('/collection', () => {
+        if (typeof window.showView === 'function') window.showView('collection');
+        if (typeof window.renderPaginatedCollection === 'function') window.renderPaginatedCollection();
+      })
+      .on('/decks', () => {
+        if (typeof window.showView === 'function') window.showView('decks');
+        else if (typeof window.renderDecksList === 'function') window.renderDecksList();
+      })
+      .on('/decks/:id', (params) => {
+        if (typeof window.showView === 'function') window.showView('singleDeck');
+        if (typeof window.renderSingleDeck === 'function') window.renderSingleDeck(params.id);
+      })
+      .on('/sets', () => {
+        if (typeof window.showView === 'function') window.showView('sets');
+        try { import('../pages/sets.js').then(mod => { if (typeof mod.initSetsModule === 'function') mod.initSetsModule(); }); } catch (e) { }
+      })
+      .on('/settings', () => {
+        if (typeof window.showView === 'function') window.showView('settings');
+        try { import('../settings/playstyle.js').then(mod => { if (window.userId && typeof mod.loadPlaystyleForUser === 'function') mod.loadPlaystyleForUser(window.userId); }); } catch (e) { }
+      })
+      .on('/precons', () => {
+        if (typeof window.showView === 'function') window.showView('precons');
+        try { import('../pages/precons.js').then(mod => { if (typeof mod.initPreconsModule === 'function') mod.initPreconsModule(); }); } catch (e) { }
+      });
+
+    // Initialize router (triggers current hash)
+    router.init();
+
     Object.keys(navLinks).forEach((key) => {
       const el = navLinks[key];
       if (!el) return;
-      el.addEventListener('click', () => {
+      el.addEventListener('click', (e) => {
+        e.preventDefault(); // Prevent default anchor behavior if any
         try {
           // Map mobile keys to standard view keys
           let viewKey = key;
@@ -189,20 +226,17 @@ export function setupGlobalListeners() {
           } else if (viewKey === 'generalChat') {
             if (typeof window.openModal === 'function') window.openModal('mtg-chat-modal');
           } else {
-            if (typeof window.showView === 'function') {
-              window.showView(viewKey);
-              if (viewKey === 'sets') {
-                try { import('../pages/sets.js').then(mod => { if (typeof mod.initSetsModule === 'function') mod.initSetsModule(); }); } catch (e) { }
-              }
-              if (viewKey === 'precons') {
-                try { import('../pages/precons.js').then(mod => { if (typeof mod.initPreconsModule === 'function') mod.initPreconsModule(); }); } catch (e) { }
-              }
-              if (viewKey === 'settings') {
-                try { import('../settings/playstyle.js').then(mod => { if (window.userId && typeof mod.loadPlaystyleForUser === 'function') mod.loadPlaystyleForUser(window.userId); }); } catch (e) { }
-              }
-            } else if (typeof window.renderPaginatedCollection === 'function' && viewKey === 'collection') {
-              if (typeof window.showView === 'function') window.showView('collection');
-              window.renderPaginatedCollection();
+            // Navigate using router
+            switch (viewKey) {
+              case 'collection': router.navigate('/collection'); break;
+              case 'decks': router.navigate('/decks'); break;
+              case 'sets': router.navigate('/sets'); break;
+              case 'settings': router.navigate('/settings'); break;
+              case 'precons': router.navigate('/precons'); break;
+              default:
+                console.warn('[Boot] Unknown view key for router:', viewKey);
+                // Fallback for unknown keys (though mapped above)
+                if (typeof window.showView === 'function') window.showView(viewKey);
             }
           }
         } catch (e) {

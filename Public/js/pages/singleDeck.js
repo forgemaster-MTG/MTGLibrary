@@ -1279,7 +1279,10 @@ export async function deleteDeck(deckId, alsoDeleteCards) {
     await dataDeleteDeck(deckId, !!alsoDeleteCards, getUserId());
     console.log('[deleteDeck] Delete successful');
     showToast('Deck deleted successfully.', 'success');
-    if (window.views && window.views.singleDeck && window.views.singleDeck.dataset.deckId === deckId) { if (typeof window.showView === 'function') window.showView('decks'); }
+    if (window.views && window.views.singleDeck && window.views.singleDeck.dataset.deckId === deckId) {
+      // Use router for navigation
+      import('../main/router.js').then(({ router }) => router.navigate('/decks'));
+    }
     closeModal('deck-delete-options-modal');
   } catch (error) {
     console.error('[deleteDeck] Error deleting deck:', error); showToast('Failed to delete deck.', 'error');
@@ -1490,7 +1493,10 @@ export function renderSingleDeck(deckId) {
     console.error(
       `[renderSingleDeck] Could not find deck with ID ${deckId}. Available deck keys: ${Object.keys(decksMap || {}).join(', ')}`
     );
-    if (typeof window.showView === 'function') window.showView("decks");
+    console.error(
+      `[renderSingleDeck] Could not find deck with ID ${deckId}. Available deck keys: ${Object.keys(decksMap || {}).join(', ')}`
+    );
+    import('../main/router.js').then(({ router }) => router.navigate('/decks'));
     return;
   }
 
@@ -1719,6 +1725,14 @@ export function renderSingleDeck(deckId) {
 
   singleDeckView.innerHTML = `
       <div class="space-y-6 animate-fade-in">
+          <!-- Back Button -->
+          <div>
+              <button id="single-deck-back-btn" class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded-lg transition-colors flex items-center gap-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                  Back to Decks
+              </button>
+          </div>
+
           <!-- Banner Header -->
           <div class="relative w-full h-64 bg-gray-900 rounded-xl overflow-hidden shadow-2xl group">
               <div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105" style="background-image: url('${commanderArt}'); opacity: 0.6;"></div>
@@ -1884,6 +1898,14 @@ export function renderSingleDeck(deckId) {
     window.addSingleDeckListeners(deckId);
   } else if (typeof addSingleDeckListeners === 'function') {
     addSingleDeckListeners(deckId);
+  }
+
+  // Back button listener
+  const backBtn = document.getElementById('single-deck-back-btn');
+  if (backBtn) {
+    backBtn.addEventListener('click', () => {
+      import('../main/router.js').then(({ router }) => router.navigate('/decks'));
+    });
   }
 
   // Attach KPI click handlers to ask AI for a single slot/type

@@ -91,7 +91,7 @@ function renderSetHeader(code, cards) {
   const backBtn = document.getElementById('set-details-back-btn');
   if (backBtn) {
     backBtn.onclick = () => {
-      if (typeof window.showView === 'function') window.showView('sets');
+      import('../main/router.js').then(({ router }) => router.navigate('/sets'));
     };
   }
 

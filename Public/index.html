@@ -2956,6 +2956,7 @@
       function showView(viewName) {
         console.log(`[Function: showView] Switching to ${viewName} view. Find in <script> block.`);
         Object.keys(views).forEach(key => {
+          if (!views[key]) return;
           views[key].classList.add('hidden');
         });
         // Defensive: if the requested view isn't registered, warn and return instead of throwing
@@ -2967,6 +2968,7 @@
 
         Object.keys(navLinks).forEach(key => {
           const link = navLinks[key];
+          if (!link) return;
           link.classList.remove('bg-indigo-600', 'text-white');
           link.classList.add('text-gray-400', 'hover:bg-gray-700', 'hover:text-white');
         });
