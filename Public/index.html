@@ -125,15 +125,6 @@
             </span>
           </button> -->
         <div class="border-t border-gray-700 my-4"></div>
-        <button id="nav-rule-lookup"
-          class="nav-link w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-gray-700 hover:text-white">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.79 4 4s-1.79 4-4 4c-1.742 0-3.223-.835-3.772-2M12 5v.01M12 19v.01">
-            </path>
-          </svg>
-          Rule Lookup
-        </button>
         <button id="nav-general-chat"
           class="nav-link w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-gray-700 hover:text-white">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -1739,6 +1730,32 @@
             class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg">Delete Deck Only</button>
           <button id="cancel-delete-deck-btn"
             class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Playstyle Profile Modal -->
+  <div id="playstyle-profile-modal"
+    class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/80 backdrop-blur-sm modal-backdrop">
+    <div
+      class="bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg mx-4 border border-gray-700 flex flex-col max-h-[90vh]">
+      <div class="p-4 border-b border-gray-700 flex justify-between items-center bg-gray-900/50 rounded-t-2xl">
+        <h3 class="text-xl font-bold text-white flex items-center gap-2">
+          <span class="text-2xl">🎭</span> Your Playstyle
+        </h3>
+        <button id="close-playstyle-profile-modal-btn"
+          class="text-gray-400 hover:text-white transition-colors p-2 rounded-lg hover:bg-gray-700">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+      <div id="playstyle-profile-content" class="p-6 overflow-y-auto custom-scrollbar">
+        <!-- Content injected by playstyle.js -->
+        <div class="flex flex-col items-center justify-center py-12 text-gray-400">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500 mb-4"></div>
+          <p>Loading profile...</p>
         </div>
       </div>
     </div>
