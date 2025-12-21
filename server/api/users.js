@@ -1,12 +1,13 @@
-const express = require('express');
+import express from 'express';
+import { knex } from '../db.js';
+import authMiddleware from '../middleware/auth.js';
+
 const router = express.Router();
-const { knex } = require('../db');
-const auth = require('../middleware/auth');
 
 // List users (admin use) - protected
-router.get('/', auth, async (req, res) => {
+router.get('/', authMiddleware, async (req, res) => {
   try {
-    const rows = await knex('users').select('id','firestore_id','email','data').limit(200);
+    const rows = await knex('users').select('id', 'firestore_id', 'email', 'data').limit(200);
     res.json(rows);
   } catch (err) {
     console.error('[users] list error', err);
@@ -15,12 +16,12 @@ router.get('/', auth, async (req, res) => {
 });
 
 // Get current user
-router.get('/me', auth, async (req, res) => {
+router.get('/me', authMiddleware, async (req, res) => {
   res.json(req.user);
 });
 
 // Get user by id (protected)
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', authMiddleware, async (req, res) => {
   try {
     const r = await knex('users').where({ id: req.params.id }).first();
     if (!r) return res.status(404).json({ error: 'not found' });
@@ -32,7 +33,7 @@ router.get('/:id', auth, async (req, res) => {
 });
 
 // Update user (protected, user can update their own row)
-router.put('/:id', auth, async (req, res) => {
+router.put('/:id', authMiddleware, async (req, res) => {
   try {
     if (req.user.id !== parseInt(req.params.id, 10)) return res.status(403).json({ error: 'not allowed' });
     const [row] = await knex('users').where({ id: req.params.id }).update(req.body).returning('*');
@@ -43,4 +44,4 @@ router.put('/:id', auth, async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

@@ -1,6 +1,9 @@
-const admin = require('firebase-admin');
+import admin from 'firebase-admin';
+import { createRequire } from 'module';
+import { knex } from '../db.js';
+
+const require = createRequire(import.meta.url);
 const serviceAccount = require('../../serviceAccountKey.json');
-const { knex } = require('../db');
 
 // Initialize Firebase admin if not already
 try {
@@ -68,5 +71,5 @@ async function authMiddleware(req, res, next) {
 	}
 }
 
-module.exports = authMiddleware;
+export default authMiddleware;
 

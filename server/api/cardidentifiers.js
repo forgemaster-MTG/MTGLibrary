@@ -1,6 +1,7 @@
-const express = require('express');
+import express from 'express';
+import { knex } from '../db.js';
+
 const router = express.Router();
-const { knex } = require('../db');
 
 // List identifiers
 router.get('/', async (req, res) => {
@@ -59,4 +60,4 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

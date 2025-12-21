@@ -1,8 +1,11 @@
-require('dotenv').config();
-const knexConfig = require('../knexfile');
+import dotenv from 'dotenv';
+dotenv.config();
+import knexConfig from '../knexfile.cjs';
+import knexPkg from 'knex';
+import { Model } from 'objection';
+
 const env = process.env.NODE_ENV || 'development';
-const knex = require('knex')(knexConfig[env]);
-const { Model } = require('objection');
+const knex = knexPkg(knexConfig[env]);
 Model.knex(knex);
 
-module.exports = { knex, Model };
+export { knex, Model };

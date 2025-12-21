@@ -1,33 +1,52 @@
-require('dotenv').config();
-const express = require('express');
-const { knex } = require('./db');
-const auth = require('./middleware/auth');
-const fs = require('fs');
-const path = require('path');
+import dotenv from 'dotenv';
+dotenv.config();
 
-// swagger deps are optional at runtime. If the user hasn't run `npm install`, don't crash the server.
+import cors from 'cors';
+import express from 'express';
+import { knex } from './db.js';
+import auth from './middleware/auth.js';
+import fs from 'fs';
+import path from 'path';
+import { createRequire } from 'module';
+
+// Import API routers
+import cardsApi from './api/cards.js';
+import cardIdentifiersApi from './api/cardidentifiers.js';
+import decksApi from './api/decks.js';
+import usersApi from './api/users.js';
+import preconsApi from './api/precons.js';
+import collectionApi from './api/collection.js';
+
+const require = createRequire(import.meta.url);
+
+// swagger deps are optional at runtime.
 let yaml;
 let swaggerUi;
 try {
   yaml = require('js-yaml');
   swaggerUi = require('swagger-ui-express');
 } catch (err) {
-  // Do not rethrow; we'll skip mounting Swagger UI below and print a friendly message.
-  console.warn('Optional dependency missing: swagger-ui-express or js-yaml not installed. Swagger UI at /docs will be disabled. Run `npm install` to enable it.');
+  console.warn('Optional dependency missing: swagger-ui-express or js-yaml. Swagger UI disabled.');
 }
 
 const app = express();
-app.use(express.json());
-
-// public precons router is mounted below
+app.use(cors()); // Enable All CORS Requests
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Authenticated user endpoints
 app.get('/me', auth, async (req, res) => {
-  // req.user comes from auth middleware
-  res.json({ id: req.user.id, firestore_id: req.user.firestore_id, email: req.user.email, data: req.user.data });
+  // Fetch fresh user data including settings
+  try {
+    const user = await knex('users').where({ id: req.user.id }).first();
+    res.json({ id: user.id, firestore_id: user.firestore_id, email: user.email, data: user.data, settings: user.settings || {} });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'db error' });
+  }
 });
 
-// Saved views: list/create/update/delete for authenticated user
+// Saved views
 app.get('/saved_views', auth, async (req, res) => {
   try {
     const rows = await knex('saved_views').where({ user_id: req.user.id }).select('*');
@@ -79,47 +98,36 @@ app.delete('/saved_views/:id', auth, async (req, res) => {
   }
 });
 
-const cardsApi = require('./api/cards');
-const cardIdentifiersApi = require('./api/cardidentifiers');
-const decksApi = require('./api/decks');
-const deckCardsApi = require('./api/deck_cards');
-const usersApi = require('./api/users');
-const preconsApi = require('./api/precons');
-
+// Mount APIs
 app.use('/cards', cardsApi);
 app.use('/cardidentifiers', cardIdentifiersApi);
 app.use('/decks', decksApi);
-app.use('/deck_cards', deckCardsApi);
 app.use('/users', usersApi);
 app.use('/precons', preconsApi);
+app.use('/collection', collectionApi); // New collection/cards management API
 
-// Health endpoint: returns 200 and a list of mounted routes
+// Health endpoint
 app.get('/health', (req, res) => {
-  try {
-    const routes = [];
-    app._router.stack.forEach((layer) => {
-      // Direct routes
-      if (layer.route && layer.route.path) {
-        routes.push({ path: layer.route.path, methods: Object.keys(layer.route.methods) });
-      }
-      // Mounted routers
-      if (layer.name === 'router' && layer.handle && layer.handle.stack) {
-        layer.handle.stack.forEach((handler) => {
-          if (handler.route && handler.route.path) {
-            routes.push({ path: handler.route.path, methods: Object.keys(handler.route.methods), mount: layer.regexp && layer.regexp.source });
-          }
-        });
-      }
-    });
+  res.json({ ok: true });
+});
 
-    res.json({ ok: true, routes });
+// Bug Tracker list - Read from Public/tasklist.txt
+app.get('/bugs', (req, res) => {
+  try {
+    const bugPath = path.join(process.cwd(), 'Public', 'tasklist.txt');
+    if (fs.existsSync(bugPath)) {
+      const content = fs.readFileSync(bugPath, 'utf-8');
+      res.json({ content });
+    } else {
+      res.json({ content: 'Task List not found.' });
+    }
   } catch (err) {
-    console.error('health error', err);
-    res.status(500).json({ ok: false, error: String(err) });
+    console.error(err);
+    res.status(500).json({ error: 'Failed to read task list' });
   }
 });
 
-// Serve Swagger UI at /docs using docs/openapi.yaml (only if dependencies are present)
+// Swagger UI
 if (yaml && swaggerUi) {
   try {
     const openapiPath = path.join(process.cwd(), 'docs', 'openapi.yaml');
@@ -127,14 +135,10 @@ if (yaml && swaggerUi) {
       const doc = yaml.load(fs.readFileSync(openapiPath, 'utf8'));
       app.use('/docs', swaggerUi.serve, swaggerUi.setup(doc, { explorer: true }));
       console.log('Swagger UI mounted at /docs');
-    } else {
-      console.warn('OpenAPI file not found at', openapiPath);
     }
   } catch (err) {
     console.error('Failed to mount Swagger UI:', err);
   }
-} else {
-  console.log('Skipping Swagger UI mount because required packages are not installed. Run `npm install` to enable.');
 }
 
 const port = process.env.PORT || 3000;

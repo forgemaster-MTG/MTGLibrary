@@ -1,11 +1,12 @@
-const express = require('express');
+import express from 'express';
+import { knex } from '../db.js';
+
 const router = express.Router();
-const { knex } = require('../db');
 
 // List precons
 router.get('/', async (req, res) => {
   try {
-    const rows = await knex('precons').select('id','firestore_id','name','data').limit(200);
+    const rows = await knex('precons').select('id', 'firestore_id', 'name', 'data').limit(200);
     res.json(rows);
   } catch (err) {
     console.error('[precons] list error', err);
@@ -41,4 +42,4 @@ router.post('/', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

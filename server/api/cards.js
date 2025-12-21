@@ -1,6 +1,7 @@
-const express = require('express');
+import express from 'express';
+import { knex } from '../db.js';
+
 const router = express.Router();
-const { knex } = require('../db');
 
 // GET /cards/scryfall/:scryfallId
 // Lookup a card by Scryfall id (the Scryfall id is often stored in `cardidentifiers`
@@ -69,8 +70,6 @@ router.get('/scryfall/:scryfallId', async (req, res) => {
 	}
 });
 
-module.exports = router;
-
 // POST /cards/add
 // Body: { name: 'search text', exact: true|false }
 // Searches `cards.name` for matches and returns each card plus its identifiers from `cardidentifiers`.
@@ -113,4 +112,6 @@ router.post('/add', async (req, res) => {
 		res.status(500).json({ error: 'internal error' });
 	}
 });
+
+export default router;
 
