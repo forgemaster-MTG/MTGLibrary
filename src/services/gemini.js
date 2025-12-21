@@ -113,5 +113,59 @@ ${context}
             console.error("AI Strategy Error:", error);
             throw new Error("Failed to generate strategy. Please try again.");
         }
+    },
+    async generatePlaystyleQuestion(apiKey, priorAnswers) {
+        if (!apiKey) throw new Error("API Key is missing.");
+
+        const systemInstruction = `You are an expert survey designer for Magic: The Gathering (MTG) players. Your goal is to create the most informative question to understand a user's playstyle based on their previous answers. Questions should be clear and concise, with 3-5 distinct multiple-choice answers. Avoid repeating questions. Focus on different aspects of MTG playstyles, such as deck preferences, game strategies, social interaction styles, and risk tolerance.`;
+
+        let userPrompt;
+        if (priorAnswers.length === 0) {
+            userPrompt = "Generate the very first question for an MTG playstyle questionnaire. This question should gauge the player's overall experience with the game, as this will help tailor subsequent questions.";
+        } else if (priorAnswers.length === 1) {
+            userPrompt = "Generate the second question for an MTG playstyle questionnaire. This question should build on the player's overall experience and delve into their specific preferences.";
+        } else if (priorAnswers.length === 2) {
+            userPrompt = "Generate the third question for an MTG playstyle questionnaire. This question should explore the player's fantasy or thematic preferences in deck building.";
+        } else {
+            const previousAnswersText = priorAnswers.map(a => `- ${a.question}: ${a.answer}`).join('\n');
+            userPrompt = `Based on the user's previous answers, generate the next single best question to further refine their playstyle profile. Do not repeat questions.\n\nPrevious Answers:\n${previousAnswersText}`;
+        }
+
+        const prompt = `${systemInstruction}\n\n${userPrompt}\n\nRespond with VALID JSON ONLY:\n{ "question": "...", "choices": ["...", "..."] }`;
+
+        try {
+            // Using sendMessage allows us to reuse the fetch logic, but we need to ensure JSON output.
+            // prompting for JSON specifically.
+            const response = await this.sendMessage(apiKey, [], prompt);
+            const cleanJson = response.replace(/```json/g, '').replace(/```/g, '').trim();
+            return JSON.parse(cleanJson);
+        } catch (error) {
+            console.error("Gemini Question Error:", error);
+            throw error; // Rethrow to let UI handle it
+        }
+    },
+
+    async synthesizePlaystyle(apiKey, answers) {
+        if (!apiKey) throw new Error("API Key is missing.");
+
+        const systemInstruction = `You are an expert MTG coach and psychographic analyst. Your task is to analyze a player's answers and synthesize a detailed playstyle profile. The summary should be a concise paragraph. Scores must be 0-100.`;
+        const userPrompt = `Analyze the following questionnaire answers and generate a detailed playstyle profile in JSON format.\n\n${answers.map(a => `- ${a.question} -> ${a.answer}`).join('\n')}`;
+
+        const prompt = `${systemInstruction}\n\n${userPrompt}\n\nRespond with VALID JSON ONLY matching this schema:
+        {
+            "summary": "...",
+            "tags": ["tag1", "tag2"],
+            "scores": { "aggression": 50, "consistency": 50, "interaction": 50, "variance": 50, "comboAffinity": 50 },
+            "archetypes": ["archetype1", "archetype2"]
+        }`;
+
+        try {
+            const response = await this.sendMessage(apiKey, [], prompt);
+            const cleanJson = response.replace(/```json/g, '').replace(/```/g, '').trim();
+            return JSON.parse(cleanJson);
+        } catch (error) {
+            console.error("Gemini Synthesis Error:", error);
+            throw new Error("Failed to synthesize profile.");
+        }
     }
 };

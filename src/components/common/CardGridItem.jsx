@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { useCardModal } from '../../contexts/CardModalContext';
 
 const CardGridItem = ({ card, availableFoils, onRemove, showQuantity = true }) => {
     const [isFlipped, setIsFlipped] = useState(false);
+    const { openCardModal } = useCardModal();
 
     // Helpers to get images
     const getCardImage = (c, faceIndex = 0) => {
@@ -22,10 +24,15 @@ const CardGridItem = ({ card, availableFoils, onRemove, showQuantity = true }) =
     // Normalize quantity
     const quantity = card.countInDeck || card.quantity || card.count || 1;
 
+    const handleClick = (e) => {
+        e.stopPropagation();
+        openCardModal(card);
+    };
+
     return (
         <div
-            className={`relative group perspective-1000 h-full w-full aspect-[2.5/3.5] min-h-[200px] ${hasBackFace ? 'cursor-pointer' : ''}`}
-            onClick={() => hasBackFace && setIsFlipped(!isFlipped)}
+            className={`relative group perspective-1000 h-full w-full aspect-[2.5/3.5] min-h-[200px] cursor-pointer`}
+            onClick={handleClick}
         >
             <div className={`relative w-full h-full transition-all duration-500 transform-style-3d ${isFlipped ? 'rotate-y-180' : ''}`}>
 
@@ -58,10 +65,17 @@ const CardGridItem = ({ card, availableFoils, onRemove, showQuantity = true }) =
                         </div>
 
                         <div className="flex gap-2">
+                            <div className="text-indigo-300 text-xs font-bold uppercase tracking-wider bg-indigo-900/50 px-2 py-1 rounded border border-indigo-500/30">
+                                View Details
+                            </div>
                             {hasBackFace && (
-                                <div className="text-indigo-300 text-xs font-bold uppercase tracking-wider bg-indigo-900/50 px-2 py-1 rounded border border-indigo-500/30">
-                                    Click to Flip
-                                </div>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); setIsFlipped(!isFlipped); }}
+                                    className="text-indigo-300 hover:text-white bg-indigo-900/50 hover:bg-indigo-700 p-1 rounded-full border border-indigo-500/30 transition-colors"
+                                    title="Quick Flip"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                </button>
                             )}
                             {onRemove && (
                                 <button

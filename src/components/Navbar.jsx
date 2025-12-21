@@ -2,12 +2,38 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import CardSearchModal from './CardSearchModal';
+import PlaystyleWizardModal from './modals/PlaystyleWizardModal';
+import PlaystyleProfileModal from './modals/PlaystyleProfileModal';
 
 const Navbar = () => {
     const location = useLocation();
-    const { currentUser } = useAuth();
+    const { currentUser, userProfile, logout, updateSettings, refreshUserProfile } = useAuth();
     const isLanding = location.pathname === '/';
     const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const [isPlaystyleWizardOpen, setIsPlaystyleWizardOpen] = useState(false);
+    const [isPlaystyleProfileOpen, setIsPlaystyleProfileOpen] = useState(false);
+    const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+
+    // Close user menu when clicking outside (simple handler)
+    React.useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (isUserMenuOpen && !event.target.closest('#user-menu-button') && !event.target.closest('#user-menu-dropdown')) {
+                setIsUserMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [isUserMenuOpen]);
+
+    const handlePlaystyleUpdate = async (profile) => {
+        console.log("Saving new playstyle:", profile);
+        // Save to backend via AuthContext
+        await updateSettings({ playstyle: profile });
+        // Refresh local profile to ensure UI updates
+        await refreshUserProfile();
+        // Open the profile view after completion
+        setIsPlaystyleProfileOpen(true);
+    };
 
     return (
         <>
@@ -59,15 +85,61 @@ const Navbar = () => {
                                 )}
 
                                 {currentUser ? (
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-sm text-gray-300">{currentUser.email}</span>
-                                        <button className="text-gray-400 hover:text-white transition-colors">
-                                            <div className="h-8 w-8 rounded-full bg-indigo-500/20 border border-indigo-500/50 flex items-center justify-center">
-                                                <span className="text-xs font-bold text-indigo-300">
-                                                    {currentUser.email ? currentUser.email[0].toUpperCase() : 'U'}
-                                                </span>
+                                    <div className="relative">
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-sm text-gray-300">{currentUser.email}</span>
+                                            <button
+                                                id="user-menu-button"
+                                                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                                                className="text-gray-400 hover:text-white transition-colors focus:outline-none"
+                                            >
+                                                <div className="h-8 w-8 rounded-full bg-indigo-500/20 border border-indigo-500/50 flex items-center justify-center ring-2 ring-transparent hover:ring-indigo-500 transition-all">
+                                                    <span className="text-xs font-bold text-indigo-300">
+                                                        {currentUser.email ? currentUser.email[0].toUpperCase() : 'U'}
+                                                    </span>
+                                                </div>
+                                            </button>
+                                        </div>
+
+                                        {/* User Dropdown */}
+                                        {isUserMenuOpen && (
+                                            <div id="user-menu-dropdown" className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-md shadow-lg py-1 border border-gray-700 ring-1 ring-black ring-opacity-5 animate-fade-in-up">
+                                                <div className="px-4 py-2 border-b border-gray-700">
+                                                    <p className="text-sm text-white font-bold">Account</p>
+                                                    <p className="text-xs text-gray-400 truncate">{currentUser.email}</p>
+                                                </div>
+
+                                                <button
+                                                    onClick={() => {
+                                                        setIsUserMenuOpen(false);
+                                                        setIsPlaystyleProfileOpen(true);
+                                                    }}
+                                                    className="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white"
+                                                >
+                                                    Playstyle Profile
+                                                </button>
+
+                                                <Link
+                                                    to="/settings"
+                                                    onClick={() => setIsUserMenuOpen(false)}
+                                                    className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white"
+                                                >
+                                                    Settings
+                                                </Link>
+
+                                                <div className="border-t border-gray-700 my-1"></div>
+
+                                                <button
+                                                    onClick={() => {
+                                                        setIsUserMenuOpen(false);
+                                                        logout();
+                                                    }}
+                                                    className="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-gray-700 hover:text-red-300"
+                                                >
+                                                    Sign Out
+                                                </button>
                                             </div>
-                                        </button>
+                                        )}
                                     </div>
                                 ) : (
                                     <Link to="/login" className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-lg shadow-indigo-500/20">
@@ -79,8 +151,25 @@ const Navbar = () => {
                     </div>
                 </div>
 
-                <CardSearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
             </nav>
+
+            <CardSearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+
+            <PlaystyleWizardModal
+                isOpen={isPlaystyleWizardOpen}
+                onClose={() => setIsPlaystyleWizardOpen(false)}
+                onComplete={handlePlaystyleUpdate}
+            />
+
+            <PlaystyleProfileModal
+                isOpen={isPlaystyleProfileOpen}
+                onClose={() => setIsPlaystyleProfileOpen(false)}
+                profile={userProfile?.settings?.playstyle}
+                onRetake={() => {
+                    setIsPlaystyleProfileOpen(false);
+                    setIsPlaystyleWizardOpen(true);
+                }}
+            />
 
             {/* Mobile Bottom Tab Bar */}
             {!isLanding && (

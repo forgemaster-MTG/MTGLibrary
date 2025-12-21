@@ -14,29 +14,35 @@ import ChatWidget from './components/ChatWidget';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
 
+import { CardModalProvider } from './contexts/CardModalContext';
+import CardDetailsModal from './components/modals/CardDetailsModal';
+
 function App() {
     return (
         <ToastProvider>
             <AuthProvider>
-                <div className="bg-gray-900 text-gray-200 font-sans min-h-screen flex flex-col">
-                    <Navbar />
-                    <div className="flex-grow">
-                        <Routes>
-                            <Route path="/" element={<LandingPage />} />
-                            <Route path="/dashboard" element={<Dashboard />} />
-                            <Route path="/login" element={<LoginPage />} />
-                            <Route path="/collection" element={<CollectionPage />} />
-                            <Route path="/decks" element={<DecksPage />} />
-                            <Route path="/decks/new" element={<CreateDeckPage />} />
-                            <Route path="/decks/:deckId" element={<DeckDetailsPage />} />
-                            <Route path="/sets" element={<SetsPage />} />
-                            <Route path="/sets/:setCode" element={<SetDetailsPage />} />
-                            <Route path="/settings" element={<SettingsPage />} />
-                        </Routes>
+                <CardModalProvider>
+                    <div className="bg-gray-900 text-gray-200 font-sans min-h-screen flex flex-col">
+                        <Navbar />
+                        <div className="flex-grow">
+                            <Routes>
+                                <Route path="/" element={<LandingPage />} />
+                                <Route path="/dashboard" element={<Dashboard />} />
+                                <Route path="/login" element={<LoginPage />} />
+                                <Route path="/collection" element={<CollectionPage />} />
+                                <Route path="/decks" element={<DecksPage />} />
+                                <Route path="/decks/new" element={<CreateDeckPage />} />
+                                <Route path="/decks/:deckId" element={<DeckDetailsPage />} />
+                                <Route path="/sets" element={<SetsPage />} />
+                                <Route path="/sets/:setCode" element={<SetDetailsPage />} />
+                                <Route path="/settings" element={<SettingsPage />} />
+                            </Routes>
+                        </div>
+                        {/* Global Components */}
+                        <ChatWidget />
+                        <CardDetailsModal />
                     </div>
-                    {/* Global Components */}
-                    <ChatWidget />
-                </div>
+                </CardModalProvider>
             </AuthProvider>
         </ToastProvider>
     );

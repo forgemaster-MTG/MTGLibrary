@@ -46,5 +46,25 @@ export function useCollection() {
         refresh();
     }, [currentUser]);
 
-    return { cards, loading, error, refresh };
+    const removeCard = async (id) => {
+        try {
+            await api.delete(`/collection/${id}`);
+            await refresh();
+        } catch (err) {
+            console.error("Error removing card:", err);
+            throw err;
+        }
+    };
+
+    const updateCard = async (id, data) => {
+        try {
+            await api.put(`/collection/${id}`, data);
+            await refresh();
+        } catch (err) {
+            console.error("Error updating card:", err);
+            throw err;
+        }
+    };
+
+    return { cards, loading, error, refresh, removeCard, updateCard };
 }
