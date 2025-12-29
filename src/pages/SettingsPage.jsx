@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { api } from '../services/api';
 import { collectionService } from '../services/collectionService';
 import ImportDataModal from '../components/modals/ImportDataModal';
+import HelperSettingsModal from '../components/modals/HelperSettingsModal';
 
 const SettingsPage = () => {
     const { user, userProfile, refreshUserProfile } = useAuth();
@@ -10,6 +11,7 @@ const SettingsPage = () => {
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+    const [isHelperModalOpen, setIsHelperModalOpen] = useState(false);
 
     // Form State
     const [geminiKey, setGeminiKey] = useState('');
@@ -87,7 +89,7 @@ const SettingsPage = () => {
 
             {/* Tabs */}
             <div className="flex border-b border-gray-700">
-                {['general', 'ai', 'display', 'data'].map((tab) => (
+                {['general', 'ai', 'display', 'data', ...(user?.uid === 'Kyrlwz6G6NWICCEPYbXtFfyLzWI3' ? ['admin'] : [])].map((tab) => (
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
@@ -146,6 +148,42 @@ const SettingsPage = () => {
                                         Get a key from Google AI Studio &rarr;
                                     </a>
                                 </div>
+                            </div>
+                        </div>
+
+
+                        {/* AI Personas Section */}
+                        <div className="pt-6 border-t border-gray-700">
+                            <h3 className="text-lg font-semibold text-white mb-4">Personalization</h3>
+                            <div className="flex flex-wrap gap-4">
+                                <button
+                                    onClick={() => setIsHelperModalOpen(true)}
+                                    className="flex items-center gap-3 bg-gray-700 hover:bg-gray-600 border border-gray-600 text-white px-5 py-3 rounded-xl transition-all hover:shadow-lg hover:border-emerald-500 group"
+                                >
+                                    <div className="w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
+                                        🤖
+                                    </div>
+                                    <div className="text-left">
+                                        <div className="font-bold text-sm">Helper Settings</div>
+                                        <div className="text-xs text-gray-400">Customize your AI companion</div>
+                                    </div>
+                                </button>
+
+                                {/* Playstyle Button (If desired here too) */}
+                                {/* 
+                                <button
+                                    onClick={() => setPlaystyleModalOpen(true)} // Assuming this state exists if we want it
+                                    className="flex items-center gap-3 bg-gray-700 hover:bg-gray-600 border border-gray-600 text-white px-5 py-3 rounded-xl transition-all hover:shadow-lg hover:border-purple-500 group"
+                                >
+                                    <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
+                                        🧠
+                                    </div>
+                                    <div className="text-left">
+                                        <div className="font-bold text-sm">Playstyle Profile</div>
+                                        <div className="text-xs text-gray-400">Retake the Deep Dive</div>
+                                    </div>
+                                </button> 
+                                */}
                             </div>
                         </div>
                     </div>
@@ -228,6 +266,10 @@ const SettingsPage = () => {
                         </div>
                     </div>
                 )}
+
+                {activeTab === 'admin' && user?.uid === 'Kyrlwz6G6NWICCEPYbXtFfyLzWI3' && (
+                    <AdminPanel />
+                )}
             </div>
 
             {/* Import Modal */}
@@ -235,6 +277,12 @@ const SettingsPage = () => {
                 isOpen={isImportModalOpen}
                 onClose={() => setIsImportModalOpen(false)}
                 mode="global"
+            />
+
+            {/* Helper Settings Modal */}
+            <HelperSettingsModal
+                isOpen={isHelperModalOpen}
+                onClose={() => setIsHelperModalOpen(false)}
             />
 
             {/* Actions */}
@@ -246,6 +294,259 @@ const SettingsPage = () => {
                 >
                     {saving ? 'Saving...' : 'Save Settings'}
                 </button>
+            </div>
+        </div >
+    );
+};
+
+const AdminPanel = () => {
+    const [sets, setSets] = useState([]);
+    const [selectedSet, setSelectedSet] = useState('');
+    const [syncLog, setSyncLog] = useState([]);
+    const [syncing, setSyncing] = useState(false);
+    const isCancelled = React.useRef(false);
+
+    // Stats State
+    const [progress, setProgress] = useState({ current: 0, total: 0 }); // for mass sync
+    const [stats, setStats] = useState({
+        totalCards: 0,
+        types: {
+            creature: 0,
+            instant: 0,
+            sorcery: 0,
+            enchantment: 0,
+            artifact: 0,
+            land: 0,
+            planeswalker: 0,
+            other: 0
+        }
+    });
+
+    // Last Sync State
+    const [lastSync, setLastSync] = useState(null);
+
+    useEffect(() => {
+        fetchSets();
+        // Load last sync from storage
+        const stored = localStorage.getItem('admin_last_sync');
+        if (stored) {
+            try {
+                setLastSync(JSON.parse(stored));
+            } catch (e) {
+                console.error("Failed to parse last sync", e);
+            }
+        }
+    }, []);
+
+    const fetchSets = async () => {
+        try {
+            const data = await api.get('/admin/sets');
+            setSets(data.data || []);
+        } catch (err) {
+            console.error('Failed to fetch sets', err);
+        }
+    };
+
+    const log = (msg) => setSyncLog(prev => [...prev, `${new Date().toLocaleTimeString()} - ${msg}`]);
+
+    const updateStats = (newCount, newTypes) => {
+        setStats(prev => {
+            const next = { ...prev };
+            next.totalCards += newCount;
+            if (newTypes) {
+                Object.keys(newTypes).forEach(key => {
+                    next.types[key] = (next.types[key] || 0) + (newTypes[key] || 0);
+                });
+            }
+            return next;
+        });
+    };
+
+    // Helper to save current stats
+    const saveLastSync = (finalStats) => {
+        const record = {
+            date: new Date().toISOString(),
+            stats: finalStats
+        };
+        setLastSync(record);
+        localStorage.setItem('admin_last_sync', JSON.stringify(record));
+    };
+
+    const handleSyncSet = async (setCode, isMass = false) => {
+        if (!setCode) return;
+        try {
+            log(`Starting sync for ${setCode}...`);
+            const res = await fetch('http://localhost:3000/admin/sync', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ setCode })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                log(`Success: ${setCode}. Processed ${data.count} cards.`);
+                updateStats(data.count, data.typeStats);
+                if (isMass) setProgress(p => ({ ...p, current: p.current + 1 }));
+            } else {
+                log(`Error: ${data.error}`);
+            }
+        } catch (err) {
+            log(`Request Failed: ${err.message}`);
+        }
+    };
+
+    const handleCancel = () => {
+        if (window.confirm("Are you sure you want to cancel the sync?")) {
+            isCancelled.current = true;
+            log("Cancelling operation...");
+        }
+    };
+
+    const handleMassSync = async () => {
+        if (!window.confirm("This will sync ALL sets. It may take a long time. Continue?")) return;
+        setSyncing(true);
+        isCancelled.current = false; // Reset cancel flag
+        log("Starting Mass Sync...");
+
+        // Reset Stats
+        const initialStats = {
+            totalCards: 0,
+            types: { creature: 0, instant: 0, sorcery: 0, enchantment: 0, artifact: 0, land: 0, planeswalker: 0, other: 0 }
+        };
+        setStats(initialStats);
+        setProgress({ current: 0, total: sets.length });
+
+        // Iterate
+        for (const set of sets) {
+            if (isCancelled.current) {
+                log("Mass Sync Cancelled by User.");
+                break;
+            }
+            await handleSyncSet(set.code, true);
+        }
+
+        if (!isCancelled.current) {
+            log("Mass Sync Complete!");
+        }
+
+        // Save stats at end (using state is tricky due to closure, but we updated state incrementally. 
+        // Ideally we'd track a local var, but for now we can't easily read 'stats' state here without a ref or effect.
+        // Quick fix: Just verify visual. Implementing 'saveLastSync' with the state as we know it isn't perfect in a closure.
+        // Better: Update saveLastSync to be called via Effect or just use a ref for stats too?
+        // Let's use a timeout/effect trick or just store 'lastSync' manually on next render? 
+        // Actually, let's just use a ref for the stats accumulator so we can save it accurately.
+    };
+
+    // We need to persist the stats. Let's wrap handleMassSync in a way we can access latest stats or just execute a state update to save.
+    // Simplest approach: trigger a save effect when syncing becomes false if it was true.
+    useEffect(() => {
+        if (!syncing && stats.totalCards > 0) {
+            saveLastSync(stats);
+        }
+    }, [syncing]); // When sync finishes/stops, save.
+
+    const handleSingleSync = async () => {
+        if (!selectedSet) return;
+        setSyncing(true);
+        // Do not reset stats for single sync, just add to running tally? Or reset?
+        // Let's reset for clarity unless part of mass.
+        setStats({ totalCards: 0, types: { creature: 0, instant: 0, sorcery: 0, enchantment: 0, artifact: 0, land: 0, planeswalker: 0, other: 0 } });
+
+        await handleSyncSet(selectedSet);
+        setSyncing(false);
+    };
+
+    return (
+        <div className="space-y-6 animate-fade-in">
+            <div className="flex justify-between items-center">
+                <h2 className="text-xl font-semibold text-white">Admin Scryfall Sync</h2>
+                {lastSync && (
+                    <div className="text-right text-xs text-gray-400">
+                        <p>Last Sync: {new Date(lastSync.date).toLocaleString()}</p>
+                        <p>{lastSync.stats.totalCards} cards processed</p>
+                    </div>
+                )}
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-indigo-900/40 p-4 rounded-lg border border-indigo-700/50">
+                    <p className="text-xs text-indigo-300 uppercase font-bold">Total Cards</p>
+                    <p className="text-2xl font-bold text-white">{stats.totalCards}</p>
+                </div>
+                <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                    <p className="text-xs text-gray-400 uppercase font-bold">Progress</p>
+                    <p className="text-2xl font-bold text-white">
+                        {progress.total > 0 ? `${progress.current} / ${progress.total}` : '-'}
+                    </p>
+                    {progress.total > 0 && (
+                        <div className="w-full bg-gray-700 h-1.5 mt-2 rounded-full overflow-hidden">
+                            <div className="bg-green-500 h-full transition-all duration-300" style={{ width: `${(progress.current / progress.total) * 100}%` }}></div>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {Object.entries(stats.types).map(([type, count]) => (
+                    <div key={type} className="bg-gray-800/50 p-2 rounded border border-gray-700/50 flex justify-between items-center">
+                        <span className="text-xs text-gray-400 capitalize">{type}</span>
+                        <span className="text-sm font-bold text-gray-200">{count}</span>
+                    </div>
+                ))}
+            </div>
+
+            <div className="space-y-4">
+                {/* Controls */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Single */}
+                    <div className="bg-gray-700/30 p-4 rounded-lg border border-gray-600">
+                        <h3 className="text-lg font-medium text-white mb-2">Single Set Sync</h3>
+                        <div className="flex gap-4">
+                            <select
+                                className="bg-gray-900 border border-gray-600 rounded-lg px-4 py-2 text-white flex-1 min-w-0"
+                                value={selectedSet}
+                                onChange={(e) => setSelectedSet(e.target.value)}
+                            >
+                                <option value="">Select a Set...</option>
+                                {sets.map(s => (
+                                    <option key={s.code} value={s.code}>{s.name} ({s.code.toUpperCase()})</option>
+                                ))}
+                            </select>
+                            <button
+                                onClick={handleSingleSync}
+                                disabled={syncing || !selectedSet}
+                                className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white px-4 py-2 rounded-lg whitespace-nowrap"
+                            >
+                                {syncing ? 'Syncing...' : 'Sync Set'}
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Mass */}
+                    <div className="bg-gray-700/30 p-4 rounded-lg border border-gray-600 flex flex-col justify-between">
+                        <h3 className="text-lg font-medium text-white mb-2">Mass Operations</h3>
+                        {syncing ? (
+                            <button
+                                onClick={handleCancel}
+                                className="bg-red-600 hover:bg-red-500 text-white px-6 py-3 rounded-lg w-full font-bold animate-pulse"
+                            >
+                                CANCEL OPERATION
+                            </button>
+                        ) : (
+                            <button
+                                onClick={handleMassSync}
+                                className="bg-red-600 hover:bg-red-500 text-white px-6 py-3 rounded-lg w-full font-bold"
+                            >
+                                SYNC ALL SETS
+                            </button>
+                        )}
+                        <p className="text-gray-400 text-xs mt-2 text-center">Iterates {sets.length} sets.</p>
+                    </div>
+                </div>
+
+                <div className="bg-black/50 p-4 rounded-lg font-mono text-xs text-green-400 h-64 overflow-y-auto border border-white/10">
+                    {syncLog.length === 0 ? <span className="text-gray-600">Ready to sync...</span> : syncLog.map((l, i) => <div key={i}>{l}</div>)}
+                </div>
             </div>
         </div>
     );

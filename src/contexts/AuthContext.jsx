@@ -5,9 +5,11 @@ import {
     createUserWithEmailAndPassword,
     signOut,
     GoogleAuthProvider,
-    signInWithPopup
+    signInWithPopup,
+    updateProfile
 } from 'firebase/auth';
-import { auth } from '../lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { auth, storage } from '../lib/firebase';
 
 import { api } from '../services/api';
 
@@ -40,6 +42,44 @@ export const AuthProvider = ({ children }) => {
     const logout = () => {
         setUserProfile(null);
         return signOut(auth);
+    };
+
+    // Upload Profile Picture
+    const uploadProfilePicture = async (file) => {
+        if (!currentUser) throw new Error("No user logged in");
+
+        // 1. Safety Checks
+        if (!file.type.startsWith('image/')) {
+            throw new Error("File must be an image.");
+        }
+        if (file.size > 2 * 1024 * 1024) { // 2MB limit
+            throw new Error("File size must be under 2MB.");
+        }
+
+        try {
+            // 2. Upload to Firebase Storage
+            // Path: users/{uid}/profile.jpg (or original name, but standardizing is cleaner)
+            const fileRef = ref(storage, `users/${currentUser.uid}/profile_${Date.now()}`);
+
+            await uploadBytes(fileRef, file);
+            const photoURL = await getDownloadURL(fileRef);
+
+            // 3. Update Auth Profile
+            await updateProfile(currentUser, { photoURL });
+
+            // 4. Update Local State
+            setCurrentUser({ ...currentUser, photoURL });
+
+            // Should we also store this in our custom DB? 
+            // The /me endpoint usually syncs from Auth, but we can explicit save if needed.
+            // For now, Auth profile is sufficient for UI.
+
+            return photoURL;
+
+        } catch (error) {
+            console.error("Error uploading profile picture:", error);
+            throw error;
+        }
     };
 
     const refreshUserProfile = async () => {
@@ -90,7 +130,8 @@ export const AuthProvider = ({ children }) => {
         signup,
         login,
         loginWithGoogle,
-        logout
+        logout,
+        uploadProfilePicture
     };
 
     return (

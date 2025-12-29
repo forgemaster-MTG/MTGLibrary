@@ -1,28 +1,34 @@
 import { useState, useCallback } from 'react';
+import { api } from '../services/api';
 
 export function useScryfall() {
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    const searchCards = useCallback(async (query) => {
-        if (!query || query.length < 2) return;
+    const searchCards = useCallback(async (query, options = {}) => {
+        const { set, cn, ...advancedFilters } = options;
+
+        const normalizedQuery = (query || '').trim();
+        const hasFilters = set || cn || Object.keys(advancedFilters).length > 0;
+
+        if (!hasFilters && (!normalizedQuery || normalizedQuery.length < 2)) {
+            setResults([]);
+            return;
+        }
 
         setLoading(true);
         setError(null);
         try {
-            // Using Scryfall Search API
-            const response = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(query)}&unique=prints`);
-            if (!response.ok) {
-                if (response.status === 404) {
-                    setResults([]);
-                    return;
-                }
-                throw new Error('Scryfall API error');
-            }
-            const data = await response.json();
-            // Filter to valid cards (some might be tokens or art series which are fine, but let's stick to normal)
-            setResults(data.data || []);
+            // Use local API for caching and advanced search logic
+            const response = await api.post('/cards/search', {
+                query: normalizedQuery,
+                set,
+                cn,
+                ...advancedFilters
+            });
+
+            setResults(response.data || []);
         } catch (err) {
             console.error(err);
             setError(err.message);
@@ -32,5 +38,16 @@ export function useScryfall() {
         }
     }, []);
 
-    return { results, loading, error, searchCards, setResults };
+    const getSuggestions = useCallback(async (query) => {
+        if (!query || query.trim().length < 2) return [];
+        try {
+            const response = await api.get('/cards/autocomplete', { q: query });
+            return response.data || [];
+        } catch (err) {
+            console.error('[useScryfall] Autocomplete error:', err);
+            return [];
+        }
+    }, []);
+
+    return { results, loading, error, searchCards, getSuggestions, setResults };
 }

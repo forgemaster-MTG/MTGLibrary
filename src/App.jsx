@@ -10,6 +10,9 @@ import DeckDetailsPage from './pages/DeckDetailsPage';
 import SetsPage from './pages/SetsPage';
 import SetDetailsPage from './pages/SetDetailsPage';
 import SettingsPage from './pages/SettingsPage';
+import WishlistPage from './pages/WishlistPage';
+import DeckBuildWizardPage from './pages/DeckBuildWizardPage';
+import OnboardingPage from './pages/OnboardingPage';
 import ChatWidget from './components/ChatWidget';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -29,12 +32,15 @@ function App() {
                                 <Route path="/" element={<LandingPage />} />
                                 <Route path="/dashboard" element={<Dashboard />} />
                                 <Route path="/login" element={<LoginPage />} />
+                                <Route path="/onboarding" element={<OnboardingPage />} />
                                 <Route path="/collection" element={<CollectionPage />} />
                                 <Route path="/decks" element={<DecksPage />} />
                                 <Route path="/decks/new" element={<CreateDeckPage />} />
                                 <Route path="/decks/:deckId" element={<DeckDetailsPage />} />
+                                <Route path="/decks/:deckId/build" element={<DeckBuildWizardPage />} />
                                 <Route path="/sets" element={<SetsPage />} />
                                 <Route path="/sets/:setCode" element={<SetDetailsPage />} />
+                                <Route path="/wishlist" element={<WishlistPage />} />
                                 <Route path="/settings" element={<SettingsPage />} />
                             </Routes>
                         </div>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useCardModal } from '../../contexts/CardModalContext';
 
-const CardGridItem = ({ card, availableFoils, onRemove, showQuantity = true }) => {
+const CardGridItem = ({ card, availableFoils, onRemove, showQuantity = true, onClick }) => {
     const [isFlipped, setIsFlipped] = useState(false);
     const { openCardModal } = useCardModal();
 
@@ -26,7 +26,11 @@ const CardGridItem = ({ card, availableFoils, onRemove, showQuantity = true }) =
 
     const handleClick = (e) => {
         e.stopPropagation();
-        openCardModal(card);
+        if (onClick) {
+            onClick(card);
+        } else {
+            openCardModal(card);
+        }
     };
 
     return (
@@ -37,7 +41,7 @@ const CardGridItem = ({ card, availableFoils, onRemove, showQuantity = true }) =
             <div className={`relative w-full h-full transition-all duration-500 transform-style-3d ${isFlipped ? 'rotate-y-180' : ''}`}>
 
                 {/* Front Face */}
-                <div className="absolute inset-0 w-full h-full backface-hidden rounded-lg overflow-hidden shadow-md bg-gray-900 border border-gray-700 bg-cover bg-center" style={{ backgroundImage: `url('/card-back.jpg')` }}>
+                <div className="absolute inset-0 w-full h-full backface-hidden rounded-lg overflow-hidden shadow-md bg-gray-950/40 backdrop-blur-md border border-white/5 bg-cover bg-center" style={{ backgroundImage: `url('/card-back.jpg')` }}>
                     <img
                         src={frontImage}
                         alt={card.name}
@@ -53,6 +57,11 @@ const CardGridItem = ({ card, availableFoils, onRemove, showQuantity = true }) =
                     )}
                     {card.finish === 'foil' ? (
                         <div className="absolute top-1.5 left-1.5 bg-yellow-500/80 text-yellow-100 text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-md z-20 backdrop-blur-sm border border-yellow-300/50">★</div>
+                    ) : card.is_wishlist ? (
+                        <div className="absolute top-1.5 left-1.5 bg-orange-600/90 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full shadow-md z-20 backdrop-blur-sm border border-orange-400/50 flex items-center gap-1">
+                            <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg>
+                            WISH
+                        </div>
                     ) : availableFoils?.has(card.name) && (
                         <div className="absolute top-1.5 left-1.5 bg-gray-700/90 text-yellow-400 text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-md z-20 backdrop-blur-sm border border-yellow-500/30 cursor-help" title="Foil copy available in collection">☆</div>
                     )}
@@ -92,7 +101,7 @@ const CardGridItem = ({ card, availableFoils, onRemove, showQuantity = true }) =
 
                 {/* Back Face */}
                 {hasBackFace && (
-                    <div className="absolute inset-0 w-full h-full backface-hidden rotate-y-180 rounded-lg overflow-hidden shadow-md bg-gray-900 border border-gray-700 bg-cover bg-center" style={{ backgroundImage: `url('/card-back.jpg')` }}>
+                    <div className="absolute inset-0 w-full h-full backface-hidden rotate-y-180 rounded-lg overflow-hidden shadow-md bg-gray-950/40 backdrop-blur-md border border-white/5 bg-cover bg-center" style={{ backgroundImage: `url('/card-back.jpg')` }}>
                         <img
                             src={backImage}
                             alt={`${card.name} (Back)`}

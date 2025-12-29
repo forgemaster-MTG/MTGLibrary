@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../services/api';
 
-export function useCollection() {
+export function useCollection(options = {}) {
+    const { wishlist } = options;
     const [cards, setCards] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -14,7 +15,11 @@ export function useCollection() {
         setLoading(true);
         try {
             console.log('[useCollection] Fetching from API...');
-            const fetchedCards = await api.get('/collection');
+            let url = '/collection';
+            if (wishlist !== undefined) {
+                url += `?wishlist=${wishlist}`;
+            }
+            const fetchedCards = await api.get(url);
             // Map items (user_cards rows) to frontend expected shape
             // Start with c.data (Scryfall data), then overlay row fields
             const mapped = fetchedCards.map(c => ({

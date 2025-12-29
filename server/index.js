@@ -16,6 +16,8 @@ import decksApi from './api/decks.js';
 import usersApi from './api/users.js';
 import preconsApi from './api/precons.js';
 import collectionApi from './api/collection.js';
+import adminApi from './api/admin.js';
+import setsApi from './api/sets.js';
 
 const require = createRequire(import.meta.url);
 
@@ -105,6 +107,8 @@ app.use('/decks', decksApi);
 app.use('/users', usersApi);
 app.use('/precons', preconsApi);
 app.use('/collection', collectionApi); // New collection/cards management API
+app.use('/admin', adminApi);
+app.use('/sets', setsApi);
 
 // Health endpoint
 app.get('/health', (req, res) => {
@@ -114,7 +118,7 @@ app.get('/health', (req, res) => {
 // Bug Tracker list - Read from Public/tasklist.txt
 app.get('/bugs', (req, res) => {
   try {
-    const bugPath = path.join(process.cwd(), 'Public', 'tasklist.txt');
+    const bugPath = path.join(process.cwd(), 'public', 'tasklist.txt');
     if (fs.existsSync(bugPath)) {
       const content = fs.readFileSync(bugPath, 'utf-8');
       res.json({ content });

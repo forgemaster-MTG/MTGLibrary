@@ -2,14 +2,37 @@ openapi: 3.0.1
 info:
   title: MTGLibrary API
   version: '1.0'
-  description: API for MTGLibrary — endpoints for cards, identifiers, decks, users, precons and saved views.
+  description: API for MTGLibrary — endpoints for cards, collection management, decks, and users.
 servers:
   - url: http://localhost:3000
 
 paths:
+  # --- CARDS (Global Database) ---
+  /cards/autocomplete:
+    get:
+      summary: Autocomplete card names
+      parameters:
+        - in: query
+          name: q
+          schema:
+            type: string
+          description: Partial name to search for
+      responses:
+        '200':
+          description: List of matching card names
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: string
+
   /cards/scryfall/{scryfallId}:
     get:
-      summary: Lookup a card by Scryfall id
+      summary: Lookup a card by Scryfall ID
       parameters:
         - in: path
           name: scryfallId
@@ -22,19 +45,10 @@ paths:
         '404':
           description: Not found
 
-  /cards:
-    get:
-      summary: List cards (limited)
-      responses:
-        '200':
-          description: OK
-    
   /cards/add:
     post:
-      summary: Add card(s) to a collection by name
-      description: |
-        Search `cards.name` for matching cards and return each card along with any matching `cardidentifiers`.
-        This endpoint is used by the "add card to collection" button and accepts a single text string.
+      summary: Search for cards to add (by Name)
+      description: Search global cards table by name to find candidates for your collection.
       requestBody:
         required: true
         content:
@@ -44,94 +58,263 @@ paths:
               properties:
                 name:
                   type: string
-                  description: Search text to match against `cards.name` (required)
                 exact:
-                  oneOf:
-                    - type: boolean
-                    - type: string
-                  description: If true, perform an exact match; otherwise a case-insensitive partial match (default)
+                  type: boolean
               required: [name]
       responses:
         '200':
-          description: Matches and identifiers
+          description: List of matches
+
+  /cards/search:
+    post:
+      summary: Advanced Card Search
+      description: Search with complex filters (color, type, stats, etc.)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                colors:
+                  type: array
+                  items:
+                    type: string
+                type:
+                  type: string
+                mv:
+                  type: object
+                  properties:
+                    operator:
+                      type: string
+                    value:
+                      type: number
+      responses:
+        '200':
+          description: Search results
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CardsAddResponse'
-        '400':
-          description: Bad request (missing/invalid name)
-        '500':
-          description: Internal Server Error
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Card'
 
-  /cardidentifiers:
+  # --- COLLECTION (User's Cards) ---
+  /collection:
     get:
-      summary: List card identifiers
+      summary: List User Collection
+      parameters:
+        - in: query
+          name: deck_id
+          schema:
+            type: string
+          description: Filter by deck ('null' or 'binder' for unassigned)
+        - in: query
+          name: name
+          schema:
+            type: string
+        - in: query
+          name: type_line
+          schema:
+            type: string
       responses:
         '200':
-          description: OK
+          description: List of user cards
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserCard'
     post:
-      summary: Create a card identifier
+      summary: Add Single Card to Collection
       requestBody:
         required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCardInput'
       responses:
         '201':
           description: Created
 
-  /cardidentifiers/{id}:
+  /collection/export:
     get:
-      summary: Get card identifier by id
-    put:
-      summary: Update card identifier
-    delete:
-      summary: Delete card identifier
+      summary: Export Full Collection
+      responses:
+        '200':
+          description: All user cards in JSON format
 
+  /collection/batch:
+    post:
+      summary: Batch Import Cards
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                mode:
+                  type: string
+                  enum: [merge, replace]
+                cards:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/UserCardInput'
+              required: [cards]
+      responses:
+        '200':
+          description: Import result
+
+  /collection/{id}:
+    put:
+      summary: Update User Card (Count, Deck, Finish)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                count:
+                  type: integer
+                deck_id:
+                  type: integer
+                  nullable: true
+                finish:
+                  type: string
+                is_wishlist:
+                  type: boolean
+      responses:
+        '200':
+          description: Updated
+    delete:
+      summary: Remove Card from Collection
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Deleted
+
+  # --- DECKS ---
   /decks:
     get:
-      summary: List decks
+      summary: List Decks
+      responses:
+        '200':
+          description: User decks
     post:
-      summary: Create deck
+      summary: Create Deck
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                commander:
+                  type: object
+      responses:
+        '201':
+          description: Created
+
+  /decks/import:
+    post:
+      summary: Smart Deck Import
+      description: Import a deck and optionally add missing cards to collection.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                deck:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    commander:
+                      type: object
+                cards:
+                  type: array
+                  items:
+                    type: object
+                options:
+                  type: object
+                  properties:
+                    checkCollection:
+                      type: boolean
+                    addToCollection:
+                      type: boolean
+      responses:
+        '200':
+          description: Import success details
 
   /decks/{id}:
     get:
-      summary: Get deck with cards
+      summary: Get Deck Details & Cards
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Deck object and items list
     put:
-      summary: Update deck
+      summary: Update Deck Metadata
     delete:
-      summary: Delete deck
+      summary: Delete Deck
 
-  /deck_cards:
+  /decks/{id}/cards/batch:
     post:
-      summary: Add card to deck
+      summary: Batch Add Cards to Deck
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                cards:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/UserCardInput'
+      responses:
+        '200':
+          description: Added
 
-  /deck_cards/{id}:
-    put:
-      summary: Update deck card count
-    delete:
-      summary: Remove card from deck
-
-  /users:
-    get:
-      summary: List users (requires auth)
-
+  # --- USERS ---
   /users/me:
     get:
-      summary: Get current user (requires auth)
-
-  /users/{id}:
-    get:
-      summary: Get user by id (requires auth)
-    put:
-      summary: Update user (requires auth, owner only)
-
-  /precons:
-    get:
-      summary: List precons
-    post:
-      summary: Create or upsert precon
-
-  /precons/{firestoreId}:
-    get:
-      summary: Get precon by firestore id
+      summary: Get Current User Profile
+      responses:
+        '200':
+          description: User profile
 
 components:
   securitySchemes:
@@ -140,36 +323,47 @@ components:
       scheme: bearer
       bearerFormat: JWT
   schemas:
-    CardIdentifier:
-      type: object
-      description: A card identifier row from `cardidentifiers` table
-      additionalProperties: true
     Card:
       type: object
-      description: A card row from `cards` table
-      additionalProperties: true
-    CardsAddResultItem:
+      properties:
+        name:
+          type: string
+        scryfall_id:
+          type: string
+        data:
+          type: object
+
+    UserCard:
       type: object
       properties:
-        card:
-          $ref: '#/components/schemas/Card'
-        identifiers:
-          type: array
-          items:
-            $ref: '#/components/schemas/CardIdentifier'
-    CardsAddResponse:
-      type: object
-      properties:
+        id:
+          type: integer
+        name:
+          type: string
         count:
           type: integer
-          description: Number of matching cards returned
-        results:
-          type: array
-          items:
-            $ref: '#/components/schemas/CardsAddResultItem'
-    Error:
+        deck_id:
+          type: integer
+          nullable: true
+        is_wishlist:
+          type: boolean
+        data:
+          type: object
+
+    UserCardInput:
       type: object
       properties:
-        error:
+        scryfall_id:
           type: string
-          description: Error message
+        name:
+          type: string
+        count:
+          type: integer
+        finish:
+          type: string
+        deck_id:
+          type: integer
+        is_wishlist:
+          type: boolean
+        data:
+          type: object

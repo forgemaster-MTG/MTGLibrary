@@ -1,13 +1,16 @@
 export const GeminiService = {
-    async sendMessage(apiKey, history, message, context = '') {
+    async sendMessage(apiKey, history, message, context = '', helper = null) {
         if (!apiKey) throw new Error("API Key is missing. Please add it in Settings.");
 
+        const helperName = helper?.name || 'MTG Forge';
+        const helperPersonality = helper?.personality ? `Personality: ${helper.personality}` : 'Personality: Knowledgeable, friendly, and concise.';
+
         const SYSTEM_PROMPT = `
-You are MTG Forge, an elite Magic: The Gathering AI assistant.
+You are ${helperName}, an elite Magic: The Gathering AI assistant.
 Your goal is to provide accurate, strategic, and engaging advice to players.
 
 **Persona & Style:**
-- Knowledgeable, friendly, and concise.
+- ${helperPersonality}
 - Use emojis to add flair (e.g., ⚔️, 🛡️, 🔥, 💀, 🌳, 💧, ☀️).
 - Format responses using **Tailwind CSS** classes within HTML tags for a premium look.
 - Do NOT use Markdown. Output raw HTML that can be injected directly into a <div>.
@@ -28,12 +31,8 @@ Context from User's Current View:
 ${context}
 `.trim();
 
-        // Convert history to Gemini format
-        // History format: [{ role: 'user'|'model', parts: [{ text: ... }] }]
         const contents = [
-            { role: 'user', parts: [{ text: SYSTEM_PROMPT }] }, // Prime the system prompt as first user message? Or use system_instruction if available. Gemini 1.5 supports system_instruction.
-            // For simple 'gemini-pro' (1.0), we often just prepend to first message or history.
-            // Let's assume standard chat structure.
+            { role: 'user', parts: [{ text: SYSTEM_PROMPT }] },
             ...history.map(msg => ({
                 role: msg.role === 'user' ? 'user' : 'model',
                 parts: [{ text: msg.content }]
@@ -41,64 +40,131 @@ ${context}
             { role: 'user', parts: [{ text: message }] }
         ];
 
-        const MODEL_NAME = 'gemini-2.5-flash';
+        const PREFERRED_MODELS = [
+            'gemini-2.5-flash',
+            'gemini-2.0-flash',
+            'gemini-flash-latest',
+            'gemini-2.5-flash-lite',
+            'gemini-2.0-flash-lite',
+            'gemini-flash-lite-latest',
+            'gemini-exp-1206',
+            'gemini-pro-latest',
+            'gemini-1.5-flash',
+            'gemini-1.5-flash-latest',
+            'gemini-1.5-pro',
+            'gemini-1.5-pro-latest'
+        ];
 
-        try {
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents })
-            });
+        let lastError = null;
 
-            if (!response.ok) {
-                const err = await response.json();
+        for (const model of PREFERRED_MODELS) {
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents })
+                });
 
-                // Debug: List models if "not found"
-                if (response.status === 404 || err.error?.message?.includes('not found')) {
-                    console.warn('Model not found. Fetching available models...');
-                    try {
-                        const modelsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-                        const modelsData = await modelsRes.json();
-                        console.table(modelsData.models?.map(m => ({ name: m.name, methods: m.supportedGenerationMethods })));
-                    } catch (e) {
-                        console.error('Failed to list models:', e);
+                if (!response.ok) {
+                    const err = await response.json();
+                    if (response.status === 404 || response.status === 429) {
+                        console.warn(`Model ${model} failed (${response.status}). Trying next...`);
+                        lastError = err;
+                        continue;
                     }
+                    throw new Error(err.error?.message || `Gemini API Error: ${response.statusText}`);
                 }
 
-                throw new Error(err.error?.message || `Gemini API Error: ${response.statusText}`);
+                const data = await response.json();
+                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                return text || "I couldn't generate a response.";
+
+            } catch (error) {
+                console.warn(`Error with model ${model}:`, error);
+                lastError = error;
             }
-
-            const data = await response.json();
-            const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-            return text || "I couldn't generate a response.";
-
-        } catch (error) {
-            console.error("Gemini Request Failed:", error);
-            throw error;
         }
+
+        console.error("All Gemini models failed. Last error:", lastError);
+        throw lastError || new Error("Failed to connect to any Gemini model.");
     },
 
-    async getDeckStrategy(apiKey, commanderName) {
+    async getDeckStrategy(apiKey, commanderName, playstyle = null, existingCards = [], helper = null) {
         if (!apiKey) throw new Error("API Key is missing.");
 
+        const helperName = helper?.name || 'The Oracle';
+        const helperStyle = helper?.personality ? `Adopt the persona of ${helperName}: ${helper.personality}` : 'Act as a Magic: The Gathering expert.';
+
+        const hasExistingCards = existingCards && existingCards.length > 0;
+        const deckListContext = hasExistingCards
+            ? `Existing Deck List Analysis:\n${existingCards.map(c => `- ${c.name} (${c.type_line || 'Unknown'})`).join('\n')}`
+            : "This is a NEW deck build.";
+
+        let playstyleContext = "";
+        if (playstyle) {
+            playstyleContext = `
+                User Playstyle Profile:
+                - Archetypes: ${playstyle.archetypes?.join(', ') || 'N/A'}
+                - Summary: ${playstyle.summary || 'N/A'}
+                - Aggression: ${playstyle.scores?.aggression || 0}
+                - Combo Affinity: ${playstyle.scores?.comboAffinity || 0}
+                - Interaction: ${playstyle.scores?.interaction || 0}
+                Tailor the deck's theme and card suggestions to align with this playstyle.
+            `;
+        }
+
         const prompt = `
-            Act as a Magic: The Gathering expert. I have chosen "${commanderName}" as my Commander.
-            Suggest a competitive yet fun deck strategy strings and a recommended numeric breakdown of card types.
+            ${helperStyle} I have chosen "${commanderName}" as my Commander.
             
+            ${deckListContext}
+            
+            ${hasExistingCards
+                ? "Analyze the PROVIDED deck list. Identify the specific game plan, key synergies between these cards, and how to pilot THIS build."
+                : "Suggest a competitive yet fun deck strategy tailored to the following playstyle."}
+            
+            ${playstyleContext}
+
+            **Deck Composition Goals:**
+            - Lands: 35-38
+            - Mana Ramp: 10-12
+            - Card Draw: 10
+            - Targeted Removal: 8-10
+            - Board Wipes: 2-4
+            - Synergy / Strategy: 25-30
+
+            **Mana Curve Goal (Bell Curve):**
+            - 1-2 Mana: High volume for setup.
+            - 3-4 Mana: Moderate volume for utility/threats.
+            - 5+ Mana: Low volume for finishers.
+
+            **Formatting Instructions:**
+            - Use **HTML** for the 'strategy' field.
+            - The 'theme' field should be a **short, punchy title** (e.g., "Elemental Mastery", "Shadow Infiltration").
+            - The 'strategy' field should start with a **Theme Summary**: 2-3 sentences providing high-level context, styled with a distinct, prominent look.
+            - Focus on a structured breakdown:
+              1. **Welcome/Theme Summary**: A few sentences on why this commander and theme work.
+              2. **Commander Context**: What are the assumed or key abilities that drive the build?
+              3. **Early Game (Turns 1-3)**: Focus on setup, ramp, and disruption. Use a ⚡ emoji.
+              4. **Mid Game (Turns 4-6)**: Focus on value engines and commander deployment. Use a 🔥 emoji.
+              5. **Late Game (Turns 7+)**: Focus on finishers and storming off. Use a ☠️ emoji.
+              6. **Key Synergies & Combos**: Highlight 3-4 specific card combinations. Use a 💡 emoji.
+            - Use **Tailwind CSS** classes (e.g., <span class="text-indigo-400 font-bold">Key Card</span>) to highlight important terms.
+            - Use headers for each phase (e.g., <h4 class="text-indigo-400 font-black uppercase mb-2">⚡ Early Game</h4>).
+            - **CRITICAL**: The 'layout' counts MUST sum to exactly **99** cards.
+            - Refer to yourself as "${helperName}" where appropriate.
+
             You MUST respond with VALID JSON strictly matching this format:
             {
-                "suggestedName": "Atraxa's Toxic Embrace",
-                "theme": "Board Wipe Tribal",
-                "strategy": "Control the board with repeated wipes until you can reanimate a massive threat.",
+                "suggestedName": "...",
+                "theme": "...",
+                "strategy": "<div>...Structured HTML Content...</div>",
                 "layout": {
                     "Lands": 36,
-                    "Creatures": 20,
-                    "Instants": 15,
-                    "Sorceries": 15,
-                    "Artifacts": 10,
-                    "Enchantments": 3,
-                    "Planeswalkers": 1
+                    "Mana Ramp": 10,
+                    "Card Draw": 10,
+                    "Targeted Removal": 10,
+                    "Board Wipes": 3,
+                    "Synergy / Strategy": 30
                 }
             }
             Do NOT use markdown code blocks. Return only the JSON string.
@@ -106,7 +172,6 @@ ${context}
 
         try {
             const response = await this.sendMessage(apiKey, [], prompt);
-            // Clean markdown if present
             const cleanJson = response.replace(/```json/g, '').replace(/```/g, '').trim();
             return JSON.parse(cleanJson);
         } catch (error) {
@@ -134,14 +199,12 @@ ${context}
         const prompt = `${systemInstruction}\n\n${userPrompt}\n\nRespond with VALID JSON ONLY:\n{ "question": "...", "choices": ["...", "..."] }`;
 
         try {
-            // Using sendMessage allows us to reuse the fetch logic, but we need to ensure JSON output.
-            // prompting for JSON specifically.
             const response = await this.sendMessage(apiKey, [], prompt);
             const cleanJson = response.replace(/```json/g, '').replace(/```/g, '').trim();
             return JSON.parse(cleanJson);
         } catch (error) {
             console.error("Gemini Question Error:", error);
-            throw error; // Rethrow to let UI handle it
+            throw error;
         }
     },
 
@@ -167,5 +230,402 @@ ${context}
             console.error("Gemini Synthesis Error:", error);
             throw new Error("Failed to synthesize profile.");
         }
+    },
+
+    async refinePlaystyleChat(apiKey, history, currentProfile, helper = null) {
+        if (!apiKey) throw new Error("API Key is missing.");
+
+        const helperName = helper?.name || 'The Oracle';
+        const helperPersona = helper?.personality ? `Personality: ${helper.personality}` : 'Personality: Wise, insightful, slightly magical.';
+        const isInit = history.length === 0;
+
+        const systemMessage = `
+            You are ${helperName}, an expert MTG coach conducting a "Deep Dive" interview to build a player's psychographic profile.
+            ${helperPersona}
+
+            Current Profile Summary: ${currentProfile?.summary || 'New Profile'}
+            Current Tags: ${currentProfile?.tags?.join(', ') || 'None'}
+
+            Instructions:
+            ${isInit
+                ? `1. Introduce yourself as ${helperName}.
+                   2. Explain that you want to understand their playstyle to help build better decks.
+                   3. Ask the FIRST open-ended question to start the profile (e.g. "What draws you to magic?").`
+                : `1. Analyze the user's latest input.
+                   2. Formulate a conversational response (warm, insightful, matching your persona).
+                   3. Ask ONE follow-up question to dig deeper into a missing or vague area.
+                   4. Simultaneously, UPDATE the JSON profile based on the new information (merging with known info).`
+            }
+        `;
+
+        // Only sending the last few messages to keep context window clean but relevant
+        const recentHistory = history.slice(-6);
+
+        const contents = [
+            { role: 'user', parts: [{ text: systemMessage }] },
+            ...recentHistory.map(msg => ({
+                role: msg.role === 'user' ? 'user' : 'model',
+                parts: [{ text: msg.content }]
+            }))
+        ];
+
+        // We use a specific schema to ensure the UI can update live
+        const prompt = `
+            ${isInit ? 'Generate the initial greeting and first question.' : 'Based on the conversation, respond to the user and update the profile.'}
+            RETURN JSON ONLY.
+        `;
+
+        contents.push({ role: 'user', parts: [{ text: prompt }] });
+
+        const PREFERRED_MODELS = [
+            'gemini-2.0-flash',
+            'gemini-2.5-flash',
+            'gemini-flash-latest',
+            'gemini-1.5-flash-latest',
+            'gemini-1.5-flash',
+            'gemini-1.5-pro',
+            'gemini-1.5-pro-latest'
+        ];
+
+        let failureSummary = [];
+
+        for (const model of PREFERRED_MODELS) {
+            // Tier 1: Schema
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents,
+                        generationConfig: {
+                            responseMimeType: "application/json",
+                            responseSchema: {
+                                type: "OBJECT",
+                                properties: {
+                                    "aiResponse": { "type": "STRING" },
+                                    "updatedProfile": {
+                                        "type": "OBJECT",
+                                        "properties": {
+                                            "summary": { "type": "STRING" },
+                                            "tags": { "type": "ARRAY", "items": { "type": "STRING" } },
+                                            "scores": {
+                                                "type": "OBJECT",
+                                                "properties": {
+                                                    "aggression": { "type": "NUMBER" },
+                                                    "consistency": { "type": "NUMBER" },
+                                                    "interaction": { "type": "NUMBER" },
+                                                    "comboAffinity": { "type": "NUMBER" }
+                                                }
+                                            },
+                                            "archetypes": { "type": "ARRAY", "items": { "type": "STRING" } }
+                                        },
+                                        "required": ["summary", "tags", "scores", "archetypes"]
+                                    }
+                                },
+                                required: ["aiResponse", "updatedProfile"]
+                            }
+                        }
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (text) return JSON.parse(text);
+                } else {
+                    const err = await response.json();
+                    failureSummary.push(`${model} (Schema): ${response.status} ${err.error?.message || ''}`);
+                    if (response.status === 404 || response.status === 429) continue;
+                }
+            } catch (e) {
+                failureSummary.push(`${model} (Schema Error): ${e.message}`);
+            }
+
+            // Tier 2: Raw JSON Fallback
+            try {
+                // Clone contents for raw attempt to avoid mutating original
+                const rawContents = JSON.parse(JSON.stringify(contents));
+                rawContents[rawContents.length - 1].parts[0].text += "\n\nCRITICAL: Respond with VALID JSON only. No markdown. Format: { aiResponse: string, updatedProfile: object }";
+
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: rawContents
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (text) {
+                        const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
+                        return JSON.parse(cleanJson);
+                    }
+                } else {
+                    const err = await response.json();
+                    failureSummary.push(`${model} (Raw): ${response.status} ${err.error?.message || ''}`);
+                }
+            } catch (e) {
+                failureSummary.push(`${model} (Raw Error): ${e.message}`);
+            }
+        }
+
+        console.error("Gemini Chat Refine Exhausted:", failureSummary);
+        throw new Error(`Oracle Exhausted: ${failureSummary[0] || 'Unknown error'}`);
+    },
+
+    async forgeHelperChat(apiKey, history, currentDraft) {
+        if (!apiKey) throw new Error("API Key is missing.");
+
+        const systemMessage = `
+            You are an expert fantasy writer and character designer allowing a user to "Forge" their own AI companion for Magic: The Gathering.
+            Your goal is to interview the user to define their Helper's Persona.
+            
+            Current Draft:
+            - Name: ${currentDraft?.name || 'Unknown'}
+            - Type: ${currentDraft?.type || 'Unknown'} (e.g., Spirit, Goblin, Construct, Wizard)
+            - Personality: ${currentDraft?.personality || 'Unknown'} (e.g., Snarky, Wise, Aggressive)
+
+            Instructions:
+            1. Analyze the user's input.
+            2. If they provided new info (name, type, personality), UPDATE the JSON draft locally.
+            3. Respond in a neutral, helpful "System" tone (like a character creation menu guide).
+            4. Ask for the missing fields one by one.
+            5. If all fields are present, ask for confirmation.
+        `;
+
+        const recentHistory = history.slice(-6);
+
+        const contents = [
+            { role: 'user', parts: [{ text: systemMessage }] },
+            ...recentHistory.map(msg => ({
+                role: msg.role === 'user' ? 'user' : 'model',
+                parts: [{ text: msg.content }]
+            }))
+        ];
+
+        const prompt = `
+            Based on the conversation, respond to the user and update the helper draft.
+            RETURN JSON ONLY.
+        `;
+
+        contents.push({ role: 'user', parts: [{ text: prompt }] });
+
+        const PREFERRED_MODELS = [
+            'gemini-2.0-flash',
+            'gemini-2.5-flash',
+            'gemini-flash-latest',
+            'gemini-1.5-flash-latest',
+            'gemini-1.5-flash',
+            'gemini-1.5-pro',
+            'gemini-1.5-pro-latest'
+        ];
+
+        let failureSummary = [];
+
+        for (const model of PREFERRED_MODELS) {
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents,
+                        generationConfig: {
+                            responseMimeType: "application/json",
+                            responseSchema: {
+                                type: "OBJECT",
+                                properties: {
+                                    "aiResponse": { "type": "STRING" },
+                                    "updatedDraft": {
+                                        "type": "OBJECT",
+                                        "properties": {
+                                            "name": { "type": "STRING" },
+                                            "type": { "type": "STRING" },
+                                            "personality": { "type": "STRING" }
+                                        },
+                                        "required": ["name", "type", "personality"]
+                                    }
+                                },
+                                required: ["aiResponse", "updatedDraft"]
+                            }
+                        }
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (text) return JSON.parse(text);
+                } else {
+                    const err = await response.json();
+                    failureSummary.push(`${model}: ${response.status}`);
+                    if (response.status === 404 || response.status === 429) continue;
+                }
+            } catch (e) {
+                failureSummary.push(`${model}: ${e.message}`);
+            }
+
+            // Fallback to Raw JSON if schema fails
+            try {
+                // Clone contents for raw attempt to avoid mutating original
+                const rawContents = JSON.parse(JSON.stringify(contents));
+                rawContents[rawContents.length - 1].parts[0].text += "\n\nCRITICAL: Respond with VALID JSON only. No markdown. Format: { aiResponse: string, updatedDraft: object }";
+
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: rawContents
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (text) {
+                        const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
+                        return JSON.parse(cleanJson);
+                    }
+                }
+            } catch (e) {
+                // Ignore raw fallback error
+            }
+        }
+
+        throw new Error(`Forge Exhausted: ${failureSummary.join(' | ')}`);
+    },
+
+    async generateDeckSuggestions(apiKey, payloadData, helper = null) {
+        if (!apiKey) throw new Error("API Key is missing.");
+
+        const { playstyle, targetRole } = payloadData;
+        const helperName = helper?.name || 'Expert MTG Deck Builder';
+        const helperPersonality = helper?.personality ? `Adopt the persona of ${helperName}: ${helper.personality}` : '';
+
+        let playstyleContext = "";
+        if (playstyle) {
+            playstyleContext = `
+                User Playstyle: ${playstyle.archetypes?.join(', ') || 'N/A'}. 
+                Summary: ${playstyle.summary || 'N/A'}.
+            `;
+        }
+
+        const systemMessage = `
+            You are ${helperName}. ${helperPersonality}
+            Analyze candidates for a ${targetRole || 'general'} role in the deck.
+            ${playstyleContext}
+            
+            **Mana Curve Priorities (Bell Curve):**
+            Focus on CMC 1-2 for high volume, 3-4 for moderate, 5+ for finishers.
+            
+            **Basic Land Split Logic:**
+            If targetRole is 'Lands', and you cannot fill the required count with provided candidates, suggest a 'Basic Land Split' at the END of the suggestions array.
+        `;
+
+        const PREFERRED_MODELS = [
+            'gemini-2.0-flash',
+            'gemini-flash-latest',
+            'gemini-1.5-flash',
+            'gemini-1.5-flash-latest',
+            'gemini-1.5-flash-001',
+            'gemini-1.5-flash-002',
+            'gemini-1.5-pro',
+            'gemini-1.5-pro-latest'
+        ];
+
+        const systemInstruction = {
+            role: 'system',
+            parts: [{ text: systemMessage }]
+        };
+
+        const contents = [{
+            role: 'user',
+            parts: [{ text: `Task: ${payloadData.instructions}\n\nCandidates: ${JSON.stringify(payloadData.candidates)}\n\nIMPORTANT: You MUST respond with a VALID JSON object containing a "suggestions" array. Each suggestion needs "rating" (1-10) and "reason" (string).` }]
+        }];
+
+        let failureSummary = [];
+
+        for (const model of PREFERRED_MODELS) {
+            // Tier 1: With Response Schema (Strict)
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        system_instruction: systemInstruction,
+                        contents,
+                        generationConfig: {
+                            responseMimeType: "application/json",
+                            responseSchema: {
+                                type: "OBJECT",
+                                properties: {
+                                    "suggestions": {
+                                        type: "ARRAY",
+                                        items: {
+                                            type: "OBJECT",
+                                            properties: {
+                                                "firestoreId": { "type": "STRING" },
+                                                "name": { "type": "STRING" },
+                                                "count": { "type": "NUMBER" },
+                                                "rating": { "type": "NUMBER" },
+                                                "reason": { "type": "STRING" },
+                                                "isBasicLand": { "type": "BOOLEAN" }
+                                            },
+                                            required: ["rating", "reason"]
+                                        }
+                                    }
+                                },
+                                required: ["suggestions"]
+                            }
+                        }
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (text) return JSON.parse(text);
+                } else {
+                    const err = await response.json();
+                    failureSummary.push(`${model} (Schema): ${response.status} ${err.error?.message || ''}`);
+                    if (response.status === 404 || response.status === 429) continue;
+                }
+            } catch (e) {
+                failureSummary.push(`${model} (Schema Error): ${e.message}`);
+            }
+
+            // Tier 2: Raw JSON Fallback (No Schema)
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        system_instruction: systemInstruction,
+                        contents: [{
+                            role: 'user',
+                            parts: [{ text: `${contents[0].parts[0].text}\n\nYou MUST respond with VALID RAW JSON format ONLY. Do not use markdown blocks.` }]
+                        }]
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (text) {
+                        const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
+                        return JSON.parse(cleanJson);
+                    }
+                } else {
+                    const err = await response.json();
+                    failureSummary.push(`${model} (Raw): ${response.status} ${err.error?.message || ''}`);
+                }
+            } catch (e) {
+                failureSummary.push(`${model} (Raw Error): ${e.message}`);
+            }
+        }
+
+        console.error("[Gemini] All models failed. Summary:", failureSummary);
+        throw new Error(`Oracle Exhausted: ${failureSummary.join(' | ')}`);
     }
 };

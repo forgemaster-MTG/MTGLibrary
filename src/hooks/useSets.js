@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { api } from '../services/api';
 
 export function useSets() {
     const [sets, setSets] = useState([]);
@@ -8,32 +9,12 @@ export function useSets() {
     useEffect(() => {
         const fetchSets = async () => {
             try {
-                // Check if we have cached sets in localStorage to save bandwidth
-                const cached = localStorage.getItem('mtg_sets_cache');
-                const cacheTime = localStorage.getItem('mtg_sets_timestamp');
-                const oneDay = 24 * 60 * 60 * 1000;
-
-                if (cached && cacheTime && (Date.now() - parseInt(cacheTime) < oneDay)) {
-                    setSets(JSON.parse(cached));
-                    setLoading(false);
-                    return;
-                }
-
-                const response = await fetch('https://api.scryfall.com/sets');
-                if (!response.ok) throw new Error('Failed to fetch sets');
-
-                const data = await response.json();
-
-                // Filter out digital only sets if desired, or keep them all.
-                // We'll keep them but might filter in UI.
-                const validSets = data.data;
+                // Fetch from LOCAL API which reads from Postgres
+                const data = await api.get('/sets');
+                const validSets = data.data || [];
 
                 setSets(validSets);
                 setLoading(false);
-
-                // Cache it
-                localStorage.setItem('mtg_sets_cache', JSON.stringify(validSets));
-                localStorage.setItem('mtg_sets_timestamp', Date.now().toString());
 
             } catch (err) {
                 console.error("Error fetching sets:", err);

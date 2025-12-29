@@ -97,7 +97,7 @@ const CreateDeckPage = () => {
 
         setLoading(true);
         try {
-            const data = await GeminiService.getDeckStrategy(apiKey, selectedCommander.name);
+            const data = await GeminiService.getDeckStrategy(apiKey, selectedCommander.name, userProfile.playstyle);
             setStrategyData(data);
 
             // Auto-fill name if blank
@@ -132,9 +132,31 @@ const CreateDeckPage = () => {
         setLoading(true);
         try {
             const payload = {
-                name: name || selectedCommander?.name || 'New Commander Deck', // Fallback name
+                name: name || selectedCommander?.name || 'New Commander Deck',
                 format,
-                commander: selectedCommander?.data || selectedCommander || null
+                commander: selectedCommander?.data || selectedCommander || null,
+                aiBlueprint: strategyData ? {
+                    theme: strategyData.theme,
+                    strategy: strategyData.strategy,
+                    // Normalize keys to singular to match Scryfall types and DeckDetails expectations
+                    suggestedCounts: (() => {
+                        const layout = strategyData.layout || {};
+                        const normalize = (k) => {
+                            if (k === 'Creatures') return 'Creature';
+                            if (k === 'Lands') return 'Land';
+                            if (k === 'Instants') return 'Instant';
+                            if (k === 'Sorceries') return 'Sorcery';
+                            if (k === 'Artifacts') return 'Artifact';
+                            if (k === 'Enchantments') return 'Enchantment';
+                            if (k === 'Planeswalkers') return 'Planeswalker';
+                            // New Functional Categories - keep as is
+                            return k;
+                        };
+                        return Object.fromEntries(
+                            Object.entries(layout).map(([k, v]) => [normalize(k), v])
+                        );
+                    })()
+                } : null
             };
 
             const newDeck = await api.post('/decks', payload);
@@ -234,8 +256,12 @@ const CreateDeckPage = () => {
                 ) : (
                     <div className="flex-1 overflow-y-auto pr-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                         {displayedCommanders.map(c => (
-                            <div key={c.id} onClick={() => handleCommanderSelect(c)} className="cursor-pointer hover:ring-2 ring-indigo-500 rounded-lg transition-all relative group">
-                                <CardGridItem card={c} showQuantity={false} />
+                            <div key={c.id} className="cursor-pointer hover:ring-2 ring-indigo-500 rounded-lg transition-all relative group">
+                                <CardGridItem
+                                    card={c}
+                                    showQuantity={false}
+                                    onClick={() => handleCommanderSelect(c)}
+                                />
                                 <div className="absolute bottom-2 right-2 bg-black/80 text-xs px-2 py-0.5 rounded text-gray-300 pointer-events-none">
                                     {c.set_code?.toUpperCase()}
                                 </div>
@@ -254,52 +280,65 @@ const CreateDeckPage = () => {
             <p className="text-gray-400">Consulting the Oracle for optimal strategies...</p>
         </div>
     );
+    const renderReview = () => {
+        const totalCards = Object.values(strategyData?.layout || {}).reduce((acc, c) => acc + (parseInt(c) || 0), 0) + (selectedCommander ? 1 : 0);
+        const targetCount = format === 'Commander' ? 100 : 60;
+        const isTargetMet = totalCards === targetCount;
 
-    const renderReview = () => (
-        <div className="space-y-6 animate-fade-in">
-            <div className="flex items-start gap-4 bg-gray-900/50 p-4 rounded-xl border border-gray-700">
-                <div className="w-24 flex-shrink-0">
-                    <img src={getCardImage(selectedCommander)} className="rounded shadow-md w-full" alt={selectedCommander?.name} />
-                </div>
-                <div>
-                    <h3 className="text-lg font-bold text-white">{strategyData?.theme || 'Custom Strategy'}</h3>
-                    <p className="text-sm text-gray-300 mt-1">{strategyData?.strategy}</p>
-                </div>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                {Object.entries(strategyData?.layout || {}).map(([type, count]) => (
-                    <div key={type} className="bg-gray-800 p-3 rounded-lg border border-gray-700">
-                        <label className="text-xs text-gray-400 uppercase font-bold">{type}</label>
-                        <input
-                            type="number"
-                            className="w-full bg-transparent text-xl font-mono text-white outline-none border-b border-gray-600 focus:border-indigo-500"
-                            value={count}
-                            onChange={(e) => setStrategyData({
-                                ...strategyData,
-                                layout: { ...strategyData.layout, [type]: parseInt(e.target.value) || 0 }
-                            })}
+        return (
+            <div className="space-y-6 animate-fade-in">
+                <div className="flex items-start gap-4 bg-gray-900/50 p-4 rounded-xl border border-gray-700">
+                    <div className="w-24 flex-shrink-0">
+                        <img src={getCardImage(selectedCommander)} className="rounded shadow-md w-full" alt={selectedCommander?.name} />
+                    </div>
+                    <div>
+                        <div className="flex justify-between items-center mb-1">
+                            <h3 className="text-lg font-bold text-white">{strategyData?.theme || 'Custom Strategy'}</h3>
+                            <div className={`text-sm font-bold px-3 py-1 rounded-full border ${isTargetMet ? 'bg-green-500/20 text-green-400 border-green-500/50' : 'bg-yellow-500/20 text-yellow-500 border-yellow-500/50'}`}>
+                                {totalCards}/{targetCount} Cards
+                            </div>
+                        </div>
+                        <div
+                            className="text-sm text-gray-300 mt-1 leading-relaxed space-y-2 html-content"
+                            dangerouslySetInnerHTML={{ __html: strategyData?.strategy }}
                         />
                     </div>
-                ))}
-            </div>
+                </div>
 
-            <div className="flex gap-4 pt-4">
-                <button
-                    onClick={() => setStep(STEPS.COMMANDER)}
-                    className="flex-1 px-4 py-3 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg font-medium"
-                >
-                    Back
-                </button>
-                <button
-                    onClick={createDeck}
-                    className="flex-[2] px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold shadow-lg shadow-indigo-500/20"
-                >
-                    Create Deck
-                </button>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    {Object.entries(strategyData?.layout || {}).map(([type, count]) => (
+                        <div key={type} className="bg-gray-800 p-3 rounded-lg border border-gray-700">
+                            <label className="text-xs text-gray-400 uppercase font-bold">{type}</label>
+                            <input
+                                type="number"
+                                className="w-full bg-transparent text-xl font-mono text-white outline-none border-b border-gray-600 focus:border-indigo-500"
+                                value={count}
+                                onChange={(e) => setStrategyData({
+                                    ...strategyData,
+                                    layout: { ...strategyData.layout, [type]: parseInt(e.target.value) || 0 }
+                                })}
+                            />
+                        </div>
+                    ))}
+                </div>
+
+                <div className="flex gap-4 pt-4">
+                    <button
+                        onClick={() => setStep(STEPS.COMMANDER)}
+                        className="flex-1 px-4 py-3 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg font-medium"
+                    >
+                        Back
+                    </button>
+                    <button
+                        onClick={createDeck}
+                        className="flex-[2] px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold shadow-lg shadow-indigo-500/20"
+                    >
+                        Create Deck
+                    </button>
+                </div>
             </div>
-        </div>
-    );
+        );
+    };
 
     return (
         <div className="max-w-4xl mx-auto mt-10 px-4">

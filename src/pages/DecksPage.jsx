@@ -82,6 +82,13 @@ const DecksPage = () => {
                                 <div className="absolute inset-0 bg-gradient-to-t from-gray-800 to-transparent opacity-60"></div>
 
                                 <div className="absolute bottom-0 left-0 p-4 w-full">
+                                    {/* Mockup Badge */}
+                                    {deck.is_mockup && (
+                                        <div className="absolute top-2 left-2 z-10 px-3 py-1 bg-orange-600 text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg border border-orange-500/50 flex items-center gap-1 backdrop-blur-sm">
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                            Mockup
+                                        </div>
+                                    )}
                                     {/* Color Identity (Placeholder) */}
                                     {deck.colors && deck.colors.length > 0 && (
                                         <div className="flex gap-1 mb-2">

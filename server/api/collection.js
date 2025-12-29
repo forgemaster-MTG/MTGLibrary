@@ -52,6 +52,11 @@ router.get('/', async (req, res) => {
             q.whereNull('deck_id');
         }
 
+        // Filter by Wishlist
+        if (req.query.wishlist !== undefined) {
+            q.where({ is_wishlist: req.query.wishlist === 'true' });
+        }
+
         const rows = await q.orderBy('id', 'desc').limit(500);
         res.json(rows);
     } catch (err) {
@@ -80,7 +85,8 @@ router.post('/', async (req, res) => {
             image_uri: (data && data.image_uris && data.image_uris.normal) || null,
             count: count || 1,
             data: data || null,
-            deck_id: deck_id || null
+            deck_id: deck_id || null,
+            is_wishlist: req.body.is_wishlist || false
         };
 
         const [row] = await knex('user_cards').insert(insert).returning('*');
@@ -105,6 +111,7 @@ router.put('/:id', async (req, res) => {
         if (deck_id !== undefined) update.deck_id = deck_id;
         if (count !== undefined) update.count = count;
         if (finish !== undefined) update.finish = finish;
+        if (req.body.is_wishlist !== undefined) update.is_wishlist = req.body.is_wishlist;
 
         if (Object.keys(update).length === 0) return res.json(existing);
 

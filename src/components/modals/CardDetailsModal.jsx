@@ -8,7 +8,7 @@ import { useToast } from '../../contexts/ToastContext';
 
 const CardDetailsModal = () => {
     const { isOpen, selectedCard, closeCardModal } = useCardModal();
-    const { removeCard, updateCard, refreshCollection } = useCollection();
+    const { cards: allUserCards, removeCard, updateCard, refreshCollection } = useCollection();
     const { addToast } = useToast();
 
     // Local state
@@ -135,7 +135,7 @@ const CardDetailsModal = () => {
     };
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden animate-fade-in" role="dialog">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center overflow-hidden animate-fade-in" role="dialog">
             {/* Standard Dark Backdrop */}
             <div
                 className="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity"
@@ -280,92 +280,128 @@ const CardDetailsModal = () => {
                         <div className="space-y-4 pt-4 border-t border-gray-700/50">
                             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
-                                Collection Status {isEditing && <span className="text-indigo-400 text-[10px] ml-2 font-normal animate-pulse">(Editing)</span>}
+                                Status & Ownership {isEditing && <span className="text-indigo-400 text-[10px] ml-2 font-normal animate-pulse">(Editing)</span>}
                             </h3>
+
+                            {/* Wishlist Indicator Badge */}
+                            {selectedCard.is_wishlist && !isEditing && (
+                                <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3 flex items-center gap-3 animate-pulse">
+                                    <div className="p-2 bg-orange-500 rounded-full text-white">
+                                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg>
+                                    </div>
+                                    <div>
+                                        <div className="text-orange-400 font-black text-xs uppercase tracking-wider">In Wishlist</div>
+                                        <div className="text-gray-400 text-[10px]">This card is on your want list.</div>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Aggregation Logic / Display */}
                             {(() => {
-                                const marketPrice = parseFloat(selectedCard.prices?.usd || data.prices?.usd || 0);
-                                const foilPrice = parseFloat(selectedCard.prices?.usd_foil || data.prices?.usd_foil || 0);
-                                const isFoil = (isEditing ? editForm.finish === 'foil' : selectedCard.finish === 'foil');
-                                const qty = (isEditing ? editForm.quantity : (selectedCard.count || selectedCard.quantity || 1));
-                                const totalPrice = (isFoil ? foilPrice : marketPrice) * qty;
+                                const scryfallId = data.id;
+                                const userCopies = allUserCards.filter(c => c.scryfall_id === scryfallId || c.scryfallId === scryfallId || c.id === scryfallId);
+
+                                const ownedNormal = userCopies.filter(c => !c.is_wishlist && c.finish === 'nonfoil').reduce((sum, c) => sum + (c.count || 1), 0);
+                                const ownedFoil = userCopies.filter(c => !c.is_wishlist && c.finish === 'foil').reduce((sum, c) => sum + (c.count || 1), 0);
+                                const wishCopies = userCopies.filter(c => c.is_wishlist).reduce((sum, c) => sum + (c.count || 1), 0);
 
                                 return (
-                                    <>
-                                        <div className="text-sm text-gray-400 mb-2">Total Owned: <span className="text-white font-bold">{qty}</span> (this instance)</div>
-                                        <div className="bg-gray-900/30 rounded-xl overflow-hidden border border-gray-700/50">
-                                            <table className="w-full text-xs text-left">
-                                                <thead className="bg-gray-800 text-gray-500 font-bold uppercase tracking-wider">
-                                                    <tr>
-                                                        <th className="px-4 py-3">Location</th>
-                                                        <th className="px-4 py-3 text-center">Foil</th>
-                                                        <th className="px-4 py-3 text-right">Price</th>
-                                                        <th className="px-4 py-3 text-right">Total</th>
-                                                        <th className="px-4 py-3 text-right">Added</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-gray-700/50 text-gray-300">
-                                                    <tr className="hover:bg-gray-800/30 transition-colors">
-                                                        <td className="px-4 py-3 font-medium text-white">
-                                                            {isEditing ? (
-                                                                <select
-                                                                    value={editForm.deckId}
-                                                                    onChange={(e) => setEditForm({ ...editForm, deckId: e.target.value })}
-                                                                    className="bg-gray-800 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-indigo-500 w-full"
-                                                                >
-                                                                    <option value="">Binder (Unassigned)</option>
-                                                                    {deckList.map(deck => (
-                                                                        <option key={deck.id} value={deck.id}>Deck: {deck.name}</option>
-                                                                    ))}
-                                                                </select>
-                                                            ) : (
-                                                                selectedCard.deckId ?
-                                                                    <span className="text-indigo-300">Deck #{selectedCard.deckId}</span> :
-                                                                    <span className="text-gray-400">Binder (Unassigned)</span>
-                                                            )}
-                                                        </td>
-                                                        <td className="px-4 py-3 text-center">
-                                                            {isEditing ? (
-                                                                <div className="flex justify-center">
+                                    <div className="space-y-4">
+                                        {/* Status Row */}
+                                        <div className="grid grid-cols-3 gap-3">
+                                            <div className={`p-2.5 rounded-xl border transition-all ${ownedNormal > 0 ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-gray-800/20 border-gray-700/30 opacity-40'}`}>
+                                                <div className="text-[10px] font-black uppercase tracking-tighter text-gray-400 mb-0.5">Normal</div>
+                                                <div className="text-xl font-black text-white">{ownedNormal}</div>
+                                                <div className="text-[9px] text-gray-500 font-bold uppercase">Owned</div>
+                                            </div>
+                                            <div className={`p-2.5 rounded-xl border transition-all ${ownedFoil > 0 ? 'bg-purple-500/10 border-purple-500/30' : 'bg-gray-800/20 border-gray-700/30 opacity-40'}`}>
+                                                <div className="text-[10px] font-black uppercase tracking-tighter text-gray-400 mb-0.5">Foil</div>
+                                                <div className="text-xl font-black text-indigo-400">{ownedFoil}</div>
+                                                <div className="text-[9px] text-gray-500 font-bold uppercase">Owned</div>
+                                            </div>
+                                            <div className={`p-2.5 rounded-xl border transition-all ${wishCopies > 0 ? 'bg-orange-500/10 border-orange-500/30' : 'bg-gray-800/20 border-gray-700/30 opacity-40'}`}>
+                                                <div className="text-[10px] font-black uppercase tracking-tighter text-gray-400 mb-0.5">Wishlist</div>
+                                                <div className="text-xl font-black text-orange-400">{wishCopies}</div>
+                                                <div className="text-[9px] text-gray-500 font-bold uppercase">Wanted</div>
+                                            </div>
+                                        </div>
+
+                                        {/* Instance Specifics */}
+                                        {(isEditing || (selectedCard.firestoreId || selectedCard.firestore_id)) && (
+                                            <div className="bg-gray-950/40 rounded-xl overflow-hidden border border-gray-700/50">
+                                                <div className="px-3 py-2 bg-gray-800/40 border-b border-gray-700/50 flex justify-between items-center text-[10px] uppercase font-black tracking-widest text-gray-400">
+                                                    <span>Selected Item Details</span>
+                                                    {selectedCard.is_wishlist && <span className="text-orange-500">Wishlist Copy</span>}
+                                                </div>
+                                                <table className="w-full text-xs text-left">
+                                                    <thead className="bg-gray-900/50 text-[10px] text-gray-500 font-bold uppercase tracking-wider">
+                                                        <tr>
+                                                            <th className="px-3 py-2">Location</th>
+                                                            <th className="px-3 py-2 text-center">Foil</th>
+                                                            <th className="px-3 py-2 text-right">Qty</th>
+                                                            <th className="px-3 py-2 text-right">Added</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-gray-700/30 text-gray-300">
+                                                        <tr>
+                                                            <td className="px-3 py-2">
+                                                                {isEditing ? (
+                                                                    <select
+                                                                        value={editForm.deckId}
+                                                                        onChange={(e) => setEditForm({ ...editForm, deckId: e.target.value })}
+                                                                        className="bg-gray-800 border border-gray-600 rounded px-2 py-0.5 text-[10px] text-white w-full"
+                                                                    >
+                                                                        <option value="">Binder</option>
+                                                                        {deckList.map(deck => (
+                                                                            <option key={deck.id} value={deck.id}>Deck: {deck.name}</option>
+                                                                        ))}
+                                                                    </select>
+                                                                ) : (
+                                                                    selectedCard.deckId ? `Deck #${selectedCard.deckId}` : 'Binder'
+                                                                )}
+                                                            </td>
+                                                            <td className="px-3 py-2 text-center">
+                                                                {isEditing ? (
                                                                     <input
                                                                         type="checkbox"
                                                                         checked={editForm.finish === 'foil'}
                                                                         onChange={(e) => setEditForm({ ...editForm, finish: e.target.checked ? 'foil' : 'nonfoil' })}
-                                                                        className="rounded bg-gray-700 border-gray-600 text-indigo-600 focus:ring-0"
+                                                                        className="rounded bg-gray-700 border-gray-600 text-indigo-600"
                                                                     />
-                                                                </div>
-                                                            ) : (
-                                                                isFoil ? 'Yes' : '-'
-                                                            )}
-                                                        </td>
-                                                        <td className="px-4 py-3 text-right">
-                                                            ${(isFoil ? foilPrice : marketPrice).toFixed(2)}
-                                                        </td>
-                                                        <td className="px-4 py-3 text-right font-bold text-green-400">
-                                                            ${totalPrice.toFixed(2)}
-                                                        </td>
-                                                        <td className="px-4 py-3 text-right text-gray-500">
-                                                            {selectedCard.added_at ? new Date(selectedCard.added_at).toLocaleDateString() : 'Unknown'}
-                                                        </td>
-                                                    </tr>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                        {isEditing && (
-                                            <div className="mt-2 flex items-center justify-end gap-2">
-                                                <label className="text-xs text-gray-400">Quantity:</label>
-                                                <input
-                                                    type="number"
-                                                    min="1"
-                                                    max="100"
-                                                    value={editForm.quantity}
-                                                    onChange={(e) => setEditForm({ ...editForm, quantity: e.target.value })}
-                                                    className="w-16 bg-gray-800 border border-gray-600 rounded px-2 py-1 text-xs text-white text-right focus:outline-none focus:border-indigo-500"
-                                                />
+                                                                ) : (
+                                                                    selectedCard.finish === 'foil' ? 'Yes' : '-'
+                                                                )}
+                                                            </td>
+                                                            <td className="px-3 py-2 text-right font-black">
+                                                                {selectedCard.count || selectedCard.quantity || 1}
+                                                            </td>
+                                                            <td className="px-3 py-2 text-right text-gray-500 font-mono text-[10px]">
+                                                                {selectedCard.added_at ? new Date(selectedCard.added_at).toLocaleDateString() : 'N/A'}
+                                                            </td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
                                             </div>
                                         )}
-                                    </>
+
+                                        {/* Purchase Action */}
+                                        {selectedCard.is_wishlist && !isEditing && (
+                                            <button
+                                                onClick={async () => {
+                                                    try {
+                                                        await updateCard(selectedCard.id || selectedCard.firestoreId, { is_wishlist: false });
+                                                        addToast("Card moved to collection!", "success");
+                                                    } catch (err) {
+                                                        addToast("Failed to move card", "error");
+                                                    }
+                                                }}
+                                                className="w-full py-2.5 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-lg shadow-lg shadow-orange-900/30 transition-all flex items-center justify-center gap-2"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" /></svg>
+                                                I Got This Copy!
+                                            </button>
+                                        )}
+                                    </div>
                                 );
                             })()}
                         </div>

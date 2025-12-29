@@ -13,18 +13,20 @@ async function run() {
     try {
         await client.connect();
 
-        const showSchema = async (tableName) => {
-            console.log(`\n--- Schema for ${tableName} ---`);
-            const res = await client.query(`
-                SELECT column_name, data_type, is_nullable
-                FROM information_schema.columns 
-                WHERE table_name = '${tableName}'
-            `);
-            res.rows.forEach(r => console.log(`${r.column_name} (${r.data_type})`));
-        };
+        // Check for duplicates in a set
+        const setCode = 'lea'; // Example set
+        console.log(`Checking cards for set: ${setCode}`);
 
-        await showSchema('users');
-        await showSchema('cards');
+        const countRes = await client.query(`SELECT COUNT(*) FROM cards WHERE setcode = '${setCode}'`);
+        const distinctRes = await client.query(`SELECT COUNT(DISTINCT uuid) FROM cards WHERE setcode = '${setCode}'`);
+
+        console.log(`Total cards: ${countRes.rows[0].count}`);
+        console.log(`Distinct UUIDs: ${distinctRes.rows[0].count}`);
+
+        // Check data -> id
+        const dataRes = await client.query(`SELECT uuid, data->>'id' as json_id FROM cards WHERE setcode = '${setCode}' LIMIT 5`);
+        console.log("Sample IDs:");
+        dataRes.rows.forEach(r => console.log(`UUID: ${r.uuid}, JSON ID: ${r.json_id}`));
 
         await client.end();
     } catch (e) {

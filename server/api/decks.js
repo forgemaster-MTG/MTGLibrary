@@ -29,6 +29,10 @@ router.get('/:id', async (req, res) => {
       .where({ id: req.params.id })
       .first();
 
+    if (deck) {
+      deck.aiBlueprint = deck.ai_blueprint;
+    }
+
     if (!deck) return res.status(404).json({ error: 'not found' });
 
     // Security check
@@ -52,17 +56,21 @@ router.get('/:id', async (req, res) => {
 // Create a deck
 router.post('/', async (req, res) => {
   try {
-    const { name, commander } = req.body;
+    const { name, commander, aiBlueprint } = req.body;
     if (!name) return res.status(400).json({ error: 'name is required' });
 
     const insert = {
       user_id: req.user.id,
       name,
       commander: commander || null,
+      ai_blueprint: aiBlueprint || null, // Map camelCase to snake_case column
+      is_mockup: req.body.isMockup || false,
       // firestore_id? optional
     };
 
     const [row] = await knex('user_decks').insert(insert).returning('*');
+    // Map back for immediate frontend usage
+    row.aiBlueprint = row.ai_blueprint;
     res.status(201).json(row);
   } catch (err) {
     console.error('[decks] create error', err);
@@ -81,6 +89,7 @@ router.put('/:id', async (req, res) => {
     const update = { updated_at: knex.fn.now() };
     if (name !== undefined) update.name = name;
     if (commander !== undefined) update.commander = commander;
+    if (req.body.isMockup !== undefined) update.is_mockup = req.body.isMockup;
 
     const [row] = await knex('user_decks')
       .where({ id: req.params.id })
@@ -206,6 +215,62 @@ router.post('/import', async (req, res) => {
   } catch (err) {
     console.error('[decks] import error', err);
     res.status(500).json({ error: 'import failed' });
+  }
+});
+
+// Batch Add Cards to Deck
+router.post('/:id/cards/batch', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { cards } = req.body; // Array of card objects { scryfall_id, finish, etc. }
+    const userId = req.user.id;
+
+    if (!Array.isArray(cards)) return res.status(400).json({ error: 'cards array is required' });
+
+    const deck = await knex('user_decks').where({ id, user_id: userId }).first();
+    if (!deck) return res.status(404).json({ error: 'deck not found' });
+
+    await knex.transaction(async (trx) => {
+      for (const c of cards) {
+        const scryfallId = c.scryfall_id || c.id;
+
+        // 1. Try to find an unassigned copy in the binder first
+        const existing = await trx('user_cards')
+          .where({
+            user_id: userId,
+            scryfall_id: scryfallId,
+            finish: c.finish || 'nonfoil'
+          })
+          .whereNull('deck_id')
+          .first();
+
+        if (existing) {
+          await trx('user_cards').where({ id: existing.id }).update({ deck_id: id });
+        } else {
+          // 2. Create a new entry (defaulting to wishlist if it's an AI suggestion and we don't own it)
+          // For now, if we're adding from AI builder, we'll assume it's a wishlist copy if not found in binder
+          // to maintain the "Mockup/Wishlist" flow.
+          await trx('user_cards').insert({
+            user_id: userId,
+            scryfall_id: scryfallId,
+            name: c.name,
+            set_code: c.set_code || c.set || '???',
+            collector_number: c.collector_number || '0',
+            finish: c.finish || 'nonfoil',
+            image_uri: c.image_uri || (c.data && c.data.image_uris?.normal) || null,
+            count: 1,
+            data: c.data || c,
+            deck_id: id,
+            is_wishlist: true // Default to wishlist for batch added cards from AI if not in binder
+          });
+        }
+      }
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[decks] batch add error', err);
+    res.status(500).json({ error: 'batch add failed' });
   }
 });
 
