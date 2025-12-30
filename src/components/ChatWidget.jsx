@@ -27,8 +27,10 @@ const ChatWidget = () => {
         scrollToBottom();
     }, [messages]);
 
-    // Fetch dynamic intro on mount (or when key becomes available)
+    // Fetch dynamic intro only when opened for the first time
     useEffect(() => {
+        if (!isOpen) return;
+
         const fetchIntro = async () => {
             const apiKey = userProfile?.settings?.geminiApiKey;
             if (!apiKey || introFetched) {
@@ -42,10 +44,6 @@ const ChatWidget = () => {
 
             // If we already have messages (restored session?), skip intro
             if (messages.length > 0) return;
-
-            // Add a temporary loading bubble? or just wait?
-            // Let's add a placeholder that gets replaced or ignored? 
-            // Better: Just fetch it silently and add it.
 
             try {
                 const introPrompt = `
@@ -66,7 +64,7 @@ const ChatWidget = () => {
         };
 
         fetchIntro();
-    }, [userProfile?.settings?.geminiApiKey, helperName, introFetched]);
+    }, [isOpen, userProfile?.settings?.geminiApiKey, helperName, introFetched]);
 
     // Playstyle Data
     const playstyle = userProfile?.settings?.playstyle;

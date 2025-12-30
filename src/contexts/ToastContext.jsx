@@ -10,14 +10,16 @@ export function useToast() {
 export function ToastProvider({ children }) {
     const [toasts, setToasts] = useState([]);
 
-    const addToast = useCallback((message, type = 'info') => {
+    const addToast = useCallback((message, type = 'info', duration = 3000) => {
         const id = Date.now();
         setToasts(prev => [...prev, { id, message, type }]);
 
-        // Auto remove after 3 seconds
-        setTimeout(() => {
-            setToasts(prev => prev.filter(t => t.id !== id));
-        }, 3000);
+        // Auto remove only if duration is positive
+        if (duration > 0) {
+            setTimeout(() => {
+                setToasts(prev => prev.filter(t => t.id !== id));
+            }, duration);
+        }
     }, []);
 
     const removeToast = useCallback((id) => {

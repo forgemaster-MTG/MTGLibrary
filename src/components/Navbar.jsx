@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import CardSearchModal from './CardSearchModal';
 import PlaystyleWizardModal from './modals/PlaystyleWizardModal';
 import PlaystyleProfileModal from './modals/PlaystyleProfileModal';
+import BadgeSelectionModal from './modals/BadgeSelectionModal';
 
 const Navbar = () => {
     const location = useLocation();
@@ -12,6 +13,7 @@ const Navbar = () => {
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [isPlaystyleWizardOpen, setIsPlaystyleWizardOpen] = useState(false);
     const [isPlaystyleProfileOpen, setIsPlaystyleProfileOpen] = useState(false);
+    const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = React.useRef(null);
@@ -54,6 +56,24 @@ const Navbar = () => {
         fileInputRef.current?.click();
     };
 
+    const isMaster = currentUser?.uid === 'Kyrlwz6G6NWICCEPYbXtFfyLzWI3';
+
+    // Override display for Master
+    const displayEmail = isMaster ? "FORGE MASTER" : (currentUser?.email || '');
+    const displayBadge = isMaster
+        ? { icon: '👑', label: 'Architect', id: 'architect' }
+        : (userProfile?.settings?.badge || { icon: '🧪', label: 'Alpha Tester', id: 'alpha_tester' });
+
+    // Handle logout with redirect
+    const handleLogout = async () => {
+        try {
+            await logout();
+            window.location.href = '/'; // Force reload to clear state cleanly or use navigate('/')
+        } catch (error) {
+            console.error("Logout failed", error);
+        }
+    };
+
     return (
         <>
             <nav className="bg-gray-950/30 backdrop-blur-2xl border-b border-white/5 sticky top-0 z-50">
@@ -66,19 +86,21 @@ const Navbar = () => {
                             <div className="flex-shrink-0 flex items-center gap-3">
                                 <Link to="/" className="flex items-center gap-2 transform hover:scale-105 transition-transform">
                                     <img src="/logo.png" alt="MTG Forge Logo" className="h-10 w-auto" />
-                                    <span className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent">
+                                    <span className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent hidden sm:inline-block">
                                         MTG-Forge
+                                    </span>
+                                    <span className="bg-orange-500/10 border border-orange-500/30 text-orange-400 text-[9px] font-bold px-1.5 py-0.5 rounded ml-1 animate-pulse">
+                                        ALPHA
                                     </span>
                                 </Link>
                             </div>
 
                             {/* Desktop Nav Links */}
-                            <div className="hidden md:ml-10 md:flex md:items-baseline md:space-x-4">
+                            <div className="hidden lg:ml-10 lg:flex lg:items-baseline lg:space-x-4">
                                 {isLanding ? (
                                     <>
                                         <a href="#features" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Features</a>
-                                        <a href="#about" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">About</a>
-                                        <Link to="/directory" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Directory</Link>
+                                        <Link to="/about" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">About</Link>
                                     </>
                                 ) : (
                                     <>
@@ -87,7 +109,7 @@ const Navbar = () => {
                                         <Link to="/wishlist" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Wishlist</Link>
                                         <Link to="/decks" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Decks</Link>
                                         <Link to="/sets" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Sets</Link>
-                                        <Link to="/settings" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Settings</Link>
+                                        {/* Settings moved to user menu to save space */}
                                     </>
                                 )}
                             </div>
@@ -107,7 +129,30 @@ const Navbar = () => {
                                 {currentUser ? (
                                     <div className="relative">
                                         <div className="flex items-center gap-3">
-                                            <span className="text-sm text-gray-300">{currentUser.email}</span>
+
+                                            {/* Founder Badge - Simplified for clutter reduction */}
+                                            {(userProfile?.settings?.subscription_tier === 'alpha_tester' || !userProfile?.settings?.subscription_tier || isMaster) && (
+                                                <button
+                                                    onClick={() => setIsBadgeModalOpen(true)}
+                                                    className={`flex items-center justify-center w-8 h-8 rounded-full border transition-all group relative ${isMaster
+                                                        ? 'bg-amber-500/20 border-amber-500/50 hover:bg-amber-500/30 shadow-[0_0_10px_rgba(245,158,11,0.3)]'
+                                                        : 'bg-indigo-900/30 border-indigo-500/30 hover:bg-indigo-900/50'}`}
+                                                    title={isMaster ? "Data Architect" : "Click to change badge"}
+                                                >
+                                                    <span className="text-base">{displayBadge.icon}</span>
+                                                    {isMaster && (
+                                                        <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                                                            <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+                                                        </span>
+                                                    )}
+                                                </button>
+                                            )}
+
+                                            <span className={`text-sm font-medium ${isMaster ? 'text-amber-400 font-bold tracking-wider' : 'text-gray-300 max-w-[150px] truncate'}`}>
+                                                {displayEmail}
+                                            </span>
+
                                             <button
                                                 id="user-menu-button"
                                                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
@@ -177,7 +222,7 @@ const Navbar = () => {
                                                 <button
                                                     onClick={() => {
                                                         setIsUserMenuOpen(false);
-                                                        logout();
+                                                        handleLogout();
                                                     }}
                                                     className="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-gray-700 hover:text-red-300"
                                                 >
@@ -214,6 +259,18 @@ const Navbar = () => {
                 onRetake={() => {
                     setIsPlaystyleProfileOpen(false);
                     setIsPlaystyleWizardOpen(true);
+                }}
+            />
+
+            <BadgeSelectionModal
+                isOpen={isBadgeModalOpen}
+                onClose={() => setIsBadgeModalOpen(false)}
+                currentBadgeId={userProfile?.settings?.badge?.id || 'alpha_tester'}
+                isMaster={currentUser?.uid === 'Kyrlwz6G6NWICCEPYbXtFfyLzWI3'}
+                onSelect={async (badge) => {
+                    await updateSettings({ badge });
+                    await refreshUserProfile();
+                    setIsBadgeModalOpen(false);
                 }}
             />
 

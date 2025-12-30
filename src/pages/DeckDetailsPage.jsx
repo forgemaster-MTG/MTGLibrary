@@ -7,7 +7,7 @@ import { useCollection } from '../hooks/useCollection';
 import { deckService } from '../services/deckService';
 import CardSearchModal from '../components/CardSearchModal';
 import ConfirmationModal from '../components/modals/ConfirmationModal';
-import DeckSuggestionsModal from '../components/modals/DeckSuggestionsModal';
+
 import AddFromCollectionModal from '../components/modals/AddFromCollectionModal';
 import DeckCharts from '../components/DeckCharts';
 import DeckAdvancedStats from '../components/DeckAdvancedStats';
@@ -56,12 +56,19 @@ const DeckDetailsPage = () => {
     const navigate = useNavigate();
     const { currentUser, userProfile, updateSettings } = useAuth();
     const { addToast } = useToast();
+    const helperName = userProfile?.settings?.helper?.name || 'The Oracle';
+
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [isAddCollectionOpen, setIsAddCollectionOpen] = useState(false);
 
     // Edit Mode State
     const [isEditingName, setIsEditingName] = useState(false);
     const [editName, setEditName] = useState('');
+
+    // Partner State
+    const [activeCommanderIndex, setActiveCommanderIndex] = useState(0); // 0 = Main, 1 = Partner
+    const [flippedCards, setFlippedCards] = useState({}); // { [id]: boolean }
+    const [fixingData, setFixingData] = useState(false); // Loading state for fetching back face
 
     // Confirmation Modal State
     const [confirmModal, setConfirmModal] = useState({
@@ -74,6 +81,7 @@ const DeckDetailsPage = () => {
     // Modals State
     const [isStrategyModalOpen, setIsStrategyModalOpen] = useState(false);
     const [isStatsModalOpen, setIsStatsModalOpen] = useState(false);
+
 
     const [showStats, setShowStats] = useState(true);
     // Initialize from settings or default to 'grid'
@@ -89,7 +97,22 @@ const DeckDetailsPage = () => {
 
     // Identity Lookup (Must be before early returns)
     const identityInfo = useMemo(() => {
-        const deckColors = deck?.commander?.color_identity || [];
+        // Standard Deck Logic
+        if (deck?.format?.toLowerCase() === 'standard') {
+            const colors = deck.colors || deck.commander?.color_identity || [];
+            // Find match for the deck's colors
+            const match = MTG_IDENTITY_REGISTRY.find(entry => {
+                if (entry.colors.length !== colors.length) return false;
+                return entry.colors.every(c => colors.includes(c));
+            });
+            return match || { badge: "Standard", theme: "Constructed", flavor_text: "A format defined by rotation and meta mastery." };
+        }
+
+        // Merge colors from both commanders
+        const mainColors = deck?.commander?.color_identity || [];
+        const partnerColors = deck?.commander_partner?.color_identity || [];
+        const deckColors = [...new Set([...mainColors, ...partnerColors])]; // Dedupe
+
         if (!deck || deckColors.length === 0) return MTG_IDENTITY_REGISTRY.find(i => i.badge === 'Colorless');
 
         // Perfect match search
@@ -141,10 +164,11 @@ const DeckDetailsPage = () => {
     // KPI Calculations (Moved before early returns)
     const kpiData = useMemo(() => {
         const blueprint = deck?.aiBlueprint || {};
-        const targets = blueprint.suggestedCounts || {};
+        // Support new nested layout.types and legacy suggestedCounts
+        const targets = blueprint.layout?.types || blueprint.suggestedCounts || {};
 
-        return [
-            { label: 'Total', current: totalCards, target: targets.Total || (deck?.format === 'commander' ? 100 : 60) },
+        const layout = [
+            { label: 'Total', current: totalCards, target: (deck?.format?.toLowerCase() === 'standard' || deck?.format?.toLowerCase() === 'modern' ? 60 : 100) },
             { label: 'Creatures', current: countByType('Creature'), target: targets.Creatures || targets.Creature || 30 },
             { label: 'Lands', current: countByType('Land'), target: targets.Lands || targets.Land || 36 },
             { label: 'Instants', current: countByType('Instant'), target: targets.Instants || targets.Instant || 10 },
@@ -153,6 +177,8 @@ const DeckDetailsPage = () => {
             { label: 'Artifacts', current: countByType('Artifact'), target: targets.Artifacts || targets.Artifact || 10 },
             { label: 'Planeswalkers', current: countByType('Planeswalker'), target: targets.Planeswalkers || targets.Planeswalker || 0 },
         ];
+
+        return layout.filter(item => item.target > 0);
     }, [deck, totalCards, deckCards]);
 
     // Group cards (Moved before early returns)
@@ -241,18 +267,80 @@ const DeckDetailsPage = () => {
     const getCardImage = (card) => {
         if (!card) return 'https://placehold.co/250x350?text=No+Image';
         const data = card.data || card; // Handle both structures (flat or nested)
+        const isFlipped = flippedCards[data.id];
 
-        // 1. Check direct image_uris (normal) on data object
+        // 1. Handle Flipped State (Back Face)
+        if (isFlipped && data.card_faces && data.card_faces[1]) {
+            if (data.card_faces[1].image_uris?.normal) {
+                return data.card_faces[1].image_uris.normal;
+            }
+        }
+
+        // 2. Check direct image_uris (normal) on data object
         if (data.image_uris?.normal) return data.image_uris.normal;
 
-        // 2. Check 2-sided cards (card_faces) on data object
+        // 3. Check 2-sided cards (card_faces) on data object (Front Face default)
         if (data.card_faces?.[0]?.image_uris?.normal) return data.card_faces[0].image_uris.normal;
 
-        // 3. Check table column 'image_uri' (singular) if present
+        // 4. Check table column 'image_uri' (singular) if present
         if (card.image_uri) return card.image_uri;
 
-        // 4. Fallback
+        // 5. Fallback
         return 'https://placehold.co/250x350?text=No+Image';
+    };
+
+    const handleFlip = async (e, card, index) => {
+        e.stopPropagation();
+
+        // 1. Logic: If clicking inactive partner -> Swap. If active -> Flip.
+        if (deck.commander_partner && activeCommanderIndex !== index) {
+            setActiveCommanderIndex(index);
+            return;
+        }
+
+        // 2. Check if card is flip-able
+        const data = card.data || card;
+        if (!data.card_faces || data.card_faces.length < 2) return;
+
+        // 3. Check if back face data is missing (common with minimal search results)
+        // If we are about to flip to back (currently false), check for image
+        if (!flippedCards[data.id] && !data.card_faces[1].image_uris) {
+            setFixingData(true);
+            try {
+                addToast('Fetching back face data...', 'info');
+                const response = await fetch(`https://api.scryfall.com/cards/${data.id}`);
+                if (!response.ok) throw new Error('Fetch failed');
+
+                const fullCardData = await response.json();
+
+                // Construct update payload
+                // We need to update specifically the 'commander' or 'commander_partner' field in the DB
+                const updateField = index === 0 ? { commander: fullCardData } : { commanderPartner: fullCardData };
+
+                await deckService.updateDeck(currentUser.uid, deckId, updateField);
+
+                // Optimistically update local deck state logic would be ideal here, 
+                // but window reload is safer or let props update if using real-time (not currently).
+                // For now, we manually mutate the local card object in memory to show the flip instantly
+                // Note: This mutates the 'deck' prop object which is generally bad practice but works for immediate feedback 
+                // until useDeck re-fetches.
+                if (index === 0) deck.commander = fullCardData;
+                else deck.commander_partner = fullCardData;
+
+                addToast('Commander data updated.', 'success');
+            } catch (err) {
+                console.error("Flip fix failed", err);
+                addToast('Could not load card back.', 'error');
+            } finally {
+                setFixingData(false);
+            }
+        }
+
+        // 4. Toggle Flip State
+        setFlippedCards(prev => ({
+            ...prev,
+            [data.id]: !prev[data.id]
+        }));
     };
 
     const handleStartEdit = () => {
@@ -304,6 +392,14 @@ const DeckDetailsPage = () => {
     const getArtCrop = (card) => {
         if (!card) return '';
         const data = card.data || card;
+        const isFlipped = flippedCards[data.id];
+
+        // 1. Handle Flipped State (Back Face)
+        if (isFlipped && data.card_faces && data.card_faces[1]) {
+            if (data.card_faces[1].image_uris?.art_crop) {
+                return data.card_faces[1].image_uris.art_crop;
+            }
+        }
 
         if (data.image_uris?.art_crop) return data.image_uris.art_crop;
         if (data.card_faces?.[0]?.image_uris?.art_crop) return data.card_faces[0].image_uris.art_crop;
@@ -318,8 +414,8 @@ const DeckDetailsPage = () => {
     if (deckError) return <div className="p-20 text-center text-red-500 text-xl font-bold">Error loading deck: {deckError.message}</div>;
     if (!deck) return null;
 
-
-    const commanderImage = getArtCrop(deck.commander);
+    const activeCommander = activeCommanderIndex === 0 ? deck.commander : (deck.commander_partner || deck.commander);
+    const commanderImage = getArtCrop(activeCommander);
     const colorIdentityMap = { W: 'https://svgs.scryfall.io/card-symbols/W.svg', U: 'https://svgs.scryfall.io/card-symbols/U.svg', B: 'https://svgs.scryfall.io/card-symbols/B.svg', R: 'https://svgs.scryfall.io/card-symbols/R.svg', G: 'https://svgs.scryfall.io/card-symbols/G.svg' };
 
     return (
@@ -377,14 +473,22 @@ const DeckDetailsPage = () => {
                                                 {identityInfo.badge} — {identityInfo.theme}
                                             </div>
                                             <div className="flex items-center gap-1">
-                                                {(deck?.commander?.color_identity || []).map(color => (
-                                                    <img
-                                                        key={color}
-                                                        src={colorIdentityMap[color]}
-                                                        alt={color}
-                                                        className="w-4 h-4 shadow-sm"
-                                                    />
-                                                ))}
+                                                {/* Calculate combined identity for display */
+                                                    (() => {
+                                                        const mainColors = deck?.commander?.color_identity || [];
+                                                        const partnerColors = deck?.commander_partner?.color_identity || [];
+                                                        const allColors = [...new Set([...mainColors, ...partnerColors])];
+
+                                                        return allColors.map(color => (
+                                                            <img
+                                                                key={color}
+                                                                src={colorIdentityMap[color]}
+                                                                alt={color}
+                                                                className="w-4 h-4 shadow-sm"
+                                                            />
+                                                        ));
+                                                    })()
+                                                }
                                             </div>
                                         </div>
                                     </div>
@@ -496,32 +600,7 @@ const DeckDetailsPage = () => {
                     })}
                 </div>
 
-                {/* Quick Stats Summary (Pips & Production) */}
-                <div className="bg-gray-950/20 p-4 rounded-2xl border border-white/5 backdrop-blur-md mb-6 flex flex-wrap gap-8 items-center justify-between shadow-lg">
-                    <div className="flex gap-8 items-center">
-                        <div className="flex flex-col gap-1">
-                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Mana Symbols (Pips)</span>
-                            <div className="flex gap-2">
-                                {['W', 'U', 'B', 'R', 'G'].map(color => {
-                                    const colorMap = { W: 'bg-yellow-100', U: 'bg-blue-500', B: 'bg-gray-700', R: 'bg-red-500', G: 'bg-green-600' };
-                                    // We need a simple way to get pip counts without full calculation here if possible, 
-                                    // but for "Quick View" let's just show the color identity if no easy stats
-                                    return deck.commander?.color_identity?.includes(color) ? (
-                                        <div key={color} className={`w-3 h-3 rounded-full ${colorMap[color]} shadow-sm border border-black/20`} />
-                                    ) : null;
-                                })}
-                            </div>
-                        </div>
-                    </div>
-
-                    <button
-                        onClick={() => setIsStatsModalOpen(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-300 rounded-xl border border-indigo-500/30 transition-all text-xs font-bold uppercase tracking-widest group"
-                    >
-                        <svg className="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-                        Comprehensive Analysis
-                    </button>
-                </div>
+                {/* Quick Stats Summary Removed as per user request */}
 
                 {/* Main Content: Split Layout */}
                 <div className="flex flex-col lg:flex-row gap-6">
@@ -635,46 +714,115 @@ const DeckDetailsPage = () => {
 
                         {/* Commander Mini View */}
                         {deck.commander && (
-                            <div className="bg-gray-950/40 backdrop-blur-3xl rounded-3xl shadow-2xl overflow-hidden border border-white/10">
-                                <div className="p-4 bg-white/5 border-b border-white/5">
-                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Commander</h3>
+                            <div className="bg-gray-950/40 backdrop-blur-3xl rounded-3xl shadow-2xl overflow-hidden border border-white/10 relative group">
+                                <div className="p-4 bg-white/5 border-b border-white/5 flex justify-between items-center">
+                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                        {deck.format?.toLowerCase() === 'standard' ? 'Spotlight Card' : (deck.commander_partner ? 'Partners' : 'Commander')}
+                                    </h3>
+                                    {deck.commander_partner && (
+                                        <button
+                                            onClick={() => setActiveCommanderIndex(i => i === 0 ? 1 : 0)}
+                                            className="text-indigo-400 hover:text-indigo-300 text-xs font-bold uppercase tracking-wider transition-colors"
+                                        >
+                                            Swap View ⟳
+                                        </button>
+                                    )}
                                 </div>
-                                <div className="p-4 flex flex-col items-center">
-                                    <img src={getCardImage(deck.commander)} className="w-full rounded-lg shadow-md hover:shadow-indigo-500/30 transition-shadow duration-300" alt={deck.commander.name} />
+
+                                <div className="p-4 flex justify-center relative min-h-[350px]">
+                                    {/* Partner (Render Behind) */}
+                                    {deck.commander_partner && (
+                                        <div
+                                            className={`transition-all duration-500 ease-out transform absolute top-4 
+                                            ${activeCommanderIndex === 0 ? 'scale-90 opacity-60 translate-x-4 -rotate-3 z-0 blur-[1px] hover:blur-0' : 'scale-100 opacity-100 z-10 translate-x-0 rotate-0'}
+                                            cursor-pointer`}
+                                            onClick={(e) => handleFlip(e, deck.commander_partner, 1)}
+                                        >
+                                            <div className="relative">
+                                                <img
+                                                    src={getCardImage(deck.commander_partner)}
+                                                    className="w-full max-w-[250px] rounded-lg shadow-2xl skew-y-1"
+                                                    alt={deck.commander_partner.name}
+                                                />
+                                                {/* Flip Indicator */}
+                                                {(deck.commander_partner.card_faces || deck.commander_partner.data?.card_faces) && activeCommanderIndex === 1 && (
+                                                    <div className="absolute top-2 right-2 bg-black/60 text-white p-1.5 rounded-full hover:bg-black/80 transition-colors backdrop-blur-sm">
+                                                        <svg className={`w-4 h-4 ${fixingData ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                                        </svg>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Primary Commander */}
+                                    <div
+                                        className={`transition-all duration-500 ease-out transform relative 
+                                        ${deck.commander_partner && activeCommanderIndex === 1 ? 'scale-90 opacity-60 -translate-x-4 rotate-3 z-0 blur-[1px] hover:blur-0 cursor-pointer' : 'scale-100 opacity-100 z-10'}
+                                        `}
+                                        onClick={(e) => handleFlip(e, deck.commander, 0)}
+                                    >
+                                        <div className="relative">
+                                            <img
+                                                src={getCardImage(deck.commander)}
+                                                className="w-full max-w-[250px] rounded-lg shadow-2xl hover:shadow-indigo-500/30 transition-shadow duration-300"
+                                                alt={deck.commander.name}
+                                            />
+                                            {/* Flip Indicator */}
+                                            {(deck.commander.card_faces || deck.commander.data?.card_faces) && activeCommanderIndex === 0 && (
+                                                <div className="absolute top-2 right-2 bg-black/60 text-white p-1.5 rounded-full hover:bg-black/80 transition-colors backdrop-blur-sm">
+                                                    <svg className={`w-4 h-4 ${fixingData ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                                    </svg>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         )}
 
-                        {/* AI Tools Actions */}
-                        <div className="bg-gray-950/40 backdrop-blur-3xl rounded-3xl shadow-2xl border border-white/10 overflow-hidden">
-                            <div className="p-4 bg-white/5 border-b border-white/5">
-                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">AI Tools</h3>
+                        {/* AI Tools */}
+                        <div className="bg-gray-950/40 backdrop-blur-3xl rounded-3xl shadow-2xl p-6 border border-white/10 relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <span className="text-8xl">🤖</span>
                             </div>
-                            <div className="p-4 space-y-3">
+                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
+                                {helperName} Tools
+                            </h3>
+                            <div className="space-y-3 relative z-10">
                                 <button
-                                    onClick={() => navigate(`/decks/${deckId}/build`)}
-                                    className="w-full bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-300 border border-indigo-600/30 hover:border-indigo-500 font-bold py-2.5 px-4 rounded-lg transition-all text-sm flex items-center justify-center gap-2 mb-2"
+                                    onClick={() => {
+                                        if (deck.format?.toLowerCase() === 'standard') {
+                                            addToast("Standard AI Deck Tech coming soon! Please verify on Discord to prioritize.", 'info', 0); // 0 = persistent
+                                        } else {
+                                            navigate(`/decks/${deckId}/build`);
+                                        }
+                                    }}
+                                    className="w-full py-4 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-300 rounded-xl border border-indigo-500/20 hover:border-indigo-500/40 transition-all font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3 group/btn"
                                 >
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
-                                    AI Deck Builder
+                                    <span className="text-lg group-hover/btn:scale-110 transition-transform">✨</span>
+                                    {helperName}'s Deck Builder
                                 </button>
-
                                 <button
                                     onClick={() => setIsStatsModalOpen(true)}
-                                    className="w-full bg-blue-600/10 hover:bg-blue-600/20 text-blue-300 border border-blue-600/30 hover:border-blue-500 font-bold py-2.5 px-4 rounded-lg transition-all text-sm flex items-center justify-center gap-2"
+                                    className="w-full py-4 bg-indigo-900/10 hover:bg-indigo-900/20 text-indigo-400 rounded-xl border border-indigo-500/10 hover:border-indigo-500/30 transition-all font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3"
                                 >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                                    <span className="text-lg">📊</span>
                                     Full Deck Stats
                                 </button>
-
-                                {/* DeckAI Component Integration */}
-                                {/* Kept for inline access if desired, but button above now opens modal */}
-                                {/* <DeckAI deck={deck} cards={deckCards} /> */}
                             </div>
                         </div>
 
+                        {/* DeckAI Component Integration */}
+                        {/* Kept for inline access if desired, but button above now opens modal */}
+                        {/* <DeckAI deck={deck} cards={deckCards} /> */}
                     </div>
                 </div>
+
+
 
                 {/* Search Modal */}
                 <CardSearchModal
@@ -716,8 +864,9 @@ const DeckDetailsPage = () => {
                     cards={deckCards}
                     deckName={deck.name}
                 />
-            </div>
-        </div>
+
+            </div >
+        </div >
     );
 };
 

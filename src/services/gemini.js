@@ -150,23 +150,43 @@ ${context}
               6. **Key Synergies & Combos**: Highlight 3-4 specific card combinations. Use a 💡 emoji.
             - Use **Tailwind CSS** classes (e.g., <span class="text-indigo-400 font-bold">Key Card</span>) to highlight important terms.
             - Use headers for each phase (e.g., <h4 class="text-indigo-400 font-black uppercase mb-2">⚡ Early Game</h4>).
-            - **CRITICAL**: The 'layout' counts MUST sum to exactly **99** cards.
-            - Refer to yourself as "${helperName}" where appropriate.
+            5. **CRITICAL: Deck Composition Numbers**:
+                - You MUST calculate specific counts for this specific commander strategies.
+                - Do NOT use generic numbers (like 10/10/10). Tailor them! (e.g., A spellslinger deck might want 25 Instants and only 5 Creatures).
+                - The 'functional' categories MUST sum to exactly **99** cards (assuming 1 commander).
+                - The 'types' categories MUST sum to exactly **99** cards.
+                - Ensure 'Lands' concept matches in both sections (e.g. if Functional Lands is 36, Type Lands should be 36).
 
             You MUST respond with VALID JSON strictly matching this format:
             {
+                "layout": {
+                    "functional": {
+                        "Lands": 36, 
+                        "Mana Ramp": 10,
+                        "Card Draw": 10,
+                        "Targeted Removal": 10,
+                        "Board Wipes": 3,
+                        "Synergy / Strategy": 30
+                    },
+                    "types": {
+                        "Creatures": 30,
+                        "Instants": 10,
+                        "Sorceries": 10,
+                        "Artifacts": 10,
+                        "Enchantments": 5,
+                        "Planeswalkers": 0,
+                        "Lands": 34
+                    }
+                },
                 "suggestedName": "...",
                 "theme": "...",
-                "strategy": "<div>...Structured HTML Content...</div>",
-                "layout": {
-                    "Lands": 36,
-                    "Mana Ramp": 10,
-                    "Card Draw": 10,
-                    "Targeted Removal": 10,
-                    "Board Wipes": 3,
-                    "Synergy / Strategy": 30
-                }
+                "strategy": "<div>...Structured HTML Content...</div>"
             }
+            CRITICAL: 
+            1. 'layout' is the MOST IMPORTANT field. It MUST be populated.
+            2. 'functional' counts must sum to exactly 99.
+            3. 'types' counts must sum to exactly 99. 
+            4. Do NOT refer to yourself as "The Oracle" unless your name is explicitly "The Oracle". Use ONLY your assigned name: ${helperName}.
             Do NOT use markdown code blocks. Return only the JSON string.
         `;
 

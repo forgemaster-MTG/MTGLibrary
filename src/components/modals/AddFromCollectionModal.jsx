@@ -33,12 +33,23 @@ const AddFromCollectionModal = ({ isOpen, onClose, deck, deckCards = [] }) => {
             // 1. Must be unassigned (no deckId)
             if (card.deckId) return false;
 
-            // 2. Must match Color Identity
-            if (!isColorIdentityValid(card.color_identity, commanderColors)) return false;
+            const isStandard = deck.format?.toLowerCase() === 'standard';
+            const isBasic = card.type_line?.toLowerCase().includes('basic land');
 
-            // 3. Must not already be in the deck (Singleton rule, except basic lands - simplified for now to exclude all)
-            // TODO: Allow multiple basic lands
-            if (!card.type_line?.toLowerCase().includes('basic land') && deckCardNames.has(card.name)) return false;
+            // 2. Color Identity (Commander Only)
+            if (!isStandard) {
+                if (!isColorIdentityValid(card.color_identity, commanderColors)) return false;
+            }
+
+            // 3. Deck Limits (Singleton vs 4-of)
+            // Calculate how many copies are currently in the deck
+            const currentCount = deckCards
+                .filter(c => c.name === card.name)
+                .reduce((acc, c) => acc + (c.countInDeck || 1), 0);
+
+            const limit = isStandard ? 4 : 1;
+
+            if (!isBasic && currentCount >= limit) return false;
 
             // 4. Search Filter
             if (term && !card.name.toLowerCase().includes(term) && !card.type_line?.toLowerCase().includes(term)) return false;
@@ -107,8 +118,8 @@ const AddFromCollectionModal = ({ isOpen, onClose, deck, deckCards = [] }) => {
                                 key={type}
                                 onClick={() => setTypeFilter(type)}
                                 className={`px-3 py-1 text-xs font-bold rounded-full transition-colors border ${typeFilter === type
-                                        ? 'bg-indigo-600 text-white border-indigo-500 shadow-md'
-                                        : 'bg-gray-800 text-gray-400 border-gray-700 hover:border-gray-500 hover:text-gray-200'
+                                    ? 'bg-indigo-600 text-white border-indigo-500 shadow-md'
+                                    : 'bg-gray-800 text-gray-400 border-gray-700 hover:border-gray-500 hover:text-gray-200'
                                     }`}
                             >
                                 {type}

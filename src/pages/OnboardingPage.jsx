@@ -1,25 +1,40 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { WelcomeStep, AISetupStep, WalkthroughStep } from '../components/onboarding/OnboardingSteps';
+import { WelcomeStep, PaymentStep, AISetupStep, WalkthroughStep } from '../components/onboarding/OnboardingSteps';
 import { HelperForgeStep } from '../components/onboarding/HelperForgeStep';
 import PlaystyleWizardModal from '../components/modals/PlaystyleWizardModal';
 
 const OnboardingPage = () => {
     const navigate = useNavigate();
-    const { updateSettings, refreshUserProfile } = useAuth();
-    const [step, setStep] = useState(0);
+    const { userProfile, updateSettings, refreshUserProfile } = useAuth();
+    // Initialize step from saved settings or default to 0
+    const [step, setStep] = useState(userProfile?.settings?.onboarding_step || 0);
     const [isPlaystyleConfiguring, setIsPlaystyleConfiguring] = useState(false);
 
     // Step Order:
     // 0: Welcome
-    // 1: AI Setup (Info/Enable)
-    // 2: Forge Helper (Persona)
-    // 3: Playstyle (Modal flow)
-    // 4: Walkthrough (Carousel)
+    // 1: Payment Selection (New)
+    // 2: AI Setup (Info/Enable)
+    // 3: Forge Helper (Persona)
+    // 4: Playstyle (Modal flow)
+    // 5: Walkthrough (Carousel)
 
-    const handleNext = () => {
-        setStep(prev => prev + 1);
+    const handleNext = async () => {
+        const nextStep = step + 1;
+        setStep(nextStep);
+        await updateSettings({ onboarding_step: nextStep });
+    };
+
+    const handleBack = async () => {
+        const prevStep = Math.max(0, step - 1);
+        setStep(prevStep);
+        await updateSettings({ onboarding_step: prevStep });
+    };
+
+    const handlePaymentComplete = async (planId) => {
+        await updateSettings({ subscription_tier: 'alpha_tester' }); // Force alpha for now regardless of selection validation
+        handleNext();
     };
 
     const handleAISetupComplete = async (apiKey) => {
@@ -55,7 +70,7 @@ const OnboardingPage = () => {
     };
 
     const handleFinish = async () => {
-        await updateSettings({ onboarding_complete: true });
+        await updateSettings({ onboarding_complete: true, onboarding_step: 6 }); // Mark complete
         navigate('/dashboard');
     };
 
@@ -72,11 +87,13 @@ const OnboardingPage = () => {
 
                 {step === 0 && <WelcomeStep onNext={handleNext} />}
 
-                {step === 1 && <AISetupStep onNext={handleAISetupComplete} />}
+                {step === 1 && <PaymentStep onNext={handlePaymentComplete} onBack={handleBack} />}
 
-                {step === 2 && <HelperForgeStep onNext={handleHelperForgeComplete} />}
+                {step === 2 && <AISetupStep onNext={handleAISetupComplete} onBack={handleBack} />}
 
-                {step === 3 && (
+                {step === 3 && <HelperForgeStep onNext={handleHelperForgeComplete} onBack={handleBack} />}
+
+                {step === 4 && (
                     <div className="text-center max-w-2xl animate-fade-in-up space-y-8">
                         <div className="w-24 h-24 mx-auto bg-green-500/20 rounded-full flex items-center justify-center ring-1 ring-green-500/50 shadow-[0_0_30px_rgba(34,197,94,0.3)]">
                             <svg className="w-12 h-12 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -89,6 +106,9 @@ const OnboardingPage = () => {
                             </p>
                         </div>
                         <div className="flex gap-4 justify-center">
+                            <button onClick={handleBack} className="px-8 py-3 bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white rounded-xl font-medium transition-colors border border-gray-700">
+                                Back
+                            </button>
                             <button onClick={handlePlaystyleStart} className="px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-all shadow-lg hover:shadow-indigo-500/25">
                                 Start Quiz
                             </button>
@@ -99,13 +119,13 @@ const OnboardingPage = () => {
                     </div>
                 )}
 
-                {step === 4 && <WalkthroughStep onNext={handleFinish} />}
+                {step === 5 && <WalkthroughStep onNext={handleFinish} onBack={handleBack} />}
 
             </div>
 
             {/* Progress Dots */}
             <div className="relative z-10 py-8 flex justify-center gap-3">
-                {[0, 1, 2, 3, 4].map(i => (
+                {[0, 1, 2, 3, 4, 5].map(i => (
                     <div key={i} className={`h-2 rounded-full transition-all duration-300 ${i === step ? 'w-8 bg-indigo-500' : 'w-2 bg-gray-700'}`} />
                 ))}
             </div>

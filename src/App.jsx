@@ -13,12 +13,14 @@ import SettingsPage from './pages/SettingsPage';
 import WishlistPage from './pages/WishlistPage';
 import DeckBuildWizardPage from './pages/DeckBuildWizardPage';
 import OnboardingPage from './pages/OnboardingPage';
+import AboutPage from './pages/AboutPage';
 import ChatWidget from './components/ChatWidget';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
 
 import { CardModalProvider } from './contexts/CardModalContext';
 import CardDetailsModal from './components/modals/CardDetailsModal';
+import AuthGuard from './components/AuthGuard';
 
 function App() {
     return (
@@ -27,23 +29,26 @@ function App() {
                 <CardModalProvider>
                     <div className="bg-gray-900 text-gray-200 font-sans min-h-screen flex flex-col">
                         <Navbar />
-                        <div className="flex-grow">
-                            <Routes>
-                                <Route path="/" element={<LandingPage />} />
-                                <Route path="/dashboard" element={<Dashboard />} />
-                                <Route path="/login" element={<LoginPage />} />
-                                <Route path="/onboarding" element={<OnboardingPage />} />
-                                <Route path="/collection" element={<CollectionPage />} />
-                                <Route path="/decks" element={<DecksPage />} />
-                                <Route path="/decks/new" element={<CreateDeckPage />} />
-                                <Route path="/decks/:deckId" element={<DeckDetailsPage />} />
-                                <Route path="/decks/:deckId/build" element={<DeckBuildWizardPage />} />
-                                <Route path="/sets" element={<SetsPage />} />
-                                <Route path="/sets/:setCode" element={<SetDetailsPage />} />
-                                <Route path="/wishlist" element={<WishlistPage />} />
-                                <Route path="/settings" element={<SettingsPage />} />
-                            </Routes>
-                        </div>
+                        <AuthGuard>
+                            <div className="flex-grow">
+                                <Routes>
+                                    <Route path="/" element={<LandingPage />} />
+                                    <Route path="/about" element={<AboutPage />} />
+                                    <Route path="/dashboard" element={<Dashboard />} />
+                                    <Route path="/login" element={<LoginPage />} />
+                                    <Route path="/onboarding" element={<OnboardingPage />} />
+                                    <Route path="/collection" element={<CollectionPage />} />
+                                    <Route path="/decks" element={<DecksPage />} />
+                                    <Route path="/decks/new" element={<CreateDeckPage />} />
+                                    <Route path="/decks/:deckId" element={<DeckDetailsPage />} />
+                                    <Route path="/decks/:deckId/build" element={<DeckBuildWizardPage />} />
+                                    <Route path="/sets" element={<SetsPage />} />
+                                    <Route path="/sets/:setCode" element={<SetDetailsPage />} />
+                                    <Route path="/wishlist" element={<WishlistPage />} />
+                                    <Route path="/settings" element={<SettingsPage />} />
+                                </Routes>
+                            </div>
+                        </AuthGuard>
                         {/* Global Components */}
                         <ChatWidget />
                         <CardDetailsModal />

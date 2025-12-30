@@ -56,13 +56,15 @@ router.get('/:id', async (req, res) => {
 // Create a deck
 router.post('/', async (req, res) => {
   try {
-    const { name, commander, aiBlueprint } = req.body;
+    const { name, commander, commanderPartner, aiBlueprint, format } = req.body;
     if (!name) return res.status(400).json({ error: 'name is required' });
 
     const insert = {
       user_id: req.user.id,
       name,
+      format: format || 'Commander',
       commander: commander || null,
+      commander_partner: commanderPartner || null,
       ai_blueprint: aiBlueprint || null, // Map camelCase to snake_case column
       is_mockup: req.body.isMockup || false,
       // firestore_id? optional
@@ -85,10 +87,12 @@ router.put('/:id', async (req, res) => {
     if (!existing) return res.status(404).json({ error: 'not found' });
     if (existing.user_id !== req.user.id) return res.status(403).json({ error: 'unauthorized' });
 
-    const { name, commander } = req.body;
+    const { name, commander, commanderPartner, format } = req.body;
     const update = { updated_at: knex.fn.now() };
     if (name !== undefined) update.name = name;
+    if (format !== undefined) update.format = format;
     if (commander !== undefined) update.commander = commander;
+    if (commanderPartner !== undefined) update.commander_partner = commanderPartner;
     if (req.body.isMockup !== undefined) update.is_mockup = req.body.isMockup;
 
     const [row] = await knex('user_decks')

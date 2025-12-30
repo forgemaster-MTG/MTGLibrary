@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../services/api';
 import { collectionService } from '../services/collectionService';
@@ -7,6 +8,7 @@ import HelperSettingsModal from '../components/modals/HelperSettingsModal';
 
 const SettingsPage = () => {
     const { user, userProfile, refreshUserProfile } = useAuth();
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('general');
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -116,6 +118,23 @@ const SettingsPage = () => {
                         <div className="space-y-1">
                             <label className="text-sm text-gray-400 block">User ID</label>
                             <div className="bg-gray-900 p-3 rounded-lg text-gray-200 font-mono text-xs">{user.uid}</div>
+                        </div>
+
+                        {/* Onboarding Reset */}
+                        <div className="pt-6 border-t border-gray-700">
+                            <h3 className="text-lg font-medium text-white mb-2">Account Actions</h3>
+                            <button
+                                onClick={async () => {
+                                    if (window.confirm('This will restart the welcome tour. Continue?')) {
+                                        await api.updateUser(userProfile.id, { settings: { ...userProfile.settings, onboarding_complete: false, onboarding_step: 0 } });
+                                        await refreshUserProfile();
+                                        navigate('/onboarding');
+                                    }
+                                }}
+                                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg border border-gray-600 transition-colors text-sm font-medium"
+                            >
+                                Reset Onboarding Tour
+                            </button>
                         </div>
                     </div>
                 )}

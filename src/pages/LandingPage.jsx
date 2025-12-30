@@ -11,6 +11,15 @@ import FeaturesSection from '../components/FeaturesSection';
 const LandingPage = () => {
     return (
         <div className="flex flex-col min-h-screen">
+            {/* Alpha Warning Banner */}
+            <div className="bg-gradient-to-r from-orange-600 via-red-600 to-orange-600 text-white text-center py-2 px-4 shadow-lg z-50 relative animate-pulse-slow">
+                <p className="font-bold text-sm tracking-wide flex items-center justify-center gap-2">
+                    <span className="text-lg">🚧</span>
+                    ALPHA TEST - Feature Complete but Experimental
+                    <span className="text-lg">🚧</span>
+                </p>
+            </div>
+
             {/* Hero Section */}
             <div className="relative bg-gray-900 border-b border-gray-800">
                 <div className="absolute inset-0 overflow-hidden">

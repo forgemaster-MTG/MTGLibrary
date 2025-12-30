@@ -24,7 +24,7 @@ const DeckBuildWizardPage = () => {
 
     // Wizard State
     const [step, setStep] = useState(STEPS.ANALYSIS);
-    const [status, setStatus] = useState('Initializing Oracle...');
+    const [status, setStatus] = useState(`Initializing ${userProfile?.settings?.helper?.name || 'Oracle'}...`);
     const [logs, setLogs] = useState([]);
     const [isProcessing, setIsProcessing] = useState(false);
     const [suggestions, setSuggestions] = useState({}); // { id: { ...cardData, rating, reason, suggestedType } }
@@ -40,6 +40,116 @@ const DeckBuildWizardPage = () => {
 
     const addLog = (msg) => {
         setLogs(prev => [...prev, `[${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}] ${msg}`]);
+    };
+
+    // --- Helpers ---
+
+    const helperName = userProfile?.settings?.helper?.name || 'The Oracle';
+
+    const getArtCrop = (card) => {
+        if (!card) return null;
+        const data = card.data || card;
+        const isFlipped = false; // Add flip logic if needed later, for now default to front
+
+        if (data.image_uris?.art_crop) return data.image_uris.art_crop;
+        if (data.card_faces?.[0]?.image_uris?.art_crop) return data.card_faces[0].image_uris.art_crop;
+        if (data.image_uris?.normal) return data.image_uris.normal;
+        return null;
+    };
+
+    // --- Core Logic ---
+
+    const calculateManaStats = (currentCards, suggestedCards) => {
+        const stats = { W: 0, U: 0, B: 0, R: 0, G: 0, total: 0 };
+
+        const countPips = (cost) => {
+            if (!cost) return;
+            stats.W += (cost.match(/\{W\}/g) || []).length;
+            stats.U += (cost.match(/\{U\}/g) || []).length;
+            stats.B += (cost.match(/\{B\}/g) || []).length;
+            stats.R += (cost.match(/\{R\}/g) || []).length;
+            stats.G += (cost.match(/\{G\}/g) || []).length;
+        };
+
+        currentCards.forEach(c => countPips(c.mana_cost || c.data?.mana_cost));
+        Object.values(suggestedCards).forEach(s => countPips(s.data?.mana_cost || s.type_line)); // Fallback? No, just mana_cost
+
+        stats.total = stats.W + stats.U + stats.B + stats.R + stats.G;
+        return stats;
+    };
+
+    const generateBasicLands = (neededCount, manaStats, collection) => {
+        if (neededCount <= 0) return {};
+
+        // Default to equal distribution if no pips (e.g. artifacts) or colorless
+        if (manaStats.total === 0) {
+            // For simplicity in this iteration, we might just return safely or pick Wastes if colorless?
+            // Let's default to Commander Identity if pips are 0, or just random basics?
+            // For now, return empty to be safe against errors.
+            return {};
+        }
+
+        const basicLands = {
+            W: { name: 'Plains', type: 'Basic Land — Plains' },
+            U: { name: 'Island', type: 'Basic Land — Island' },
+            B: { name: 'Swamp', type: 'Basic Land — Swamp' },
+            R: { name: 'Mountain', type: 'Basic Land — Mountain' },
+            G: { name: 'Forest', type: 'Basic Land — Forest' }
+        };
+
+        const landSuggestions = {};
+        let distributed = 0;
+        const distribution = {};
+
+        ['W', 'U', 'B', 'R', 'G'].forEach(color => {
+            if (manaStats[color] > 0) {
+                const ratio = manaStats[color] / manaStats.total;
+                const count = Math.round(neededCount * ratio);
+                distribution[color] = count;
+                distributed += count;
+            }
+        });
+
+        // Adjust for rounding
+        if (distributed > 0) {
+            const colors = Object.keys(distribution).filter(k => distribution[k] > 0);
+            // Sort by count desc to add/remove from largest pile
+            colors.sort((a, b) => distribution[b] - distribution[a]);
+
+            if (distributed < neededCount) {
+                distribution[colors[0]] += (neededCount - distributed);
+            } else if (distributed > neededCount) {
+                distribution[colors[0]] -= (distributed - neededCount);
+            }
+        }
+
+        Object.entries(distribution).forEach(([color, count]) => {
+            if (count > 0) {
+                const landInfo = basicLands[color];
+                // Try to find a real card in collection for art
+                const candidate = collection.find(c => c.name === landInfo.name) || {
+                    name: landInfo.name,
+                    type_line: landInfo.type,
+                    image_uris: { normal: `https://api.scryfall.com/cards/named?exact=${landInfo.name}&format=image` }
+                };
+
+                for (let i = 0; i < count; i++) {
+                    const uniqueId = `basic-${color}-${i}-${Date.now()}`;
+                    landSuggestions[uniqueId] = {
+                        firestoreId: uniqueId,
+                        name: landInfo.name,
+                        type_line: landInfo.type,
+                        rating: 10,
+                        reason: `Auto-filled to match ${Math.round((manaStats[color] / manaStats.total) * 100)}% ${color} pip density.`,
+                        suggestedType: 'Land',
+                        data: candidate.data || candidate,
+                        isVirtual: true
+                    };
+                }
+            }
+        });
+
+        return landSuggestions;
     };
 
     // --- Core Logic ---
@@ -63,12 +173,13 @@ const DeckBuildWizardPage = () => {
         addLog("Starting deck architecture analysis...");
 
         try {
-            const commanderColors = deck.commander?.color_identity || [];
+            const commanderColors = [...new Set([...(deck.commander?.color_identity || []), ...(deck.commander_partner?.color_identity || [])])];
             const blueprint = deck.aiBlueprint || {};
             const typesToFill = ['Synergy / Strategy', 'Mana Ramp', 'Card Draw', 'Targeted Removal', 'Board Wipes', 'Land'];
 
             const currentDeckNames = new Set(deckCards.map(c => c.name));
             if (deck.commander?.name) currentDeckNames.add(deck.commander.name);
+            if (deck.commander_partner?.name) currentDeckNames.add(deck.commander_partner.name);
 
             const typeTargets = {
                 'Land': 36,
@@ -120,7 +231,7 @@ const DeckBuildWizardPage = () => {
 
                 const promptData = {
                     blueprint,
-                    instructions: `Select up to ${needed} best "${type}" cards for a ${deck.format || 'Commander'} deck. Commander: ${deck.commander?.name}. Prioritize theme synergy.`,
+                    instructions: `Select EXACTLY ${needed} best "${type}" cards for a ${deck.format || 'Commander'} deck. Commander: ${deck.commander?.name}${deck.commander_partner ? ' & ' + deck.commander_partner.name : ''}. Prioritize theme synergy.`,
                     candidates: candidates.slice(0, 150),
                     playstyle: userProfile?.playstyle,
                     targetRole: type
@@ -129,15 +240,24 @@ const DeckBuildWizardPage = () => {
                 let attempts = 0;
                 while (attempts < 2) {
                     try {
-                        addLog(`Consulting Oracle for ${type}s (Need ${needed})${attempts > 0 ? ' [Retry]' : ''}...`);
+                        addLog(`Consulting ${helperName} for ${type}s (Need ${needed})${attempts > 0 ? ' [Retry]' : ''}...`);
                         const result = await GeminiService.generateDeckSuggestions(userProfile.settings.geminiApiKey, promptData);
                         if (result?.suggestions) {
                             result.suggestions.forEach(s => {
+                                // Find the original candidate (stripped) to confirm it was offered
                                 const original = candidates.find(c => c.firestoreId === s.firestoreId);
                                 if (original) {
+                                    // CRITICAL: Fetch the FULL card object from collection to ensure we have 'data', 'scryfall_id', 'image_uris' etc.
+                                    // The 'candidates' array only had stripped properties to save AI tokens.
+                                    const fullCard = collection.find(c => c.id === s.firestoreId);
+
                                     const id = s.firestoreId;
                                     allNewSuggestions[id] = {
-                                        ...original,
+                                        ...s, // AI stats (rating, reason)
+                                        firestoreId: id,
+                                        name: fullCard?.name || original.name,
+                                        type_line: fullCard?.data?.type_line || original.type_line,
+                                        data: fullCard?.data || fullCard, // Attach Full Data
                                         rating: s.rating,
                                         reason: s.reason,
                                         suggestedType: type
@@ -145,20 +265,37 @@ const DeckBuildWizardPage = () => {
                                     initialSelectedIds.add(id);
                                 }
                             });
-                            addLog(`Oracle provided ${result.suggestions.length} suggestions for ${type}.`);
+                            addLog(`${helperName} provided ${result.suggestions.length} suggestions for ${type}.`);
                         }
                         break; // Success!
                     } catch (err) {
                         attempts++;
                         if (attempts >= 2) {
                             console.error(`[Wizard] Oracle failed for ${type} after 2 tries:`, err);
-                            addLog(`Notice: Oracle failed for ${type}: ${err.message}. Continuing...`);
+                            addLog(`Notice: ${helperName} failed for ${type}: ${err.message}. Continuing...`);
                         } else {
-                            addLog(`Notice: Oracle encountered an issue with ${type}. Retrying in 2s...`);
+                            addLog(`Notice: ${helperName} encountered an issue with ${type}. Retrying in 2s...`);
                             await new Promise(r => setTimeout(r, 2000));
                         }
                     }
                 }
+            }
+
+            // --- Basic Land Filler ---
+            const currentLands = deckCards.filter(c => (c.data?.type_line || c.type_line || '').includes('Land')).length;
+            const suggestedLands = Object.values(allNewSuggestions).filter(s => s.suggestedType === 'Land').length;
+            const totalLands = currentLands + suggestedLands;
+            const targetLands = typeTargets['Land'] || 36;
+            const neededLands = Math.max(0, targetLands - totalLands);
+
+            if (neededLands > 0) {
+                addLog(`Calculating mana base for ${neededLands} remaining land slots...`);
+                const manaStats = calculateManaStats(deckCards, allNewSuggestions);
+                const basicLandSuggestions = generateBasicLands(neededLands, manaStats, collection);
+
+                Object.assign(allNewSuggestions, basicLandSuggestions);
+                Object.keys(basicLandSuggestions).forEach(id => initialSelectedIds.add(id));
+                addLog(`Added ${Object.keys(basicLandSuggestions).length} Basic Lands to balance mana curve.`);
             }
 
             setSuggestions(allNewSuggestions);
@@ -181,7 +318,7 @@ const DeckBuildWizardPage = () => {
         addLog("Dev Mode: Skipping Analysis...");
 
         // 1. Setup Targets (Mirrors startAnalysis)
-        const commanderColors = deck.commander?.color_identity || [];
+        const commanderColors = [...new Set([...(deck.commander?.color_identity || []), ...(deck.commander_partner?.color_identity || [])])];
         const blueprint = deck.aiBlueprint || {};
         const typesToFill = ['Land', 'Mana Ramp', 'Card Draw', 'Targeted Removal', 'Board Wipes', 'Synergy / Strategy'];
 
@@ -259,34 +396,7 @@ const DeckBuildWizardPage = () => {
         setStep(STEPS.ARCHITECT);
     };
 
-    const handleDeploy = async () => {
-        setIsProcessing(true);
-        setStatus('Deploying build...');
-        addLog(`Deploying ${selectedCards.size} cards to deck...`);
 
-        try {
-            const cardsToApply = Array.from(selectedCards).map(id => {
-                const s = suggestions[id];
-                return {
-                    scryfall_id: s.firestoreId || null,
-                    name: s.name,
-                    finish: 'nonfoil',
-                    data: s.data || s,
-                    is_wishlist: true,
-                    count: 1
-                };
-            });
-
-            await api.post(`/decks/${deckId}/cards/batch`, { cards: cardsToApply });
-            addToast(`Successfully deployed ${cardsToApply.length} cards!`, 'success');
-            navigate(`/decks/${deckId}`);
-        } catch (err) {
-            console.error(err);
-            addToast("Failed to deploy build.", "error");
-        } finally {
-            setIsProcessing(false);
-        }
-    };
 
     const toggleSelection = (id) => {
         const newSet = new Set(selectedCards);
@@ -303,9 +413,9 @@ const DeckBuildWizardPage = () => {
                 <div className="inline-block p-4 rounded-3xl bg-indigo-500/10 border border-indigo-500/20 mb-4 animate-bounce">
                     <span className="text-4xl">✨</span>
                 </div>
-                <h1 className="text-5xl font-black text-white tracking-tighter uppercase italic">Oracle Deck Architect</h1>
+                <h1 className="text-5xl font-black text-white tracking-tighter uppercase italic">{helperName} Deck Architect</h1>
                 <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-                    The Oracle will analyze your collection and current deck composition to architect the perfect additions for <span className="text-indigo-400 font-bold">{deck?.name}</span>.
+                    {helperName} will analyze your collection and current deck composition to architect the perfect additions for <span className="text-indigo-400 font-bold">{deck?.name}</span>.
                 </p>
             </div>
 
@@ -334,11 +444,11 @@ const DeckBuildWizardPage = () => {
                         )}
                     </div>
                 </div>
-                <div className="p-8 h-[400px] overflow-y-auto font-mono text-xs space-y-3 custom-scrollbar bg-black/20">
+                <div className="p-8 h-[400px] overflow-y-auto font-mono text-xs space-y-3 custom-scrollbar bg-black/40 backdrop-blur-inner shadow-inner box-shadow-inner border-t border-white/5 font-medium leading-relaxed">
                     {logs.length === 0 ? (
-                        <div className="text-gray-600 italic">Waiting for architecture to start...</div>
+                        <div className="text-gray-600 italic animate-pulse">Waiting for architecture to start...</div>
                     ) : (
-                        logs.map((log, i) => <div key={i} className="text-gray-400 animate-fade-in pl-4 border-l-2 border-indigo-500/20 py-0.5">{log}</div>)
+                        logs.map((log, i) => <div key={i} className="text-gray-300 animate-fade-in pl-4 border-l-2 border-indigo-500/40 py-1 hover:bg-white/5 transition-colors rounded-r">{log}</div>)
                     )}
                     <div ref={logsEndRef} />
                 </div>
@@ -355,7 +465,7 @@ const DeckBuildWizardPage = () => {
                 <div className="flex flex-col md:flex-row justify-between items-end gap-6 px-4">
                     <div className="space-y-1">
                         <h2 className="text-3xl font-black text-white italic tracking-tighter uppercase">Selection Phase</h2>
-                        <p className="text-gray-500 text-sm font-medium">Review the Oracle's suggestions and select the ones you want to draft into your deck.</p>
+                        <p className="text-gray-500 text-sm font-medium">Review {helperName}'s suggestions and select the ones you want to draft into your deck.</p>
                     </div>
                     <div className="flex items-center gap-3 bg-gray-950/50 p-1.5 rounded-2xl border border-white/5 backdrop-blur-md">
                         {[
@@ -515,6 +625,74 @@ const DeckBuildWizardPage = () => {
 
     const renderDeploy = () => {
         const cards = Array.from(selectedCards).map(id => suggestions[id]);
+
+        const handleDeploy = async () => {
+            if (isProcessing) return;
+            setIsProcessing(true);
+            try {
+                const cardsToApply = [];
+                // Build a map of availability
+                const availabilityMap = new Map(); // scryfall_id -> count of unassigned
+                collection.forEach(c => {
+                    const sid = c.scryfall_id || c.data?.scryfall_id;
+                    if (sid && !c.deck_id) {
+                        availabilityMap.set(sid, (availabilityMap.get(sid) || 0) + 1);
+                    }
+                });
+
+                for (const s of cards) {
+                    const data = s.data || s;
+                    // Resolve Scryfall ID
+                    const scryfallId = data.scryfall_id || data.id || (s.isVirtual ? null : s.firestoreId);
+
+                    let useMinimal = false;
+
+                    if (scryfallId && availabilityMap.has(scryfallId)) {
+                        const count = availabilityMap.get(scryfallId);
+                        if (count > 0) {
+                            useMinimal = true;
+                            availabilityMap.set(scryfallId, count - 1); // Decrement for next iteration
+                        }
+                    }
+
+                    if (useMinimal) {
+                        cardsToApply.push({
+                            scryfall_id: scryfallId,
+                            finish: 'nonfoil'
+                        });
+                    } else {
+                        // STRICTNESS CHECK: Collection Decks cannot have Wishlist items
+                        // EXCEPTION: Basic Lands are considered "infinite" resource
+                        const isBasicLand = s.type_line && s.type_line.includes('Basic Land');
+
+                        if (deck.is_mockup === false && !isBasicLand) {
+                            throw new Error(`Cannot add unowned card "${s.name}" to a Collection Deck.`);
+                        }
+
+                        // Fallback to Full logic (Wishlist Creation)
+                        cardsToApply.push({
+                            scryfall_id: scryfallId,
+                            name: s.name,
+                            finish: 'nonfoil',
+                            data: data, // Must include data for new items
+                            count: 1,
+                            // Basic Lands are implicitly "owned" (not wishlist), others are wishlist if mockup
+                            is_wishlist: isBasicLand ? false : true
+                        });
+                    }
+                }
+
+                await api.post(`/decks/${deckId}/cards/batch`, { cards: cardsToApply });
+
+                addToast(`Successfully added ${cardsToApply.length} cards to ${deck.name}!`, 'success');
+                navigate(`/decks/${deckId}`);
+            } catch (err) {
+                console.error("Deployment failed:", err);
+                addToast("Failed to deploy cards. Please try again.", "error");
+            } finally {
+                setIsProcessing(false);
+            }
+        };
         return (
             <div className="max-w-5xl mx-auto space-y-12 py-12">
                 <div className="text-center space-y-2">
@@ -541,16 +719,21 @@ const DeckBuildWizardPage = () => {
 
     if (deckLoading) return <div className="flex items-center justify-center h-screen"><div className="animate-spin h-12 w-12 border-4 border-indigo-500 border-t-transparent rounded-full" /></div>;
 
-    const commanderArt = deck?.commander?.image_uris?.art_crop;
+    const commanderArt = getArtCrop(deck?.commander) || getArtCrop(deck?.commander_partner);
 
     return (
         <div className="min-h-screen bg-gray-950 text-gray-200 font-sans relative flex flex-col pt-16">
             {/* Immersive Background */}
-            <div className="fixed inset-0 z-0">
-                <div className="absolute inset-0 bg-gray-950/80 backdrop-blur-[100px] z-10" />
-                {commanderArt && (
-                    <img src={commanderArt} className="w-full h-full object-cover opacity-30 animate-pulse-slow" alt="Background" />
-                )}
+            <div
+                className="fixed inset-0 z-0 transition-all duration-1000 ease-in-out"
+                style={{
+                    backgroundImage: `url(${commanderArt})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                }}
+            >
+                <div className="absolute inset-0 bg-gray-950/60 backdrop-blur-[2px]" />
+                <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/80 to-gray-950/40" />
             </div>
 
             {/* Navigation Overlay */}

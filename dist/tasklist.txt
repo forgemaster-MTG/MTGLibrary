@@ -1,0 +1,36 @@
+# Task List
+
+## High Priority
+- [x] **[Frontend/Database]** Add card inside single deck view not registering firestore ID.
+        -Error: singleDeck.js:781 [handleAddSelectedCardsToDeck] prefetch failed for undefined TypeError: Cannot read properties of undefined (reading 'indexOf')
+                 at ResourcePath.fromString (path.ts:275:11)
+                 at doc (reference.ts:571:5)
+                 at handleAddSelectedCardsToDeck (singleDeck.js:773:35)
+                 at confirmBtn.onclick (singleDeck.js:754:7)
+- [x] **[Backend/Database]** Lands not always posting the count when adding from deck suggestions, its timing out?
+- [x] **[Backend/AI]** Make sure its pulling in the deck when rerunning a deck. When its rerun, especially to find missing cout of cards IE 3/8 instants already in the deck. It sometimes returns those 3 again, along with the additional ones.
+- [x] **[User Facing]** Add a BUG button above the settings option in the UI that opens a modal to show this txt file. Allowing them to see and track known bugs & fixes. Add a note to add a comment to the discord server bug channel for any bugs found not in this list.
+- [x] **[Frontend/Database]** Rework the front end UI for the deck creation view. Lets give some more details on the commanders they are choosing between, and make it more modern. There also seems to be a bug when you push the create button prior to selecting a commander. It makes the modal non-responsive, can you fix that?
+- [x] **[Frontend]** Finally figure out how to show the stupid 2 sided cards throughout the deck. They show correctly in the collection, but not in view details, or deck view etc. Dont make it so the JS throughout the site references one place, they all need to be doing different things. Just update each area so it refreences the correct URL and registers if its a 2 sided card. (also make sure the background of the view details works as well.)
+- [x] **[Backend]** For the Update strat button within the singledeck view, add a new function that calls gemini, passes in the commander, the playstyle, and all cards within the deck selected to redo the strat.
+- [ ] **[AI/LLM]** Build the AI chat for the single deck view
+- [ ] **[Testing]** Run full mobile tests and desktop tests
+
+## Medium Priority
+- [ ] **[Frontend]** Playstyle button not registering on desktop
+- [ ] **[Database/Backend]** Cleanup duplicates after deck deletion
+- [ ] **[AI/LLM]** Let Gemini give errors when it comes up instead of generic error
+- [ ] **[Frontend/Database]** Stats table showing duplicates for multi type cards. - Possible fix is to add type it was chosen for in the db.
+- [ ] **[AI/LLM / Frontend]** When creating the suggestions for deck summary and card type counts, pass in all counts of cards that would be available to the deck. Allow the user to choose between the full suggestion, or based on the cards that are in their deck currently.
+- [ ] **[Frontend]** When you fail to select a commander before creating a deck, it shows an error message, but doesnt let you continue. Loop back and open the modal again?
+- [ ] **[Frontend]** Make sure the rerun suggested deck has a visual for what it replaces and make sure it actually replaces the old deck.
+- [ ] **[Database/AI]** Artifact creatues - Sparring dummy not showing in add card view, or being added through AI
+- [ ] **[Frontend/AI]** Fix updating the summary when the deck is created. Pass in cards to the summary function.
+- [ ] **[Frontend]** Add a discord icon/button that links to discord server & a youtube button that links to youtube
+
+## Low Priority
+- [ ] **[Frontend]** When you dont have cards of a specific type enough to fill out the deck, add a specific error message in the deck suggestions page to notify why.
+- [ ] **[Frontend]** When creating a new deck for commanders give more info about the commander card
+- [ ] **[Frontend]** Show the deck creation after the AI picks the cards in a better manner.
+- [ ] **[AI/LLM]** remove the rule lookup chat, build that into the MTG chat
+- [ ] **[Documentation/AI]** Create a help center for the app with a chat that contains all the rules and information about the app.

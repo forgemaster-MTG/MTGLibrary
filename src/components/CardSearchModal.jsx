@@ -7,6 +7,7 @@ import { useCollection } from '../hooks/useCollection';
 import { useDebounce } from '../hooks/useDebounce';
 import { collectionService } from '../services/collectionService';
 import InteractiveCard from './common/InteractiveCard';
+import { FunnelIcon } from '@heroicons/react/24/solid';
 
 const OperatorSelect = ({ value, onChange }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -32,13 +33,13 @@ const OperatorSelect = ({ value, onChange }) => {
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-2 px-3 py-3 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 font-bold rounded-l-xl border-r border-white/10 transition-colors min-w-[50px] justify-center"
+                className="flex items-center gap-2 px-3 py-3 bg-gray-900/50 hover:bg-gray-800 text-indigo-400 font-bold rounded-l-xl border-r border-white/10 transition-colors min-w-[50px] justify-center"
             >
                 {selected.label}
                 <svg className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
             </button>
             {isOpen && (
-                <div className="absolute top-full left-0 mt-1 w-20 bg-[#1a1c23] border border-white/10 rounded-lg shadow-2xl z-[70] overflow-hidden backdrop-blur-xl animate-in fade-in zoom-in-95 duration-100">
+                <div className="absolute top-full left-0 mt-1 w-20 bg-gray-900 border border-white/10 rounded-lg shadow-2xl z-[70] overflow-hidden backdrop-blur-xl">
                     {options.map(opt => (
                         <button
                             key={opt.value}
@@ -61,6 +62,7 @@ const OperatorSelect = ({ value, onChange }) => {
 const CardSearchModal = ({ isOpen, onClose, onAddCard }) => {
     // Basic Search
     const [query, setQuery] = useState('');
+    const [isTyping, setIsTyping] = useState(false);
     const [setCode, setSetCode] = useState('');
     const [collectorNumber, setCollectorNumber] = useState('');
 
@@ -93,9 +95,9 @@ const CardSearchModal = ({ isOpen, onClose, onAddCard }) => {
     const debouncedQuery = useDebounce(query, 300);
 
     useEffect(() => {
-        if (debouncedQuery.length >= 2) {
+        if (debouncedQuery.length >= 2 && isTyping) {
             fetchSuggestions(debouncedQuery);
-        } else {
+        } else if (debouncedQuery.length < 2) {
             setSuggestions([]);
         }
     }, [debouncedQuery]);
@@ -241,58 +243,75 @@ const CardSearchModal = ({ isOpen, onClose, onAddCard }) => {
 
     if (!isOpen) return null;
 
+    const colorMap = {
+        W: { bg: 'bg-yellow-100', text: 'text-yellow-700', border: 'border-yellow-200', symbol: 'https://svgs.scryfall.io/card-symbols/W.svg' },
+        U: { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200', symbol: 'https://svgs.scryfall.io/card-symbols/U.svg' },
+        B: { bg: 'bg-gray-300', text: 'text-gray-800', border: 'border-gray-400', symbol: 'https://svgs.scryfall.io/card-symbols/B.svg' },
+        R: { bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-200', symbol: 'https://svgs.scryfall.io/card-symbols/R.svg' },
+        G: { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-200', symbol: 'https://svgs.scryfall.io/card-symbols/G.svg' },
+        C: { bg: 'bg-gray-400', text: 'text-gray-900', border: 'border-gray-500', symbol: 'https://svgs.scryfall.io/card-symbols/C.svg' }
+    };
+
     return createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-fade-in">
             {/* Backdrop */}
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose}></div>
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-md transition-opacity" onClick={onClose}></div>
 
             {/* Modal Container */}
-            <div className="relative bg-[#0d0f14] border border-white/10 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 ring-1 ring-white/5">
+            <div className="relative bg-gray-900 border border-white/10 rounded-3xl shadow-2xl w-full max-w-7xl max-h-[90vh] flex flex-col overflow-hidden ring-1 ring-white/5">
 
                 {/* Header */}
-                <div className="p-6 border-b border-white/5 flex justify-between items-center bg-black/20 flex-shrink-0">
+                <div className="p-6 border-b border-white/5 flex justify-between items-center bg-gray-950/50 flex-shrink-0">
                     <div>
-                        <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Add Cards</h2>
+                        <h2 className="text-2xl font-black text-white flex items-center gap-3">
+                            <span className="text-indigo-400">Card Library</span>
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 uppercase tracking-wider border border-indigo-500/30">
+                                Database
+                            </span>
+                        </h2>
+                        <p className="text-sm text-gray-500 mt-1">Search the entire Scryfall database to grow your collection.</p>
                     </div>
-                    <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-white/5 rounded-full">
+                    <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-white/5 rounded-xl">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
                 </div>
 
                 {/* Scrollable Body Contents */}
-                <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-                    {/* Search & Suggestions */}
-                    <div className="p-6 bg-black/20 space-y-4 relative z-[60] border-b border-white/5">
-                        <form onSubmit={handleSearch} className="relative flex flex-col md:flex-row gap-4">
-                            <div className="relative flex-grow-[3]">
-                                <div className="relative group">
+                <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
+                    {/* Search & Filters */}
+                    <div className="p-6 bg-gray-900 space-y-4 relative z-[60] border-b border-white/5">
+                        <form onSubmit={handleSearch} className="relative flex flex-col gap-4">
+                            <div className="flex gap-4">
+                                <div className="relative flex-1 group">
                                     <input
                                         ref={inputRef}
                                         type="text"
-                                        placeholder="Search by card name..."
-                                        className="w-full bg-black/40 text-white border border-white/10 rounded-xl py-3 px-6 pl-12 text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all placeholder-gray-500 shadow-inner"
+                                        placeholder="Search cards..."
+                                        className="w-full bg-gray-950 text-white border border-white/10 rounded-2xl py-4 px-6 pl-14 text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all placeholder-gray-600 shadow-inner"
                                         value={query}
                                         onChange={(e) => {
                                             setQuery(e.target.value);
+                                            setIsTyping(true);
                                             setShowSuggestions(true);
                                         }}
                                         onFocus={() => query.length >= 2 && setShowSuggestions(true)}
                                     />
-                                    <svg className="absolute left-4 top-4 w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                    <svg className="absolute left-5 top-5 w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
 
                                     {/* Autocomplete Dropdown */}
                                     {showSuggestions && suggestions.length > 0 && (
-                                        <div ref={suggestionsRef} className="absolute top-full left-0 right-0 mt-2 bg-[#1a1c23]/95 backdrop-blur-xl border border-white/20 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[100] py-2 max-h-60 overflow-y-auto ring-1 ring-white/10">
+                                        <div ref={suggestionsRef} className="absolute top-full left-0 right-0 mt-2 bg-gray-900 border border-white/10 rounded-xl shadow-2xl z-[100] py-2 max-h-60 overflow-y-auto custom-scrollbar">
                                             {suggestions.map((s, i) => (
                                                 <button
                                                     key={i}
                                                     type="button"
                                                     onClick={() => {
                                                         setQuery(s);
+                                                        setIsTyping(false);
                                                         setShowSuggestions(false);
                                                         searchCards(s, { set: setCode, cn: collectorNumber });
                                                     }}
-                                                    className="w-full text-left px-6 py-3 hover:bg-indigo-500/20 text-gray-300 hover:text-white transition-colors border-b border-white/5 last:border-0"
+                                                    className="w-full text-left px-6 py-3 hover:bg-white/5 text-gray-400 hover:text-white transition-colors border-b border-white/5 last:border-0"
                                                 >
                                                     {s}
                                                 </button>
@@ -300,241 +319,132 @@ const CardSearchModal = ({ isOpen, onClose, onAddCard }) => {
                                         </div>
                                     )}
                                 </div>
-                            </div>
 
-                            <div className="flex gap-4 flex-grow-[1]">
-                                <input
-                                    type="text"
-                                    placeholder="SET"
-                                    className="w-1/2 bg-black/40 text-white border border-white/10 rounded-xl py-3 px-4 text-center uppercase text-base focus:ring-2 focus:ring-indigo-500 placeholder-gray-600"
-                                    value={setCode}
-                                    onChange={(e) => setSetCode(e.target.value)}
-                                    maxLength={5}
-                                />
-                                <input
-                                    type="text"
-                                    placeholder="CN #"
-                                    className="w-1/2 bg-black/40 text-white border border-white/10 rounded-xl py-3 px-4 text-center text-base focus:ring-2 focus:ring-indigo-500 placeholder-gray-600"
-                                    value={collectorNumber}
-                                    onChange={(e) => setCollectorNumber(e.target.value)}
-                                />
-                            </div>
-
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3 rounded-xl text-lg font-bold transition-all disabled:opacity-50 min-w-[120px] shadow-lg hover:shadow-indigo-500/25 active:scale-95"
-                            >
-                                {loading ? <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mx-auto"></div> : 'Search'}
-                            </button>
-                        </form>
-
-                        {/* Advanced Toggle */}
-                        <div className="flex items-center justify-between">
-                            <button
-                                onClick={() => setShowAdvanced(!showAdvanced)}
-                                className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-xs font-black uppercase tracking-[0.2em]"
-                            >
-                                <svg className={`w-4 h-4 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                Advanced Filters
-                            </button>
-                            {showAdvanced && (
-                                <button onClick={clearFilters} className="text-orange-500 hover:text-orange-400 text-[10px] font-black tracking-widest bg-orange-500/10 px-4 py-1.5 rounded-full transition-all border border-orange-500/20 hover:border-orange-500/40">
-                                    RESET
+                                <button
+                                    type="button"
+                                    onClick={() => setShowAdvanced(!showAdvanced)}
+                                    className={`px-6 rounded-2xl border border-white/10 flex items-center gap-2 font-bold transition-all ${showAdvanced ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-gray-950 text-gray-400 hover:text-white hover:bg-gray-800'}`}
+                                >
+                                    <FunnelIcon className="w-5 h-5" />
+                                    Advanced Search
                                 </button>
-                            )}
-                        </div>
 
-                        {/* Advanced Panel */}
-                        {showAdvanced && (
-                            <div className="space-y-6 p-6 bg-white/5 border border-white/5 rounded-2xl animate-in slide-in-from-top-2 duration-200">
-                                {/* Logic & Colors */}
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                    <div className="space-y-3">
-                                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">Color Filters</span>
-                                        <div className="flex flex-wrap items-center gap-6">
-                                            <div className="flex items-center p-1 bg-black/40 rounded-lg border border-white/5">
-                                                {['or', 'and'].map(l => (
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3 rounded-2xl text-lg font-bold transition-all disabled:opacity-50 min-w-[120px] shadow-lg shadow-indigo-500/20"
+                                >
+                                    {loading ? '...' : 'Search'}
+                                </button>
+                            </div>
+
+                            {/* Advanced Panel */}
+                            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${showAdvanced ? 'max-h-[800px] opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
+                                <div className="bg-gray-950/50 rounded-2xl p-6 border border-white/5 space-y-6">
+                                    <div className="flex justify-between">
+                                        <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest">Advanced Configuration</h3>
+                                        <button onClick={clearFilters} className="text-orange-500 hover:text-orange-400 text-[10px] font-black uppercase tracking-widest hover:underline">Reset Filters</button>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                        {/* Colors */}
+                                        <div className="space-y-3">
+                                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Colors</label>
+                                            <div className="flex flex-wrap gap-4">
+                                                <div className="flex gap-2">
+                                                    {Object.entries(colorMap).map(([key, style]) => (
+                                                        <button
+                                                            key={key}
+                                                            type="button"
+                                                            onClick={() => toggleColor(key)}
+                                                            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all border-2 ${colors.includes(key) ? 'border-white scale-110 shadow-lg' : 'border-transparent opacity-60 hover:opacity-100 hover:scale-105'}`}
+                                                            style={{ backgroundColor: colors.includes(key) ? 'transparent' : '' }}
+                                                        >
+                                                            <img src={style.symbol} alt={key} className={`w-full h-full ${colors.includes(key) ? 'drop-shadow-md' : 'grayscale'}`} />
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                                <div className="flex items-center gap-2 text-sm bg-gray-900 border border-white/10 rounded-lg p-1">
+                                                    {['or', 'and'].map(l => (
+                                                        <button
+                                                            key={l}
+                                                            type="button"
+                                                            onClick={() => setColorLogic(l)}
+                                                            className={`px-3 py-1 rounded-md text-[10px] font-black uppercase transition-all ${colorLogic === l ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:text-gray-300'}`}
+                                                        >
+                                                            {l}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Rarity */}
+                                        <div className="space-y-3">
+                                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Rarity</label>
+                                            <div className="flex gap-3">
+                                                {['common', 'uncommon', 'rare', 'mythic'].map(r => (
                                                     <button
-                                                        key={l}
+                                                        key={r}
                                                         type="button"
-                                                        onClick={() => setColorLogic(l)}
-                                                        className={`px-4 py-1.5 rounded-md text-[10px] font-black uppercase transition-all ${colorLogic === l ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
+                                                        onClick={() => toggleRarity(r)}
+                                                        className={`px-3 py-1.5 rounded-lg border text-xs font-bold uppercase transition-all ${rarities.includes(r) ? 'bg-indigo-500/20 border-indigo-500 text-indigo-300' : 'bg-gray-900 border-white/10 text-gray-500 hover:text-gray-300'}`}
                                                     >
-                                                        {l}
+                                                        {r.charAt(0)}
                                                     </button>
                                                 ))}
                                             </div>
-
-                                            <div className="flex items-center gap-2">
-                                                {[
-                                                    { k: 'W', bg: 'bg-[#f8e7b9]', text: 'text-gray-800' },
-                                                    { k: 'U', bg: 'bg-[#0e68ab]', text: 'text-white' },
-                                                    { k: 'B', bg: 'bg-[#150b00]', text: 'text-white' },
-                                                    { k: 'R', bg: 'bg-[#d3202a]', text: 'text-white' },
-                                                    { k: 'G', bg: 'bg-[#00733e]', text: 'text-white' },
-                                                    { k: 'C', bg: 'bg-[#949694]', text: 'text-white' }
-                                                ].map(({ k, bg, text }) => (
-                                                    <button
-                                                        key={k}
-                                                        type="button"
-                                                        onClick={() => toggleColor(k)}
-                                                        className={`w-9 h-9 rounded-full flex items-center justify-center transition-all border-2 font-black shadow-md ${colors.includes(k)
-                                                            ? `${bg} ${text} border-white scale-110 ring-2 ring-indigo-500/30`
-                                                            : 'border-transparent bg-white/5 text-gray-500 hover:bg-white/10'
-                                                            }`}
-                                                    >
-                                                        {k}
-                                                    </button>
-                                                ))}
-                                            </div>
-
-                                            <div className="flex items-center p-1 bg-black/40 rounded-lg border border-white/5">
-                                                {['Color', 'Identity'].map(opt => (
-                                                    <button
-                                                        key={opt}
-                                                        type="button"
-                                                        onClick={() => setColorIdentity(opt === 'Identity')}
-                                                        className={`px-3 py-1.5 rounded-md text-[10px] font-black uppercase transition-all ${(opt === 'Identity') === colorIdentity ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
-                                                    >
-                                                        {opt}
-                                                    </button>
-                                                ))}
-                                            </div>
-
-                                            <button
-                                                type="button"
-                                                onClick={() => setColorExcluded(!colorExcluded)}
-                                                className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all border ${colorExcluded ? 'bg-orange-600 border-orange-500 text-white shadow-lg' : 'border-white/10 text-gray-500 hover:text-gray-300 hover:border-white/20'}`}
-                                            >
-                                                Exclude Others
-                                            </button>
                                         </div>
                                     </div>
 
-                                    <div className="space-y-3">
-                                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">Card Rarity</span>
-                                        <div className="flex gap-4">
-                                            {[
-                                                { k: 'common', s: 'C', c: 'bg-[#150b00] border-white/40' },
-                                                { k: 'uncommon', s: 'U', c: 'bg-gray-400 border-white' },
-                                                { k: 'rare', s: 'R', c: 'bg-[#af9111] border-[#fce982]' },
-                                                { k: 'mythic', s: 'M', c: 'bg-[#d1111d] border-[#fde982]' },
-                                                { k: 'special', s: 'S', c: 'bg-purple-600 border-purple-300' }
-                                            ].map(({ k, s, c }) => (
-                                                <button
-                                                    key={k}
-                                                    type="button"
-                                                    onClick={() => toggleRarity(k)}
-                                                    className={`group relative flex flex-col items-center transition-all ${rarities.includes(k) ? 'scale-110' : 'opacity-40 hover:opacity-100 grayscale-[0.5]'}`}
-                                                >
-                                                    <div className={`w-10 h-10 rounded-md border-2 rotate-45 transform flex items-center justify-center transition-all ${rarities.includes(k) ? c : 'border-white/10 bg-white/5'}`}>
-                                                        <span className={`-rotate-45 font-black text-sm ${rarities.includes(k) ? 'text-white' : 'text-gray-500'}`}>{s}</span>
-                                                    </div>
-                                                    <span className="text-[10px] mt-2 font-bold text-gray-500 group-hover:text-gray-300 capitalize">{k}</span>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Rows of Inputs */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider ml-1">Card Type</label>
-                                        <input
-                                            type="text"
-                                            placeholder="eg: Legendary Creature"
-                                            className="w-full bg-black/40 text-sm border border-white/10 rounded-xl p-3 focus:border-indigo-500 outline-none transition-colors placeholder-gray-700"
-                                            value={type}
-                                            onChange={(e) => setType(e.target.value)}
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider ml-1">Oracle Text</label>
-                                        <input
-                                            type="text"
-                                            placeholder="eg: flying, haste"
-                                            className="w-full bg-black/40 text-sm border border-white/10 rounded-xl p-3 focus:border-indigo-500 outline-none transition-colors placeholder-gray-700"
-                                            value={oracleText}
-                                            onChange={(e) => setOracleText(e.target.value)}
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider ml-1">Mana Value</label>
-                                        <div className="flex items-center bg-black/40 border border-white/10 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-indigo-500/50 transition-all">
-                                            <OperatorSelect
-                                                value={manaValue.operator}
-                                                onChange={(val) => setManaValue({ ...manaValue, operator: val })}
-                                            />
-                                            <input
-                                                type="number"
-                                                placeholder="Value"
-                                                className="bg-transparent w-full text-sm p-3 outline-none placeholder-gray-700"
-                                                value={manaValue.value}
-                                                onChange={(e) => setManaValue({ ...manaValue, value: e.target.value })}
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2 lg:col-span-1 grid grid-cols-2 gap-2">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider ml-1">Power</label>
-                                            <div className="flex items-center bg-black/40 border border-white/10 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-indigo-500/50 transition-all">
-                                                <OperatorSelect
-                                                    value={power.operator}
-                                                    onChange={(val) => setPower({ ...power, operator: val })}
-                                                />
-                                                <input type="number" placeholder="P" className="bg-transparent w-full text-sm p-3 outline-none placeholder-gray-700" value={power.value} onChange={(e) => setPower({ ...power, value: e.target.value })} />
-                                            </div>
+                                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider ml-1">Type</label>
+                                            <input type="text" placeholder="Creature, Artifact..." className="w-full bg-gray-900 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:border-indigo-500 outline-none" value={type} onChange={e => setType(e.target.value)} />
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider ml-1">Tough</label>
-                                            <div className="flex items-center bg-black/40 border border-white/10 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-indigo-500/50 transition-all">
-                                                <OperatorSelect
-                                                    value={toughness.operator}
-                                                    onChange={(val) => setToughness({ ...toughness, operator: val })}
-                                                />
-                                                <input type="number" placeholder="T" className="bg-transparent w-full text-sm p-3 outline-none placeholder-gray-700" value={toughness.value} onChange={(e) => setToughness({ ...toughness, value: e.target.value })} />
+                                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider ml-1">Text</label>
+                                            <input type="text" placeholder="Rules text..." className="w-full bg-gray-900 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:border-indigo-500 outline-none" value={oracleText} onChange={e => setOracleText(e.target.value)} />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider ml-1">Mana Value</label>
+                                            <div className="flex items-center bg-gray-900 border border-white/10 rounded-xl overflow-hidden">
+                                                <OperatorSelect value={manaValue.operator} onChange={v => setManaValue({ ...manaValue, operator: v })} />
+                                                <input type="number" className="w-full bg-transparent p-2 text-sm outline-none" value={manaValue.value} onChange={e => setManaValue({ ...manaValue, value: e.target.value })} />
                                             </div>
                                         </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider ml-1">Flavor Text</label>
-                                        <input type="text" placeholder="eg: In the beginning..." className="w-full bg-black/40 text-sm border border-white/10 rounded-xl p-3 focus:border-indigo-500 outline-none transition-colors placeholder-gray-700" value={flavor} onChange={(e) => setFlavor(e.target.value)} />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider ml-1">Artist</label>
-                                        <input type="text" placeholder="eg: Rebecca Guay" className="w-full bg-black/40 text-sm border border-white/10 rounded-xl p-3 focus:border-indigo-500 outline-none transition-colors placeholder-gray-700" value={artist} onChange={(e) => setArtist(e.target.value)} />
+                                        <div className="flex gap-2">
+                                            <div className="space-y-2 flex-1">
+                                                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider ml-1">Set</label>
+                                                <input type="text" placeholder="ABC" maxLength={5} className="w-full bg-gray-900 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:border-indigo-500 outline-none uppercase" value={setCode} onChange={e => setSetCode(e.target.value)} />
+                                            </div>
+                                            <div className="space-y-2 flex-1">
+                                                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider ml-1">CN</label>
+                                                <input type="text" placeholder="#" className="w-full bg-gray-900 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:border-indigo-500 outline-none" value={collectorNumber} onChange={e => setCollectorNumber(e.target.value)} />
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        )}
+                        </form>
                     </div>
 
                     {/* Results Area */}
-                    <div className="p-6 transition-all duration-300">
+                    <div className="p-6">
                         {error && (
-                            <div className="flex flex-col items-center justify-center h-64 text-red-400 bg-red-500/5 rounded-xl border border-red-500/10 mx-auto max-w-2xl animate-in shake duration-300">
-                                <svg className="w-12 h-12 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                                <p className="font-medium text-center px-4">{error}</p>
+                            <div className="flex items-center justify-center p-8 text-red-400 bg-red-500/10 rounded-2xl border border-red-500/20">
+                                <p className="font-bold">{error}</p>
                             </div>
                         )}
 
                         {!loading && results.length === 0 && (query || showAdvanced) && !error && (
-                            <div className="flex flex-col items-center justify-center h-64 text-gray-400 animate-in fade-in zoom-in-95 duration-300">
-                                <svg className="w-16 h-16 mb-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
-                                <p className="text-lg">No cards found matching your filters</p>
+                            <div className="flex flex-col items-center justify-center py-20 text-gray-500 opacity-60">
+                                <svg className="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                <p className="text-lg font-bold">No matches found</p>
                             </div>
                         )}
 
-                        {!loading && results.length === 0 && !query && !showAdvanced && (
-                            <div className="flex flex-col items-center justify-center h-64 text-gray-500">
-                                <svg className="w-16 h-16 mb-4 text-gray-700 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                                <p>Enter search terms or use advanced filters</p>
-                            </div>
-                        )}
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                             {results.map((card, index) => {
                                 const userCopies = collectionMap.get(card.id) || [];
                                 const normalCount = userCopies.filter(c => c.finish === 'nonfoil' && !c.deck_id && !c.is_wishlist).reduce((sum, c) => sum + (c.count || 1), 0);
@@ -557,6 +467,13 @@ const CardSearchModal = ({ isOpen, onClose, onAddCard }) => {
                     </div>
                 </div>
             </div>
+            <style dangerouslySetInnerHTML={{
+                __html: `
+                .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+                .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.02); }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.2); border-radius: 10px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.4); }
+            `}} />
         </div>,
         document.body
     );

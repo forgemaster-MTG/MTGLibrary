@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 
 const MAX_TURNS = 15;
 
-export const HelperForgeStep = ({ onNext }) => {
+export const HelperForgeStep = ({ onNext, onBack }) => {
     const { userProfile } = useAuth();
     const [mode, setMode] = useState('selection'); // selection, forge, synthesis, complete
     const [helperDraft, setHelperDraft] = useState({ name: '', type: '', personality: '' });
@@ -97,6 +97,14 @@ export const HelperForgeStep = ({ onNext }) => {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+                        {onBack && (
+                            <button
+                                onClick={onBack}
+                                className="col-span-1 md:col-span-2 mx-auto text-gray-500 hover:text-white mb-2 underline"
+                            >
+                                ← Go Back
+                            </button>
+                        )}
                         <button
                             onClick={handleSelectDefault}
                             className="p-6 bg-gray-800 hover:bg-gray-750 border border-gray-700 hover:border-gray-500 rounded-xl transition-all group text-left"

@@ -8,6 +8,10 @@ import auth from './middleware/auth.js';
 import fs from 'fs';
 import path from 'path';
 import { createRequire } from 'module';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Import API routers
 import cardsApi from './api/cards.js';
@@ -115,6 +119,13 @@ app.get('/health', (req, res) => {
   res.json({ ok: true });
 });
 
+// Serve Static Files (Production)
+// Serve static assets from the "dist" directory (Vite build output)
+app.use(express.static(path.join(__dirname, '../dist')));
+
+// Serve "public" folder as well if needed (optional, Vite usually bundles everything)
+app.use(express.static(path.join(__dirname, '../public')));
+
 // Bug Tracker list - Read from Public/tasklist.txt
 app.get('/bugs', (req, res) => {
   try {
@@ -146,4 +157,11 @@ if (yaml && swaggerUi) {
 }
 
 const port = process.env.PORT || 3000;
+
+// Catch-All Handler for SPA (Must be last)
+// For any request that doesn't match an API route or static file, send index.html
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../dist/index.html'));
+});
+
 app.listen(port, () => console.log(`Server listening on ${port}`));
