@@ -35,8 +35,21 @@ router.get('/:id', authMiddleware, async (req, res) => {
 // Update user (protected, user can update their own row)
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
-    if (req.user.id !== parseInt(req.params.id, 10)) return res.status(403).json({ error: 'not allowed' });
-    const [row] = await knex('users').where({ id: req.params.id }).update(req.body).returning('*');
+    const userId = parseInt(req.params.id, 10);
+    if (req.user.id !== userId) return res.status(403).json({ error: 'not allowed' });
+
+    if (req.body.settings) {
+      console.log(`[users] Updating settings for user ${userId}:`, JSON.stringify(req.body.settings));
+    }
+
+    const result = await knex('users')
+      .where({ id: userId })
+      .update(req.body)
+      .returning('*');
+
+    const row = Array.isArray(result) ? result[0] : result;
+    if (!row) return res.status(404).json({ error: 'User not found after update' });
+
     res.json(row);
   } catch (err) {
     console.error('[users] update error', err);

@@ -5,6 +5,7 @@ import BugTrackerModal from '../components/modals/BugTrackerModal';
 import { useAuth } from '../contexts/AuthContext';
 import { useCollection } from '../hooks/useCollection';
 import { useDecks } from '../hooks/useDecks';
+import { getIdentity } from '../data/mtg_identity_registry';
 
 const Dashboard = () => {
     const { currentUser, userProfile } = useAuth();
@@ -26,28 +27,36 @@ const Dashboard = () => {
             return acc + (price * (card.count || 1));
         }, 0);
 
-        // Top Color
-        const colorCounts = { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0, M: 0 };
+        // Top Color Identity Grouping
+        const colorCounts = {};
+
         collection.forEach(card => {
             const colors = card.color_identity || [];
-            if (colors.length === 0) colorCounts.C++;
-            else if (colors.length > 1) colorCounts.M++;
-            else colorCounts[colors[0]]++;
+            // Sort to ensure key consistency (e.g. ['U', 'B'] vs ['B', 'U'])
+            const wubrgOrder = { 'W': 0, 'U': 1, 'B': 2, 'R': 3, 'G': 4 };
+            const sortedKey = colors.filter(c => wubrgOrder[c] !== undefined)
+                .sort((a, b) => wubrgOrder[a] - wubrgOrder[b])
+                .join('');
+
+            const key = sortedKey.length === 0 ? 'C' : sortedKey;
+            colorCounts[key] = (colorCounts[key] || 0) + (card.count || 1);
         });
 
         const topColorEntries = Object.entries(colorCounts);
-        let topColor = 'N/A';
-        if (topColorEntries.length > 0) {
-            topColor = topColorEntries.reduce((a, b) => a[1] > b[1] ? a : b)[0];
-        }
 
-        const colorNames = { W: 'White', U: 'Blue', B: 'Black', R: 'Red', G: 'Green', C: 'Colorless', M: 'Multicolor' };
+        let topColorData = getIdentity('C');
+
+        if (topColorEntries.length > 0) {
+            // Find max
+            const [bestKey, _] = topColorEntries.reduce((max, curr) => curr[1] > max[1] ? curr : max);
+            topColorData = getIdentity(bestKey);
+        }
 
         return {
             totalCards,
             uniqueDecks: decks.length,
             value: value.toLocaleString('en-US', { style: 'currency', currency: 'USD' }),
-            topColor: colorNames[topColor] || 'N/A'
+            topColor: topColorData
         };
     }, [collection, decks]);
 
@@ -86,7 +95,35 @@ const Dashboard = () => {
                     <DashboardKPI title="Total Cards" value={stats.totalCards} icon="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" color="blue" />
                     <DashboardKPI title="Unique Decks" value={stats.uniqueDecks} icon="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" color="purple" />
                     <DashboardKPI title="Collection Value" value={stats.value} icon="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" color="green" />
-                    <DashboardKPI title="Top Color" value={stats.topColor} icon="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" color="red" />
+
+                    {/* Top Color Widget - Custom Render */}
+                    <div className="bg-gray-900/60 border border-gray-800 rounded-2xl p-5 backdrop-blur-sm hover:border-gray-700 transition-colors group relative overflow-hidden">
+                        <div className={`absolute top-0 right-0 w-24 h-24 opacity-10 rounded-bl-full ${stats.topColor.bg}`} />
+
+                        <div className="flex flex-col h-full justify-between relative z-10">
+                            <div className="flex gap-1 mb-2">
+                                {stats.topColor.pips?.map((pip, i) => (
+                                    <div key={i} className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs ring-1 ring-white/10 shadow-sm ${pip === 'W' ? 'bg-yellow-200 text-yellow-900' :
+                                        pip === 'U' ? 'bg-blue-300 text-blue-900' :
+                                            pip === 'B' ? 'bg-gray-800 text-gray-200' :
+                                                pip === 'R' ? 'bg-red-400 text-red-900' :
+                                                    pip === 'G' ? 'bg-green-400 text-green-900' :
+                                                        'bg-gray-400 text-gray-900'
+                                        }`}>
+                                        {pip}
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div>
+                                <div className={`text-xl font-black tracking-tight ${stats.topColor.color || 'text-white'}`}>{stats.topColor.name}</div>
+                                <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Top Color Identity</div>
+                                <div className="text-[10px] text-gray-400 italic mt-2 line-clamp-2 opacity-70">
+                                    "{stats.topColor.flavor}"
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

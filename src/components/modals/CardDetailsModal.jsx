@@ -19,7 +19,10 @@ const CardDetailsModal = () => {
     const [editForm, setEditForm] = useState({
         quantity: 1,
         finish: 'nonfoil',
-        deckId: ''
+        deckId: '',
+        price_bought: '',
+        tags: [],
+        currentTag: ''
     });
 
     const [deckList, setDeckList] = useState([]); // To populate deck dropdown if needed
@@ -32,7 +35,10 @@ const CardDetailsModal = () => {
             setEditForm({
                 quantity: selectedCard.count || selectedCard.quantity || 1,
                 finish: selectedCard.finish || 'nonfoil',
-                deckId: selectedCard.deckId || selectedCard.deck_id || ''
+                deckId: selectedCard.deckId || selectedCard.deck_id || '',
+                price_bought: selectedCard.price_bought || '',
+                tags: typeof selectedCard.tags === 'string' ? JSON.parse(selectedCard.tags) : (selectedCard.tags || []),
+                currentTag: ''
             });
             // Fetch decks for dropdown? (Optional optimization: fetch only if editing)
             api.get('/decks').then(setDeckList).catch(err => console.error("Failed to load decks", err));
@@ -121,7 +127,9 @@ const CardDetailsModal = () => {
             const updatePayload = {
                 count: parseInt(editForm.quantity),
                 finish: editForm.finish,
-                deck_id: editForm.deckId ? parseInt(editForm.deckId) : null
+                deck_id: editForm.deckId ? parseInt(editForm.deckId) : null,
+                price_bought: editForm.price_bought ? parseFloat(editForm.price_bought) : null,
+                tags: editForm.tags
             };
 
             await updateCard(selectedCard.id || selectedCard.firestoreId, updatePayload);
@@ -132,6 +140,20 @@ const CardDetailsModal = () => {
             console.error(err);
             addToast('Failed to update details', 'error');
         }
+    };
+
+    // Tag Helpers
+    const addTag = (e) => {
+        if (e.key === 'Enter' && editForm.currentTag.trim()) {
+            e.preventDefault();
+            if (!editForm.tags.includes(editForm.currentTag.trim())) {
+                setEditForm(prev => ({ ...prev, tags: [...prev.tags, prev.currentTag.trim()], currentTag: '' }));
+            }
+        }
+    };
+
+    const removeTag = (tag) => {
+        setEditForm(prev => ({ ...prev, tags: prev.tags.filter(t => t !== tag) }));
     };
 
     return (
@@ -346,37 +368,95 @@ const CardDetailsModal = () => {
                                                         <tr>
                                                             <td className="px-3 py-2">
                                                                 {isEditing ? (
-                                                                    <select
-                                                                        value={editForm.deckId}
-                                                                        onChange={(e) => setEditForm({ ...editForm, deckId: e.target.value })}
-                                                                        className="bg-gray-800 border border-gray-600 rounded px-2 py-0.5 text-[10px] text-white w-full"
-                                                                    >
-                                                                        <option value="">Binder</option>
-                                                                        {deckList.map(deck => (
-                                                                            <option key={deck.id} value={deck.id}>Deck: {deck.name}</option>
-                                                                        ))}
-                                                                    </select>
+                                                                    <div className="space-y-2">
+                                                                        <select
+                                                                            value={editForm.deckId}
+                                                                            onChange={(e) => setEditForm({ ...editForm, deckId: e.target.value })}
+                                                                            className="bg-gray-800 border border-gray-600 rounded px-2 py-0.5 text-[10px] text-white w-full"
+                                                                        >
+                                                                            <option value="">Binder</option>
+                                                                            {deckList.map(deck => (
+                                                                                <option key={deck.id} value={deck.id}>Deck: {deck.name}</option>
+                                                                            ))}
+                                                                        </select>
+
+                                                                        {/* Price Bought */}
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className="text-gray-500 text-[9px]">PAID $</span>
+                                                                            <input
+                                                                                type="number"
+                                                                                step="0.01"
+                                                                                placeholder="0.00"
+                                                                                value={editForm.price_bought}
+                                                                                onChange={(e) => setEditForm({ ...editForm, price_bought: e.target.value })}
+                                                                                className="bg-gray-800 border-none rounded px-2 py-0.5 text-[10px] text-white w-20 focus:ring-1 focus:ring-indigo-500"
+                                                                            />
+                                                                        </div>
+
+                                                                        {/* Tags */}
+                                                                        <div className="space-y-1">
+                                                                            <div className="flex flex-wrap gap-1">
+                                                                                {editForm.tags && editForm.tags.map(tag => (
+                                                                                    <span key={tag} className="bg-indigo-600/50 text-white px-1.5 rounded text-[9px] flex items-center gap-1 border border-indigo-500/30">
+                                                                                        {tag}
+                                                                                        <button onClick={() => removeTag(tag)} className="hover:text-red-300">×</button>
+                                                                                    </span>
+                                                                                ))}
+                                                                            </div>
+                                                                            <input
+                                                                                type="text"
+                                                                                placeholder="+ Tag..."
+                                                                                value={editForm.currentTag}
+                                                                                onChange={(e) => setEditForm({ ...editForm, currentTag: e.target.value })}
+                                                                                onKeyDown={addTag}
+                                                                                className="bg-gray-800 border border-gray-600 rounded px-2 py-0.5 text-[10px] text-white w-full focus:ring-1 focus:ring-indigo-500"
+                                                                            />
+                                                                        </div>
+                                                                    </div>
                                                                 ) : (
-                                                                    selectedCard.deckId ? `Deck #${selectedCard.deckId}` : 'Binder'
+                                                                    <div className="space-y-1">
+                                                                        <div>{selectedCard.deckId ? `Deck #${selectedCard.deckId}` : 'Binder'}</div>
+                                                                        {(selectedCard.tags && (typeof selectedCard.tags === 'string' ? JSON.parse(selectedCard.tags) : selectedCard.tags).length > 0) && (
+                                                                            <div className="flex flex-wrap gap-1 mt-1">
+                                                                                {(typeof selectedCard.tags === 'string' ? JSON.parse(selectedCard.tags) : selectedCard.tags).map(t => (
+                                                                                    <span key={t} className="text-[9px] bg-gray-700 px-1 rounded text-gray-300">{t}</span>
+                                                                                ))}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
                                                                 )}
                                                             </td>
-                                                            <td className="px-3 py-2 text-center">
+                                                            <td className="px-3 py-2 text-center align-top">
                                                                 {isEditing ? (
                                                                     <input
                                                                         type="checkbox"
                                                                         checked={editForm.finish === 'foil'}
                                                                         onChange={(e) => setEditForm({ ...editForm, finish: e.target.checked ? 'foil' : 'nonfoil' })}
                                                                         className="rounded bg-gray-700 border-gray-600 text-indigo-600"
+                                                                        title="Is Foil?"
                                                                     />
                                                                 ) : (
                                                                     selectedCard.finish === 'foil' ? 'Yes' : '-'
                                                                 )}
                                                             </td>
-                                                            <td className="px-3 py-2 text-right font-black">
-                                                                {selectedCard.count || selectedCard.quantity || 1}
+                                                            <td className="px-3 py-2 text-right font-black align-top">
+                                                                {isEditing ? (
+                                                                    <input
+                                                                        type="number"
+                                                                        min="1"
+                                                                        value={editForm.quantity}
+                                                                        onChange={(e) => setEditForm({ ...editForm, quantity: e.target.value })}
+                                                                        className="bg-gray-800 border border-gray-600 rounded px-1 py-0.5 text-[10px] text-white w-12 text-center"
+                                                                    />
+                                                                ) : (
+                                                                    selectedCard.count || selectedCard.quantity || 1
+                                                                )}
                                                             </td>
-                                                            <td className="px-3 py-2 text-right text-gray-500 font-mono text-[10px]">
-                                                                {selectedCard.added_at ? new Date(selectedCard.added_at).toLocaleDateString() : 'N/A'}
+                                                            <td className="px-3 py-2 text-right text-gray-500 font-mono text-[10px] align-top">
+                                                                <div>{selectedCard.added_at ? new Date(selectedCard.added_at).toLocaleDateString() : 'N/A'}</div>
+                                                                {selectedCard.price_bought && (
+                                                                    <div className="text-green-500/70 mt-1" title="Price Paid">${parseFloat(selectedCard.price_bought).toFixed(2)}</div>
+                                                                )}
                                                             </td>
                                                         </tr>
                                                     </tbody>

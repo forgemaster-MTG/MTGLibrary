@@ -86,7 +86,9 @@ router.post('/', async (req, res) => {
             count: count || 1,
             data: data || null,
             deck_id: deck_id || null,
-            is_wishlist: req.body.is_wishlist || false
+            is_wishlist: req.body.is_wishlist || false,
+            tags: JSON.stringify(req.body.tags || []),
+            price_bought: req.body.price_bought || null
         };
 
         const [row] = await knex('user_cards').insert(insert).returning('*');
@@ -104,7 +106,7 @@ router.put('/:id', async (req, res) => {
         if (!existing) return res.status(404).json({ error: 'not found' });
         if (existing.user_id !== req.user.id) return res.status(403).json({ error: 'unauthorized' });
 
-        const { deck_id, count, finish } = req.body;
+        const { deck_id, count, finish, price_bought, tags } = req.body;
         const update = {};
 
         // Explicit check for undefined to allow setting to null or 0
@@ -112,6 +114,8 @@ router.put('/:id', async (req, res) => {
         if (count !== undefined) update.count = count;
         if (finish !== undefined) update.finish = finish;
         if (req.body.is_wishlist !== undefined) update.is_wishlist = req.body.is_wishlist;
+        if (price_bought !== undefined) update.price_bought = price_bought;
+        if (tags !== undefined) update.tags = JSON.stringify(tags);
 
         if (Object.keys(update).length === 0) return res.json(existing);
 

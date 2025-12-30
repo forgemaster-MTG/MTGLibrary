@@ -113,9 +113,12 @@ export const AuthProvider = ({ children }) => {
     const updateSettings = async (newSettings) => {
         if (!userProfile) return;
         const updatedSettings = { ...(userProfile.settings || {}), ...newSettings };
+        console.log('[AuthContext] Updating settings:', updatedSettings);
         try {
-            await api.updateUser(userProfile.id, { settings: updatedSettings });
-            setUserProfile(prev => ({ ...prev, settings: updatedSettings }));
+            const resp = await api.updateUser(userProfile.id, { settings: updatedSettings });
+            if (resp) {
+                setUserProfile(prev => ({ ...prev, settings: updatedSettings }));
+            }
         } catch (error) {
             console.error('Failed to update settings:', error);
         }

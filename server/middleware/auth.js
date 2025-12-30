@@ -41,15 +41,15 @@ async function authMiddleware(req, res, next) {
 				const profile = doc.exists ? doc.data() : null;
 				const email = decoded.email || (profile && profile.email) || null;
 				const insert = { firestore_id: uid, email, data: { firebase: decoded, profile } };
-				const [inserted] = await knex('users').insert(insert).returning('*');
-				user = inserted || (await knex('users').where({ firestore_id: uid }).first());
+				const insertResult = await knex('users').insert(insert).returning('*');
+				user = (Array.isArray(insertResult) ? insertResult[0] : insertResult) || (await knex('users').where({ firestore_id: uid }).first());
 			} catch (e) {
 				// If Firestore read fails or there is no doc, still create minimal user
 				const email = decoded.email || null;
 				const insert = { firestore_id: uid, email, data: { firebase: decoded } };
 				try {
-					const [inserted] = await knex('users').insert(insert).returning('*');
-					user = inserted || (await knex('users').where({ firestore_id: uid }).first());
+					const insertResult = await knex('users').insert(insert).returning('*');
+					user = (Array.isArray(insertResult) ? insertResult[0] : insertResult) || (await knex('users').where({ firestore_id: uid }).first());
 				} catch (e2) {
 					// fallback: fetch existing user row again
 					user = await knex('users').where({ firestore_id: uid }).first();

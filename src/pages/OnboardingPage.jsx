@@ -32,26 +32,32 @@ const OnboardingPage = () => {
         await updateSettings({ onboarding_step: prevStep });
     };
 
+    const handleHelperForgeComplete = async (helperProfile) => {
+        const nextStep = step + 1;
+        setStep(nextStep);
+        await updateSettings({
+            helper: helperProfile,
+            onboarding_step: nextStep
+        });
+    };
+
     const handlePaymentComplete = async (planId) => {
-        await updateSettings({ subscription_tier: 'alpha_tester' }); // Force alpha for now regardless of selection validation
-        handleNext();
+        const nextStep = step + 1;
+        setStep(nextStep);
+        await updateSettings({
+            subscription_tier: 'alpha_tester', // Force alpha for now
+            onboarding_step: nextStep
+        });
     };
 
     const handleAISetupComplete = async (apiKey) => {
-        // Enable AI in settings if key provided
-        const updates = {
-            ai_enabled: !!apiKey
-        };
-        if (apiKey) {
-            updates.geminiApiKey = apiKey;
-        }
-        await updateSettings(updates);
-        handleNext();
-    };
-
-    const handleHelperForgeComplete = async (helperProfile) => {
-        await updateSettings({ helper: helperProfile });
-        handleNext();
+        const nextStep = step + 1;
+        setStep(nextStep);
+        await updateSettings({
+            ai_enabled: !!apiKey,
+            geminiApiKey: apiKey || undefined,
+            onboarding_step: nextStep
+        });
     };
 
     const handlePlaystyleStart = () => {
@@ -59,18 +65,27 @@ const OnboardingPage = () => {
     };
 
     const handlePlaystyleComplete = async (profile) => {
-        await updateSettings({ playstyle: profile });
+        const nextStep = step + 1;
+        setStep(nextStep);
+        await updateSettings({
+            playstyle: profile,
+            onboarding_step: nextStep
+        });
         await refreshUserProfile();
         setIsPlaystyleConfiguring(false);
-        handleNext();
     };
 
-    const handlePlaystyleSkip = () => {
-        handleNext();
+    const handlePlaystyleSkip = async () => {
+        const nextStep = step + 1;
+        setStep(nextStep);
+        await updateSettings({ onboarding_step: nextStep });
     };
 
     const handleFinish = async () => {
-        await updateSettings({ onboarding_complete: true, onboarding_step: 6 }); // Mark complete
+        await updateSettings({
+            onboarding_complete: true,
+            onboarding_step: 6
+        }); // Mark complete
         navigate('/dashboard');
     };
 
