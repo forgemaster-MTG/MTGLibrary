@@ -14,23 +14,23 @@ export function useCollection(options = {}) {
         if (!currentUser) return;
         setLoading(true);
         try {
-            console.log('[useCollection] Fetching from API...');
             let url = '/collection';
             if (wishlist !== undefined) {
-                url += `?wishlist=${wishlist}`;
+                url += `?wishlist=${wishlist}&ts=${Date.now()}`;
+            } else {
+                url += `?ts=${Date.now()}`;
             }
             const fetchedCards = await api.get(url);
             // Map items (user_cards rows) to frontend expected shape
             // Start with c.data (Scryfall data), then overlay row fields
             const mapped = fetchedCards.map(c => ({
-                ...c.data, // Spread scryfall data (rarity, colors, etc.)
-                ...c,      // Spread row fields (id, firestore_id, deck_id, count)
-                // Field Mappings for UI compatibility
+                ...c.data,
+                ...c,
                 deckId: c.deck_id,
                 quantity: c.count,
                 firestoreId: c.firestore_id,
-                id: c.id // UUID
-                // scryfall_id is in c.scryfall_id
+                id: c.id,
+                scryfall_id: c.scryfall_id
             }));
             setCards(mapped);
             setError(null);

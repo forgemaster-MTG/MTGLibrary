@@ -15,7 +15,8 @@ const InteractiveCard = ({ card, normalCount = 0, foilCount = 0, wishlistCount =
         return data.image_uris?.normal || c.image_uri || 'https://placehold.co/250x350?text=No+Image';
     };
 
-    const hasBackFace = (card.data?.card_faces?.length > 1) || (card.card_faces?.length > 1);
+    const faces = card.data?.card_faces || card.card_faces;
+    const hasBackFace = faces?.length > 1 && !!faces[1].image_uris;
     const frontImage = getCardImage(card, 0);
     const backImage = hasBackFace ? getCardImage(card, 1) : null;
 
@@ -31,8 +32,12 @@ const InteractiveCard = ({ card, normalCount = 0, foilCount = 0, wishlistCount =
         }
     };
 
+    const isOwned = (normalCount + foilCount) > 0;
+    const isMissingWishlist = !isOwned && wishlistCount > 0;
+    const price = card.prices?.usd || card.prices?.usd_foil || '---';
+
     return (
-        <div className="group relative flex bg-gray-900/60 backdrop-blur-md rounded-xl overflow-hidden shadow-2xl border border-white/5 hover:border-indigo-500/50 transition-all duration-300 hover:shadow-[0_0_30px_rgba(79,70,229,0.15)] aspect-[3.2/3.5]">
+        <div className={`group relative flex bg-gray-900/60 backdrop-blur-md rounded-xl overflow-hidden shadow-2xl border transition-all duration-300 hover:shadow-[0_0_30px_rgba(79,70,229,0.15)] aspect-[3.2/3.5] perspective-1000 ${isOwned ? 'border-indigo-500/30' : 'border-white/5 grayscale-[0.8] opacity-70 hover:grayscale-0 hover:opacity-100'}`}>
             {/* Aspect ratio [3.2/3.5] means Image (2.5) + Controls (0.7) = 3.2 Width, 3.5 Height.
                 This ensures the image side is a perfect 2.5/3.5 MTG ratio. */}
 
@@ -66,16 +71,32 @@ const InteractiveCard = ({ card, normalCount = 0, foilCount = 0, wishlistCount =
                     )}
                 </div>
 
-                {/* Flip Button Overlay */}
+                {/* Flip Button - Top Left (Always Available) */}
                 {hasBackFace && (
                     <button
                         onClick={(e) => { e.stopPropagation(); setIsFlipped(!isFlipped); }}
-                        className="absolute bottom-2 left-2 p-2 bg-black/60 hover:bg-indigo-600 text-white rounded-full backdrop-blur-md transition-all z-10 opacity-0 group-hover:opacity-100 shadow-lg border border-white/10"
+                        className="absolute top-2 left-2 p-2 bg-black/60 hover:bg-indigo-600 text-white rounded-full backdrop-blur-md transition-all z-30 shadow-lg border border-white/10"
                         title="Flip Card"
                     >
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                     </button>
                 )}
+
+                {/* Wishlist Badge - Top Left (Offset if flip button is present) */}
+                {isMissingWishlist && (
+                    <div className={`absolute top-2 ${hasBackFace ? 'left-12' : 'left-2'} z-20 bg-orange-500 text-white p-1 rounded-md shadow-lg animate-pulse`}>
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                    </div>
+                )}
+
+                {/* Price Display - Bottom Center */}
+                <div className="absolute bottom-2 right-2 left-2 z-10">
+                    <div className="bg-black/70 backdrop-blur-md px-2 py-1 rounded-lg border border-white/10 text-center">
+                        <span className="text-[10px] font-bold text-green-400 tabular-nums">${price}</span>
+                    </div>
+                </div>
             </div>
 
             {/* Right Side: Integrated Controls Panel */}

@@ -57,7 +57,7 @@ router.get('/', async (req, res) => {
             q.where({ is_wishlist: req.query.wishlist === 'true' });
         }
 
-        const rows = await q.orderBy('id', 'desc').limit(500);
+        const rows = await q.orderBy('added_at', 'desc');
         res.json(rows);
     } catch (err) {
         console.error('[collection] list error', err);

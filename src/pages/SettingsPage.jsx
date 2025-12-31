@@ -341,6 +341,12 @@ const AdminPanel = () => {
         }
     });
 
+    // Sync Options
+    const [syncOptions, setSyncOptions] = useState({
+        updatePrices: true,
+        updateInfo: true
+    });
+
     // Last Sync State
     const [lastSync, setLastSync] = useState(null);
 
@@ -398,7 +404,7 @@ const AdminPanel = () => {
             const res = await fetch('http://localhost:3000/admin/sync', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ setCode })
+                body: JSON.stringify({ setCode, ...syncOptions })
             });
             const data = await res.json();
 
@@ -515,6 +521,32 @@ const AdminPanel = () => {
             </div>
 
             <div className="space-y-4">
+                {/* Options */}
+                <div className="bg-gray-800/40 p-4 rounded-lg border border-gray-700/50 flex flex-wrap gap-6 items-center">
+                    <span className="text-sm font-bold text-gray-400 uppercase tracking-widest">Configuration</span>
+                    <label className="flex items-center gap-2 cursor-pointer bg-gray-900 px-3 py-1.5 rounded-lg border border-gray-700 hover:border-indigo-500 transition-colors">
+                        <input
+                            type="checkbox"
+                            checked={syncOptions.updatePrices}
+                            onChange={(e) => setSyncOptions(prev => ({ ...prev, updatePrices: e.target.checked }))}
+                            className="form-checkbox text-indigo-500 rounded bg-gray-800 border-gray-600 focus:ring-0 focus:ring-offset-0"
+                        />
+                        <span className="text-gray-200 text-sm font-medium">Update Prices</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer bg-gray-900 px-3 py-1.5 rounded-lg border border-gray-700 hover:border-indigo-500 transition-colors">
+                        <input
+                            type="checkbox"
+                            checked={syncOptions.updateInfo}
+                            onChange={(e) => setSyncOptions(prev => ({ ...prev, updateInfo: e.target.checked }))}
+                            className="form-checkbox text-indigo-500 rounded bg-gray-800 border-gray-600 focus:ring-0 focus:ring-offset-0"
+                        />
+                        <span className="text-gray-200 text-sm font-medium">Update Card Info</span>
+                    </label>
+                    <span className="text-xs text-gray-500 italic ml-auto hidden sm:block">
+                        Propagates price updates to all user collections.
+                    </span>
+                </div>
+
                 {/* Controls */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Single */}

@@ -49,7 +49,8 @@ const CardDetailsModal = () => {
 
     // --- Helpers ---
     const data = selectedCard.data || selectedCard;
-    const isDoubleSided = (data.card_faces && data.card_faces.length > 1);
+    const faces = data.card_faces;
+    const isDoubleSided = faces && faces.length > 1 && !!faces[1].image_uris;
 
     const getFace = (faceIndex) => {
         if (!isDoubleSided) return data;

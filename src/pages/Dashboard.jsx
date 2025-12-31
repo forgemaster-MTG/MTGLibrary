@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import KPIBar from '../components/KPIBar';
 import BugTrackerModal from '../components/modals/BugTrackerModal';
+import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useCollection } from '../hooks/useCollection';
 import { useDecks } from '../hooks/useDecks';
@@ -9,10 +10,24 @@ import { getIdentity } from '../data/mtg_identity_registry';
 
 const Dashboard = () => {
     const { currentUser, userProfile } = useAuth();
-    const { cards: collection, loading: collectionLoading } = useCollection();
+    const { cards: collection, loading: collectionLoading, refresh: refreshCollection } = useCollection();
     const { decks, loading: decksLoading } = useDecks();
     const [isBugModalOpen, setIsBugModalOpen] = useState(false);
+    const [syncLoading, setSyncLoading] = useState(false);
     const navigate = useNavigate();
+
+    const handleSyncPrices = async () => {
+        setSyncLoading(true);
+        try {
+            await api.post('/sync/prices');
+            await refreshCollection(); // Refresh collection to get new prices
+        } catch (err) {
+            console.error("Sync failed", err);
+            // Optionally add toast here
+        } finally {
+            setSyncLoading(false);
+        }
+    };
 
     // Stats Calculation
     const stats = useMemo(() => {
@@ -94,7 +109,18 @@ const Dashboard = () => {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <DashboardKPI title="Total Cards" value={stats.totalCards} icon="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" color="blue" />
                     <DashboardKPI title="Unique Decks" value={stats.uniqueDecks} icon="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" color="purple" />
-                    <DashboardKPI title="Collection Value" value={stats.value} icon="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" color="green" />
+                    <DashboardKPI title="Collection Value" value={stats.value} icon="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" color="green">
+                        <button
+                            onClick={handleSyncPrices}
+                            disabled={syncLoading}
+                            className={`absolute top-4 right-4 p-1.5 rounded-lg bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-all ${syncLoading ? 'animate-spin' : ''}`}
+                            title="Update Prices from Scryfall"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                        </button>
+                    </DashboardKPI>
 
                     {/* Top Color Widget - Custom Render */}
                     <div className="bg-gray-900/60 border border-gray-800 rounded-2xl p-5 backdrop-blur-sm hover:border-gray-700 transition-colors group relative overflow-hidden">
@@ -305,8 +331,9 @@ const Dashboard = () => {
 };
 
 // Mini Components for Dashboard local usage
-const DashboardKPI = ({ title, value, icon, color }) => (
-    <div className="bg-gray-900/60 border border-gray-800 rounded-2xl p-5 backdrop-blur-sm hover:border-gray-700 transition-colors group">
+const DashboardKPI = ({ title, value, icon, color, children }) => (
+    <div className="bg-gray-900/60 border border-gray-800 rounded-2xl p-5 backdrop-blur-sm hover:border-gray-700 transition-colors group relative">
+        {children}
         <div className="flex justify-between items-start mb-4">
             <div className={`p-2.5 rounded-xl bg-gray-950 text-${color}-400 group-hover:scale-110 transition-transform shadow-inner`}>
                 {/* Icon requires specific color classes that might need strict definition, relying on dynamic string interpolation if tailwind allows, else fallback */}

@@ -3,6 +3,8 @@ dotenv.config();
 
 import cors from 'cors';
 import express from 'express';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import { knex } from './db.js';
 import auth from './middleware/auth.js';
 import fs from 'fs';
@@ -22,6 +24,7 @@ import preconsApi from './api/precons.js';
 import collectionApi from './api/collection.js';
 import adminApi from './api/admin.js';
 import setsApi from './api/sets.js';
+import syncApi from './api/sync.js';
 
 const require = createRequire(import.meta.url);
 
@@ -36,7 +39,48 @@ try {
 }
 
 const app = express();
-app.use(cors()); // Enable All CORS Requests
+
+// Security Headers
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://apis.google.com"], // Allow React/Vite/Firebase
+      connectSrc: ["'self'", "https://api.scryfall.com", "https://identitytoolkit.googleapis.com", "https://securetoken.googleapis.com", "ws:", "wss:"], // Allow external APIs
+      imgSrc: ["'self'", "data:", "https://cards.scryfall.io", "https://svgs.scryfall.io", "https://placehold.co", "blob:"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+    },
+  },
+}));
+
+// Rate Limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 300, // Limit each IP to 300 requests per windowMs (adjusted for API usage)
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use(limiter);
+
+// CORS Config (Restrict to trusted domains in production)
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  process.env.PUBLIC_URL // e.g. https://mytunnel.com
+].filter(Boolean);
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.some(o => origin.startsWith(o))) {
+      callback(null, true);
+    } else {
+      console.warn(`Blocked CORS from: ${origin}`);
+      callback(null, false); // Block unknown origins? Or just allow all for now but warn.
+      // For user ease, let's stick to simple CORS for now unless they specify a domain.
+      // callback(new Error('Not allowed by CORS')); 
+    }
+  }
+}));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
@@ -121,6 +165,7 @@ app.use('/precons', preconsApi);
 app.use('/collection', collectionApi); // New collection/cards management API
 app.use('/admin', adminApi);
 app.use('/sets', setsApi);
+app.use('/sync', syncApi);
 
 // Health endpoint
 app.get('/health', (req, res) => {

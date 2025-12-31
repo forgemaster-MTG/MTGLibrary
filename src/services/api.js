@@ -1,6 +1,6 @@
 import { auth } from '../lib/firebase';
 
-const BASE_URL = 'http://localhost:3000'; // TODO: Use env var
+const BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:3000' : ''); // Empty string for relative paths in prod
 
 async function getHeaders() {
     const headers = {
@@ -17,12 +17,20 @@ async function getHeaders() {
 }
 
 async function request(method, endpoint, body = null, params = {}) {
-    const url = new URL(`${BASE_URL}${endpoint}`);
+    // If BASE_URL is set, use it. data URL construction requires a base if the path is relative. 
+    // If BASE_URL is empty (relative mode), we just use the endpoint path directly (fetch supports relative URLs).
+    let urlString = `${BASE_URL}${endpoint}`;
+    const url = new URL(urlString, window.location.origin); // safe constructor using current origin as fallback base
+
     Object.keys(params).forEach(key => {
         if (params[key] !== null && params[key] !== undefined) {
             url.searchParams.append(key, params[key]);
         }
     });
+
+    // Fetch using the string logic to avoid accidental absolute localhost conversion if we want relative
+    // But URL object is nicer for params. 
+    // If BASE_URL is empty, url will be "http://current-origin/endpoint". This is fine.
 
     const config = {
         method,

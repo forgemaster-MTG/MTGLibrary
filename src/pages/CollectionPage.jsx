@@ -12,15 +12,30 @@ import ViewToggle from '../components/ViewToggle';
 import BulkCollectionImportModal from '../components/modals/BulkCollectionImportModal';
 import BinderWizardModal from '../components/modals/BinderWizardModal';
 
+import { api } from '../services/api';
+
 const CollectionPage = () => {
     // Parse query params for wishlist mode
     const location = useLocation();
     const isWishlistMode = new URLSearchParams(location.search).get('wishlist') === 'true';
 
-    const { cards, loading, error } = useCollection({ wishlist: isWishlistMode });
+    const { cards, loading, error, refresh } = useCollection({ wishlist: isWishlistMode });
     const { decks } = useDecks();
     const [searchTerm, setSearchTerm] = useState('');
     const [showFilters, setShowFilters] = useState(false);
+    const [syncLoading, setSyncLoading] = useState(false);
+
+    const handleSyncPrices = async () => {
+        setSyncLoading(true);
+        try {
+            await api.post('/sync/prices');
+            await refresh();
+        } catch (err) {
+            console.error("Sync failed", err);
+        } finally {
+            setSyncLoading(false);
+        }
+    };
 
     // View States (Persisted)
     const [viewMode, setViewMode] = useState(() => localStorage.getItem('collection_viewMode') || 'folder');
@@ -281,6 +296,15 @@ const CollectionPage = () => {
                         </h1>
                         <p className="text-gray-400 font-medium">
                             {filteredCards.length} {filteredCards.length === 1 ? 'card' : 'cards'} found • <span className="text-indigo-400">${filteredCards.reduce((acc, c) => acc + (parseFloat(c.prices?.usd || 0) * (c.count || 1)), 0).toFixed(2)}</span> total value
+                            <button
+                                onClick={handleSyncPrices}
+                                disabled={syncLoading}
+                                className={`ml-3 inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-xs font-bold transition-all ${syncLoading ? 'opacity-70 cursor-wait' : ''}`}
+                                title="Update prices from Scryfall"
+                            >
+                                <svg className={`w-3 h-3 ${syncLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                {syncLoading ? 'Updating...' : 'Update Prices'}
+                            </button>
                         </p>
                     </div>
 

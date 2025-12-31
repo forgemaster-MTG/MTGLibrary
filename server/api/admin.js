@@ -27,17 +27,21 @@ router.get('/sets', async (req, res) => {
 // POST /admin/sync
 // Body: { setCode }
 // Syncs a single set fully.
+// POST /admin/sync
+// Body: { setCode, updatePrices = true, updateInfo = true }
+// Syncs a single set fully.
 router.post('/sync', async (req, res) => {
-    const { setCode } = req.body;
+    const { setCode, updatePrices = true, updateInfo = true } = req.body;
     if (!setCode) return res.status(400).json({ error: 'setCode is required' });
 
-    console.log(`[Admin] Starting Sync for Set: ${setCode}`);
+    console.log(`[Admin] Starting Sync for Set: ${setCode} (Prices: ${updatePrices}, Info: ${updateInfo})`);
 
     try {
         let hasMore = true;
         let url = `https://api.scryfall.com/cards/search?q=set:${setCode}&unique=prints`;
         let count = 0;
         let page = 1;
+        let updatedUserCards = 0;
 
         const typeStats = {
             creature: 0,
@@ -68,13 +72,11 @@ router.post('/sync', async (req, res) => {
             const response = await fetch(url);
 
             if (!response.ok) {
-                // Rate limit handling?
                 if (response.status === 429) {
                     console.log('[Admin] Rate limited, waiting 5s...');
                     await wait(5000);
-                    continue; // Retry same URL
+                    continue;
                 }
-                // If 404 (Set not found or empty), just break
                 if (response.status === 404) {
                     console.log(`[Admin] Set ${setCode} not found or empty.`);
                     break;
@@ -85,59 +87,91 @@ router.post('/sync', async (req, res) => {
             const data = await response.json();
             const cards = data.data || [];
 
-            // Validate schema before insert
-            // Ensure cards table has 'data' column (migration ran)
+            await knex.transaction(async (trx) => {
+                for (const cardData of cards) {
+                    const scryfallId = cardData.id;
+                    countType(cardData.type_line);
 
-            for (const cardData of cards) {
-                const scryfallId = cardData.id;
-                countType(cardData.type_line);
+                    // 1. Update Reference Table (cards)
+                    // If updateInfo is true, we upsert everything.
+                    // If updateInfo is false but updatePrices is true, we ONLY update prices if exists.
 
-                // Upsert Logic (Same as cards.js but more robust)
-                let existingId = null;
-                const existingIdent = await knex('cardidentifiers').where({ scryfallid: scryfallId }).first();
-                if (existingIdent) existingId = existingIdent.uuid;
-                else {
-                    const c = await knex('cards').where({ uuid: scryfallId }).first();
-                    if (c) existingId = c.uuid;
+                    let existingId = null;
+                    const existingIdent = await trx('cardidentifiers').where({ scryfallid: scryfallId }).first();
+                    if (existingIdent) existingId = existingIdent.uuid;
+                    else {
+                        const c = await trx('cards').where({ uuid: scryfallId }).first();
+                        if (c) existingId = c.uuid;
+                    }
+
+                    if (existingId) {
+                        // Update existing
+                        const updates = {};
+                        if (updateInfo) {
+                            updates.data = cardData;
+                            updates.name = cardData.name;
+                            updates.setcode = cardData.set;
+                            updates.number = cardData.collector_number;
+                        } else if (updatePrices) {
+                            // Fetch current data to merge prices safely? 
+                            // Actually, jsonb_set logic is better, or just merge here
+                            // We can just update specific fields in the JSON if we want, but knex json handling varies.
+                            // Simpler: Fetch, merge, save.
+                            const current = await trx('cards').where({ uuid: existingId }).first();
+                            if (current && current.data) {
+                                updates.data = { ...current.data, prices: cardData.prices };
+                            }
+                        }
+
+                        if (Object.keys(updates).length > 0) {
+                            await trx('cards').where({ uuid: existingId }).update(updates);
+                        }
+
+                    } else if (updateInfo) {
+                        // Insert new (only if info update allowed, or maybe always insert new cards?)
+                        // Let's assume we always want to discover new cards.
+                        const [inserted] = await trx('cards').insert({
+                            uuid: scryfallId,
+                            name: cardData.name,
+                            setcode: cardData.set,
+                            number: cardData.collector_number,
+                            data: cardData,
+                            type: cardData.type_line,
+                            manacost: cardData.mana_cost,
+                            text: cardData.oracle_text
+                        }).returning('*');
+
+                        await trx('cardidentifiers').insert({
+                            uuid: inserted.uuid,
+                            scryfallid: scryfallId
+                        });
+                    }
+
+                    // 2. Propagate to User Collections (user_cards)
+                    // If prices changed, we MUST update all user_cards that link to this scryfall_id
+                    if (updatePrices) {
+                        // Postgres JSONB update: set data->'prices' = newPrices
+                        // This updates ALL users who have this card.
+                        const result = await trx('user_cards')
+                            .where({ scryfall_id: scryfallId })
+                            .update({
+                                data: knex.raw(`jsonb_set(data, '{prices}', ?::jsonb)`, [JSON.stringify(cardData.prices)])
+                            });
+                        updatedUserCards += result;
+                    }
                 }
-
-                if (existingId) {
-                    await knex('cards').where({ uuid: existingId }).update({
-                        data: cardData,
-                        name: cardData.name,
-                        setcode: cardData.set,
-                        number: cardData.collector_number
-                    });
-                } else {
-                    const [inserted] = await knex('cards').insert({
-                        uuid: scryfallId,
-                        name: cardData.name,
-                        setcode: cardData.set,
-                        number: cardData.collector_number,
-                        data: cardData,
-                        type: cardData.type_line,
-                        manacost: cardData.mana_cost,
-                        text: cardData.oracle_text
-                    }).returning('*');
-
-                    await knex('cardidentifiers').insert({
-                        uuid: inserted.uuid,
-                        scryfallid: scryfallId
-                    });
-                }
-            }
+            });
 
             count += cards.length;
             hasMore = data.has_more;
             url = data.next_page;
             page++;
 
-            // Gentleness
             await wait(100);
         }
 
-        console.log(`[Admin] Sync Complete for ${setCode}. Processed ${count} cards.`);
-        res.json({ success: true, count, set: setCode, typeStats });
+        console.log(`[Admin] Sync Complete for ${setCode}. Processed ${count} cards. Updated ${updatedUserCards} user instances.`);
+        res.json({ success: true, count, set: setCode, typeStats, updatedUserCards });
 
     } catch (err) {
         console.error('[Admin] Sync Error', err);

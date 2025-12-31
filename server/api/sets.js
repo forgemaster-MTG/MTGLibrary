@@ -10,30 +10,44 @@ const router = express.Router();
 // Get all sets
 router.get('/', async (req, res) => {
     try {
-        console.log('[API] Fetching sets from DB...');
+        console.log('[API] Fetching sets and calculating unique card counts...');
         const sets = await knex('sets').orderBy('releasedate', 'desc');
 
         if (sets && sets.length > 0) {
-            console.log(`[API] Found ${sets.length} sets in DB.`);
+            // Fetch unique card counts by name from cards table
+            const counts = await knex('cards')
+                .select(knex.raw('LOWER(setcode) as code'))
+                .countDistinct({ count: 'name' })
+                .groupByRaw('LOWER(setcode)');
 
-            // Map DB columns (MTGJSON style) to Scryfall style for frontend
-            const mappedSets = sets.map(s => ({
-                id: s.uuid || s.code, // UUID might not exist in this older schema?
-                code: s.code,
-                name: s.name,
-                released_at: s.releasedate,
-                set_type: s.type,
-                card_count: s.totalsetsize,
-                icon_svg_uri: `https://svgs.scryfall.io/sets/${s.code.toLowerCase()}.svg`, // Inferred
-                digital: s.isonlineonly
-            }));
+            const countMap = {};
+            counts.forEach(function (c) {
+                if (c.code) {
+                    countMap[c.code.toLowerCase()] = parseInt(c.count);
+                }
+            });
+
+            // Map DB columns to Scryfall style for frontend
+            const mappedSets = sets.map(function (s) {
+                const code = s.code.toLowerCase();
+                // Use actual unique count if found, otherwise fallback to totalsetsize
+                const actualCount = countMap[code] !== undefined ? countMap[code] : s.totalsetsize;
+
+                return {
+                    id: s.uuid || s.code,
+                    code: s.code,
+                    name: s.name,
+                    released_at: s.releasedate,
+                    set_type: s.type,
+                    card_count: actualCount,
+                    icon_svg_uri: 'https://svgs.scryfall.io/sets/' + s.code.toLowerCase() + '.svg',
+                    digital: s.isonlineonly
+                };
+            });
 
             return res.json({ data: mappedSets });
         }
 
-        // Fallback or empty? User wants Postgres first.
-        // If empty, return empty and let client handle (or we could fetch from Scryfall here).
-        // Since user implies they have data (or we found 836 rows), we return what we have.
         res.json({ data: [] });
 
     } catch (err) {
