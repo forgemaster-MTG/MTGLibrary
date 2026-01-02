@@ -39,18 +39,23 @@ try {
 }
 
 const app = express();
+// Trust Proxy (Required for rate limiting behind Cloudflare/Docker)
+app.set('trust proxy', 1);
 
 // Security Headers
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://apis.google.com"], // Allow React/Vite/Firebase
-      connectSrc: ["'self'", "https://api.scryfall.com", "https://identitytoolkit.googleapis.com", "https://securetoken.googleapis.com", "ws:", "wss:"], // Allow external APIs
-      imgSrc: ["'self'", "data:", "https://cards.scryfall.io", "https://svgs.scryfall.io", "https://placehold.co", "blob:"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
+      defaultSrc: ["'self'", "https://*.google.com", "https://*.googleapis.com", "https://*.gstatic.com", "https://*.firebaseapp.com", "https://*.firebaseio.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://apis.google.com", "https://*.firebaseio.com", "https://*.firebaseapp.com", "https://*.google.com", "https://*.gstatic.com"],
+      connectSrc: ["'self'", "https://api.scryfall.com", "https://identitytoolkit.googleapis.com", "https://securetoken.googleapis.com", "https://*.firebaseio.com", "ws:", "wss:", "https://*.googleapis.com", "https://*.google.com", "https://*.gstatic.com"],
+      imgSrc: ["'self'", "data:", "https://cards.scryfall.io", "https://svgs.scryfall.io", "https://placehold.co", "blob:", "https://*"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
+      frameSrc: ["'self'", "https://*.firebaseapp.com", "https://*.google.com"],
     },
   },
+  crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
 }));
 
 // Rate Limiting

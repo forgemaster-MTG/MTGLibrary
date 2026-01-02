@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # --- Your Database (from Step 2) ---
+  postgres:
+    image: postgres:latest
+    container_name: postgres
+    ports:
+          - "6468:5432"  # Expose Postgres on port 6468 of your NAS
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: Pass4Kincaid!
+      POSTGRES_DB: mtg_postgres_db
+    volumes:
+      # <--- EDIT THIS: Change to a real path on your NAS
+      - /volume1/docker/postgres:/var/lib/postgresql
+    networks: # <-- This is the fix: 'networks:' (plural)
+      - my-app-network
+    restart: unless-stopped
+
+  # --- Your API (from Step 3) ---
+  api:
+    # <--- EDIT THIS: Make sure 'my-api-image' is the name of the image you built
+    build: .
+    container_name: api
+    environment:
+      # Your API code can now use "postgres" as the hostname
+      DATABASE_URL: "postgres://admin:Pass4Kincaid!@postgres:5432/mtg_postgres_db"
+    networks:
+      - my-app-network
+    depends_on: # This tells Docker to start postgres first
+      - postgres
+    restart: unless-stopped
+
+  # --- Cloudflare Tunnel (from Step 5) ---
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared-connector
+    command: tunnel --no-autoupdate run --token eyJhIjoiMmNhODZkNjRiYTYwNWExNjFiNDBlNGQ2ZGQ3NGFkYWUiLCJ0IjoiYTE2YjIxZWEtN2Y2YS00NTA4LWE2NDQtZTVkYzY3ZjhkM2RkIiwicyI6Ik5HRmtPVEV4T0dNdE1tVTBZeTAwWlRCbExUaGxaV0V0T1RabU1ERmhOVEJqWTJSayJ9
+    networks:
+      - my-app-network
+    restart: unless-stopped
+
+# --- The Network (from Step 1) ---
+networks:
+  my-app-network:
+    name: my-app-network
+

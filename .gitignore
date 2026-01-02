@@ -15,6 +15,10 @@ firebase-debug.*.log*
 
 # dotenv environment variables file
 .env
+# docker-compose.yml
+# docker-compose_Postgres.yml
+# docker-compose-final.yml
+
 
 serviceAccountKey.json
 mtglibrary-70b46-firebase-adminsdk-fbsvc-febf529fa8.json

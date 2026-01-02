@@ -16,15 +16,14 @@ module.exports = {
   },
   production: {
     client: 'pg',
-    connection: process.env.DATABASE_URL + '?ssl=true', // Force SSL for production
+    connection: process.env.DATABASE_URL,
     pool: {
       min: 2,
       max: 10
     },
     migrations: {
       directory: './migrations'
-    },
-    ssl: { rejectUnauthorized: false } // Required for many cloud providers (Neon/Heroku/Render)
+    }
   }
 };
 
