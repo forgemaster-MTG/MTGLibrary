@@ -5,6 +5,7 @@ import knexPkg from 'knex';
 import { Model } from 'objection';
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 const env = process.env.NODE_ENV || 'development';
 const config = knexConfig[env];
 
@@ -16,6 +17,8 @@ if (!config) {
 
 console.log(`[DB] Initializing database for environment: ${env}`);
 =======
+=======
+>>>>>>> Stashed changes
 const rawEnv = (process.env.NODE_ENV || 'development').trim().toLowerCase();
 // Unwrap default export if present (CJS/ESM interop)
 const configSource = knexConfig.default || knexConfig;
@@ -42,6 +45,9 @@ if (!configSource[env]) {
 const config = configSource[env];
 const connInfo = typeof config.connection === 'string' ? config.connection : `${config.connection.host}:${config.connection.port}`;
 console.log(`[DB] Using Connection: ${connInfo.replace(/:[^:@/]+@/, ':***@')}`); // Mask password if URL
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 
 // Force SSL off for local Docker communication (Fix for 'server does not support SSL' error)
