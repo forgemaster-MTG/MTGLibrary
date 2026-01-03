@@ -15,9 +15,9 @@ firebase-debug.*.log*
 
 # dotenv environment variables file
 .env
-# docker-compose.yml
-# docker-compose_Postgres.yml
-# docker-compose-final.yml
+ docker-compose.yml
+ docker-compose_Postgres.yml
+ docker-compose-final.yml
 
 
 serviceAccountKey.json
