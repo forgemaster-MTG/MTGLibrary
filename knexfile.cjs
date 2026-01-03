@@ -4,11 +4,11 @@ module.exports = {
   development: {
     client: 'pg',
     connection: process.env.DATABASE_URL || {
-      host: process.env.PGHOST || '10.0.0.27',
-      port: 6468,
-      user: process.env.PGUSER || 'admin',
-      password: process.env.PGPASSWORD || 'Pass4Kincaid!',
-      database: process.env.PGDATABASE || 'mtg_postgres_db'
+      host: process.env.PGHOST,
+      port: process.env.PGPORT || 5432,
+      user: process.env.PGUSER,
+      password: process.env.PGPASSWORD,
+      database: process.env.PGDATABASE
     },
     migrations: {
       directory: './migrations'

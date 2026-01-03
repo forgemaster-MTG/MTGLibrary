@@ -6,33 +6,33 @@ services:
     build:
       context: .
       args:
-        - VITE_FIREBASE_API_KEY=AIzaSyAdqbFNjrB6y-8BrMEYYCT5ywiCgZVtMaE
-        - VITE_FIREBASE_AUTH_DOMAIN=mtglibrary-70b46.firebaseapp.com
-        - VITE_FIREBASE_PROJECT_ID=mtglibrary-70b46
-        - VITE_FIREBASE_STORAGE_BUCKET=mtglibrary-70b46.firebasestorage.app
-        - VITE_FIREBASE_MESSAGING_SENDER_ID=602862103839
-        - VITE_FIREBASE_APP_ID=1:602862103839:web:23c64b7486c058c903d42a
-        - VITE_FIREBASE_MEASUREMENT_ID=G-EWELJJQ631
+      - VITE_FIREBASE_API_KEY=${VITE_FIREBASE_API_KEY}
+      - VITE_FIREBASE_AUTH_DOMAIN=${VITE_FIREBASE_AUTH_DOMAIN}
+      - VITE_FIREBASE_PROJECT_ID=${VITE_FIREBASE_PROJECT_ID}
+      - VITE_FIREBASE_STORAGE_BUCKET=${VITE_FIREBASE_STORAGE_BUCKET}
+      - VITE_FIREBASE_MESSAGING_SENDER_ID=${VITE_FIREBASE_MESSAGING_SENDER_ID}
+      - VITE_FIREBASE_APP_ID=${VITE_FIREBASE_APP_ID}
+      - VITE_FIREBASE_MEASUREMENT_ID=${VITE_FIREBASE_MEASUREMENT_ID}
     image: mtg-library:latest
     container_name: mtg-library
     restart: always
     ports:
-      - "3002:3000"
+      - "${PORT}:${PORT}"
     environment:
-      - NODE_ENV=production
-      - PORT=3000
+      - NODE_ENV=${NODE_ENV}
+      - PORT=${PORT}
       # Using credentials from your existing postgres config
       # Note host is 'postgres' matching the service name below
-      - DATABASE_URL=postgres://admin:Pass4Kincaid!@postgres:5432/mtg_postgres_db
-      - PUBLIC_URL=https://mtg-forge.com
+      - DATABASE_URL=${DATABASE_URL}
+      - PUBLIC_URL=${PUBLIC_URL}
       # Firebase Client Keys
-      - VITE_FIREBASE_API_KEY=AIzaSyAdqbFNjrB6y-8BrMEYYCT5ywiCgZVtMaE
-      - VITE_FIREBASE_AUTH_DOMAIN=mtglibrary-70b46.firebaseapp.com
-      - VITE_FIREBASE_PROJECT_ID=mtglibrary-70b46
-      - VITE_FIREBASE_STORAGE_BUCKET=mtglibrary-70b46.firebasestorage.app
-      - VITE_FIREBASE_MESSAGING_SENDER_ID=602862103839
-      - VITE_FIREBASE_APP_ID=1:602862103839:web:23c64b7486c058c903d42a
-      - VITE_FIREBASE_MEASUREMENT_ID=G-EWELJJQ631
+      - VITE_FIREBASE_API_KEY=${VITE_FIREBASE_API_KEY}
+      - VITE_FIREBASE_AUTH_DOMAIN=${VITE_FIREBASE_AUTH_DOMAIN}
+      - VITE_FIREBASE_PROJECT_ID=${VITE_FIREBASE_PROJECT_ID}
+      - VITE_FIREBASE_STORAGE_BUCKET=${VITE_FIREBASE_STORAGE_BUCKET}
+      - VITE_FIREBASE_MESSAGING_SENDER_ID=${VITE_FIREBASE_MESSAGING_SENDER_ID}
+      - VITE_FIREBASE_APP_ID=${VITE_FIREBASE_APP_ID}
+      - VITE_FIREBASE_MEASUREMENT_ID=${VITE_FIREBASE_MEASUREMENT_ID}
     volumes:
       # Mount the Service Account Key from the NAS host path to the app root
       - ./serviceAccountKey.json:/app/serviceAccountKey.json
@@ -48,9 +48,9 @@ services:
     ports:
       - "6468:5432" # Exposed on NAS port 6468
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: Pass4Kincaid!
-      POSTGRES_DB: mtg_postgres_db
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       # Keeping your specific NAS path
       - /volume1/docker/postgres:/var/lib/postgresql
@@ -63,7 +63,7 @@ services:
     image: cloudflare/cloudflared:latest
     container_name: cloudflared-connector
     # Your specific token
-    command: tunnel --no-autoupdate run --token eyJhIjoiMmNhODZkNjRiYTYwNWExNjFiNDBlNGQ2ZGQ3NGFkYWUiLCJ0IjoiYTE2YjIxZWEtN2Y2YS00NTA4LWE2NDQtZTVkYzY3ZjhkM2RkIiwicyI6Ik5HRmtPVEV4T0dNdE1tVTBZeTAwWlRCbExUaGxaV0V0T1RabU1ERmhOVEJqWTJSayJ9
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
     networks:
       - my-app-network
     restart: unless-stopped
