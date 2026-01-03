@@ -14,7 +14,7 @@ firebase-debug.*.log*
 .Public/Precons/
 
 # dotenv environment variables file
-# .env
+.env
 
 knexfile.cjs
 
