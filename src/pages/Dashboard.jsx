@@ -7,12 +7,15 @@ import { useAuth } from '../contexts/AuthContext';
 import { useCollection } from '../hooks/useCollection';
 import { useDecks } from '../hooks/useDecks';
 import { getIdentity } from '../data/mtg_identity_registry';
+import DonationWidget from '../components/dashboard/DonationWidget';
+import DonationModal from '../components/modals/DonationModal';
 
 const Dashboard = () => {
     const { currentUser, userProfile } = useAuth();
     const { cards: collection, loading: collectionLoading, refresh: refreshCollection } = useCollection();
     const { decks, loading: decksLoading } = useDecks();
     const [isBugModalOpen, setIsBugModalOpen] = useState(false);
+    const [isDonationModalOpen, setIsDonationModalOpen] = useState(false);
     const [syncLoading, setSyncLoading] = useState(false);
     const navigate = useNavigate();
 
@@ -305,6 +308,9 @@ const Dashboard = () => {
                             </button>
                         </div>
 
+                        {/* Donation Widget */}
+                        <DonationWidget onOpenModal={() => setIsDonationModalOpen(true)} />
+
                         {/* Placeholder Note Widget */}
                         <div className="bg-gray-800/40 border border-gray-700/50 rounded-3xl p-6 h-64">
                             <div className="flex justify-between items-center mb-4">
@@ -325,6 +331,11 @@ const Dashboard = () => {
             <BugTrackerModal
                 isOpen={isBugModalOpen}
                 onClose={() => setIsBugModalOpen(false)}
+            />
+
+            <DonationModal
+                isOpen={isDonationModalOpen}
+                onClose={() => setIsDonationModalOpen(false)}
             />
         </div>
     );

@@ -1,6 +1,6 @@
 import { auth } from '../lib/firebase';
 
-const BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:3000' : ''); // Empty string for relative paths in prod
+const BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://localhost:${import.meta.env.VITE_PORT || 3004}` : ''); // Default to 3004 for local dev server
 
 async function getHeaders() {
     const headers = {

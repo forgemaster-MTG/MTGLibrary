@@ -45,7 +45,7 @@ function App() {
                                     <Route path="/sets" element={<SetsPage />} />
                                     <Route path="/sets/:setCode" element={<SetDetailsPage />} />
                                     <Route path="/wishlist" element={<WishlistPage />} />
-                                    <Route path="/settings" element={<SettingsPage />} />
+                                    <Route path="/settings/:tab?" element={<SettingsPage />} />
                                 </Routes>
                             </div>
                         </AuthGuard>

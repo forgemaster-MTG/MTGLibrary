@@ -20,6 +20,7 @@ import cardsApi from './api/cards.js';
 import cardIdentifiersApi from './api/cardidentifiers.js';
 import decksApi from './api/decks.js';
 import usersApi from './api/users.js';
+import paymentsApi from './api/payments.js';
 import preconsApi from './api/precons.js';
 import collectionApi from './api/collection.js';
 import adminApi from './api/admin.js';
@@ -98,6 +99,9 @@ app.get('/me', auth, async (req, res) => {
       id: user.id,
       firestore_id: user.firestore_id,
       email: user.email,
+      username: user.username,
+      first_name: user.first_name,
+      last_name: user.last_name,
       data: user.data,
       settings: user.settings || {}
     });
@@ -166,6 +170,7 @@ app.use('/cards', cardsApi);
 app.use('/cardidentifiers', cardIdentifiersApi);
 app.use('/decks', decksApi);
 app.use('/users', usersApi);
+app.use('/payments', auth, paymentsApi);
 app.use('/precons', preconsApi);
 app.use('/collection', collectionApi); // New collection/cards management API
 app.use('/admin', adminApi);

@@ -14,7 +14,7 @@ firebase-debug.*.log*
 .Public/Precons/
 
 # dotenv environment variables file
-.env
+# .env
 
 knexfile.cjs
 
@@ -83,7 +83,7 @@ node_modules/
 .yarn-integrity
 
 # dotenv environment variables file
-.env
+# .env
 
 # dataconnect generated files
 .dataconnect

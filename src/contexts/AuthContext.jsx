@@ -6,7 +6,9 @@ import {
     signOut,
     GoogleAuthProvider,
     signInWithPopup,
-    updateProfile
+    updateProfile,
+    sendPasswordResetEmail,
+    sendEmailVerification
 } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { auth, storage } from '../lib/firebase';
@@ -23,8 +25,30 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     // Sign up
-    const signup = (email, password) => {
-        return createUserWithEmailAndPassword(auth, email, password);
+    const signup = async (email, password, profileData = {}) => {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        // If we have profile data, update it in our DB immediately
+        if (Object.keys(profileData).length > 0) {
+            try {
+                // We need to wait a moment for the user to be created in DB via middleware if it's the first time
+                // Or we can manually trigger a creation/update here.
+                // The middleware handles creation on the next request.
+                // Let's call refreshUserProfile to ensure the user exists in DB.
+                await refreshUserProfile();
+                // Then update with profile data
+                // We need the numeric ID from the profile
+                const freshProfile = await api.get('/me');
+                if (freshProfile?.id) {
+                    await api.updateUser(freshProfile.id, profileData);
+                    await refreshUserProfile();
+                }
+            } catch (err) {
+                console.error("Failed to save profile data during signup", err);
+            }
+        }
+        return userCredential;
     };
 
     // Login
@@ -42,6 +66,29 @@ export const AuthProvider = ({ children }) => {
     const logout = () => {
         setUserProfile(null);
         return signOut(auth);
+    };
+
+    // Password Reset
+    const resetPassword = (email) => {
+        return sendPasswordResetEmail(auth, email);
+    };
+
+    // Send Verification Email
+    const sendVerification = () => {
+        if (!auth.currentUser) throw new Error("No user logged in");
+        return sendEmailVerification(auth.currentUser);
+    };
+
+    // Update Profile Fields
+    const updateProfileFields = async (fields) => {
+        if (!userProfile?.id) throw new Error("User profile not ready");
+        try {
+            await api.updateUser(userProfile.id, fields);
+            await refreshUserProfile();
+        } catch (error) {
+            console.error("Failed to update profile fields:", error);
+            throw error;
+        }
     };
 
     // Upload Profile Picture
@@ -134,6 +181,9 @@ export const AuthProvider = ({ children }) => {
         login,
         loginWithGoogle,
         logout,
+        resetPassword,
+        sendVerification,
+        updateProfileFields,
         uploadProfilePicture
     };
 

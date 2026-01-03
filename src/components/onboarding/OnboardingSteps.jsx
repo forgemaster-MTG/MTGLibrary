@@ -18,132 +18,65 @@ export const WelcomeStep = ({ onNext }) => (
     </div>
 );
 
-export const PaymentStep = ({ onNext, onBack }) => {
-    const [selectedPlan, setSelectedPlan] = useState('alpha');
-
-    const plans = [
-        {
-            id: 'scout',
-            name: 'Scout',
-            price: 'Free',
-            features: ['Collection Management', 'Basic Deck Stats', 'Limited AI Suggestions'],
-            disabled: true,
-            tag: 'Coming Soon'
-        },
-        {
-            id: 'alpha',
-            name: 'Alpha Tester',
-            price: '$0/mo',
-            originalPrice: 'Priceless',
-            features: ['Unlimited Collections', 'Full AI Architect Access', 'Priority Support', 'Founder Badge'],
-            disabled: false,
-            recommended: true,
-            tag: 'Limited Time'
-        },
-        {
-            id: 'planeswalker',
-            name: 'Planeswalker',
-            price: '$TBD/mo',
-            features: ['Pro Analytics', 'Meta Game Insights', 'Secure Offline Backups', 'Custom AI Architect Personas'],
-            disabled: true,
-            tag: 'Coming Soon'
-        }
-    ];
-
+export const SupportStep = ({ onNext, onBack }) => {
     return (
-        <div className="max-w-5xl w-full space-y-8 animate-fade-in-up">
+        <div className="max-w-4xl w-full space-y-8 animate-fade-in-up">
             <div className="text-center">
-                <h2 className="text-3xl font-bold text-white mb-3">Choose Your Path</h2>
-                <p className="text-gray-400 max-w-lg mx-auto">
-                    Select your access level. During our Alpha phase, all features are unlocked for testers.
+                <div className="w-20 h-20 mx-auto bg-pink-500/20 rounded-full flex items-center justify-center mb-6 ring-1 ring-pink-500/50 shadow-[0_0_30px_rgba(236,72,153,0.3)]">
+                    <svg className="w-10 h-10 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                </div>
+                <h2 className="text-4xl font-black text-white mb-3">Support the Forge</h2>
+                <p className="text-gray-400 max-w-lg mx-auto text-lg">
+                    MTG-Forge is free for everyone during Alpha. If you love what we're building, consider a small donation to help us keep the servers running.
                 </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {plans.map(plan => (
-                    <div
-                        key={plan.id}
-                        onClick={() => !plan.disabled && setSelectedPlan(plan.id)}
-                        className={`relative rounded-2xl border p-6 transition-all duration-300 flex flex-col ${plan.disabled
-                            ? 'bg-gray-800/20 border-gray-800 opacity-60 cursor-not-allowed grayscale-[0.5]'
-                            : selectedPlan === plan.id
-                                ? 'bg-indigo-900/40 border-indigo-500 shadow-[0_0_30px_rgba(99,102,241,0.2)] transform scale-105 z-10'
-                                : 'bg-gray-800/40 border-gray-700 hover:border-gray-600 cursor-pointer hover:bg-gray-800/60'
-                            }`}
-                    >
-                        {plan.recommended && (
-                            <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg">
-                                Recommended
-                            </div>
-                        )}
-                        {plan.tag && !plan.recommended && (
-                            <div className="absolute top-4 right-4 text-xs font-mono text-gray-500 border border-gray-700 px-2 py-1 rounded">
-                                {plan.tag}
-                            </div>
-                        )}
-
-                        <div className="mb-6">
-                            <h3 className={`text-xl font-bold mb-1 ${plan.id === 'alpha' ? 'text-amber-400' : 'text-white'}`}>{plan.name}</h3>
-                            <div className="flex items-baseline gap-2">
-                                <span className="text-3xl font-extrabold text-white">{plan.price}</span>
-                                {plan.originalPrice && (
-                                    <span className="text-sm text-gray-500 line-through decoration-red-500/50">{plan.originalPrice}</span>
-                                )}
-                            </div>
-                        </div>
-
-                        <ul className="space-y-3 mb-8 flex-grow">
-                            {plan.features.map((feature, idx) => (
-                                <li key={idx} className="flex items-start gap-3 text-sm text-gray-300">
-                                    <svg className={`w-5 h-5 flex-shrink-0 ${plan.disabled ? 'text-gray-600' : 'text-green-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                    </svg>
-                                    {feature}
-                                </li>
-                            ))}
-                        </ul>
-
-                        <button
-                            disabled={plan.disabled}
-                            className={`w-full py-3 rounded-xl font-bold transition-all ${plan.disabled
-                                ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
-                                : selectedPlan === plan.id
-                                    ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg'
-                                    : 'bg-gray-700 hover:bg-gray-600 text-white'
-                                }`}
-                        >
-                            {plan.disabled ? 'Unavailable' : selectedPlan === plan.id ? 'Selected' : 'Select Plan'}
-                        </button>
-
-                        {plan.id === 'alpha' && (
-                            <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-center animate-fade-in">
-                                <p className="text-amber-400 text-xs font-bold uppercase tracking-wide mb-1">We Need Your Voice</p>
-                                <p className="text-gray-300 text-xs leading-relaxed">
-                                    Help us define the future! <br />
-                                    <span className="text-amber-200">What should be free? What's worth paying for?</span>
-                                    <br />Your feedback shapes our pricing models.
-                                </p>
-                            </div>
-                        )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
+                <div className="bg-gray-800/40 border border-gray-700 rounded-3xl p-8 flex flex-col justify-between hover:border-pink-500/50 transition-colors group">
+                    <div>
+                        <h3 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+                            <span className="text-indigo-400">✨</span> Community Power
+                        </h3>
+                        <p className="text-gray-400 text-sm leading-relaxed mb-6">
+                            Every donation goes directly towards API costs (Scryfall, Gemini) and server maintenance. You help us stay independent and ad-free.
+                        </p>
                     </div>
-                ))}
+                    <button
+                        onClick={() => onNext('donate')}
+                        className="w-full py-4 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 text-white rounded-xl font-bold shadow-lg shadow-pink-500/20 transition-all transform hover:-translate-y-1"
+                    >
+                        Donate to Project
+                    </button>
+                </div>
+
+                <div className="bg-gray-800/20 border border-gray-800 rounded-3xl p-8 flex flex-col justify-between opacity-80 hover:opacity-100 transition-opacity">
+                    <div>
+                        <h3 className="text-2xl font-bold text-gray-300 mb-4 flex items-center gap-2">
+                            <span className="text-gray-500">🛡️</span> Free Access
+                        </h3>
+                        <p className="text-gray-400 text-sm leading-relaxed mb-6">
+                            You can still access all features for free. We value your feedback as an Alpha tester just as much as financial support.
+                        </p>
+                    </div>
+                    <button
+                        onClick={() => onNext('skip')}
+                        className="w-full py-4 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-xl font-bold transition-all border border-gray-600"
+                    >
+                        Skip for Now
+                    </button>
+                </div>
             </div>
 
-            <div className="flex justify-center pt-8 gap-4">
+            <div className="flex justify-center pt-8">
                 {onBack && (
                     <button
                         onClick={onBack}
-                        className="px-8 py-4 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded-xl font-bold text-lg transition-colors border border-gray-700"
+                        className="text-gray-500 hover:text-white transition-colors flex items-center gap-2"
                     >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                         Back
                     </button>
                 )}
-                <button
-                    onClick={() => onNext(selectedPlan)}
-                    className="px-12 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-indigo-500/30 transition-all transform hover:-translate-y-1"
-                >
-                    Confirm Selection
-                </button>
             </div>
         </div>
     );

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../services/api';
 import { collectionService } from '../services/collectionService';
@@ -7,9 +7,10 @@ import ImportDataModal from '../components/modals/ImportDataModal';
 import HelperSettingsModal from '../components/modals/HelperSettingsModal';
 
 const SettingsPage = () => {
-    const { user, userProfile, refreshUserProfile } = useAuth();
+    const { user, userProfile, refreshUserProfile, resetPassword, sendVerification, updateProfileFields } = useAuth();
+    const { tab } = useParams();
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState('general');
+    const activeTab = tab || 'account'; // Default to account tab
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -19,6 +20,11 @@ const SettingsPage = () => {
     const [geminiKey, setGeminiKey] = useState('');
     const [viewMode, setViewMode] = useState('grid');
     const [gridSize, setGridSize] = useState('md');
+    const [username, setUsername] = useState('');
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
+    const [resetLoading, setResetLoading] = useState(false);
+    const [verifyLoading, setVerifyLoading] = useState(false);
 
     useEffect(() => {
         if (userProfile?.settings) {
@@ -26,6 +32,11 @@ const SettingsPage = () => {
             if (userProfile.settings.geminiApiKey) setGeminiKey(userProfile.settings.geminiApiKey); // Note: key might be masked in real app, assuming stored plain for now per plan
             if (userProfile.settings.viewMode) setViewMode(userProfile.settings.viewMode);
             if (userProfile.settings.gridSize) setGridSize(userProfile.settings.gridSize);
+        }
+        if (userProfile) {
+            setUsername(userProfile.username || '');
+            setFirstName(userProfile.first_name || '');
+            setLastName(userProfile.last_name || '');
         }
     }, [userProfile]);
 
@@ -52,6 +63,48 @@ const SettingsPage = () => {
             alert('Error saving settings: ' + (error.message || 'Unknown error'));
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleUpdateProfile = async () => {
+        setSaving(true);
+        try {
+            await updateProfileFields({
+                username,
+                first_name: firstName,
+                last_name: lastName
+            });
+            alert('Profile updated successfully!');
+        } catch (error) {
+            console.error('Failed to update profile:', error);
+            alert('Error updating profile: ' + (error.message || 'Unknown error'));
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handlePasswordReset = async () => {
+        if (!user?.email) return;
+        setResetLoading(true);
+        try {
+            await resetPassword(user.email);
+            alert('Password reset email sent!');
+        } catch (error) {
+            alert('Error: ' + error.message);
+        } finally {
+            setResetLoading(false);
+        }
+    };
+
+    const handleVerifyEmail = async () => {
+        setVerifyLoading(true);
+        try {
+            await sendVerification();
+            alert('Verification email sent!');
+        } catch (error) {
+            alert('Error: ' + error.message);
+        } finally {
+            setVerifyLoading(false);
         }
     };
 
@@ -90,39 +143,121 @@ const SettingsPage = () => {
             </h1>
 
             {/* Tabs */}
-            <div className="flex border-b border-gray-700">
-                {['general', 'ai', 'display', 'data', ...(user?.uid === 'Kyrlwz6G6NWICCEPYbXtFfyLzWI3' ? ['admin'] : [])].map((tab) => (
+            <div className="flex border-b border-gray-700 overflow-x-auto">
+                {['account', 'general', 'ai', 'display', 'data', ...(user?.uid === 'Kyrlwz6G6NWICCEPYbXtFfyLzWI3' ? ['admin'] : [])].map((t) => (
                     <button
-                        key={tab}
-                        onClick={() => setActiveTab(tab)}
-                        className={`px-6 py-3 font-medium transition-colors border-b-2 ${activeTab === tab
+                        key={t}
+                        onClick={() => navigate(`/settings/${t}`)}
+                        className={`px-6 py-3 font-medium transition-colors border-b-2 whitespace-nowrap ${activeTab === t
                             ? 'border-indigo-500 text-indigo-400'
                             : 'border-transparent text-gray-400 hover:text-gray-200'
                             }`}
                     >
-                        {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                        {t.charAt(0).toUpperCase() + t.slice(1)}
                     </button>
                 ))}
             </div>
 
             {/* Content */}
             <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-lg min-h-[400px]">
-                {/* ... existing tabs ... */}
+                {activeTab === 'account' && (
+                    <div className="space-y-8 animate-fade-in">
+                        <section className="space-y-4">
+                            <h2 className="text-xl font-semibold text-white">Profile Information</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                    <label className="text-sm text-gray-400 block">First Name</label>
+                                    <input
+                                        type="text"
+                                        value={firstName}
+                                        onChange={(e) => setFirstName(e.target.value)}
+                                        className="w-full bg-gray-900 border border-gray-700 p-2.5 rounded-lg text-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-sm text-gray-400 block">Last Name</label>
+                                    <input
+                                        type="text"
+                                        value={lastName}
+                                        onChange={(e) => setLastName(e.target.value)}
+                                        className="w-full bg-gray-900 border border-gray-700 p-2.5 rounded-lg text-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-sm text-gray-400 block">Username</label>
+                                <input
+                                    type="text"
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value)}
+                                    placeholder="Enter username..."
+                                    className="w-full bg-gray-900 border border-gray-700 p-2.5 rounded-lg text-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                />
+                            </div>
+                            <div className="flex justify-start">
+                                <button
+                                    onClick={handleUpdateProfile}
+                                    disabled={saving}
+                                    className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors text-sm font-medium disabled:opacity-50"
+                                >
+                                    Update Profile
+                                </button>
+                            </div>
+                        </section>
+
+                        <section className="pt-6 border-t border-gray-700 space-y-4">
+                            <h2 className="text-xl font-semibold text-white">Security & Account</h2>
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between p-4 bg-gray-900/50 rounded-lg border border-gray-700">
+                                    <div>
+                                        <p className="font-medium text-gray-200">Email Address</p>
+                                        <p className="text-sm text-gray-400">{user.email}</p>
+                                        {!user.emailVerified && (
+                                            <span className="text-[10px] bg-yellow-500/20 text-yellow-500 px-1.5 py-0.5 rounded-full border border-yellow-500/30 mt-1 inline-block">
+                                                Unverified
+                                            </span>
+                                        )}
+                                        {user.emailVerified && (
+                                            <span className="text-[10px] bg-green-500/20 text-green-500 px-1.5 py-0.5 rounded-full border border-green-500/30 mt-1 inline-block">
+                                                Verified
+                                            </span>
+                                        )}
+                                    </div>
+                                    {!user.emailVerified && (
+                                        <button
+                                            onClick={handleVerifyEmail}
+                                            disabled={verifyLoading}
+                                            className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors font-medium"
+                                        >
+                                            {verifyLoading ? 'Sending...' : 'Send Verification'}
+                                        </button>
+                                    )}
+                                </div>
+
+                                <div className="flex items-center justify-between p-4 bg-gray-900/50 rounded-lg border border-gray-700">
+                                    <div>
+                                        <p className="font-medium text-gray-200">Password</p>
+                                        <p className="text-sm text-gray-400">Change your account password</p>
+                                    </div>
+                                    <button
+                                        onClick={handlePasswordReset}
+                                        disabled={resetLoading}
+                                        className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors font-medium disabled:opacity-50"
+                                    >
+                                        {resetLoading ? 'Sending...' : 'Reset Password'}
+                                    </button>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                )}
+
                 {activeTab === 'general' && (
                     <div className="space-y-6 animate-fade-in">
-                        <h2 className="text-xl font-semibold text-white">Account Information</h2>
-                        <div className="space-y-1">
-                            <label className="text-sm text-gray-400 block">Email</label>
-                            <div className="bg-gray-900 p-3 rounded-lg text-gray-200">{user.email}</div>
-                        </div>
-                        <div className="space-y-1">
-                            <label className="text-sm text-gray-400 block">User ID</label>
-                            <div className="bg-gray-900 p-3 rounded-lg text-gray-200 font-mono text-xs">{user.uid}</div>
-                        </div>
-
+                        <h2 className="text-xl font-semibold text-white">App Preferences</h2>
                         {/* Onboarding Reset */}
-                        <div className="pt-6 border-t border-gray-700">
-                            <h3 className="text-lg font-medium text-white mb-2">Account Actions</h3>
+                        <div className="pt-2">
+                            <h3 className="text-sm font-medium text-gray-400 mb-2">Guided Experience</h3>
                             <button
                                 onClick={async () => {
                                     if (window.confirm('This will restart the welcome tour. Continue?')) {

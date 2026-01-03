@@ -38,13 +38,18 @@ router.put('/:id', authMiddleware, async (req, res) => {
     const userId = parseInt(req.params.id, 10);
     if (req.user.id !== userId) return res.status(403).json({ error: 'not allowed' });
 
-    if (req.body.settings) {
-      console.log(`[users] Updating settings for user ${userId}:`, JSON.stringify(req.body.settings));
-    }
+    const { email, username, first_name, last_name, settings, data } = req.body;
+    const updateData = {};
+    if (email !== undefined) updateData.email = email;
+    if (username !== undefined) updateData.username = username;
+    if (first_name !== undefined) updateData.first_name = first_name;
+    if (last_name !== undefined) updateData.last_name = last_name;
+    if (settings !== undefined) updateData.settings = settings;
+    if (data !== undefined) updateData.data = data;
 
     const result = await knex('users')
       .where({ id: userId })
-      .update(req.body)
+      .update(updateData)
       .returning('*');
 
     const row = Array.isArray(result) ? result[0] : result;
