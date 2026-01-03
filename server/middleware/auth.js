@@ -66,8 +66,8 @@ async function authMiddleware(req, res, next) {
 		req.user = user;
 		next();
 	} catch (err) {
-		console.error('[auth] token verification error', err.message || err);
-		return res.status(401).json({ error: 'Token verification failed' });
+		console.error('[auth] token verification error', err);
+		return res.status(401).json({ error: `Token verification failed: ${err.message}`, details: err.toString() });
 	}
 }
 
