@@ -1,9 +1,5 @@
 import express from 'express';
-import { createRequire } from 'module';
-
-const require = createRequire(import.meta.url);
-const knexConfig = require('../../knexfile.cjs');
-const knex = require('knex')(knexConfig['development']);
+import { knex } from '../db.js';
 
 const router = express.Router();
 
