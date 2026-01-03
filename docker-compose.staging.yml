@@ -53,7 +53,9 @@ services:
       POSTGRES_DB: mtg_postgres_db_staging
     volumes:
       # Relative path for portability. This creates a folder 'postgres_data_staging' next to this file.
-      - ./postgres_data_staging:/var/lib/postgresql/data
+      # Mounting to /var/lib/postgresql helps avoid "directory not empty" errors on NAS (due to @eaDir etc)
+      # Postgres will create a 'data' subfolder inside this.
+      - ./postgres_data_staging:/var/lib/postgresql
     networks:
       - staging-network
     restart: unless-stopped
@@ -63,7 +65,7 @@ services:
   cloudflared-staging:
     image: cloudflare/cloudflared:latest
     container_name: cloudflared-staging
-    command: tunnel --no-autoupdate run --token REPLACE_WITH_STAGING_TOKEN
+    command: tunnel --no-autoupdate run --token eyJhIjoiMmNhODZkNjRiYTYwNWExNjFiNDBlNGQ2ZGQ3NGFkYWUiLCJ0IjoiYTE2YjIxZWEtN2Y2YS00NTA4LWE2NDQtZTVkYzY3ZjhkM2RkIiwicyI6Ik5HRmtPVEV4T0dNdE1tVTBZeTAwWlRCbExUaGxaV0V0T1RabU1ERmhOVEJqWTJSayJ9
     networks:
       - staging-network
     restart: unless-stopped

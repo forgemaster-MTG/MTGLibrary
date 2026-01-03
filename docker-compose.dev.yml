@@ -48,7 +48,10 @@ services:
       POSTGRES_PASSWORD: Pass4Kincaid!
       POSTGRES_DB: mtg_postgres_db_dev
     volumes:
-      - ./postgres_data_dev:/var/lib/postgresql/data
+      # Relative path for portability. This creates a folder 'postgres_data_dev' next to this file.
+      # Mounting to /var/lib/postgresql helps avoid "directory not empty" errors on NAS (due to @eaDir etc)
+      # Postgres will create a 'data' subfolder inside this.
+      - ./postgres_data_dev:/var/lib/postgresql
     networks:
       - dev-network
     restart: unless-stopped
@@ -57,7 +60,7 @@ services:
   cloudflared-dev:
     image: cloudflare/cloudflared:latest
     container_name: cloudflared-dev
-    command: tunnel --no-autoupdate run --token REPLACE_WITH_DEV_TOKEN
+    command: tunnel --no-autoupdate run --token eyJhIjoiMmNhODZkNjRiYTYwNWExNjFiNDBlNGQ2ZGQ3NGFkYWUiLCJ0IjoiYTE2YjIxZWEtN2Y2YS00NTA4LWE2NDQtZTVkYzY3ZjhkM2RkIiwicyI6Ik5HRmtPVEV4T0dNdE1tVTBZeTAwWlRCbExUaGxaV0V0T1RabU1ERmhOVEJqWTJSayJ9
     networks:
       - dev-network
     restart: unless-stopped

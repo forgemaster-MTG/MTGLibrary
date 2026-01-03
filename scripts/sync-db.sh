@@ -7,7 +7,9 @@ STAGING_CONTAINER="postgres-staging"
 DEV_CONTAINER="postgres-dev"
 
 # Database Credentials (Should match your .env or docker-compose)
+# Database Credentials (Should match your .env or docker-compose)
 DB_USER="admin"
+DB_PASSWORD="Pass4Kincaid!"
 DB_NAME="mtg_postgres_db"
 
 # Timestamp
@@ -24,7 +26,8 @@ sync_db() {
 
     # 1. Dump Production DB (Schema + Data)
     echo "1. Dumping Production Database..."
-    docker exec $SOURCE pg_dump -U $DB_USER $DB_NAME > $BACKUP_FILE
+    # Using -e PGPASSWORD to avoid password prompt
+    docker exec -e PGPASSWORD=$DB_PASSWORD $SOURCE pg_dump -U $DB_USER $DB_NAME > $BACKUP_FILE
 
     if [ ! -s $BACKUP_FILE ]; then
         echo "Error: Dump failed or empty."
@@ -33,16 +36,16 @@ sync_db() {
 
     # 2. Terminate connections to Target DB (Required to drop/restore)
     echo "2. Terminating connections to $TARGET..."
-    docker exec $TARGET psql -U $DB_USER -d postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$TARGET_DB_NAME' AND pid <> pg_backend_pid();"
+    docker exec -e PGPASSWORD=$DB_PASSWORD $TARGET psql -U $DB_USER -d postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$TARGET_DB_NAME' AND pid <> pg_backend_pid();"
 
     # 3. Drop and Recreate Target DB (Clean Slate)
     echo "3. Recreating Database on $TARGET..."
-    docker exec $TARGET psql -U $DB_USER -d postgres -c "DROP DATABASE IF EXISTS $TARGET_DB_NAME;"
-    docker exec $TARGET psql -U $DB_USER -d postgres -c "CREATE DATABASE $TARGET_DB_NAME;"
+    docker exec -e PGPASSWORD=$DB_PASSWORD $TARGET psql -U $DB_USER -d postgres -c "DROP DATABASE IF EXISTS $TARGET_DB_NAME;"
+    docker exec -e PGPASSWORD=$DB_PASSWORD $TARGET psql -U $DB_USER -d postgres -c "CREATE DATABASE $TARGET_DB_NAME;"
 
     # 4. Restore Data
     echo "4. Restoring Data to $TARGET..."
-    cat $BACKUP_FILE | docker exec -i $TARGET psql -U $DB_USER $TARGET_DB_NAME
+    cat $BACKUP_FILE | docker exec -i -e PGPASSWORD=$DB_PASSWORD $TARGET psql -U $DB_USER $TARGET_DB_NAME
 
     # Authorization cleanup (in case role names differ, usually fine if identical)
     
