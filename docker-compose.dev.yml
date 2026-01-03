@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  # --- Dev Application ---
+  mtg-library-dev:
+    build:
+      context: .
+      args:
+        - VITE_FIREBASE_API_KEY=AIzaSyAdqbFNjrB6y-8BrMEYYCT5ywiCgZVtMaE
+        - VITE_FIREBASE_AUTH_DOMAIN=mtglibrary-70b46.firebaseapp.com
+        - VITE_FIREBASE_PROJECT_ID=mtglibrary-70b46
+        - VITE_FIREBASE_STORAGE_BUCKET=mtglibrary-70b46.firebasestorage.app
+        - VITE_FIREBASE_MESSAGING_SENDER_ID=602862103839
+        - VITE_FIREBASE_APP_ID=1:602862103839:web:23c64b7486c058c903d42a
+        - VITE_FIREBASE_MEASUREMENT_ID=G-EWELJJQ631
+    image: mtg-library-dev:latest
+    container_name: mtg-library-dev
+    restart: always
+    ports:
+      - "3004:3004" # Host Port 3004
+    environment:
+      - NODE_ENV=production
+      - PORT=3004
+      - DATABASE_URL=postgres://admin:Pass4Kincaid!@postgres-dev:5432/mtg_postgres_db_dev
+      - PUBLIC_URL=https://dev.mtg-forge.com
+        - VITE_FIREBASE_API_KEY=AIzaSyAdqbFNjrB6y-8BrMEYYCT5ywiCgZVtMaE
+        - VITE_FIREBASE_AUTH_DOMAIN=mtglibrary-70b46.firebaseapp.com
+        - VITE_FIREBASE_PROJECT_ID=mtglibrary-70b46
+        - VITE_FIREBASE_STORAGE_BUCKET=mtglibrary-70b46.firebasestorage.app
+        - VITE_FIREBASE_MESSAGING_SENDER_ID=602862103839
+        - VITE_FIREBASE_APP_ID=1:602862103839:web:23c64b7486c058c903d42a
+        - VITE_FIREBASE_MEASUREMENT_ID=G-EWELJJQ631
+    volumes:
+      - ./serviceAccountKey.json:/app/serviceAccountKey.json
+    depends_on:
+      - postgres-dev
+    networks:
+      - dev-network
+
+  # --- Dev Database ---
+  postgres-dev:
+    image: postgres:17
+    container_name: postgres-dev
+    ports:
+      - "6470:5432" # Exposed on NAS port 6470
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: Pass4Kincaid!
+      POSTGRES_DB: mtg_postgres_db_dev
+    volumes:
+      - ./postgres_data_dev:/var/lib/postgresql/data
+    networks:
+      - dev-network
+    restart: unless-stopped
+
+  # --- Dev Config for Cloudflare ---
+  cloudflared-dev:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared-dev
+    command: tunnel --no-autoupdate run --token eyJhIjoiMmNhODZkNjRiYTYwNWExNjFiNDBlNGQ2ZGQ3NGFkYWUiLCJ0IjoiODE5NDM1YzEtM2I4Ni00NjRhLWI4ZGQtNjhjOTI3MDVhZTVmIiwicyI6IlpXSTBZbVl5TXpBdE5EVmtNeTAwWlRFMUxXRTVaVE10WlRVM1pXVTRPV00zTjJWbSJ9
+    networks:
+      - dev-network
+    restart: unless-stopped
+
+networks:
+  dev-network:
+    name: dev-network
