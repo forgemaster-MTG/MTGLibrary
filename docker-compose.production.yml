@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # --- The Application ---
+  mtg-library:
+    build:
+      context: .
+      args:
+        - VITE_FIREBASE_API_KEY=${VITE_FIREBASE_API_KEY}
+        - VITE_FIREBASE_AUTH_DOMAIN=${VITE_FIREBASE_AUTH_DOMAIN}
+        - VITE_FIREBASE_PROJECT_ID=${VITE_FIREBASE_PROJECT_ID}
+        - VITE_FIREBASE_STORAGE_BUCKET=${VITE_FIREBASE_STORAGE_BUCKET}
+        - VITE_FIREBASE_MESSAGING_SENDER_ID=${VITE_FIREBASE_MESSAGING_SENDER_ID}
+        - VITE_FIREBASE_APP_ID=${VITE_FIREBASE_APP_ID}
+        - VITE_FIREBASE_MEASUREMENT_ID=${VITE_FIREBASE_MEASUREMENT_ID}
+        - VITE_API_URL=${VITE_API_URL}
+    container_name: mtg-library-prod
+    ports:
+      - "${PORT}:${PORT}"
+    env_file:
+      - .env.production
+    volumes:
+      - ./serviceAccountKey.json:/app/serviceAccountKey.json:ro
+    networks:
+      - mtg-network
+    restart: unless-stopped
+    depends_on:
+      - postgres
+
+  # --- Database ---
+  postgres:
+    image: postgres:latest
+    container_name: mtg-postgres-prod
+    environment:
+      - POSTGRES_USER=${PGUSER}
+      - POSTGRES_PASSWORD=${PGPASSWORD}
+      - POSTGRES_DB=${PGDATABASE}
+    ports:
+      - "${PGPORT}:5432"
+    volumes:
+      - /volume1/docker/postgres_prod:/var/lib/postgresql/data
+    networks:
+      - mtg-network
+    restart: unless-stopped
+
+networks:
+  mtg-network:
+    name: mtg-network
