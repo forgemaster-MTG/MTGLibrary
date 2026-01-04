@@ -7,19 +7,29 @@ import { useAuth } from '../contexts/AuthContext';
 import { useCollection } from '../hooks/useCollection';
 import { useDecks } from '../hooks/useDecks';
 import { getIdentity } from '../data/mtg_identity_registry';
+import DonationWidget from '../components/dashboard/DonationWidget';
+import CommunityWidget from '../components/dashboard/CommunityWidget';
+import TipsWidget from '../components/dashboard/TipsWidget';
+
+import DonationModal from '../components/modals/DonationModal';
+import BinderGuideModal from '../components/modals/BinderGuideModal';
+import PodGuideModal from '../components/modals/PodGuideModal';
 
 const Dashboard = () => {
     const { currentUser, userProfile } = useAuth();
     const { cards: collection, loading: collectionLoading, refresh: refreshCollection } = useCollection();
     const { decks, loading: decksLoading } = useDecks();
     const [isBugModalOpen, setIsBugModalOpen] = useState(false);
+    const [isDonationModalOpen, setIsDonationModalOpen] = useState(false);
+    const [showBinderGuide, setShowBinderGuide] = useState(false);
+    const [showPodGuide, setShowPodGuide] = useState(false);
     const [syncLoading, setSyncLoading] = useState(false);
     const navigate = useNavigate();
 
     const handleSyncPrices = async () => {
         setSyncLoading(true);
         try {
-            await api.post('/sync/prices');
+            await api.post('/api/sync/prices');
             await refreshCollection(); // Refresh collection to get new prices
         } catch (err) {
             console.error("Sync failed", err);
@@ -33,8 +43,27 @@ const Dashboard = () => {
     const stats = useMemo(() => {
         if (!collection || !decks) return { totalCards: 0, uniqueDecks: 0, value: 0, topColor: 'N/A' };
 
-        // Total Cards
-        const totalCards = collection.reduce((acc, card) => acc + (card.count || 1), 0);
+        // Total Cards (Collection + Header-only Commanders)
+        const collectionScryfallIds = new Set(collection.map(c => c.scryfall_id || c.id));
+        let totalCards = collection.reduce((acc, card) => acc + (card.count || 1), 0);
+
+        // Add commanders that aren't in the card-level collection list
+        decks.forEach(deck => {
+            if (deck.commander) {
+                const cid = deck.commander.id || deck.commander.scryfall_id;
+                if (cid && !collectionScryfallIds.has(cid)) {
+                    totalCards++;
+                    collectionScryfallIds.add(cid);
+                }
+            }
+            if (deck.commander_partner) {
+                const pid = deck.commander_partner.id || deck.commander_partner.scryfall_id;
+                if (pid && !collectionScryfallIds.has(pid)) {
+                    totalCards++;
+                    collectionScryfallIds.add(pid);
+                }
+            }
+        });
 
         // Value (approximate based on 'usd' price)
         const value = collection.reduce((acc, card) => {
@@ -107,8 +136,8 @@ const Dashboard = () => {
 
                 {/* KPI Section */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <DashboardKPI title="Total Cards" value={stats.totalCards} icon="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" color="blue" />
-                    <DashboardKPI title="Unique Decks" value={stats.uniqueDecks} icon="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" color="purple" />
+                    <DashboardKPI to="/collection" title="Total Cards" value={stats.totalCards} icon="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" color="blue" />
+                    <DashboardKPI to="/decks" title="Unique Decks" value={stats.uniqueDecks} icon="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" color="purple" />
                     <DashboardKPI title="Collection Value" value={stats.value} icon="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" color="green">
                         <button
                             onClick={handleSyncPrices}
@@ -283,39 +312,85 @@ const Dashboard = () => {
                             )}
                         </div>
 
+                        {/* System & Support Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* System Status */}
+                            <div className="bg-red-900/10 border border-red-500/20 rounded-3xl p-6 backdrop-blur-md">
+                                <h2 className="font-bold text-white mb-2 flex items-center gap-2">
+                                    <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                                    System Status
+                                </h2>
+                                <p className="text-sm text-gray-400 mb-6">Found a bug or have a feature request? Help us improve the Forge.</p>
+
+                                <button
+                                    onClick={() => setIsBugModalOpen(true)}
+                                    className="w-full py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl shadow-lg shadow-red-900/20 transition-all flex items-center justify-center gap-2"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                    Report Issue
+                                </button>
+                            </div>
+
+                            {/* Donation Widget */}
+                            <DonationWidget onOpenModal={() => setIsDonationModalOpen(true)} />
+                        </div>
+
                     </div>
 
                     {/* Right Column: Key Stats / Profile / Reports */}
                     <div className="space-y-6">
 
-                        {/* System / Report */}
-                        <div className="bg-red-900/10 border border-red-500/20 rounded-3xl p-6 backdrop-blur-md">
-                            <h2 className="font-bold text-white mb-2 flex items-center gap-2">
-                                <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                                System Status
+
+
+                        {/* Tips Widget */}
+                        <TipsWidget />
+
+                        {/* Guides & Resources */}
+                        <div className="bg-gray-900/40 border border-white/5 rounded-3xl p-6 backdrop-blur-md">
+                            <h2 className="font-bold text-white mb-4 flex items-center gap-2">
+                                <span className="p-1.5 bg-blue-500/10 rounded-lg text-blue-400">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                                </span>
+                                Guides & Resources
                             </h2>
-                            <p className="text-sm text-gray-400 mb-6">Found a bug or have a feature request? Help us improve the Forge.</p>
-
-                            <button
-                                onClick={() => setIsBugModalOpen(true)}
-                                className="w-full py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl shadow-lg shadow-red-900/20 transition-all flex items-center justify-center gap-2"
-                            >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                                Report Issue
-                            </button>
-                        </div>
-
-                        {/* Placeholder Note Widget */}
-                        <div className="bg-gray-800/40 border border-gray-700/50 rounded-3xl p-6 h-64">
-                            <div className="flex justify-between items-center mb-4">
-                                <h3 className="font-bold text-white">Quick Notes</h3>
-                                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                            <div className="space-y-3">
+                                <button
+                                    onClick={() => setShowBinderGuide(true)}
+                                    className="w-full text-left p-3 rounded-xl bg-gray-950/50 hover:bg-gray-800 border border-white/5 hover:border-indigo-500/30 transition-all group flex items-center gap-3"
+                                >
+                                    <div className="p-2 bg-indigo-500/10 rounded-lg text-indigo-400 group-hover:scale-110 transition-transform">
+                                        ✨
+                                    </div>
+                                    <div>
+                                        <div className="text-sm font-bold text-gray-200 group-hover:text-white">Smart Binders</div>
+                                        <div className="text-xs text-gray-500">Automate your collection</div>
+                                    </div>
+                                    <svg className="w-4 h-4 text-gray-600 group-hover:text-indigo-400 ml-auto transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                                </button>
+                                <button
+                                    onClick={() => setShowPodGuide(true)}
+                                    className="w-full text-left p-3 rounded-xl bg-gray-950/50 hover:bg-gray-800 border border-white/5 hover:border-purple-500/30 transition-all group flex items-center gap-3"
+                                >
+                                    <div className="p-2 bg-purple-500/10 rounded-lg text-purple-400 group-hover:scale-110 transition-transform">
+                                        🤝
+                                    </div>
+                                    <div>
+                                        <div className="text-sm font-bold text-gray-200 group-hover:text-white">Pods & Sharing</div>
+                                        <div className="text-xs text-gray-500">Manage permissions</div>
+                                    </div>
+                                    <svg className="w-4 h-4 text-gray-600 group-hover:text-purple-400 ml-auto transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                                </button>
                             </div>
-                            <textarea
-                                className="w-full h-full bg-transparent resize-none text-gray-400 placeholder-gray-600 text-sm focus:outline-none"
-                                placeholder="Jot down deck ideas or card combos here..."
-                            ></textarea>
                         </div>
+
+
+
+                        {/* Community Widget (My Pod) */}
+                        <div className="h-auto">
+                            <CommunityWidget />
+                        </div>
+
+
 
                     </div>
 
@@ -326,27 +401,48 @@ const Dashboard = () => {
                 isOpen={isBugModalOpen}
                 onClose={() => setIsBugModalOpen(false)}
             />
+
+            <DonationModal
+                isOpen={isDonationModalOpen}
+                onClose={() => setIsDonationModalOpen(false)}
+            />
+
+            <BinderGuideModal
+                isOpen={showBinderGuide}
+                onClose={() => setShowBinderGuide(false)}
+            />
+
+            <PodGuideModal
+                isOpen={showPodGuide}
+                onClose={() => setShowPodGuide(false)}
+            />
         </div>
     );
 };
 
 // Mini Components for Dashboard local usage
-const DashboardKPI = ({ title, value, icon, color, children }) => (
-    <div className="bg-gray-900/60 border border-gray-800 rounded-2xl p-5 backdrop-blur-sm hover:border-gray-700 transition-colors group relative">
-        {children}
-        <div className="flex justify-between items-start mb-4">
-            <div className={`p-2.5 rounded-xl bg-gray-950 text-${color}-400 group-hover:scale-110 transition-transform shadow-inner`}>
-                {/* Icon requires specific color classes that might need strict definition, relying on dynamic string interpolation if tailwind allows, else fallback */}
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={icon} /></svg>
+const DashboardKPI = ({ title, value, icon, color, to, children }) => {
+    const content = (
+        <div className="bg-gray-900/60 border border-gray-800 rounded-2xl p-5 backdrop-blur-sm hover:border-gray-700 transition-colors group relative h-full">
+            {children}
+            <div className="flex justify-between items-start mb-4">
+                <div className={`p-2.5 rounded-xl bg-gray-950 text-${color}-400 group-hover:scale-110 transition-transform shadow-inner`}>
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={icon} /></svg>
+                </div>
             </div>
-            {/* Trend indicator could go here */}
+            <div>
+                <div className="text-3xl font-black text-white tracking-tight">{value}</div>
+                <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">{title}</div>
+            </div>
         </div>
-        <div>
-            <div className="text-3xl font-black text-white tracking-tight">{value}</div>
-            <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">{title}</div>
-        </div>
-    </div>
-);
+    );
+
+    if (to) {
+        return <Link to={to} className="block transition-transform active:scale-95">{content}</Link>;
+    }
+
+    return content;
+};
 
 const QuickAction = ({ title, icon, color, onClick }) => (
     <button

@@ -20,11 +20,14 @@ import cardsApi from './api/cards.js';
 import cardIdentifiersApi from './api/cardidentifiers.js';
 import decksApi from './api/decks.js';
 import usersApi from './api/users.js';
+import paymentsApi from './api/payments.js';
 import preconsApi from './api/precons.js';
 import collectionApi from './api/collection.js';
 import adminApi from './api/admin.js';
 import setsApi from './api/sets.js';
 import syncApi from './api/sync.js';
+import communityApi from './api/community.js';
+import bindersApi from './api/binders.js';
 
 const require = createRequire(import.meta.url);
 
@@ -98,6 +101,9 @@ app.get('/me', auth, async (req, res) => {
       id: user.id,
       firestore_id: user.firestore_id,
       email: user.email,
+      username: user.username,
+      first_name: user.first_name,
+      last_name: user.last_name,
       data: user.data,
       settings: user.settings || {}
     });
@@ -162,20 +168,27 @@ app.delete('/saved_views/:id', auth, async (req, res) => {
 });
 
 // Mount APIs
-app.use('/cards', cardsApi);
-app.use('/cardidentifiers', cardIdentifiersApi);
-app.use('/decks', decksApi);
-app.use('/users', usersApi);
-app.use('/precons', preconsApi);
-app.use('/collection', collectionApi); // New collection/cards management API
-app.use('/admin', adminApi);
-app.use('/sets', setsApi);
-app.use('/sync', syncApi);
+app.use('/api/cards', cardsApi);
+app.use('/api/cardidentifiers', cardIdentifiersApi);
+app.use('/api/decks', decksApi);
+app.use('/api/users', usersApi);
+app.use('/api/payments', auth, paymentsApi);
+app.use('/api/precons', preconsApi);
+app.use('/api/collection', collectionApi); // New collection/cards management API
+app.use('/api/admin', adminApi);
+app.use('/api/sets', setsApi);
+app.use('/api/sync', syncApi);
+app.use('/api/community', communityApi);
+app.use('/api/binders', bindersApi);
 
 // Health endpoint
-app.get('/health', (req, res) => {
-  res.json({ ok: true });
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date() });
 });
+
+// Community Routes
+// Community Routes (Mounted above)
+// app.use('/api/community', require('./api/community'));
 
 // Serve Static Files (Production)
 // Serve static assets from the "dist" directory (Vite build output)
@@ -213,80 +226,6 @@ if (yaml && swaggerUi) {
     console.error('Failed to mount Swagger UI:', err);
   }
 }
-
-// --- Binders API ---
-
-// Get User's Binders
-app.get('/api/binders', auth, async (req, res) => {
-  try {
-    const rows = await knex('binders').where({ user_id: req.user.id }).orderBy('created_at', 'desc');
-    res.json(rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to fetch binders' });
-  }
-});
-
-// Create Binder
-app.post('/api/binders', auth, async (req, res) => {
-  const { name, type, icon_type, icon_value, color_preference } = req.body;
-  if (!name) return res.status(400).json({ error: 'Name is required' });
-
-  try {
-    const result = await knex('binders').insert({
-      user_id: req.user.id,
-      name,
-      type: type || 'collection',
-      icon_type: icon_type || 'emoji',
-      icon_value: icon_value || '📁',
-      color_preference: color_preference || 'blue'
-    }).returning('id');
-
-    // Postgres/Knex usually returns array of objects/ids. SQLite might return just integer.
-    let id;
-    if (Array.isArray(result) && result.length > 0) {
-      const first = result[0];
-      id = typeof first === 'object' ? (first.id || Object.values(first)[0]) : first;
-    } else {
-      id = result;
-    }
-
-    res.json({ id: typeof id === 'object' ? id.id : id, ...req.body });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to create binder' });
-  }
-});
-
-// Update Cards Batch (Binder/Tags)
-app.put('/api/collection/batch-update', auth, async (req, res) => {
-  const { cardIds, binderId, tags, price_bought } = req.body;
-
-  if (!cardIds || !Array.isArray(cardIds) || cardIds.length === 0) {
-    return res.status(400).json({ error: 'No cards specified' });
-  }
-
-  const updates = {};
-  if (binderId !== undefined) updates.binder_id = binderId;
-  if (tags !== undefined) updates.tags = JSON.stringify(tags);
-  if (price_bought !== undefined) updates.price_bought = price_bought;
-
-  if (Object.keys(updates).length === 0) return res.status(400).json({ error: 'No updates specified' });
-
-  try {
-    // Use whereIn for batch update
-    // user_id check is important
-    await knex('user_cards')
-      .whereIn('id', cardIds)
-      .andWhere({ user_id: req.user.id })
-      .update(updates);
-
-    res.json({ success: true });
-  } catch (err) {
-    console.error("Batch update failed", err);
-    res.status(500).json({ error: 'Update failed' });
-  }
-});
 
 const port = process.env.PORT || 3000;
 

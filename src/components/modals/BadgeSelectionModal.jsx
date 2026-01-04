@@ -15,7 +15,7 @@ const BadgeSelectionModal = ({ isOpen, onClose, currentBadgeId, onSelect, isMast
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 overflow-y-auto w-full h-full flex items-center justify-center pl-[250px]">
+        <div className="fixed inset-0 z-50 overflow-y-auto w-full h-full flex items-center justify-center md:pl-[250px]">
             {/* Backdrop */}
             <div className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity" onClick={onClose} />
 

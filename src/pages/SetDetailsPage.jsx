@@ -7,6 +7,7 @@ import { useCollection } from '../hooks/useCollection';
 import { collectionService } from '../services/collectionService';
 import CardSkeleton from '../components/CardSkeleton';
 import InteractiveCard from '../components/common/InteractiveCard';
+import CardAutocomplete from '../components/common/CardAutocomplete';
 
 const SetDetailsPage = () => {
     const { setCode } = useParams();
@@ -14,9 +15,19 @@ const SetDetailsPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [filter, setFilter] = useState('all'); // all, owned, missing
-    const { currentUser } = useAuth();
+    const [cardFilter, setCardFilter] = useState(sessionStorage.getItem('mtg_card_search') || '');
+    const { currentUser, userProfile } = useAuth();
     const { addToast } = useToast();
     const { cards: collectionCards, refresh } = useCollection();
+
+    // Sync cardFilter to sessionStorage whenever it changes
+    useEffect(() => {
+        if (cardFilter) {
+            sessionStorage.setItem('mtg_card_search', cardFilter);
+        } else {
+            sessionStorage.removeItem('mtg_card_search');
+        }
+    }, [cardFilter]);
 
     // Map of Scryfall ID -> Array of UserCards
     const collectionMap = useMemo(() => {
@@ -39,12 +50,12 @@ const SetDetailsPage = () => {
         let totalValueResult = 0;
 
         results.forEach(card => {
-            const userCopies = collectionMap.get(card.id) || [];
+            const userCopies = collectionMap.get(card.scryfall_id || card.id) || [];
             const normalCount = userCopies
-                .filter(c => c.finish === 'nonfoil' && !c.deck_id && !c.is_wishlist)
+                .filter(c => c.finish === 'nonfoil' && !c.is_wishlist)
                 .reduce((sum, c) => sum + (c.count || 1), 0);
             const foilCount = userCopies
-                .filter(c => c.finish === 'foil' && !c.deck_id && !c.is_wishlist)
+                .filter(c => c.finish === 'foil' && !c.is_wishlist)
                 .reduce((sum, c) => sum + (c.count || 1), 0);
 
             if (normalCount > 0 || foilCount > 0) {
@@ -64,20 +75,35 @@ const SetDetailsPage = () => {
 
     // Filtered Results
     const filteredResults = useMemo(() => {
-        if (filter === 'all') return results;
-        return results.filter(card => {
-            const userCopies = collectionMap.get(card.id) || [];
-            const isOwned = userCopies.some(c => !c.is_wishlist && (c.count || 0) > 0);
-            return filter === 'owned' ? isOwned : !isOwned;
-        });
-    }, [results, collectionMap, filter]);
+        let base = results;
+
+        // 1. Filter by ownership
+        if (filter !== 'all') {
+            base = base.filter(card => {
+                const userCopies = collectionMap.get(card.scryfall_id || card.id) || [];
+                const isOwned = userCopies.some(c => !c.is_wishlist && (c.count || 0) > 0);
+                return filter === 'owned' ? isOwned : !isOwned;
+            });
+        }
+
+        // 2. Filter by card name (if searching)
+        if (cardFilter) {
+            const query = cardFilter.toLowerCase();
+            base = base.filter(card =>
+                card.name.toLowerCase().includes(query) ||
+                (card.data?.name_en || '').toLowerCase().includes(query)
+            );
+        }
+
+        return base;
+    }, [results, collectionMap, filter, cardFilter]);
 
     useEffect(() => {
         const fetchSetCards = async () => {
             if (!setCode) return;
             setLoading(true);
             try {
-                const data = await api.get(`/sets/${setCode}/cards`);
+                const data = await api.get(`/api/sets/${setCode}/cards`);
                 setResults(data.data || []);
                 setError(null);
             } catch (err) {
@@ -162,65 +188,89 @@ const SetDetailsPage = () => {
 
     return (
         <div className="min-h-screen bg-gray-900 pb-20">
-            {/* Header Content */}
-            <div className="relative overflow-hidden bg-gray-950/50 pt-16 pb-8 border-b border-white/5">
-                <div className="absolute inset-0 z-0">
-                    <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/5 via-transparent to-transparent" />
-                </div>
-
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-                    <Link to="/sets" className="inline-flex items-center text-gray-400 hover:text-white transition-colors mb-6 group">
-                        <svg className="w-5 h-5 mr-1 transform group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                        </svg>
-                        Back to Sets
-                    </Link>
-
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
-                        <div>
-                            <h1 className="text-4xl md:text-5xl font-black text-white uppercase tracking-tighter mb-2">
-                                {setCode} <span className="text-gray-500">Details</span>
-                            </h1>
-                            <p className="text-gray-400 font-medium">Manage and track your collection for this expansion</p>
+            {/* Integrated Sticky Header */}
+            <div className="sticky top-16 z-30 bg-gray-950/80 backdrop-blur-xl border-b border-white/10 shadow-2xl">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+                    {/* Top Row: Back, Title, and Stats */}
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-3">
+                        <div className="flex items-center gap-4">
+                            <Link to="/sets" className="p-1.5 bg-gray-800/50 hover:bg-gray-700 rounded-lg text-gray-400 hover:text-white transition-all group" title="Back to Sets">
+                                <svg className="w-5 h-5 transform group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                                </svg>
+                            </Link>
+                            <div>
+                                <h1 className="text-xl md:text-2xl font-black text-white uppercase tracking-tighter leading-none">
+                                    {setCode} <span className="text-gray-500 font-bold ml-1">Library</span>
+                                </h1>
+                                <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mt-1 opacity-70">Expansion Collection</p>
+                            </div>
                         </div>
 
-                        {/* Collection Info Panel */}
-                        <div className="bg-gray-800/40 backdrop-blur-xl rounded-2xl border border-white/5 p-4 md:p-6 flex items-center gap-8 shadow-xl">
-                            <div className="flex flex-col">
-                                <span className="text-[10px] font-black uppercase text-gray-500 tracking-[0.2em] mb-1">Collected</span>
+                        {/* Compact Stats Row */}
+                        <div className="flex items-center gap-6 bg-gray-900/50 border border-white/5 px-4 py-2 rounded-xl">
+                            <div className="flex items-center gap-2">
+                                <span className="text-[9px] font-black uppercase text-gray-500 tracking-wider">Collected</span>
                                 <div className="flex items-baseline gap-1">
-                                    <span className="text-3xl font-black text-indigo-400">{stats.collected}</span>
-                                    <span className="text-gray-600 font-bold text-sm">/ {stats.total}</span>
+                                    <span className="text-sm font-black text-indigo-400">{stats.collected}</span>
+                                    <span className="text-gray-600 font-bold text-[10px]">/ {stats.total}</span>
                                 </div>
                             </div>
-                            <div className="w-[1px] h-12 bg-white/5" />
-                            <div className="flex flex-col">
-                                <span className="text-[10px] font-black uppercase text-gray-500 tracking-[0.2em] mb-1">Value</span>
-                                <span className="text-3xl font-black text-emerald-400 tabular-nums">${stats.value}</span>
+                            <div className="w-[1px] h-4 bg-white/10" />
+                            <div className="flex items-center gap-2">
+                                <span className="text-[9px] font-black uppercase text-gray-500 tracking-wider">Estimate Value</span>
+                                <span className="text-sm font-black text-emerald-400 tabular-nums">${stats.value}</span>
                             </div>
+                        </div>
+                    </div>
+
+                    {/* Bottom Row: Filters and Search */}
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-3 border-t border-white/5">
+                        <div className="flex bg-gray-900/80 rounded-lg p-0.5 border border-white/5 w-full md:w-auto overflow-hidden">
+                            {['all', 'owned', 'missing'].map((type) => (
+                                <button
+                                    key={type}
+                                    onClick={() => setFilter(type)}
+                                    className={`flex-1 md:flex-none px-4 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${filter === type
+                                        ? 'bg-indigo-600 text-white shadow-lg'
+                                        : 'text-gray-500 hover:text-white hover:bg-white/5'
+                                        }`}
+                                >
+                                    {type}
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="flex items-center gap-3 w-full md:w-auto md:flex-1 justify-end">
+                            <div className="relative w-full max-w-sm">
+                                <CardAutocomplete
+                                    value={cardFilter}
+                                    onChange={setCardFilter}
+                                    placeholder="Filter cards..."
+                                />
+                            </div>
+
+                            {cardFilter && (
+                                <button
+                                    onClick={() => {
+                                        setCardFilter('');
+                                        sessionStorage.removeItem('mtg_card_search');
+                                    }}
+                                    className="p-2 bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/20 hover:text-white rounded-lg transition-all"
+                                    title="Clear filter"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Filter Toggle */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-                    <div className="flex bg-gray-950/50 backdrop-blur-md rounded-xl p-1 border border-white/5 self-start">
-                        {['all', 'owned', 'missing'].map((type) => (
-                            <button
-                                key={type}
-                                onClick={() => setFilter(type)}
-                                className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all duration-300 ${filter === type
-                                    ? 'bg-indigo-600 text-white shadow-[0_0_15px_rgba(79,70,229,0.4)]'
-                                    : 'text-gray-500 hover:text-white hover:bg-white/5'
-                                    }`}
-                            >
-                                {type}
-                            </button>
-                        ))}
-                    </div>
-                </div>
+            {/* List Body */}
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
                 {loading ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
@@ -235,15 +285,15 @@ const SetDetailsPage = () => {
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
                         {filteredResults.map((card, index) => {
-                            const userCopies = collectionMap.get(card.id) || [];
+                            const userCopies = collectionMap.get(card.scryfall_id || card.id) || [];
                             const normalCount = userCopies
-                                .filter(c => c.finish === 'nonfoil' && !c.deck_id && !c.is_wishlist)
+                                .filter(c => c.finish === 'nonfoil' && !c.is_wishlist)
                                 .reduce((sum, c) => sum + (c.count || 1), 0);
                             const foilCount = userCopies
-                                .filter(c => c.finish === 'foil' && !c.deck_id && !c.is_wishlist)
+                                .filter(c => c.finish === 'foil' && !c.is_wishlist)
                                 .reduce((sum, c) => sum + (c.count || 1), 0);
                             const wishlistCount = userCopies
-                                .filter(c => c.is_wishlist && !c.deck_id)
+                                .filter(c => c.is_wishlist)
                                 .reduce((sum, c) => sum + (c.count || 1), 0);
 
                             return (
@@ -255,6 +305,8 @@ const SetDetailsPage = () => {
                                     wishlistCount={wishlistCount}
                                     onUpdateCount={handleUpdateCount}
                                     onUpdateWishlistCount={handleUpdateWishlistCount}
+                                    currentUser={userProfile}
+                                    showOwnerTag={true}
                                 />
                             );
                         })}

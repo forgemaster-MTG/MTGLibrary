@@ -1,9 +1,6 @@
 import express from 'express';
-import { createRequire } from 'module';
-
-const require = createRequire(import.meta.url);
-const knexConfig = require('../../knexfile.cjs');
-const knex = require('knex')(knexConfig['development']);
+import { knex } from '../db.js';
+import { cardService } from '../services/cardService.js';
 
 const router = express.Router();
 
@@ -67,20 +64,46 @@ router.get('/:code/cards', async (req, res) => {
             .orderByRaw("CAST(regexp_replace(number, '[^0-9]', '', 'g') AS INTEGER)") // Sort by number numeric
             .orderBy('number', 'asc'); // secondary sort for variants
 
-        if (!cards || cards.length === 0) {
-            console.warn(`[API] No cards found for set ${code}, returning empty array.`);
-            // return res.status(404).json({ error: 'No cards found for this set' });
-            // Returning empty is safer for UI than 404
-            return res.json({ data: [] });
+        // Deduplicate cards by collector number to prevent UI "breaking"
+        const uniqueCardsMap = {};
+        cards.forEach(c => {
+            // If we haven't seen this number, or if this version has data
+            const existing = uniqueCardsMap[c.number];
+            if (!existing || (!existing.data && c.data)) {
+                uniqueCardsMap[c.number] = c;
+            }
+        });
+
+        const dedupedCards = Object.values(uniqueCardsMap);
+
+        // Optional: Trigger background repair for cards with no data
+        const needsRepair = dedupedCards.filter(c => !c.data);
+        if (needsRepair.length > 0) {
+            console.log(`[API] Triggering background repair for ${needsRepair.length} cards in set ${code}`);
+            // Don't await, run in background
+            cardService.repairCards(needsRepair).catch(console.error);
         }
 
-        // Return flattened data
-        const mappedCards = cards.map(c => ({
-            ...c.data,
-            // Ensure local ID or relevant fields overwrite if necessary, 
-            // but usually c.data holds the Scryfall object which is what frontend expects.
-            // We might want to ensure 'id' matches the UUID from our table if they differ (they shouldn't).
-        }));
+        // Return data with column fallbacks
+        const mappedCards = dedupedCards.map(c => {
+            // Helper to get image from data if available
+            let image_uri = null;
+            if (c.data?.image_uris?.normal) {
+                image_uri = c.data.image_uris.normal;
+            } else if (c.data?.card_faces?.[0]?.image_uris?.normal) {
+                image_uri = c.data.card_faces[0].image_uris.normal;
+            }
+
+            return {
+                id: c.id,
+                name: c.name,
+                set: c.setcode,
+                number: c.number,
+                image_uri: image_uri,
+                ...c.data,
+                scryfall_id: c.data?.id || c.id
+            };
+        });
 
         res.json({ data: mappedCards });
     } catch (err) {

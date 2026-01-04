@@ -1,9 +1,17 @@
 import React, { useState } from 'react';
 import { useCardModal } from '../../contexts/CardModalContext';
 
-const CardGridItem = ({ card, availableFoils, onRemove, showQuantity = true, onClick }) => {
+const CardGridItem = ({ card, availableFoils, onRemove, showQuantity = true, onClick, decks = [], ownerName, currentUser, showOwnerTag = false, hideDeckTag = false, hideOwnerTag = false }) => {
     const [isFlipped, setIsFlipped] = useState(false);
     const { openCardModal } = useCardModal();
+
+    const deckName = decks?.find(d => d.id === card.deck_id)?.name;
+    const resolvedOwnerName = ownerName || card.owner_username || (currentUser && (card.owner_id === currentUser.id || card.user_id === currentUser.id) ? (currentUser.username || 'ME') : null);
+
+    // Helper to get price from card or nested data
+    const getPrice = (priceKey) => {
+        return parseFloat(card.prices?.[priceKey] || card.data?.prices?.[priceKey]) || 0;
+    };
 
     // Helpers to get images
     const getCardImage = (c, faceIndex = 0) => {
@@ -55,6 +63,20 @@ const CardGridItem = ({ card, availableFoils, onRemove, showQuantity = true, onC
                             x{quantity}
                         </div>
                     )}
+
+                    {/* Deck Tag - Moved down to not cover name */}
+                    {!hideDeckTag && deckName && (
+                        <div className="absolute top-[3.75rem] left-1.5 max-w-[80%] bg-indigo-600/90 text-white text-[9px] font-bold px-2 py-0.5 rounded shadow-lg z-20 backdrop-blur-md border border-indigo-400/50 truncate uppercase tracking-tight" title={`In deck: ${deckName}`}>
+                            ♟️ {deckName}
+                        </div>
+                    )}
+
+                    {/* Owner Tag - Moved below deck tag or top left area */}
+                    {!hideOwnerTag && showOwnerTag && resolvedOwnerName && (
+                        <div className={`absolute ${deckName ? 'top-[5.25rem]' : 'top-[3.75rem]'} left-1.5 bg-gray-950/90 text-white text-[11px] font-black px-2 py-0.5 rounded border border-white/20 shadow-xl z-20 backdrop-blur-md uppercase tracking-wider`}>
+                            👤 {resolvedOwnerName}
+                        </div>
+                    )}
                     {card.finish === 'foil' ? (
                         <div className="absolute top-1.5 left-1.5 bg-yellow-500/80 text-yellow-100 text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-md z-20 backdrop-blur-sm border border-yellow-300/50">★</div>
                     ) : card.is_wishlist ? (
@@ -66,35 +88,72 @@ const CardGridItem = ({ card, availableFoils, onRemove, showQuantity = true, onC
                         <div className="absolute top-1.5 left-1.5 bg-gray-700/90 text-yellow-400 text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-md z-20 backdrop-blur-sm border border-yellow-500/30 cursor-help" title="Foil copy available in collection">☆</div>
                     )}
 
-                    {/* Hover Overlay */}
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-200 flex flex-col justify-center items-center gap-2 p-2 backdrop-blur-sm z-30">
-                        <div className="text-center">
-                            <p className="font-bold text-xs text-white line-clamp-2">{card.name}</p>
-                            <p className="text-green-400 text-xs font-mono mt-1">${(parseFloat(card.prices?.usd) || 0).toFixed(2)}</p>
-                        </div>
+                    {/* Price Bar (Bottom) */}
+                    <div className="absolute bottom-1.5 left-1.5 right-1.5 bg-black/70 backdrop-blur-md px-2 py-1 rounded border border-white/10 z-20 text-[9px] font-mono flex items-center justify-center">
+                        <span className={card.finish === 'foil' ? 'text-yellow-400' : 'text-green-400'}>
+                            ${(card.finish === 'foil' ? getPrice('usd_foil') || getPrice('usd') : getPrice('usd') || getPrice('usd_foil')).toFixed(2)}
+                        </span>
+                    </div>
 
-                        <div className="flex gap-2">
-                            <div className="text-indigo-300 text-xs font-bold uppercase tracking-wider bg-indigo-900/50 px-2 py-1 rounded border border-indigo-500/30">
-                                View Details
+                    {/* Hover Overlay */}
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-300 z-30">
+                        {/* Top subtle gradient to darken card slightly */}
+                        <div className="absolute inset-0 bg-black/20"></div>
+
+                        {/* Bottom info bar */}
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/95 to-transparent p-3 pt-6">
+                            {/* Card Name */}
+                            <p className="font-black text-sm text-white leading-tight line-clamp-1 drop-shadow-lg mb-2">{card.name}</p>
+
+                            {/* Price */}
+                            <div className="flex items-center gap-2 mb-3">
+                                <div className={`flex items-center gap-1.5 border rounded-lg px-2.5 py-1 backdrop-blur-md ${card.finish === 'foil' ? 'bg-yellow-500/20 border-yellow-500/40' : 'bg-green-500/20 border-green-500/40'}`}>
+                                    <svg className={`w-3 h-3 ${card.finish === 'foil' ? 'text-yellow-400' : 'text-green-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span className={`text-xs font-bold font-mono ${card.finish === 'foil' ? 'text-yellow-400' : 'text-green-400'}`}>
+                                        ${(card.finish === 'foil' ? getPrice('usd_foil') || getPrice('usd') : getPrice('usd') || getPrice('usd_foil')).toFixed(2)}
+                                    </span>
+                                </div>
                             </div>
-                            {hasBackFace && (
+
+                            {/* Action Buttons */}
+                            <div className="flex gap-1.5">
                                 <button
-                                    onClick={(e) => { e.stopPropagation(); setIsFlipped(!isFlipped); }}
-                                    className="text-indigo-300 hover:text-white bg-indigo-900/50 hover:bg-indigo-700 p-1 rounded-full border border-indigo-500/30 transition-colors"
-                                    title="Quick Flip"
+                                    onClick={handleClick}
+                                    className="flex-1 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white font-bold py-2 px-3 rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 shadow-lg hover:shadow-indigo-500/50 active:scale-95"
                                 >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                    <span className="text-[10px] uppercase tracking-wider font-black">View</span>
                                 </button>
-                            )}
-                            {onRemove && (
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); onRemove(card.firestoreId || card.id, card.name); }}
-                                    className="text-red-400 hover:text-white hover:bg-red-600 p-2 rounded-full transition-colors"
-                                    title="Remove card"
-                                >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                </button>
-                            )}
+
+                                {hasBackFace && (
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); setIsFlipped(!isFlipped); }}
+                                        className="bg-gray-700/90 hover:bg-gray-600 text-white p-2 rounded-lg transition-all duration-200 shadow-lg hover:shadow-gray-500/30 active:scale-95"
+                                        title="Flip"
+                                    >
+                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                    </button>
+                                )}
+
+                                {onRemove && (
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); onRemove(card.firestoreId || card.id, card.name); }}
+                                        className="bg-red-600/90 hover:bg-red-500 text-white p-2 rounded-lg transition-all duration-200 shadow-lg hover:shadow-red-500/50 active:scale-95"
+                                        title="Remove"
+                                    >
+                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>

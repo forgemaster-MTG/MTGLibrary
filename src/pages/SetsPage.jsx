@@ -1,14 +1,47 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useSets } from '../hooks/useSets';
 import { useCollection } from '../hooks/useCollection';
 import { Link, useNavigate } from 'react-router-dom';
+import CardAutocomplete from '../components/common/CardAutocomplete';
+import { api } from '../services/api';
 
 const SetsPage = () => {
     const { sets, loading: setsLoading, error: setsError } = useSets();
     const { cards: collectionCards, loading: collLoading } = useCollection();
     const [searchTerm, setSearchTerm] = useState('');
+    const [cardSearchTerm, setCardSearchTerm] = useState(sessionStorage.getItem('mtg_card_search') || '');
+    const [setsWithCard, setSetsWithCard] = useState(null); // null means no card search active
+    const [searchingCard, setSearchingCard] = useState(false);
     const [showOnlyOwned, setShowOnlyOwned] = useState(false);
     const navigate = useNavigate();
+
+    // Debounced card search to find containing sets
+    useEffect(() => {
+        const fetchSetsForCard = async () => {
+            const term = cardSearchTerm.trim();
+            if (!term) {
+                setSetsWithCard(null);
+                sessionStorage.removeItem('mtg_card_search');
+                return;
+            }
+
+            sessionStorage.setItem('mtg_card_search', term);
+            setSearchingCard(true);
+            try {
+                // Query local DB for sets containing this card
+                const response = await api.get('/api/cards/sets-for-card', { name: term });
+                setSetsWithCard(new Set(response.data || []));
+            } catch (err) {
+                console.error("Local card search failed", err);
+                setSetsWithCard(new Set());
+            } finally {
+                setSearchingCard(false);
+            }
+        };
+
+        const timer = setTimeout(fetchSetsForCard, 500);
+        return () => clearTimeout(timer);
+    }, [cardSearchTerm]);
 
     // Map of Set Code -> Unique Card Name Count
     const setProgressMap = useMemo(() => {
@@ -62,10 +95,13 @@ const SetsPage = () => {
                 set.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 set.code.toLowerCase().includes(searchTerm.toLowerCase());
 
+            // Card search filter
+            const matchesCardSearch = !setsWithCard || setsWithCard.has(set.code.toLowerCase());
+
             // Owned filter
             const matchesOwned = !showOnlyOwned || isOwned;
 
-            if (!matchesSearch || !matchesOwned) return;
+            if (!matchesSearch || !matchesOwned || !matchesCardSearch) return;
 
             const groupName = typeMapping[set.set_type] || 'Other';
             if (groups[groupName]) {
@@ -81,7 +117,7 @@ const SetsPage = () => {
         });
 
         return groups;
-    }, [sets, searchTerm, showOnlyOwned, setProgressMap]);
+    }, [sets, searchTerm, showOnlyOwned, setProgressMap, setsWithCard]);
 
     const handleSetClick = (setCode) => {
         navigate(`/sets/${setCode}`);
@@ -111,40 +147,50 @@ const SetsPage = () => {
     return (
         <div className="min-h-screen bg-gray-900 pb-20">
             {/* Action Bar */}
-            <div className="bg-gray-950/50 backdrop-blur-xl border-b border-white/5 sticky top-0 z-30 py-6">
+            <div className="bg-gray-950/80 backdrop-blur-xl border-b border-white/10 sticky top-16 z-30 py-3 md:py-4">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-                        <div>
-                            <h1 className="text-3xl font-black text-white uppercase tracking-tighter">
-                                Set <span className="text-indigo-500">Library</span>
-                            </h1>
-                            <p className="text-gray-500 text-xs font-medium uppercase tracking-[0.2em] mt-1">Browse and track your collections</p>
+                    <div className="flex flex-col lg:flex-row justify-between items-center gap-4">
+                        <div className="flex items-center gap-4 w-full lg:w-auto">
+                            <div className="flex flex-col">
+                                <h1 className="text-xl md:text-2xl font-black text-white uppercase tracking-tighter leading-none">
+                                    Set <span className="text-indigo-500">Library</span>
+                                </h1>
+                                <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mt-1 opacity-70">Browse Collections</p>
+                            </div>
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
-                            <div className="relative flex-grow md:w-80">
+                        <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto lg:flex-1 lg:justify-end">
+                            <div className="relative flex-grow max-w-xs group">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <svg className="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg className="h-3.5 w-3.5 text-gray-500 group-focus-within:text-indigo-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                     </svg>
                                 </div>
                                 <input
                                     type="text"
-                                    className="block w-full pl-10 pr-4 py-2 bg-gray-900/50 border border-white/5 rounded-xl text-gray-300 placeholder-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none"
-                                    placeholder="Search expansions..."
+                                    className="block w-full pl-9 pr-4 py-2 bg-gray-900/50 border border-white/5 rounded-lg text-xs text-gray-300 placeholder-gray-600 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all outline-none"
+                                    placeholder="Search sets..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
                             </div>
 
+                            <div className="relative flex-grow max-w-sm">
+                                <CardAutocomplete
+                                    value={cardSearchTerm}
+                                    onChange={setCardSearchTerm}
+                                    placeholder="Find card in sets..."
+                                />
+                            </div>
+
                             <button
                                 onClick={() => setShowOnlyOwned(!showOnlyOwned)}
-                                className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${showOnlyOwned
-                                    ? 'bg-indigo-600 text-white shadow-[0_0_15px_rgba(79,70,229,0.3)]'
-                                    : 'bg-gray-800 text-gray-400 border border-white/5 hover:bg-gray-700'
+                                className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${showOnlyOwned
+                                    ? 'bg-indigo-600 text-white shadow-lg'
+                                    : 'bg-gray-800/80 text-gray-400 border border-white/5 hover:bg-gray-700'
                                     }`}
                             >
-                                {showOnlyOwned ? 'Owned Only' : 'Show All'}
+                                {showOnlyOwned ? 'Owned' : 'Show All'}
                             </button>
                         </div>
                     </div>
@@ -197,8 +243,12 @@ const SetsPage = () => {
                                                         )}
                                                     </div>
                                                     <div className="text-right">
-                                                        <span className="text-[10px] font-black text-gray-500 block uppercase tracking-widest leading-none mb-1">Release</span>
-                                                        <span className="text-xs font-bold text-gray-400">{set.released_at?.split('-')[0]}</span>
+                                                        <div className="flex flex-col items-end">
+                                                            <span className="text-[10px] font-black text-gray-500 block uppercase tracking-widest leading-none mb-1">Code</span>
+                                                            <span className="text-xs font-bold text-indigo-400 mb-2">{set.code.toUpperCase()}</span>
+                                                            <span className="text-[10px] font-black text-gray-500 block uppercase tracking-widest leading-none mb-1">Release</span>
+                                                            <span className="text-xs font-bold text-gray-400">{set.released_at?.split('-')[0]}</span>
+                                                        </div>
                                                     </div>
                                                 </div>
 

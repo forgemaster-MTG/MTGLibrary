@@ -15,7 +15,8 @@ firebase-debug.*.log*
 
 # dotenv environment variables file
 .env
-
+.env.development
+.env.production
 checks
 
 serviceAccountKey.json
@@ -23,6 +24,10 @@ mtglibrary-70b46-firebase-adminsdk-fbsvc-febf529fa8.json
 
 postgres_data_dev
 postgres_data_staging
+
+docker-compose.staging.yml
+docker-compose.dev.yml
+docker-compose.yml
 
 .sql
 
@@ -78,8 +83,7 @@ node_modules/
 # Yarn Integrity file
 .yarn-integrity
 
-# dotenv environment variables file
-.env
+
 
 # dataconnect generated files
 .dataconnect

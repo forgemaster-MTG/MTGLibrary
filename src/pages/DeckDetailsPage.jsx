@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useDeck } from '../hooks/useDeck';
+import { useDecks } from '../hooks/useDecks';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useCollection } from '../hooks/useCollection';
@@ -13,6 +14,8 @@ import DeckCharts from '../components/DeckCharts';
 import DeckAdvancedStats from '../components/DeckAdvancedStats';
 import DeckStatsModal from '../components/modals/DeckStatsModal';
 import DeckStrategyModal from '../components/modals/DeckStrategyModal';
+import ShareModal from '../components/modals/ShareModal';
+import DeckDoctorModal from '../components/modals/DeckDoctorModal';
 import DeckAI from '../components/DeckAI';
 import CardGridItem from '../components/common/CardGridItem';
 
@@ -81,6 +84,8 @@ const DeckDetailsPage = () => {
     // Modals State
     const [isStrategyModalOpen, setIsStrategyModalOpen] = useState(false);
     const [isStatsModalOpen, setIsStatsModalOpen] = useState(false);
+    const [isDoctorOpen, setIsDoctorOpen] = useState(false);
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
 
     const [showStats, setShowStats] = useState(true);
@@ -93,7 +98,13 @@ const DeckDetailsPage = () => {
     };
 
     const { deck, cards: deckCards, loading: deckLoading, error: deckError } = useDeck(deckId);
+    const { decks } = useDecks();
     const { cards: collection } = useCollection();
+
+    // Permissions
+    const permissionLevel = deck?.permissionLevel || 'viewer';
+    const isOwner = permissionLevel === 'owner';
+    const canEdit = permissionLevel === 'owner' || permissionLevel === 'editor';
 
     // Identity Lookup (Must be before early returns)
     const identityInfo = useMemo(() => {
@@ -139,27 +150,61 @@ const DeckDetailsPage = () => {
     // Helpers (Moved here to be used in useMemo)
     const countByType = (type) => {
         if (!deckCards) return 0;
-        return deckCards.reduce((acc, c) => (((c.data?.type_line || c.type_line) || '').includes(type) ? acc + (c.countInDeck || 1) : acc), 0);
+        let count = deckCards.reduce((acc, c) => (((c.data?.type_line || c.type_line) || '').includes(type) ? acc + (c.countInDeck || 1) : acc), 0);
+
+        // Add commander if not in the cards list but in the header
+        // Compare using scryfall_id as c.id is the database row ID
+        if (deck?.commander && !deckCards.some(c => c.scryfall_id === (deck.commander.id || deck.commander.scryfall_id) || (c.oracle_id && c.oracle_id === deck.commander.oracle_id))) {
+            if ((deck.commander.type_line || '').includes(type)) count++;
+        }
+        if (deck?.commander_partner && !deckCards.some(c => c.scryfall_id === (deck.commander_partner.id || deck.commander_partner.scryfall_id) || (c.oracle_id && c.oracle_id === deck.commander_partner.oracle_id))) {
+            if ((deck.commander_partner.type_line || '').includes(type)) count++;
+        }
+        return count;
     };
 
     const totalCards = useMemo(() => {
-        return deckCards ? deckCards.reduce((acc, c) => acc + (c.countInDeck || 1), 0) : 0;
-    }, [deckCards]);
+        if (!deckCards) return 0;
+        let total = deckCards.reduce((acc, c) => acc + (c.countInDeck || 1), 0);
+        // Include commanders in header if not present as rows
+        if (deck?.commander && !deckCards.some(c => c.scryfall_id === (deck.commander.id || deck.commander.scryfall_id) || (c.oracle_id && c.oracle_id === deck.commander.oracle_id))) total++;
+        if (deck?.commander_partner && !deckCards.some(c => c.scryfall_id === (deck.commander_partner.id || deck.commander_partner.scryfall_id) || (c.oracle_id && c.oracle_id === deck.commander_partner.oracle_id))) total++;
+        return total;
+    }, [deckCards, deck]);
 
     const ownedCardsCount = useMemo(() => {
         if (!deckCards) return 0;
-        return deckCards
+        let owned = deckCards
             .filter(c => !c.is_wishlist)
             .reduce((acc, c) => acc + (c.countInDeck || 1), 0);
-    }, [deckCards]);
+
+        // Commanders in header are considered owned for counting purposes
+        if (deck?.commander && !deckCards.some(c => c.scryfall_id === (deck.commander.id || deck.commander.scryfall_id) || (c.oracle_id && c.oracle_id === deck.commander.oracle_id))) owned++;
+        if (deck?.commander_partner && !deckCards.some(c => c.scryfall_id === (deck.commander_partner.id || deck.commander_partner.scryfall_id) || (c.oracle_id && c.oracle_id === deck.commander_partner.oracle_id))) owned++;
+        return owned;
+    }, [deckCards, deck]);
 
     const totalValue = useMemo(() => {
         if (!deckCards) return 0;
-        return deckCards.reduce((acc, c) => {
+        let value = deckCards.reduce((acc, c) => {
             const price = parseFloat(c.prices?.[c.finish === 'foil' ? 'usd_foil' : 'usd']) || (parseFloat(c.data?.prices?.[c.finish === 'foil' ? 'usd_foil' : 'usd']) || 0);
             return acc + (price * (c.countInDeck || 1));
         }, 0);
-    }, [deckCards]);
+
+        // Add commander value if not in list
+        if (deck?.commander && !deckCards.some(c => c.scryfall_id === (deck.commander.id || deck.commander.scryfall_id) || (c.oracle_id && c.oracle_id === deck.commander.oracle_id))) {
+            const c = deck.commander;
+            const price = parseFloat(c.prices?.[c.finish === 'foil' ? 'usd_foil' : 'usd']) || 0;
+            value += price;
+        }
+        if (deck?.commander_partner && !deckCards.some(c => c.scryfall_id === (deck.commander_partner.id || deck.commander_partner.scryfall_id) || (c.oracle_id && c.oracle_id === deck.commander_partner.oracle_id))) {
+            const c = deck.commander_partner;
+            const price = parseFloat(c.prices?.[c.finish === 'foil' ? 'usd_foil' : 'usd']) || 0;
+            value += price;
+        }
+
+        return value;
+    }, [deckCards, deck]);
 
     // KPI Calculations (Moved before early returns)
     const kpiData = useMemo(() => {
@@ -189,12 +234,14 @@ const DeckDetailsPage = () => {
             Sorcery: [], Artifact: [], Enchantment: [], Land: [], Other: []
         };
 
-        const commanderId = deck?.commander?.id;
         deckCards.forEach(c => {
             const cardData = c;
             const typeLine = ((cardData.data?.type_line || cardData.type_line) || '').toLowerCase();
 
-            if (commanderId && (cardData.id === commanderId || cardData.oracle_id === deck?.commander?.oracle_id)) {
+            const isCommander = deck?.commander && (cardData.scryfall_id === (deck.commander.id || deck.commander.scryfall_id) || (cardData.oracle_id && cardData.oracle_id === deck.commander.oracle_id));
+            const isPartner = deck?.commander_partner && (cardData.scryfall_id === (deck.commander_partner.id || deck.commander_partner.scryfall_id) || (cardData.oracle_id && cardData.oracle_id === deck.commander_partner.oracle_id));
+
+            if (isCommander || isPartner) {
                 groups.Commander.push(cardData);
                 return;
             }
@@ -234,6 +281,80 @@ const DeckDetailsPage = () => {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+    };
+
+    // EDH Power Level Integration (from https://edhpowerlevel.com)
+    const EDHPowerLevelEncode = (decklistString) => {
+        let arr = decklistString.split(/[\r\n~]/);
+        arr.forEach((c, i) => {
+            c = c.split("(")[0]; // Remove set info in parentheses
+            c = c.replace(/ *\[[^\]]*\] */g, " "); // Remove brackets
+            c = c.replace(/ *<[^>]*> */g, " "); // Remove angle brackets  
+            c = c.trim();
+            arr[i] = c;
+        });
+        const cleanedDeck = arr.join("~");
+        return encodeURIComponent(cleanedDeck).replace(/%20/g, "+") + "~Z~";
+    };
+
+    const handleEDHPowerLevel = () => {
+        if (!deck || !deckCards) return;
+
+        // Format deck list: "1 Card Name" per line
+        const decklistLines = [];
+
+        // Add commander(s)
+        if (deck.commander) {
+            decklistLines.push(`1 ${deck.commander.name}`);
+        }
+        if (deck.commander_partner) {
+            decklistLines.push(`1 ${deck.commander_partner.name}`);
+        }
+
+        // Add all other cards
+        deckCards.forEach(card => {
+            const count = card.countInDeck || 1;
+            const name = card.name || card.data?.name || '';
+            if (name) {
+                decklistLines.push(`${count} ${name}`);
+            }
+        });
+
+        const decklistString = decklistLines.join("\n");
+        const encoded = EDHPowerLevelEncode(decklistString);
+
+        // Open in new tab
+        window.open(`https://edhpowerlevel.com?d=${encoded}`, '_blank');
+    };
+
+    const handleTCGPlayer = () => {
+        if (!deck || !deckCards) return;
+
+        // Format as "Quantity CardName" per line for TCGPlayer mass entry
+        const cardLines = [];
+
+        // Add commander(s)
+        if (deck.commander) {
+            cardLines.push(`1 ${deck.commander.name}`);
+        }
+        if (deck.commander_partner) {
+            cardLines.push(`1 ${deck.commander_partner.name}`);
+        }
+
+        // Add all other cards
+        deckCards.forEach(card => {
+            const count = card.countInDeck || 1;
+            const name = card.name || card.data?.name || '';
+            if (name) {
+                cardLines.push(`${count} ${name}`);
+            }
+        });
+
+        const decklistText = cardLines.join('\n');
+
+        // TCGPlayer mass entry URL - we'll encode the list
+        const encoded = encodeURIComponent(decklistText);
+        window.open(`https://www.tcgplayer.com/massentry?c=${encoded}`, '_blank');
     };
 
     const handleAddToDeck = async (card) => {
@@ -462,16 +583,23 @@ const DeckDetailsPage = () => {
                                     </div>
                                 ) : (
                                     <div className="flex flex-col gap-0.5">
-                                        <div className="flex items-center gap-3 group">
-                                            <h2 className="text-4xl font-black text-white tracking-tighter uppercase truncate leading-none">{deck.name}</h2>
-                                            <button onClick={handleStartEdit} className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-white">
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                                            </button>
+                                        <div className="flex items-center gap-2 group">
+                                            <h2 className="text-2xl md:text-4xl font-black text-white tracking-tighter uppercase truncate leading-tight">{deck.name}</h2>
+                                            {canEdit && (
+                                                <button onClick={handleStartEdit} className="p-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-white">
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                                </button>
+                                            )}
                                         </div>
                                         <div className="flex items-center gap-3 pl-0.5">
                                             <div className="text-[11px] text-indigo-300 font-black uppercase tracking-[0.2em] opacity-80">
                                                 {identityInfo.badge} — {identityInfo.theme}
                                             </div>
+                                            {!isOwner && (
+                                                <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border ${canEdit ? 'bg-green-900/40 text-green-400 border-green-500/30' : 'bg-gray-800 text-gray-400 border-gray-700'}`}>
+                                                    {permissionLevel} Access
+                                                </span>
+                                            )}
                                             <div className="flex items-center gap-1">
                                                 {/* Calculate combined identity for display */
                                                     (() => {
@@ -494,7 +622,7 @@ const DeckDetailsPage = () => {
                                     </div>
                                 )}
 
-                                <div className="flex items-center gap-4 mt-3">
+                                <div className="flex flex-wrap items-center gap-3 mt-3">
                                     <div className="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-xl border border-white/5 backdrop-blur-md shadow-2xl">
                                         <span className="bg-orange-600/20 text-orange-400 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-orange-500/30">
                                             {deck.format || 'Commander'}
@@ -512,36 +640,55 @@ const DeckDetailsPage = () => {
 
                                     <button
                                         onClick={() => setIsStrategyModalOpen(true)}
-                                        className="flex items-center gap-2 text-indigo-300 hover:text-white transition-all text-xs font-black uppercase tracking-widest bg-indigo-500/20 hover:bg-indigo-500/30 px-5 py-2 rounded-2xl border border-indigo-500/30 shadow-xl shadow-indigo-500/10 active:scale-95"
+                                        className="flex items-center gap-2 text-indigo-300 hover:text-white transition-all text-[10px] md:text-xs font-black uppercase tracking-widest bg-indigo-500/20 hover:bg-indigo-500/30 px-4 md:px-5 py-2 rounded-2xl border border-indigo-500/30 shadow-xl shadow-indigo-500/10 active:scale-95"
                                     >
                                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                                         View Strategy
                                     </button>
 
-                                    <div className="text-[13px] text-white/30 italic font-medium tracking-tight border-l border-white/5 pl-4 ml-2" title={identityInfo.flavor_text}>
+                                    <div className="hidden sm:block text-[13px] text-white/30 italic font-medium tracking-tight border-l border-white/5 pl-4 ml-2 max-w-[200px] truncate" title={identityInfo.flavor_text}>
                                         "{identityInfo.flavor_text}"
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Right: Global Actions */}
-                        <div className="flex items-center gap-2 bg-gray-950/50 p-1.5 rounded-2xl border border-gray-800 backdrop-blur shadow-inner">
-                            <button
-                                onClick={() => setIsAddCollectionOpen(true)}
-                                className="bg-green-600 hover:bg-green-500 text-white font-black py-2.5 px-6 rounded-xl shadow-lg shadow-green-900/40 transition-all flex items-center gap-2 uppercase tracking-widest text-xs"
-                            >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-                                Collection
-                            </button>
+                        {/* Right: Global Actions (Desktop Only) */}
+                        <div className="hidden lg:flex items-center gap-2 bg-gray-950/50 p-1.5 rounded-2xl border border-gray-800 backdrop-blur shadow-inner">
+                            {canEdit && (
+                                <button
+                                    onClick={() => setIsAddCollectionOpen(true)}
+                                    className="bg-green-600 hover:bg-green-500 text-white font-black py-2.5 px-6 rounded-xl shadow-lg shadow-green-900/40 transition-all flex items-center gap-2 uppercase tracking-widest text-xs"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                                    Collection
+                                </button>
+                            )}
                             <button
                                 onClick={() => setIsSearchOpen(true)}
                                 className="p-2.5 bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white rounded-xl border border-gray-700 transition-all shadow-md"
                                 title="Quick Search"
+                                disabled={!canEdit}
                             >
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                             </button>
                             <div className="w-px h-6 bg-gray-800 mx-1" />
+                            <button
+                                onClick={() => setIsShareModalOpen(true)}
+                                className="p-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl border border-indigo-500 transition-all shadow-md flex items-center gap-2"
+                                title="Share Deck"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                                <span className="text-xs font-bold uppercase tracking-wider hidden xl:block">Share</span>
+                            </button>
+                            <button
+                                onClick={() => setIsDoctorOpen(true)}
+                                className="p-2.5 bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-300 hover:text-white rounded-xl border border-indigo-500/30 transition-all shadow-md flex items-center gap-2"
+                                title="Run Deck Doctor Diagnosis"
+                            >
+                                <span>🩺</span>
+                                <span className="text-xs font-bold uppercase tracking-wider hidden xl:block">Doctor</span>
+                            </button>
                             <button
                                 onClick={handleExportDeck}
                                 className="p-2.5 bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white rounded-xl border border-gray-700 transition-all shadow-md"
@@ -549,27 +696,29 @@ const DeckDetailsPage = () => {
                             >
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                             </button>
-                            <div className="relative group">
-                                <button className="p-2.5 bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white rounded-xl border border-gray-700 transition-all shadow-md">
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg>
-                                </button>
-                                <div className="absolute right-0 top-full mt-2 w-48 bg-gray-900 rounded-xl shadow-2xl border border-gray-800 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all z-50 overflow-hidden">
-                                    <button
-                                        onClick={handleToggleMockup}
-                                        className="w-full text-left px-4 py-3 text-sm hover:bg-gray-800 flex items-center gap-2 transition-colors border-b border-gray-800 text-gray-300"
-                                    >
-                                        <svg className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                                        {deck.is_mockup ? 'Switch to Collection' : 'Switch to Mockup'}
+                            {canEdit && (
+                                <div className="relative group">
+                                    <button className="p-2.5 bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white rounded-xl border border-gray-700 transition-all shadow-md">
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg>
                                     </button>
-                                    <button
-                                        onClick={handleDeleteDeck}
-                                        className="w-full text-left px-4 py-3 text-sm hover:bg-red-900/30 text-red-400 flex items-center gap-2 transition-colors"
-                                    >
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                        Delete Deck
-                                    </button>
+                                    <div className="absolute right-0 top-full mt-2 w-48 bg-gray-900 rounded-xl shadow-2xl border border-gray-800 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all z-50 overflow-hidden">
+                                        <button
+                                            onClick={handleToggleMockup}
+                                            className="w-full text-left px-4 py-3 text-sm hover:bg-gray-800 flex items-center gap-2 transition-colors border-b border-gray-800 text-gray-300"
+                                        >
+                                            <svg className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                            {deck.is_mockup ? 'Switch to Collection' : 'Switch to Mockup'}
+                                        </button>
+                                        <button
+                                            onClick={handleDeleteDeck}
+                                            className="w-full text-left px-4 py-3 text-sm hover:bg-red-900/30 text-red-400 flex items-center gap-2 transition-colors"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                            Delete Deck
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -651,7 +800,7 @@ const DeckDetailsPage = () => {
                         <div className="p-4 space-y-8 min-h-[500px]">
                             {Object.entries(groupedCards).length === 0 && (
                                 <div className="text-center py-20 text-gray-500 italic">
-                                    Use the "Add Cards" button to start building your deck.
+                                    Use the "Collection" button to start building your deck.
                                 </div>
                             )}
                             {Object.entries(groupedCards).map(([type, cards]) => {
@@ -671,6 +820,11 @@ const DeckDetailsPage = () => {
                                                         card={card}
                                                         availableFoils={availableFoils}
                                                         onRemove={handleRemoveFromDeck}
+                                                        decks={decks}
+                                                        currentUser={userProfile}
+                                                        showOwnerTag={true}
+                                                        hideDeckTag={true}
+                                                        hideOwnerTag={true}
                                                     />
                                                 ))}
                                             </div>
@@ -692,12 +846,14 @@ const DeckDetailsPage = () => {
                                                             <span className="hidden md:inline-block text-xs text-gray-500">{card.data?.type_line || card.type_line || ''}</span>
                                                             <span className="font-mono w-16 text-right text-xs">{card.mana_cost || ''}</span>
                                                             <span className="font-mono w-16 text-right text-green-400/80 text-xs">${(parseFloat(card.prices?.[card.finish === 'foil' ? 'usd_foil' : 'usd']) || 0).toFixed(2)}</span>
-                                                            <button
-                                                                onClick={() => handleRemoveFromDeck(card.firestoreId || card.id, card.name)}
-                                                                className="text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                            >
-                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                                                            </button>
+                                                            {canEdit && (
+                                                                <button
+                                                                    onClick={() => handleRemoveFromDeck(card.firestoreId || card.id, card.name)}
+                                                                    className="text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                >
+                                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 ))}
@@ -816,6 +972,33 @@ const DeckDetailsPage = () => {
                             </div>
                         </div>
 
+                        {/* External Sites */}
+                        <div className="bg-gray-950/40 backdrop-blur-3xl rounded-3xl shadow-2xl overflow-hidden border border-white/10 relative group">
+                            <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <span className="text-8xl">🌐</span>
+                            </div>
+                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 p-4 pb-0 flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse"></span>
+                                External Sites
+                            </h3>
+                            <div className="space-y-3 relative z-10 p-4 pt-3">
+                                <button
+                                    onClick={handleEDHPowerLevel}
+                                    className="w-full py-4 bg-purple-600/10 hover:bg-purple-600/20 text-purple-300 rounded-xl border border-purple-500/20 hover:border-purple-500/40 transition-all font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3 group/btn"
+                                >
+                                    <span className="text-lg group-hover/btn:scale-110 transition-transform">📊</span>
+                                    EDH Power Level
+                                </button>
+                                <button
+                                    onClick={handleTCGPlayer}
+                                    className="w-full py-4 bg-green-900/10 hover:bg-green-900/20 text-green-400 rounded-xl border border-green-500/10 hover:border-green-500/30 transition-all font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3"
+                                >
+                                    <span className="text-lg">🛒</span>
+                                    Buy on TCGPlayer
+                                </button>
+                            </div>
+                        </div>
+
                         {/* DeckAI Component Integration */}
                         {/* Kept for inline access if desired, but button above now opens modal */}
                         {/* <DeckAI deck={deck} cards={deckCards} /> */}
@@ -865,8 +1048,76 @@ const DeckDetailsPage = () => {
                     deckName={deck.name}
                 />
 
-            </div >
-        </div >
+                {/* Mobile FAB / Action Bar */}
+                <div className="lg:hidden fixed bottom-24 left-1/2 -translate-x-1/2 z-[60] w-[90%] max-w-sm">
+                    <div className="bg-gray-950/80 backdrop-blur-2xl px-4 py-3 rounded-2xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-center justify-between gap-3 animate-slide-up">
+                        <button
+                            onClick={() => setIsAddCollectionOpen(true)}
+                            className="flex-1 bg-green-600 hover:bg-green-500 text-white font-black py-3 px-4 rounded-xl shadow-lg shadow-green-900/40 transition-all flex items-center justify-center gap-2 uppercase tracking-widest text-[10px]"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                            Collection
+                        </button>
+
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setIsSearchOpen(true)}
+                                className="p-3 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-xl border border-gray-700 transition-all shadow-md active:scale-95"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                            </button>
+
+                            <div className="w-px h-8 bg-gray-800 mx-1" />
+
+                            <div className="relative group">
+                                <button className="p-3 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-xl border border-gray-700 transition-all shadow-md active:scale-95">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg>
+                                </button>
+                                <div className="absolute right-0 bottom-full mb-3 w-48 bg-gray-900 rounded-xl shadow-2xl border border-gray-800 opacity-0 pointer-events-none group-focus-within:opacity-100 group-focus-within:pointer-events-auto transition-all z-[70] overflow-hidden">
+                                    <button
+                                        onClick={handleExportDeck}
+                                        className="w-full text-left px-4 py-3 text-xs hover:bg-gray-800 text-gray-300 flex items-center gap-2 border-b border-gray-800"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                        Export JSON
+                                    </button>
+                                    <button
+                                        onClick={handleToggleMockup}
+                                        className="w-full text-left px-4 py-3 text-xs hover:bg-gray-800 text-gray-300 flex items-center gap-2 border-b border-gray-800"
+                                    >
+                                        <svg className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                        {deck.is_mockup ? 'To Collection' : 'To Mockup'}
+                                    </button>
+                                    <button
+                                        onClick={handleDeleteDeck}
+                                        className="w-full text-left px-4 py-3 text-xs hover:bg-red-900/30 text-red-400 flex items-center gap-2 transition-colors"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                        Delete Deck
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {/* Share Modal */}
+            <ShareModal
+                isOpen={isShareModalOpen}
+                onClose={() => setIsShareModalOpen(false)}
+                deck={deck}
+                onUpdateDeck={(updated) => Object.assign(deck, updated)} // Simple mutation for immediate UI update, ideally use useDeck refresh
+            />
+
+            {/* Doctor Modal */}
+            <DeckDoctorModal
+                isOpen={isDoctorOpen}
+                onClose={() => setIsDoctorOpen(false)}
+                deck={deck}
+                cards={deckCards}
+                isOwner={canEdit}
+            />
+        </div>
     );
 };
 

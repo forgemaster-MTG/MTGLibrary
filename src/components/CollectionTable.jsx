@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 
-const CollectionTable = ({ cards }) => {
+const CollectionTable = ({ cards, isMixed }) => {
     const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
 
     const sortedCards = useMemo(() => {
@@ -72,6 +72,7 @@ const CollectionTable = ({ cards }) => {
                         <HeaderCell label="Rarity" sortKey="rarity" />
                         <HeaderCell label="Market Price" sortKey="price" />
                         <HeaderCell label="Paid" sortKey="price_bought" />
+                        {isMixed && <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Owner</th>}
                         <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Tags</th>
                     </tr>
                 </thead>
@@ -115,6 +116,16 @@ const CollectionTable = ({ cards }) => {
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 font-mono">
                                 {card.price_bought ? `$${parseFloat(card.price_bought).toFixed(2)}` : '-'}
                             </td>
+                            {isMixed && (
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                    <div className="flex items-center gap-2" title={card.owner_username}>
+                                        <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center text-white text-[10px] font-bold">
+                                            {card.owner_username ? card.owner_username[0].toUpperCase() : '?'}
+                                        </div>
+                                        <span className="text-xs text-gray-400 truncate max-w-[80px]">{card.owner_username}</span>
+                                    </div>
+                                </td>
+                            )}
                             <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="flex flex-wrap gap-1">
                                     {(card.tags && typeof card.tags === 'string' ? JSON.parse(card.tags) : (card.tags || [])).map((tag, i) => (

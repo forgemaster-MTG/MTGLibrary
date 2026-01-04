@@ -41,7 +41,7 @@ const CardDetailsModal = () => {
                 currentTag: ''
             });
             // Fetch decks for dropdown? (Optional optimization: fetch only if editing)
-            api.get('/decks').then(setDeckList).catch(err => console.error("Failed to load decks", err));
+            api.get('/api/decks').then(setDeckList).catch(err => console.error("Failed to load decks", err));
         }
     }, [isOpen, selectedCard]);
 

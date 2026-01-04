@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { WelcomeStep, PaymentStep, AISetupStep, WalkthroughStep } from '../components/onboarding/OnboardingSteps';
+import { WelcomeStep, SupportStep, AISetupStep, WalkthroughStep } from '../components/onboarding/OnboardingSteps';
 import { HelperForgeStep } from '../components/onboarding/HelperForgeStep';
 import PlaystyleWizardModal from '../components/modals/PlaystyleWizardModal';
+import DonationModal from '../components/modals/DonationModal';
 
 const OnboardingPage = () => {
     const navigate = useNavigate();
@@ -11,10 +12,11 @@ const OnboardingPage = () => {
     // Initialize step from saved settings or default to 0
     const [step, setStep] = useState(userProfile?.settings?.onboarding_step || 0);
     const [isPlaystyleConfiguring, setIsPlaystyleConfiguring] = useState(false);
+    const [isDonationModalOpen, setIsDonationModalOpen] = useState(false);
 
     // Step Order:
     // 0: Welcome
-    // 1: Payment Selection (New)
+    // 1: Support / Donation (New)
     // 2: AI Setup (Info/Enable)
     // 3: Forge Helper (Persona)
     // 4: Playstyle (Modal flow)
@@ -41,11 +43,17 @@ const OnboardingPage = () => {
         });
     };
 
-    const handlePaymentComplete = async (planId) => {
+    const handleSupportComplete = async (action) => {
+        if (action === 'donate') {
+            setIsDonationModalOpen(true);
+            return;
+        }
+
+        // If skip or after modal close, go to next
         const nextStep = step + 1;
         setStep(nextStep);
         await updateSettings({
-            subscription_tier: 'alpha_tester', // Force alpha for now
+            subscription_tier: 'alpha_tester',
             onboarding_step: nextStep
         });
     };
@@ -102,7 +110,7 @@ const OnboardingPage = () => {
 
                 {step === 0 && <WelcomeStep onNext={handleNext} />}
 
-                {step === 1 && <PaymentStep onNext={handlePaymentComplete} onBack={handleBack} />}
+                {step === 1 && <SupportStep onNext={handleSupportComplete} onBack={handleBack} />}
 
                 {step === 2 && <AISetupStep onNext={handleAISetupComplete} onBack={handleBack} />}
 
@@ -150,6 +158,15 @@ const OnboardingPage = () => {
                 isOpen={isPlaystyleConfiguring}
                 onClose={() => setIsPlaystyleConfiguring(false)}
                 onComplete={handlePlaystyleComplete}
+            />
+
+            <DonationModal
+                isOpen={isDonationModalOpen}
+                onClose={() => {
+                    setIsDonationModalOpen(false);
+                    // After donation (or cancel), we still proceed to next step in onboarding
+                    handleSupportComplete('skip');
+                }}
             />
 
         </div>

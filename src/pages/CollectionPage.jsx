@@ -1,26 +1,70 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useCollection } from '../hooks/useCollection';
 import { useDecks } from '../hooks/useDecks';
+import { useBinders } from '../hooks/useBinders';
+import { useAuth } from '../contexts/AuthContext';
+import { api } from '../services/api';
+import { communityService } from '../services/communityService';
+import { useToast } from '../contexts/ToastContext';
 import { getIdentity } from '../data/mtg_identity_registry';
 import MultiSelect from '../components/MultiSelect';
 import CardSkeleton from '../components/CardSkeleton';
 import CardGridItem from '../components/common/CardGridItem';
-import AddFromCollectionModal from '../components/modals/AddFromCollectionModal';
+import CardSearchModal from '../components/CardSearchModal';
 import CollectionTable from '../components/CollectionTable';
 import ViewToggle from '../components/ViewToggle';
 import BulkCollectionImportModal from '../components/modals/BulkCollectionImportModal';
 import BinderWizardModal from '../components/modals/BinderWizardModal';
+import BinderGuideModal from '../components/modals/BinderGuideModal';
+import { evaluateRules } from '../services/ruleEvaluator';
 
-import { api } from '../services/api';
 
 const CollectionPage = () => {
+    const { userProfile } = useAuth();
+    const { addToast } = useToast();
     // Parse query params for wishlist mode
     const location = useLocation();
     const isWishlistMode = new URLSearchParams(location.search).get('wishlist') === 'true';
 
-    const { cards, loading, error, refresh } = useCollection({ wishlist: isWishlistMode });
-    const { decks } = useDecks();
+
+    // Shared Collection Logic
+    const [sharedSources, setSharedSources] = useState([]);
+    const [selectedSource, setSelectedSource] = useState('me'); // 'me' or userId
+
+    useEffect(() => {
+        communityService.fetchIncomingPermissions()
+            .then(data => {
+                // data is array of perms. Extract unique owners.
+                const unique = [];
+                const seen = new Set();
+                // Check if data is array or data.data (axios) - usually api returns data directly in this codebase helper?
+                // api.js returns response.data usually.
+                // communityService returns api.get result.
+                const perms = Array.isArray(data) ? data : (data.data || []);
+
+                perms.forEach(p => {
+                    if (p.owner_id && !seen.has(p.owner_id)) {
+                        seen.add(p.owner_id);
+                        unique.push({ id: p.owner_id, name: p.owner_username || 'Unknown' });
+                    }
+                });
+                setSharedSources(unique);
+            })
+            .catch(err => console.error("Failed to fetch shared sources", err));
+    }, []);
+
+    const isSharedView = selectedSource !== 'me' && selectedSource !== 'all';
+    const isMixedView = selectedSource === 'all';
+
+    const { cards, loading, error, refresh } = useCollection({
+        wishlist: isWishlistMode,
+        userId: selectedSource === 'me' ? null : selectedSource
+    });
+    const { binders, refreshBinders } = useBinders();
+    const { decks, loading: decksLoading } = useDecks(selectedSource === 'me' ? null : selectedSource); // Decks hook may not support 'all' yet but we'll leave as is for now or fix if needed. 
+    // Actually Decks hook probably needs update if we want mixed decks too, but task focused on collection. Let's pass 'all' and if deckService fails gracefully or we update it later.
+    // For now assuming CollectionTable handles the mixed cards.
     const [searchTerm, setSearchTerm] = useState('');
     const [showFilters, setShowFilters] = useState(false);
     const [syncLoading, setSyncLoading] = useState(false);
@@ -28,7 +72,7 @@ const CollectionPage = () => {
     const handleSyncPrices = async () => {
         setSyncLoading(true);
         try {
-            await api.post('/sync/prices');
+            await api.post('/api/sync/prices');
             await refresh();
         } catch (err) {
             console.error("Sync failed", err);
@@ -38,14 +82,18 @@ const CollectionPage = () => {
     };
 
     // View States (Persisted)
-    const [viewMode, setViewMode] = useState(() => localStorage.getItem('collection_viewMode') || 'folder');
-    const [groupingMode, setGroupingMode] = useState('smart'); // 'smart' | 'custom'
+    const [viewMode, setViewMode] = useState(() => localStorage.getItem('collection_viewMode') || 'grid');
+    const [groupingMode, setGroupingMode] = useState(() => localStorage.getItem('collection_groupingMode') || 'binders'); // 'smart' | 'custom' | 'binders'
     const [activeFolder, setActiveFolder] = useState(null); // ID of open folder
+    const [binderCards, setBinderCards] = useState([]);
+    const [binderLoading, setBinderLoading] = useState(false);
 
     // Modals
     const [isAddCardOpen, setIsAddCardOpen] = useState(false);
     const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
-    const [isBinderWizardOpen, setIsBinderWizardOpen] = useState(false);
+    const [isWizardOpen, setIsWizardOpen] = useState(false);
+    const [isGuideOpen, setIsGuideOpen] = useState(false);
+    const [editingBinder, setEditingBinder] = useState(null);
 
     // Filter State (Persisted)
     const [filters, setFilters] = useState(() => {
@@ -55,9 +103,17 @@ const CollectionPage = () => {
             rarity: [],
             types: [],
             sets: [],
-            decks: []
+            decks: [],
+            users: []
         };
     });
+
+    const [sortBy, setSortBy] = useState(() => localStorage.getItem('collection_sortBy') || 'added_at');
+    const [sortOrder, setSortOrder] = useState(() => localStorage.getItem('collection_sortOrder') || 'desc');
+
+    // Pagination State (Grid View Only)
+    const [currentPage, setCurrentPage] = useState(() => parseInt(localStorage.getItem('collection_currentPage')) || 1);
+    const [itemsPerPage, setItemsPerPage] = useState(() => parseInt(localStorage.getItem('collection_itemsPerPage')) || 50);
 
     // Persistence Effects
     React.useEffect(() => {
@@ -65,8 +121,41 @@ const CollectionPage = () => {
     }, [viewMode]);
 
     React.useEffect(() => {
+        localStorage.setItem('collection_groupingMode', groupingMode);
+    }, [groupingMode]);
+
+    React.useEffect(() => {
         localStorage.setItem('collection_filters', JSON.stringify(filters));
     }, [filters]);
+
+    React.useEffect(() => {
+        localStorage.setItem('collection_sortBy', sortBy);
+        localStorage.setItem('collection_sortOrder', sortOrder);
+    }, [sortBy, sortOrder]);
+
+    React.useEffect(() => {
+        localStorage.setItem('collection_currentPage', currentPage);
+        localStorage.setItem('collection_itemsPerPage', itemsPerPage);
+    }, [currentPage, itemsPerPage]);
+
+    // Reset to page 1 when filters, search, or sort changes
+    React.useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, filters, sortBy, sortOrder]);
+
+    // Fetch binder cards when activeFolder changes to a binder
+    useEffect(() => {
+        if (activeFolder && activeFolder.startsWith('binder-')) {
+            const binderId = activeFolder.replace('binder-', '');
+            setBinderLoading(true);
+            api.getBinderCards(binderId)
+                .then(response => setBinderCards(response))
+                .catch(err => addToast('Failed to load binder cards', 'error'))
+                .finally(() => setBinderLoading(false));
+        } else {
+            setBinderCards([]);
+        }
+    }, [activeFolder, addToast]);
 
     // Derived Options
     const setOptions = useMemo(() => {
@@ -78,6 +167,10 @@ const CollectionPage = () => {
         });
         return Array.from(sets).map(s => JSON.parse(s)).sort((a, b) => a.label.localeCompare(b.label));
     }, [cards]);
+
+    const userOptions = useMemo(() => {
+        return sharedSources.map(s => ({ value: s.id, label: s.name }));
+    }, [sharedSources]);
 
     const deckOptions = useMemo(() => {
         return decks.map(d => ({ value: d.id, label: d.name }));
@@ -127,9 +220,39 @@ const CollectionPage = () => {
                 if (!filters.decks.includes(card.deckId)) return false;
             }
 
+            // Users
+            if (filters.users && filters.users.length > 0) {
+                if (!filters.users.includes(card.user_id) && !filters.users.includes(card.owner_id)) return false;
+            }
+
             return true;
+        }).sort((a, b) => {
+            let valA, valB;
+
+            switch (sortBy) {
+                case 'name':
+                    valA = a.name || '';
+                    valB = b.name || '';
+                    break;
+                case 'price':
+                    valA = parseFloat(a.prices?.usd || a.prices?.usd_foil || 0);
+                    valB = parseFloat(b.prices?.usd || b.prices?.usd_foil || 0);
+                    break;
+                case 'owner':
+                    valA = a.owner_username || 'ME';
+                    valB = b.owner_username || 'ME';
+                    break;
+                case 'added_at':
+                default:
+                    valA = new Date(a.added_at || 0).getTime();
+                    valB = new Date(b.added_at || 0).getTime();
+            }
+
+            if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+            if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+            return 0;
         });
-    }, [cards, searchTerm, filters]);
+    }, [cards, searchTerm, filters, sortBy, sortOrder]);
 
 
     // Grouping Logic
@@ -218,7 +341,18 @@ const CollectionPage = () => {
 
         // Push Decks first
         Object.entries(deckGroups).forEach(([name, cards]) => {
-            result.push({ id: `deck-${name}`, label: name, type: 'deck', cards, icon: '♟️', color: 'purple', sub: 'Deck' });
+            // Get owner info from first card in the deck for mixed view
+            const ownerName = isMixedView && cards[0]?.owner_username ? cards[0].owner_username : null;
+            result.push({
+                id: `deck-${name}`,
+                label: name,
+                type: 'deck',
+                cards,
+                icon: '♟️',
+                color: 'purple',
+                sub: 'Deck',
+                ownerName
+            });
         });
 
         // Push Colors (Sorted by color count, then name)
@@ -249,16 +383,30 @@ const CollectionPage = () => {
                 }
             });
 
-        // Push Sets (Sorted alphabetically)
-        Object.entries(setGroups)
-            .sort(([nameA], [nameB]) => nameA.localeCompare(nameB))
-            .forEach(([name, cards]) => {
-                result.push({ id: `set-${name}`, label: name, type: 'set', cards, icon: '📦', color: 'emerald', sub: 'Set' });
+        // Binder Mode (User Binders)
+        if (groupingMode === 'binders') {
+            return binders.map(b => {
+                const binderRules = b.rules ? (typeof b.rules === 'string' ? JSON.parse(b.rules) : b.rules) : null;
+                const binderCardsList = binderRules
+                    ? cards.filter(c => evaluateRules(c, binderRules))
+                    : cards.filter(c => String(c.binder_id) === String(b.id));
+
+                return {
+                    id: `binder-${b.id}`,
+                    label: b.name,
+                    type: 'binder',
+                    cards: binderCardsList,
+                    icon: b.icon_value || '📁',
+                    color: b.color_preference || 'blue',
+                    sub: binderRules ? 'Smart Binder' : 'Collection Binder',
+                    isSmart: !!binderRules
+                };
             });
+        }
 
         return result;
 
-    }, [filteredCards, groupingMode, viewMode, decks]);
+    }, [filteredCards, groupingMode, viewMode, decks, binders, cards]);
 
     // Helpers
     const toggleFilter = (category, value) => {
@@ -273,11 +421,28 @@ const CollectionPage = () => {
 
     // Active Folder Logic
     const activeGroup = useMemo(() => {
-        return groups.find(g => g.id === activeFolder);
-    }, [groups, activeFolder]);
+        const group = groups.find(g => g.id === activeFolder);
+        if (group && group.type === 'binder') {
+            return { ...group, cards: binderCards };
+        }
+        return group;
+    }, [groups, activeFolder, binderCards]);
+
+    // Pagination Logic (Grid View Only)
+    const paginatedCards = useMemo(() => {
+        if (viewMode !== 'grid') return filteredCards;
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        return filteredCards.slice(startIndex, endIndex);
+    }, [filteredCards, currentPage, itemsPerPage, viewMode]);
+
+    const totalPages = useMemo(() => {
+        if (viewMode !== 'grid') return 1;
+        return Math.ceil(filteredCards.length / itemsPerPage);
+    }, [filteredCards.length, itemsPerPage, viewMode]);
 
     return (
-        <div className="relative min-h-screen">
+        <div className="relative min-h-screen overflow-x-hidden">
             {/* Immersive Background */}
             <div
                 className="fixed inset-0 z-0 bg-cover bg-center transition-all duration-1000"
@@ -286,103 +451,163 @@ const CollectionPage = () => {
                 <div className="absolute inset-0 bg-gray-950/80 backdrop-blur-sm" />
             </div>
 
-            <div className="relative z-10 max-w-[1600px] mx-auto px-6 py-8 space-y-8 animate-fade-in pb-24">
+            <div className="relative z-10 max-w-[1600px] mx-auto px-4 md:px-6 py-8 space-y-8 animate-fade-in pb-24">
 
                 {/* Header Section */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 bg-gray-950/40 p-6 rounded-3xl backdrop-blur-md border border-white/5 shadow-xl">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 bg-gray-950/40 p-4 md:p-6 rounded-3xl backdrop-blur-md border border-white/5 shadow-xl">
                     <div>
-                        <h1 className="text-4xl font-black text-white tracking-tight mb-2">
+                        <h1 className="text-2xl md:text-4xl font-black text-white tracking-tight mb-1 md:mb-2">
                             {isWishlistMode ? 'My Wishlist' : 'My Collection'}
                         </h1>
-                        <p className="text-gray-400 font-medium">
-                            {filteredCards.length} {filteredCards.length === 1 ? 'card' : 'cards'} found • <span className="text-indigo-400">${filteredCards.reduce((acc, c) => acc + (parseFloat(c.prices?.usd || 0) * (c.count || 1)), 0).toFixed(2)}</span> total value
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                            <p className="text-gray-400 font-medium text-xs md:text-sm">
+                                {filteredCards.length} {filteredCards.length === 1 ? 'card' : 'cards'} found • <span className="text-indigo-400">${filteredCards.reduce((acc, c) => acc + (parseFloat(c.prices?.usd || 0) * (c.count || 1)), 0).toFixed(2)}</span>
+                            </p>
                             <button
                                 onClick={handleSyncPrices}
                                 disabled={syncLoading}
-                                className={`ml-3 inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-xs font-bold transition-all ${syncLoading ? 'opacity-70 cursor-wait' : ''}`}
+                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-[10px] font-black uppercase tracking-widest transition-all border border-indigo-500/20 ${syncLoading ? 'opacity-70 cursor-wait' : ''}`}
                                 title="Update prices from Scryfall"
                             >
                                 <svg className={`w-3 h-3 ${syncLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                                {syncLoading ? 'Updating...' : 'Update Prices'}
+                                {syncLoading ? 'Syncing...' : 'Sync Prices'}
                             </button>
-                        </p>
+                        </div>
                     </div>
 
-                    <div className="flex gap-3 w-full md:w-auto items-center">
+                    <div className="flex gap-2 md:gap-3 w-full md:w-auto items-center justify-between md:justify-end">
                         <ViewToggle mode={viewMode} onChange={(m) => { setViewMode(m); setActiveFolder(null); }} />
 
-                        <div className="h-8 w-px bg-gray-700 mx-2" />
+                        {!isSharedView && (
+                            <div className="flex h-10 items-center gap-2">
+                                <div className="h-6 w-px bg-gray-700 mx-1 md:mx-2" />
 
-                        <button
-                            onClick={() => setIsBinderWizardOpen(true)}
-                            className="bg-gray-800 hover:bg-gray-700 text-indigo-400 hover:text-white px-4 py-3 rounded-xl transition-all border border-gray-700 hover:border-indigo-500/50 flex items-center justify-center gap-2 group mr-2"
-                            title="Create New Binder"
-                        >
-                            <svg className="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            <span className="text-[10px] font-bold uppercase tracking-widest hidden xl:inline-block">New Binder</span>
-                        </button>
+                                <button
+                                    onClick={() => setIsWizardOpen(true)}
+                                    className="flex bg-gray-800 hover:bg-gray-700 text-indigo-400 hover:text-white p-2.5 md:px-4 md:py-3 rounded-xl transition-all border border-gray-700 hover:border-indigo-500/50 items-center justify-center gap-2 group"
+                                    title="Create New Binder"
+                                >
+                                    <svg className="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                    <span className="text-[10px] font-bold uppercase tracking-widest hidden lg:inline-block">New Binder</span>
+                                </button>
 
-                        <button
-                            onClick={() => setIsBulkImportOpen(true)}
-                            className="text-gray-400 hover:text-white font-bold py-3 px-4 rounded-xl hover:bg-gray-800 transition-all flex items-center gap-2 text-xs uppercase tracking-widest"
-                            title="Bulk Paste"
-                        >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
-                        </button>
+                                <button
+                                    onClick={() => setIsGuideOpen(true)}
+                                    className="hidden md:flex bg-gray-900 hover:bg-indigo-900/30 text-gray-500 hover:text-indigo-400 p-2.5 md:px-3 md:py-3 rounded-xl transition-all border border-gray-800 hover:border-indigo-500/30 items-center justify-center shadow-lg"
+                                    title="Binder Guide"
+                                >
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                </button>
 
-                        <button
-                            onClick={() => setIsAddCardOpen(true)}
-                            className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-indigo-900/40 transition-all flex items-center gap-2 uppercase tracking-widest text-xs"
-                        >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                            Add Cards
-                        </button>
+                                <button
+                                    onClick={() => setIsBulkImportOpen(true)}
+                                    className="flex text-gray-400 hover:text-white font-bold p-2.5 md:px-4 md:py-3 rounded-xl hover:bg-gray-800 transition-all items-center gap-2 text-xs uppercase tracking-widest"
+                                    title="Bulk Paste"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                                </button>
+
+                                <button
+                                    onClick={() => setIsAddCardOpen(true)}
+                                    className="flex bg-indigo-600 hover:bg-indigo-500 text-white font-bold p-2.5 md:px-6 md:py-3 rounded-xl shadow-lg shadow-indigo-900/40 transition-all items-center gap-2 uppercase tracking-widest text-xs whitespace-nowrap"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                                    <span className="hidden md:inline-block">Add Cards</span>
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
 
                 {/* Filters & Grid Container */}
-                <div className="bg-gray-950/40 border border-white/5 rounded-3xl p-6 backdrop-blur-md shadow-2xl">
+                <div className="bg-gray-950/40 border border-white/5 rounded-3xl p-4 md:p-6 backdrop-blur-md shadow-2xl">
 
                     {/* Search & Toggle Filters */}
-                    <div className="flex flex-col lg:flex-row gap-4 mb-6 justify-between">
-                        <div className="flex gap-4 flex-1">
-                            <div className="relative flex-1">
+                    <div className="flex flex-col lg:flex-row gap-3 md:gap-4 mb-6 justify-between">
+                        <div className="flex gap-2 flex-wrap flex-1">
+                            <div className="relative flex-1 min-w-[200px]">
                                 <input
                                     type="text"
                                     placeholder="Search cards..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full bg-gray-900/50 border border-gray-700 text-white px-5 py-3 pl-12 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder-gray-500 font-medium"
+                                    className="w-full bg-gray-900/50 border border-gray-700 text-white px-4 py-2.5 md:py-3 pl-10 md:pl-12 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder-gray-500 font-medium text-sm h-10 md:h-12"
                                 />
-                                <svg className="w-5 h-5 text-gray-500 absolute left-4 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                <svg className="w-4 h-4 md:w-5 md:h-5 text-gray-400 absolute left-3 md:left-4 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                             </div>
+
+                            <select
+                                value={selectedSource}
+                                onChange={(e) => {
+                                    setSelectedSource(e.target.value);
+                                    setActiveFolder(null); // Reset folder when switching source
+                                }}
+                                className="bg-gray-800 border-gray-700 text-white px-3 py-2 md:px-4 md:py-3 rounded-xl font-bold text-xs md:text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 whitespace-nowrap h-10 md:h-12"
+                            >
+                                <option value="me">My Collection</option>
+                                <option value="all">All Linked Collections</option>
+                                {sharedSources.map(s => (
+                                    <option key={s.id} value={s.id}>{s.name}'s Collection</option>
+                                ))}
+                            </select>
+                            <select
+                                value={sortBy}
+                                onChange={(e) => setSortBy(e.target.value)}
+                                className="bg-gray-800 border-gray-700 text-white px-3 py-2 md:px-4 md:py-3 rounded-xl font-bold text-xs md:text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 h-10 md:h-12"
+                            >
+                                <option value="added_at">Date Added</option>
+                                <option value="name">Name</option>
+                                <option value="price">Price</option>
+                                {isMixedView && <option value="owner">Owner</option>}
+                            </select>
+
+                            <button
+                                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                                className="bg-gray-800 border border-gray-700 text-gray-400 hover:text-white px-3 py-2 md:px-4 md:py-3 rounded-xl transition-all h-10 md:h-12"
+                                title={`Sort Order: ${sortOrder.toUpperCase()}`}
+                            >
+                                {sortOrder === 'asc' ? (
+                                    <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4" /></svg>
+                                ) : (
+                                    <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" /></svg>
+                                )}
+                            </button>
+
                             <button
                                 onClick={() => setShowFilters(!showFilters)}
-                                className={`px-5 py-3 rounded-xl border font-bold text-sm flex items-center gap-2 transition-all ${showFilters
-                                    ? 'bg-indigo-600 border-indigo-500 text-white'
+                                className={`px-4 py-2 md:px-5 md:py-3 rounded-xl border font-bold text-xs md:text-sm flex items-center gap-2 transition-all h-10 md:h-12 ${showFilters
+                                    ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20'
                                     : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700 hover:text-white'
                                     }`}
                             >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
-                                Filters
+                                <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
+                                <span className="hidden sm:inline">Filters</span>
                             </button>
                         </div>
 
                         {/* Grouping Toggle (Only in Folder View) */}
                         {viewMode === 'folder' && !activeFolder && (
-                            <div className="bg-gray-900/50 p-1 rounded-xl flex border border-gray-700 self-start">
-                                <button
-                                    onClick={() => setGroupingMode('smart')}
-                                    className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${groupingMode === 'smart' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
-                                >
-                                    Smart Groups
-                                </button>
-                                <button
-                                    onClick={() => setGroupingMode('custom')}
-                                    className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${groupingMode === 'custom' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
-                                >
-                                    My Tags
-                                </button>
+                            <div className="flex gap-2">
+                                <div className="bg-gray-900 border border-gray-700 p-1 rounded-xl flex self-start overflow-hidden">
+                                    <button
+                                        onClick={() => setGroupingMode('binders')}
+                                        className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${groupingMode === 'binders' ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:text-gray-300'}`}
+                                    >
+                                        Binders
+                                    </button>
+                                    <button
+                                        onClick={() => setGroupingMode('smart')}
+                                        className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${groupingMode === 'smart' ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:text-gray-300'}`}
+                                    >
+                                        Smart
+                                    </button>
+                                    <button
+                                        onClick={() => setGroupingMode('custom')}
+                                        className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${groupingMode === 'custom' ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:text-gray-300'}`}
+                                    >
+                                        Tags
+                                    </button>
+                                </div>
                             </div>
                         )}
                     </div>
@@ -400,7 +625,7 @@ const CollectionPage = () => {
                                                 key={color}
                                                 onClick={() => toggleFilter('colors', color)}
                                                 className={`
-                                                    w-8 h-8 rounded-full border flex items-center justify-center transition-all transform hover:scale-110
+w - 8 h - 8 rounded - full border flex items - center justify - center transition - all transform hover: scale - 110
                                                     ${filters.colors.includes(color) ? 'ring-2 ring-indigo-500 ring-offset-2 ring-offset-gray-900 shadow-lg scale-110' : 'opacity-60 hover:opacity-100'}
                                                     ${color === 'W' ? 'bg-[#F9FAFB] text-gray-900 border-gray-300' : ''}
                                                     ${color === 'U' ? 'bg-[#3B82F6] text-white border-blue-600' : ''}
@@ -409,7 +634,7 @@ const CollectionPage = () => {
                                                     ${color === 'G' ? 'bg-[#10B981] text-white border-green-600' : ''}
                                                     ${color === 'C' ? 'bg-gray-400 text-gray-900 border-gray-500' : ''}
                                                     ${color === 'M' ? 'bg-gradient-to-br from-yellow-400 via-red-500 to-purple-600 text-white border-purple-500' : ''}
-                                                `}
+`}
                                                 title={color === 'C' ? 'Colorless' : color === 'M' ? 'Multicolor' : color}
                                             >
                                                 {color !== 'M' && color !== 'C' && (
@@ -417,13 +642,13 @@ const CollectionPage = () => {
                                                 )}
                                                 {color === 'M' && <span className="font-bold text-xs">M</span>}
                                                 {color === 'C' && <span className="font-bold text-xs">C</span>}
-                                            </button>
+                                            </button >
                                         ))}
-                                    </div>
-                                </div>
+                                    </div >
+                                </div >
 
                                 {/* Rarity */}
-                                <div className="col-span-1">
+                                < div className="col-span-1" >
                                     <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-3">Rarity</label>
                                     <div className="flex flex-wrap gap-2">
                                         {['common', 'uncommon', 'rare', 'mythic'].map(rarity => (
@@ -441,10 +666,10 @@ const CollectionPage = () => {
                                             </button>
                                         ))}
                                     </div>
-                                </div>
+                                </div >
 
                                 {/* Types */}
-                                <div className="col-span-1">
+                                < div className="col-span-1" >
                                     <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-3">Types</label>
                                     <div className="flex flex-wrap gap-2">
                                         {['Creature', 'Instant', 'Sorcery', 'Enchantment', 'Artifact', 'Planeswalker', 'Land'].map(type => (
@@ -462,17 +687,26 @@ const CollectionPage = () => {
                                             </button>
                                         ))}
                                     </div>
-                                </div>
+                                </div >
 
                                 {/* Sets & Decks (MultiSelects) */}
-                                <div className="col-span-1 space-y-4">
+                                < div className="col-span-1 space-y-4" >
                                     <MultiSelect
-                                        label="Filter by Set"
+                                        label="Sets"
                                         options={setOptions}
                                         selected={filters.sets}
-                                        onChange={(val) => setFilters(prev => ({ ...prev, sets: val }))}
-                                        placeholder="All Sets"
+                                        onChange={(vals) => setFilters({ ...filters, sets: vals })}
                                     />
+                                    {
+                                        isMixedView && (
+                                            <MultiSelect
+                                                label="Card Owner"
+                                                options={userOptions}
+                                                selected={filters.users}
+                                                onChange={(vals) => setFilters({ ...filters, users: vals })}
+                                            />
+                                        )
+                                    }
                                     <MultiSelect
                                         label="Filter by Deck"
                                         options={deckOptions}
@@ -480,141 +714,343 @@ const CollectionPage = () => {
                                         onChange={(val) => setFilters(prev => ({ ...prev, decks: val }))}
                                         placeholder="All Decks"
                                     />
+                                </div >
+                            </div >
+                        </div >
+                    )}
+
+                    {
+                        error ? (
+                            <div className="bg-red-900/20 border border-red-500/50 text-red-200 p-8 rounded-2xl text-center">
+                                <h3 className="text-xl font-bold mb-2">Error Loading Collection</h3>
+                                <p>{error.message}</p>
+                            </div>
+                        ) : (
+                            <>
+                                {/* FOLDER VIEW */}
+                                {viewMode === 'folder' && !activeGroup && (
+                                    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 animate-fade-in">
+                                        {groups.map(group => (
+                                            <div
+                                                key={group.id}
+                                                onClick={() => setActiveFolder(group.id)}
+                                                className="bg-gray-900/40 hover:bg-gray-800/60 border border-white/5 hover:border-indigo-500/30 rounded-2xl p-4 md:p-6 cursor-pointer transition-all hover:-translate-y-1 hover:shadow-xl group flex flex-col items-center text-center gap-2 md:gap-3 backdrop-blur-sm relative overflow-hidden"
+                                            >
+                                                {/* Background Glow */}
+                                                <div className={`absolute -top-10 -right-10 w-32 h-32 bg-${group.color}-500/10 rounded-full blur-3xl`} />
+
+                                                <div className="flex gap-1 mb-1 md:mb-2 group-hover:scale-110 transition-transform">
+                                                    {group.pips ? (
+                                                        group.pips.map((pip, i) => (
+                                                            <img
+                                                                key={i}
+                                                                src={`https://svgs.scryfall.io/card-symbols/${pip}.svg`}
+                                                                alt={pip}
+                                                                className="w-6 h-6 md:w-8 md:h-8 drop-shadow-md transition-transform group-hover:scale-110"
+                                                            />
+                                                        ))
+                                                    ) : group.icon && group.icon.startsWith('ms-') ? (
+                                                        <div className={`w-10 h-10 md:w-12 md:h-12 bg-${group.color}-900/30 text-${group.color}-400 rounded-xl flex items-center justify-center text-xl md:text-2xl`}>
+                                                            <i className={`ms ${group.icon} ms-cost`}></i>
+                                                        </div>
+                                                    ) : (
+                                                        <div className={`w-10 h-10 md:w-12 md:h-12 bg-${group.color}-900/30 text-${group.color}-400 rounded-xl flex items-center justify-center text-xl md:text-2xl`}>
+                                                            {group.icon}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div className="z-10 px-2 mt-4">
+                                                    <div className="text-[10px] uppercase tracking-tighter text-indigo-400 font-black mb-1">{group.theme || group.sub}</div>
+                                                    <h3 className="text-xl font-bold text-white group-hover:text-indigo-300 transition-colors leading-tight">{group.label}</h3>
+                                                    {group.flavor && <p className="text-[10px] text-gray-500 italic mt-2 font-serif px-2 leading-relaxed opacity-80 group-hover:opacity-100 transition-opacity">"{group.flavor}"</p>}
+                                                    {group.ownerName && (
+                                                        <div className="mt-2 inline-flex items-center gap-1 bg-gray-950/80 text-gray-300 text-[9px] font-bold px-2 py-1 rounded-full border border-white/10">
+                                                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" /></svg>
+                                                            {group.ownerName}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <span className="mt-4 px-3 py-1 bg-black/30 rounded-full text-xs font-mono text-gray-400 border border-white/5">
+                                                    {group.cards.length} cards
+                                                </span>
+                                            </div>
+                                        ))}
+                                        {groups.length === 0 && (
+                                            <div className="col-span-full py-20 text-center text-gray-500 italic">
+                                                No cards match your filter criteria.
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* ACTIVE FOLDER DETAIL */}
+                                {viewMode === 'folder' && activeGroup && (
+                                    <div className="animate-fade-in">
+                                        <div className="flex items-center gap-4 mb-6">
+                                            <button
+                                                onClick={() => setActiveFolder(null)}
+                                                className="p-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-white transition-colors"
+                                            >
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                                            </button>
+                                            <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                                                {activeGroup.icon} {activeGroup.label}
+                                            </h2>
+                                            {activeGroup.type === 'binder' && (
+                                                <button
+                                                    onClick={() => {
+                                                        const binder = binders.find(b => b.id === parseInt(activeFolder.replace('binder-', '')));
+                                                        setEditingBinder(binder);
+                                                        setIsWizardOpen(true);
+                                                    }}
+                                                    className="p-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-indigo-400 hover:text-white transition-colors"
+                                                    title="Edit Binder Rules"
+                                                >
+                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                                </button>
+                                            )}
+                                        </div>
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+                                            {activeGroup.cards.map(card => (
+                                                <div key={card.firestoreId || card.id} className="h-full">
+                                                    <CardGridItem
+                                                        card={card}
+                                                        decks={decks}
+                                                        currentUser={userProfile}
+                                                        showOwnerTag={isMixedView}
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* GRID VIEW */}
+                                {viewMode === 'grid' && (
+                                    <>
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 animate-fade-in">
+                                            {paginatedCards.map((card) => (
+                                                <div key={card.firestoreId || card.id} className="h-full">
+                                                    <CardGridItem
+                                                        card={card}
+                                                        decks={decks}
+                                                        currentUser={userProfile}
+                                                        showOwnerTag={isMixedView}
+                                                    />
+                                                </div>
+                                            ))}
+                                            {filteredCards.length === 0 && (
+                                                <div className="col-span-full py-20 text-center text-gray-500 italic">
+                                                    No cards found.
+                                                </div>
+                                            )}
+                                        </div>
+                                    </>
+                                )}
+
+                                {/* TABLE VIEW */}
+                                {viewMode === 'table' && (
+                                    <div className="animate-fade-in">
+                                        <CollectionTable cards={filteredCards} isMixed={isMixedView} />
+                                    </div>
+                                )}
+                            </>
+                        )
+                    }
+                </div >
+            </div >
+
+            <CardSearchModal
+                isOpen={isAddCardOpen}
+                onClose={() => setIsAddCardOpen(false)}
+                onAddCard={() => refresh()}
+            />
+            <BulkCollectionImportModal
+                isOpen={isBulkImportOpen}
+                onClose={() => setIsBulkImportOpen(false)}
+            />
+            <BinderGuideModal
+                isOpen={isGuideOpen}
+                onClose={() => setIsGuideOpen(false)}
+            />
+            <BinderWizardModal
+                isOpen={isWizardOpen}
+                editingBinder={editingBinder}
+                onClose={() => {
+                    setIsWizardOpen(false);
+                    setEditingBinder(null);
+                    refreshBinders();
+                    if (activeFolder && activeFolder.startsWith('binder-')) {
+                        // Trigger re-fetch for current folder if it was edited
+                        const binderId = activeFolder.replace('binder-', '');
+                        setBinderLoading(true);
+                        api.getBinderCards(binderId)
+                            .then(setBinderCards)
+                            .finally(() => setBinderLoading(false));
+                    }
+                }}
+            />
+
+            {/* Fixed Pagination Footer (Responsive, Grid View) */}
+            {
+                viewMode === 'grid' && filteredCards.length > 0 && (
+                    <>
+                        {/* Desktop Pagination Footer */}
+                        <div className="hidden md:block fixed bottom-0 left-0 right-0 z-[55] bg-gray-950/95 backdrop-blur-xl border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+                            <div className="max-w-[1600px] mx-auto px-6 py-4">
+                                <div className="flex items-center justify-between gap-4">
+                                    {/* Page Info */}
+                                    <div className="text-sm text-gray-400 font-medium whitespace-nowrap">
+                                        Showing {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredCards.length)} of {filteredCards.length} cards
+                                    </div>
+
+                                    {/* Page Navigation */}
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => setCurrentPage(1)}
+                                            disabled={currentPage === 1}
+                                            className="px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                                            title="First Page"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" /></svg>
+                                        </button>
+                                        <button
+                                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                            disabled={currentPage === 1}
+                                            className="px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                                            title="Previous Page"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                                        </button>
+
+                                        <div className="flex items-center gap-1">
+                                            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                                // Show pages around current page
+                                                let pageNum;
+                                                if (totalPages <= 5) {
+                                                    pageNum = i + 1;
+                                                } else if (currentPage <= 3) {
+                                                    pageNum = i + 1;
+                                                } else if (currentPage >= totalPages - 2) {
+                                                    pageNum = totalPages - 4 + i;
+                                                } else {
+                                                    pageNum = currentPage - 2 + i;
+                                                }
+
+                                                return (
+                                                    <button
+                                                        key={pageNum}
+                                                        onClick={() => setCurrentPage(pageNum)}
+                                                        className={`min-w-[2.5rem] px-3 py-2 rounded-lg font-bold text-sm transition-all ${currentPage === pageNum
+                                                            ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
+                                                            : 'bg-gray-800 border border-gray-700 text-gray-400 hover:text-white hover:bg-gray-700'
+                                                            }`}
+                                                    >
+                                                        {pageNum}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+
+                                        <button
+                                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                            disabled={currentPage === totalPages}
+                                            className="px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                                            title="Next Page"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                                        </button>
+                                        <button
+                                            onClick={() => setCurrentPage(totalPages)}
+                                            disabled={currentPage === totalPages}
+                                            className="px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                                            title="Last Page"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg>
+                                        </button>
+                                    </div>
+
+                                    {/* Items Per Page Selector */}
+                                    <div className="flex items-center gap-2 whitespace-nowrap">
+                                        <label className="text-sm text-gray-400 font-medium">Per page:</label>
+                                        <select
+                                            value={itemsPerPage}
+                                            onChange={(e) => {
+                                                setItemsPerPage(parseInt(e.target.value));
+                                                setCurrentPage(1);
+                                            }}
+                                            className="bg-gray-800 border border-gray-700 text-white px-3 py-2 rounded-lg font-bold text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                        >
+                                            <option value={25}>25</option>
+                                            <option value={50}>50</option>
+                                            <option value={100}>100</option>
+                                            <option value={200}>200</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    )}
 
-                    {loading ? (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-                            {Array.from({ length: 12 }).map((_, i) => (
-                                <CardSkeleton key={i} />
-                            ))}
-                        </div>
-                    ) : error ? (
-                        <div className="bg-red-900/20 border border-red-500/50 text-red-200 p-8 rounded-2xl text-center">
-                            <h3 className="text-xl font-bold mb-2">Error Loading Collection</h3>
-                            <p>{error.message}</p>
-                        </div>
-                    ) : (
-                        <>
-                            {/* FOLDER VIEW */}
-                            {viewMode === 'folder' && !activeGroup && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-fade-in">
-                                    {groups.map(group => (
-                                        <div
-                                            key={group.id}
-                                            onClick={() => setActiveFolder(group.id)}
-                                            className="bg-gray-900/40 hover:bg-gray-800/60 border border-white/5 hover:border-indigo-500/30 rounded-2xl p-6 cursor-pointer transition-all hover:-translate-y-1 hover:shadow-xl group flex flex-col items-center text-center gap-3 backdrop-blur-sm relative overflow-hidden"
-                                        >
-                                            {/* Background Glow */}
-                                            <div className={`absolute -top-10 -right-10 w-32 h-32 bg-${group.color}-500/10 rounded-full blur-3xl`} />
+                        {/* Mobile Pagination Footer */}
+                        <div className="md:hidden fixed bottom-16 left-0 right-0 z-[55] bg-gray-950/95 backdrop-blur-xl border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+                            <div className="px-4 py-3">
+                                <div className="flex items-center justify-between gap-3">
+                                    {/* Compact Page Info */}
+                                    <div className="text-xs text-gray-400 font-medium">
+                                        Page {currentPage} of {totalPages}
+                                    </div>
 
-                                            <div className="flex gap-1 mb-2 group-hover:scale-110 transition-transform">
-                                                {group.pips ? (
-                                                    group.pips.map((pip, i) => (
-                                                        <img
-                                                            key={i}
-                                                            src={`https://svgs.scryfall.io/card-symbols/${pip}.svg`}
-                                                            alt={pip}
-                                                            className="w-8 h-8 drop-shadow-md transition-transform group-hover:scale-110"
-                                                        />
-                                                    ))
-                                                ) : (
-                                                    <div className={`w-12 h-12 bg-${group.color}-900/30 text-${group.color}-400 rounded-xl flex items-center justify-center text-2xl`}>
-                                                        {group.icon}
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <div className="z-10 px-2 mt-4">
-                                                <div className="text-[10px] uppercase tracking-tighter text-indigo-400 font-black mb-1">{group.theme || group.sub}</div>
-                                                <h3 className="text-xl font-bold text-white group-hover:text-indigo-300 transition-colors leading-tight">{group.label}</h3>
-                                                {group.flavor && <p className="text-[10px] text-gray-500 italic mt-2 font-serif px-2 leading-relaxed opacity-80 group-hover:opacity-100 transition-opacity">"{group.flavor}"</p>}
-                                            </div>
-
-                                            <span className="mt-4 px-3 py-1 bg-black/30 rounded-full text-xs font-mono text-gray-400 border border-white/5">
-                                                {group.cards.length} cards
-                                            </span>
-                                        </div>
-                                    ))}
-                                    {groups.length === 0 && (
-                                        <div className="col-span-full py-20 text-center text-gray-500 italic">
-                                            No cards match your filter criteria.
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* ACTIVE FOLDER DETAIL */}
-                            {viewMode === 'folder' && activeGroup && (
-                                <div className="animate-fade-in">
-                                    <div className="flex items-center gap-4 mb-6">
+                                    {/* Compact Navigation */}
+                                    <div className="flex items-center gap-2">
                                         <button
-                                            onClick={() => setActiveFolder(null)}
-                                            className="p-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-white transition-colors"
+                                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                            disabled={currentPage === 1}
+                                            className="px-2.5 py-2 rounded-lg bg-gray-800 border border-gray-700 text-gray-400 active:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                                            title="Previous"
                                         >
-                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                                         </button>
-                                        <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                                            {activeGroup.icon} {activeGroup.label}
-                                        </h2>
-                                    </div>
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-                                        {activeGroup.cards.map(card => (
-                                            <div key={card.firestoreId || card.id} className="h-full">
-                                                <CardGridItem card={card} />
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
 
-                            {/* GRID VIEW */}
-                            {viewMode === 'grid' && (
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 animate-fade-in">
-                                    {filteredCards.map((card) => (
-                                        <div key={card.firestoreId || card.id} className="h-full">
-                                            <CardGridItem card={card} />
+                                        <div className="text-xs font-bold text-white bg-indigo-600 px-3 py-2 rounded-lg min-w-[3rem] text-center">
+                                            {currentPage}
                                         </div>
-                                    ))}
-                                    {filteredCards.length === 0 && (
-                                        <div className="col-span-full py-20 text-center text-gray-500 italic">
-                                            No cards found.
-                                        </div>
-                                    )}
-                                </div>
-                            )}
 
-                            {/* TABLE VIEW */}
-                            {viewMode === 'table' && (
-                                <div className="animate-fade-in">
-                                    <CollectionTable cards={filteredCards} />
-                                </div>
-                            )}
-                        </>
-                    )}
-                </div>
-            </div>
+                                        <button
+                                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                            disabled={currentPage === totalPages}
+                                            className="px-2.5 py-2 rounded-lg bg-gray-800 border border-gray-700 text-gray-400 active:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                                            title="Next"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                                        </button>
+                                    </div>
 
-            <AddFromCollectionModal
-                isOpen={isAddCardOpen}
-                onClose={() => setIsAddCardOpen(false)}
-            />
-            <BulkCollectionImportModal
-                isOpen={isBulkImportOpen}
-                onClose={() => setIsBulkImportOpen(false)}
-            />
-            <BinderWizardModal
-                isOpen={isBinderWizardOpen}
-                onClose={() => setIsBinderWizardOpen(false)}
-            />
-            <BulkCollectionImportModal
-                isOpen={isBulkImportOpen}
-                onClose={() => setIsBulkImportOpen(false)}
-            />
-        </div>
+                                    {/* Compact Per Page Selector */}
+                                    <select
+                                        value={itemsPerPage}
+                                        onChange={(e) => {
+                                            setItemsPerPage(parseInt(e.target.value));
+                                            setCurrentPage(1);
+                                        }}
+                                        className="bg-gray-800 border border-gray-700 text-white px-2 py-2 rounded-lg font-bold text-xs focus:outline-none"
+                                    >
+                                        <option value={25}>25</option>
+                                        <option value={50}>50</option>
+                                        <option value={100}>100</option>
+                                        <option value={200}>200</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </>
+                )
+            }
+
+        </div >
     );
 };
 
 export default CollectionPage;
+

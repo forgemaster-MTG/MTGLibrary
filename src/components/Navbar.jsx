@@ -40,13 +40,20 @@ const Navbar = () => {
         const file = event.target.files[0];
         if (!file) return;
 
+        console.log('[Navbar] Starting file upload:', file.name, file.size, file.type);
+
         try {
             setIsUploading(true);
-            await uploadProfilePicture(file);
+            console.log('[Navbar] Calling uploadProfilePicture...');
+            const photoURL = await uploadProfilePicture(file);
+            console.log('[Navbar] Upload successful! Photo URL:', photoURL);
             // Optional: Show success toast
+            alert('Profile picture updated successfully!');
         } catch (error) {
-            alert(error.message);
+            console.error('[Navbar] Upload failed:', error);
+            alert(`Upload failed: ${error.message}`);
         } finally {
+            console.log('[Navbar] Upload complete, resetting state');
             setIsUploading(false);
             setIsUserMenuOpen(false);
         }
@@ -115,14 +122,14 @@ const Navbar = () => {
                             </div>
 
                             {/* Right Side Actions */}
-                            <div className="hidden md:flex items-center gap-4">
+                            <div className="flex items-center gap-2 md:gap-4">
                                 {currentUser && (
                                     <button
                                         onClick={() => setIsSearchOpen(true)}
                                         className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-colors shadow-lg shadow-indigo-500/20 flex items-center gap-2"
                                     >
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                                        <span className="inline">Add Card</span>
+                                        <span className="hidden sm:inline">Add Card</span>
                                     </button>
                                 )}
 
@@ -131,25 +138,23 @@ const Navbar = () => {
                                         <div className="flex items-center gap-3">
 
                                             {/* Founder Badge - Simplified for clutter reduction */}
-                                            {(userProfile?.settings?.subscription_tier === 'alpha_tester' || !userProfile?.settings?.subscription_tier || isMaster) && (
-                                                <button
-                                                    onClick={() => setIsBadgeModalOpen(true)}
-                                                    className={`flex items-center justify-center w-8 h-8 rounded-full border transition-all group relative ${isMaster
-                                                        ? 'bg-amber-500/20 border-amber-500/50 hover:bg-amber-500/30 shadow-[0_0_10px_rgba(245,158,11,0.3)]'
-                                                        : 'bg-indigo-900/30 border-indigo-500/30 hover:bg-indigo-900/50'}`}
-                                                    title={isMaster ? "Data Architect" : "Click to change badge"}
-                                                >
-                                                    <span className="text-base">{displayBadge.icon}</span>
-                                                    {isMaster && (
-                                                        <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                                                            <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
-                                                        </span>
-                                                    )}
-                                                </button>
-                                            )}
+                                            <button
+                                                onClick={() => setIsBadgeModalOpen(true)}
+                                                className={`flex items-center justify-center w-8 h-8 rounded-full border transition-all group relative ${isMaster
+                                                    ? 'bg-amber-500/20 border-amber-500/50 hover:bg-amber-500/30 shadow-[0_0_10px_rgba(245,158,11,0.3)]'
+                                                    : 'bg-indigo-900/30 border-indigo-500/30 hover:bg-indigo-900/50'}`}
+                                                title={isMaster ? "Data Architect" : "Click to change badge"}
+                                            >
+                                                <span className="text-base">{displayBadge.icon}</span>
+                                                {isMaster && (
+                                                    <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                                                        <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+                                                    </span>
+                                                )}
+                                            </button>
 
-                                            <span className={`text-sm font-medium ${isMaster ? 'text-amber-400 font-bold tracking-wider' : 'text-gray-300 max-w-[150px] truncate'}`}>
+                                            <span className={`text-sm font-medium hidden sm:inline-block ${isMaster ? 'text-amber-400 font-bold tracking-wider' : 'text-gray-300 max-w-[150px] truncate'}`}>
                                                 {displayEmail}
                                             </span>
 

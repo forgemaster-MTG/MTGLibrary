@@ -52,7 +52,7 @@ const CommanderSearchModal = ({ isOpen, onClose, onAdd }) => {
                 mv: mvParam
             };
 
-            const response = await api.post('/cards/search', payload);
+            const response = await api.post('/api/cards/search', payload);
             setResults(response.data || []);
         } catch (err) {
             console.error(err);
@@ -76,7 +76,7 @@ const CommanderSearchModal = ({ isOpen, onClose, onAdd }) => {
                 is_wishlist: true
             };
 
-            await api.post('/collection', payload);
+            await api.post('/api/collection', payload);
             addToast(`"${card.name}" added to Wishlist!`, 'success');
             if (onAdd) onAdd();
             onClose();

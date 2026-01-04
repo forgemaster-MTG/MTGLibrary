@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import { useCardModal } from '../../contexts/CardModalContext';
 
-const InteractiveCard = ({ card, normalCount = 0, foilCount = 0, wishlistCount = 0, onUpdateCount, onUpdateWishlistCount }) => {
+const InteractiveCard = ({ card, normalCount = 0, foilCount = 0, wishlistCount = 0, onUpdateCount, onUpdateWishlistCount, ownerName, currentUser, showOwnerTag = false }) => {
     const { openCardModal } = useCardModal();
     const [isFlipped, setIsFlipped] = useState(false);
+
+    const resolvedOwnerName = ownerName || card.owner_username || (currentUser && (card.owner_id === currentUser.id || card.user_id === currentUser.id) ? (currentUser.username || 'ME') : null);
 
     // Image Helpers
     const getCardImage = (c, faceIndex = 0) => {
         if (!c) return 'https://placehold.co/250x350?text=No+Image';
         const data = c.data || c;
         if (data.card_faces && data.card_faces.length > 1) {
-            return data.card_faces[faceIndex]?.image_uris?.normal || 'https://placehold.co/250x350?text=No+Image';
+            return data.card_faces[faceIndex]?.image_uris?.normal || c.image_uri || 'https://placehold.co/250x350?text=No+Image';
         }
         return data.image_uris?.normal || c.image_uri || 'https://placehold.co/250x350?text=No+Image';
     };
@@ -34,7 +36,10 @@ const InteractiveCard = ({ card, normalCount = 0, foilCount = 0, wishlistCount =
 
     const isOwned = (normalCount + foilCount) > 0;
     const isMissingWishlist = !isOwned && wishlistCount > 0;
-    const price = card.prices?.usd || card.prices?.usd_foil || '---';
+
+    // Choose the price mostly likely to be relevant for a single display if needed, 
+    // but we use the dual display below.
+    const price = card.finish === 'foil' ? (card.prices?.usd_foil || card.prices?.usd) : (card.prices?.usd || card.prices?.usd_foil) || '---';
 
     return (
         <div className={`group relative flex bg-gray-900/60 backdrop-blur-md rounded-xl overflow-hidden shadow-2xl border transition-all duration-300 hover:shadow-[0_0_30px_rgba(79,70,229,0.15)] aspect-[3.2/3.5] perspective-1000 ${isOwned ? 'border-indigo-500/30' : 'border-white/5 grayscale-[0.8] opacity-70 hover:grayscale-0 hover:opacity-100'}`}>
@@ -91,10 +96,19 @@ const InteractiveCard = ({ card, normalCount = 0, foilCount = 0, wishlistCount =
                     </div>
                 )}
 
+                {/* Owner Tag (Left side, moved down to avoid name) */}
+                {showOwnerTag && resolvedOwnerName && isOwned && (
+                    <div className={`absolute ${hasBackFace || isMissingWishlist ? 'top-16' : 'top-12'} left-2 bg-gray-950/90 text-white text-[11px] font-black px-2 py-0.5 rounded border border-white/20 shadow-xl z-30 backdrop-blur-md uppercase tracking-wider`}>
+                        👤 {resolvedOwnerName}
+                    </div>
+                )}
+
                 {/* Price Display - Bottom Center */}
                 <div className="absolute bottom-2 right-2 left-2 z-10">
-                    <div className="bg-black/70 backdrop-blur-md px-2 py-1 rounded-lg border border-white/10 text-center">
-                        <span className="text-[10px] font-bold text-green-400 tabular-nums">${price}</span>
+                    <div className="bg-black/70 backdrop-blur-md px-2 py-1 rounded-lg border border-white/10 flex items-center justify-around text-[10px] font-mono">
+                        <span className="text-gray-400">${(parseFloat(card.prices?.usd) || 0).toFixed(2)}</span>
+                        <div className="h-2 w-[1px] bg-white/20" />
+                        <span className="text-yellow-400">${(parseFloat(card.prices?.usd_foil) || 0).toFixed(2)} ★</span>
                     </div>
                 </div>
             </div>

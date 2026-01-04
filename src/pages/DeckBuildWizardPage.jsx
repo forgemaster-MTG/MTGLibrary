@@ -682,7 +682,7 @@ const DeckBuildWizardPage = () => {
                     }
                 }
 
-                await api.post(`/decks/${deckId}/cards/batch`, { cards: cardsToApply });
+                await api.post(`/api/decks/${deckId}/cards/batch`, { cards: cardsToApply });
 
                 addToast(`Successfully added ${cardsToApply.length} cards to ${deck.name}!`, 'success');
                 navigate(`/decks/${deckId}`);

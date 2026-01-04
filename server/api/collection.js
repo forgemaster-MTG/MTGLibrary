@@ -1,6 +1,7 @@
 import express from 'express';
 import { knex } from '../db.js';
 import authMiddleware from '../middleware/auth.js';
+import { cardService } from '../services/cardService.js';
 
 const router = express.Router();
 
@@ -24,40 +25,87 @@ router.get('/export', async (req, res) => {
 // List cards
 router.get('/', async (req, res) => {
     try {
-        const q = knex('user_cards').where({ user_id: req.user.id });
+        let targetUserIds = [req.user.id];
+        let mixedMode = false;
+
+        // Check request specific user or 'all'
+        if (req.query.userId && req.query.userId !== req.user.id) {
+
+            if (req.query.userId === 'all') {
+                mixedMode = true;
+                // Fetch all people who have shared with me globally
+                const permissions = await knex('collection_permissions')
+                    .where('grantee_id', req.user.id)
+                    .whereNull('target_deck_id')
+                    .select('owner_id');
+
+                const friendIds = permissions.map(p => p.owner_id);
+                targetUserIds = [req.user.id, ...friendIds];
+            } else {
+                // Specific friend
+                targetUserIds = [req.query.userId];
+
+                // Verify Global Permission
+                const perm = await knex('collection_permissions')
+                    .where({
+                        owner_id: req.query.userId,
+                        grantee_id: req.user.id
+                    })
+                    .whereNull('target_deck_id') // Global permission
+                    .first();
+
+                if (!perm) {
+                    return res.status(403).json({ error: 'Access denied to this collection' });
+                }
+            }
+        }
+
+        const q = knex('user_cards')
+            .join('users', 'user_cards.user_id', 'users.id')
+            .whereIn('user_cards.user_id', targetUserIds)
+            .select('user_cards.*', 'users.username as owner_username', 'users.id as owner_id');
 
         if (req.query.deck_id) {
             if (req.query.deck_id === 'null' || req.query.deck_id === 'binder') {
-                q.whereNull('deck_id');
+                q.whereNull('user_cards.deck_id');
             } else {
-                q.where({ deck_id: req.query.deck_id });
+                q.where({ 'user_cards.deck_id': req.query.deck_id });
             }
         }
 
         // simple search
         if (req.query.name) {
-            q.whereRaw('name ILIKE ?', [`%${req.query.name}%`]);
+            q.whereRaw('user_cards.name ILIKE ?', [`%${req.query.name}%`]);
         }
 
         // Filter by type line (searches within the data JSON column)
         if (req.query.type_line) {
             const terms = req.query.type_line.split(' ').filter(Boolean);
             terms.forEach(term => {
-                q.whereRaw("data->>'type_line' ILIKE ?", [`%${term}%`]);
+                // Assuming data is unique to user_cards
+                q.whereRaw("user_cards.data->>'type_line' ILIKE ?", [`%${term}%`]);
             });
         }
 
         // Filter for unused cards (not in a deck)
         if (req.query.unused === 'true') {
-            q.whereNull('deck_id');
+            q.whereNull('user_cards.deck_id');
         }
 
         // Filter by Wishlist
         if (req.query.wishlist !== undefined) {
-            q.where({ is_wishlist: req.query.wishlist === 'true' });
+            // Use array syntax for safety if needed, implies strict equality
+            q.where('user_cards.is_wishlist', req.query.wishlist === 'true');
         }
 
-        const rows = await q.orderBy('added_at', 'desc');
+        const rows = await q.orderBy('user_cards.added_at', 'desc');
+
+        // Background repair for cards missing images or data
+        const needsRepair = rows.filter(r => !r.image_uri || !r.data);
+        if (needsRepair.length > 0) {
+            cardService.repairCards(needsRepair, 'user_cards').catch(console.error);
+        }
+
         res.json(rows);
     } catch (err) {
         console.error('[collection] list error', err);
@@ -71,18 +119,37 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
     try {
         // Body should contain scryfall_id, and other cache data
-        const { scryfall_id, name, set_code, collector_number, finish, count, data, deck_id } = req.body;
+        const { scryfall_id, name, set_code, collector_number, finish, count, data, deck_id, targetUserId } = req.body;
 
         if (!scryfall_id || !name) return res.status(400).json({ error: 'Missing required card fields' });
 
+        let userId = req.user.id;
+
+        // Permission Check for Shared Collection
+        if (targetUserId && targetUserId !== req.user.id) {
+            const perm = await knex('collection_permissions')
+                .where({
+                    owner_id: targetUserId,
+                    grantee_id: req.user.id
+                })
+                .whereNull('target_deck_id') // Global permission check
+                .whereIn('permission_level', ['contributor', 'editor', 'admin'])
+                .first();
+
+            if (!perm) {
+                return res.status(403).json({ error: 'You do not have permission to add to this collection.' });
+            }
+            userId = targetUserId;
+        }
+
         const insert = {
-            user_id: req.user.id,
+            user_id: userId,
             scryfall_id,
             name,
             set_code: set_code || '???',
             collector_number: collector_number || '0',
             finish: finish || 'nonfoil',
-            image_uri: (data && data.image_uris && data.image_uris.normal) || null,
+            image_uri: cardService.resolveImage(data) || null,
             count: count || 1,
             data: data || null,
             deck_id: deck_id || null,
@@ -148,7 +215,6 @@ router.delete('/:id', async (req, res) => {
 
 // Batch Import (Replace or Merge)
 router.post('/batch', async (req, res) => {
-    // Increase timeout for large imports if needed? Express default is usually fine for <10k rows if batched.
     try {
         const { cards, mode } = req.body; // mode: 'replace' | 'merge'
         const userId = req.user.id;
@@ -168,28 +234,71 @@ router.post('/batch', async (req, res) => {
                 await trx('user_decks').where({ user_id: userId }).del();
             }
 
-            // 2. Prepare inserts
-            const inserts = validCards.map(c => ({
-                user_id: userId,
-                scryfall_id: c.scryfall_id || c.id,
-                name: c.name,
-                set_code: c.set_code || c.set || '???',
-                collector_number: c.collector_number || '0',
-                finish: c.finish || 'nonfoil',
-                image_uri: (c.data && c.data.image_uris?.normal) || c.image_uri || (c.image_uris?.normal) || null,
-                count: c.count || 1,
-                data: c.data || c, // Store full object if provided, or the card itself
-                deck_id: null
-                // added_at removed to match schema
-            }));
+            // 2. Process each card - check for existing and merge or insert
+            let inserted = 0;
+            let updated = 0;
 
-            // 3. Batch Insert (chunk size 50)
-            if (inserts.length > 0) {
-                await trx.batchInsert('user_cards', inserts, 50);
+            for (const c of validCards) {
+                const scryfallId = c.scryfall_id || c.id;
+                const setCode = c.set_code || c.set || '???';
+                const collectorNumber = c.collector_number || '0';
+                const finish = c.finish || 'nonfoil';
+
+                // Check for existing card with same attributes
+                const existing = await trx('user_cards')
+                    .where({
+                        user_id: userId,
+                        scryfall_id: scryfallId,
+                        set_code: setCode,
+                        collector_number: collectorNumber,
+                        finish: finish
+                    })
+                    .whereNull('deck_id') // Only merge binder cards
+                    .first();
+
+                if (existing) {
+                    // Update existing card - increment count
+                    const newCount = (existing.count || 1) + (c.count || 1);
+
+                    // Merge tags
+                    const existingTags = JSON.parse(existing.tags || '[]');
+                    const newTags = JSON.parse(c.tags || '[]');
+                    const mergedTags = [...new Set([...existingTags, ...newTags])];
+
+                    await trx('user_cards')
+                        .where({ id: existing.id })
+                        .update({
+                            count: newCount,
+                            tags: JSON.stringify(mergedTags),
+                            data: c.data || existing.data // Update data if provided
+                        });
+
+                    updated++;
+                } else {
+                    // Insert new card
+                    const cardData = c.data || c;
+                    await trx('user_cards').insert({
+                        user_id: userId,
+                        scryfall_id: scryfallId,
+                        name: c.name,
+                        set_code: setCode,
+                        collector_number: collectorNumber,
+                        finish: finish,
+                        image_uri: cardService.resolveImage(cardData) || c.image_uri || null,
+                        count: c.count || 1,
+                        data: cardData,
+                        deck_id: null,
+                        tags: c.tags || '[]'
+                    });
+
+                    inserted++;
+                }
             }
+
+            console.log(`[collection] Batch import: ${inserted} inserted, ${updated} updated`);
         });
 
-        res.json({ success: true, count: cards.length });
+        res.json({ success: true, count: validCards.length });
 
     } catch (err) {
         console.error('[collection] batch import error', err);

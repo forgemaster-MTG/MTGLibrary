@@ -647,5 +647,85 @@ ${context}
 
         console.error("[Gemini] All models failed. Summary:", failureSummary);
         throw new Error(`Oracle Exhausted: ${failureSummary.join(' | ')}`);
+    },
+
+    async analyzeDeck(apiKey, deckList, commanderName, helper = null) {
+        if (!apiKey) throw new Error("API Key is missing.");
+
+        const helperName = helper?.name || 'The Deck Doctor';
+        const helperPersonality = helper?.personality ? `Adopt the persona of ${helperName}: ${helper.personality}` : 'Personality: Clinical, precise, but encouraging.';
+
+        const deckContext = deckList.map(c => `- ${c.name} (${c.type_line})`).join('\n');
+
+        const systemMessage = `
+            You are ${helperName}, an expert Magic: The Gathering deck consultant.
+            ${helperPersonality}
+            Your goal is to Grade a deck on a scale of 0-100 and identify critical flaws.
+        `;
+
+        const userPrompt = `
+            Analyze this Commander deck for "${commanderName}":
+            
+            ${deckContext}
+
+            **Rubric:**
+            - **Synergy**: Do cards support the commander?
+            - **Speed**: Is there enough ramp? Is the curve too high?
+            - **Interaction**: Is there enough removal/protection?
+            - **Consistency**: Is there enough card draw/tutors?
+
+            **Task:**
+            1. Calculate a Score (0-100).
+            2. Rate Synergy, Speed, Interaction (0-100).
+            3. List 3-5 critical "Issues" (strings).
+            4. Propose up to 5 specific "Changes". For each change:
+                - "remove": Exact card name to cut.
+                - "add": Exact card name to add.
+                - "reason": Why?
+
+            **Response Format (VALID JSON ONLY):**
+            {
+                "score": 85,
+                "metrics": { "synergy": 80, "speed": 70, "interaction": 60 },
+                "issues": ["Not enough lands (32)", "Lack of board wipes"],
+                "changes": [
+                    { "remove": "Bad Card", "add": "Good Card", "reason": "Strict upgrade for mana cost." }
+                ]
+            }
+        `;
+
+        const contents = [
+            { role: 'user', parts: [{ text: systemMessage }] },
+            { role: 'user', parts: [{ text: userPrompt }] }
+        ];
+
+        const PREFERRED_MODELS = [
+            'gemini-2.0-flash',
+            'gemini-2.5-flash',
+            'gemini-flash-latest',
+            'gemini-1.5-flash'
+        ];
+
+        for (const model of PREFERRED_MODELS) {
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents,
+                        generationConfig: { responseMimeType: "application/json" }
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (text) return JSON.parse(text);
+                }
+            } catch (e) {
+                console.warn(`Deck Doctor (${model}) failed:`, e);
+            }
+        }
+        throw new Error("Deck Doctor failed to diagnose.");
     }
 };

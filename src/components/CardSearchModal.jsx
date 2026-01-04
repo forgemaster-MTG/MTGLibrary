@@ -6,6 +6,7 @@ import { useToast } from '../contexts/ToastContext';
 import { useCollection } from '../hooks/useCollection';
 import { useDebounce } from '../hooks/useDebounce';
 import { collectionService } from '../services/collectionService';
+import { communityService } from '../services/communityService';
 import InteractiveCard from './common/InteractiveCard';
 import { FunnelIcon } from '@heroicons/react/24/solid';
 
@@ -66,6 +67,10 @@ const CardSearchModal = ({ isOpen, onClose, onAddCard }) => {
     const [setCode, setSetCode] = useState('');
     const [collectorNumber, setCollectorNumber] = useState('');
 
+    // Multi-Collection State
+    const [targetUserId, setTargetUserId] = useState(null); // null = My Collection
+    const [writableCollections, setWritableCollections] = useState([]);
+
     // UI State
     const [showAdvanced, setShowAdvanced] = useState(false);
     const [suggestions, setSuggestions] = useState([]);
@@ -88,7 +93,8 @@ const CardSearchModal = ({ isOpen, onClose, onAddCard }) => {
     const { results, loading, error, searchCards, getSuggestions, setResults } = useScryfall();
     const { currentUser } = useAuth();
     const { addToast } = useToast();
-    const { cards: collectionCards, refresh } = useCollection();
+    // Pass targetUserId to useCollection to view that user's counts
+    const { cards: collectionCards, refresh } = useCollection({ userId: targetUserId || undefined });
     const inputRef = useRef(null);
     const suggestionsRef = useRef(null);
 
@@ -107,6 +113,21 @@ const CardSearchModal = ({ isOpen, onClose, onAddCard }) => {
         setSuggestions(found);
         setShowSuggestions(found.length > 0);
     };
+
+    // Fetch writable collections
+    useEffect(() => {
+        const loadCollections = async () => {
+            try {
+                const perms = await communityService.fetchIncomingPermissions();
+                // Filter for editor/admin/contributor access
+                const writable = perms.filter(p => ['editor', 'admin', 'contributor'].includes(p.permission_level) && !p.target_deck_id);
+                setWritableCollections(writable);
+            } catch (err) {
+                console.error('Failed to load writable collections', err);
+            }
+        };
+        if (isOpen) loadCollections();
+    }, [isOpen]);
 
     const collectionMap = useMemo(() => {
         const map = new Map();
@@ -187,7 +208,7 @@ const CardSearchModal = ({ isOpen, onClose, onAddCard }) => {
                     await collectionService.updateCard(existing.id, { count: existing.count + 1 });
                     addToast(`Added ${finish} ${card.name}`, 'success');
                 } else {
-                    await collectionService.addCardToCollection(currentUser.uid, card, 1, finish);
+                    await collectionService.addCardToCollection(currentUser.uid, card, 1, finish, false, targetUserId);
                     addToast(`Added new ${finish} ${card.name}`, 'success');
                 }
             } else {
@@ -220,7 +241,7 @@ const CardSearchModal = ({ isOpen, onClose, onAddCard }) => {
                     await collectionService.updateCard(existing.id, { count: existing.count + 1 });
                     addToast(`Increased ${card.name} in wishlist`, 'success');
                 } else {
-                    await collectionService.addCardToCollection(currentUser.uid, card, 1, 'nonfoil', true);
+                    await collectionService.addCardToCollection(currentUser.uid, card, 1, 'nonfoil', true, targetUserId);
                     addToast(`Added ${card.name} to wishlist`, 'success');
                 }
             } else {
@@ -275,6 +296,25 @@ const CardSearchModal = ({ isOpen, onClose, onAddCard }) => {
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
                 </div>
+
+                {/* Collection Selector */}
+                {writableCollections.length > 0 && (
+                    <div className="px-6 pb-2 bg-gray-950/50 border-b border-white/5 flex items-center gap-2">
+                        <span className="text-xs font-bold text-gray-500 uppercase">Target:</span>
+                        <select
+                            value={targetUserId || ''}
+                            onChange={(e) => setTargetUserId(e.target.value || null)}
+                            className="bg-gray-900 border border-white/10 rounded-lg px-2 py-1 text-xs text-white focus:border-indigo-500 outline-none"
+                        >
+                            <option value="">My Collection</option>
+                            {writableCollections.map(c => (
+                                <option key={c.owner_id} value={c.owner_id}>
+                                    {c.owner_username}'s Collection ({c.permission_level})
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
 
                 {/* Scrollable Body Contents */}
                 <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
