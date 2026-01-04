@@ -20,7 +20,7 @@ const AuthGuard = ({ children }) => {
         // Perform the check once per session/mount
         if (currentUser && userProfile) {
             const publicPaths = ['/', '/login', '/about'];
-            const isPublicPath = publicPaths.includes(location.pathname);
+            const isPublicPath = publicPaths.includes(location.pathname) || location.pathname.startsWith('/share/');
             const isOnboarding = location.pathname === '/onboarding';
 
             const isComplete = userProfile.settings?.onboarding_complete;

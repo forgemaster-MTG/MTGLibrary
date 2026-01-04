@@ -10,7 +10,7 @@ export function useSets() {
         const fetchSets = async () => {
             try {
                 // Fetch from LOCAL API which reads from Postgres
-                const data = await api.get('/sets');
+                const data = await api.get('/api/sets');
                 const validSets = data.data || [];
 
                 setSets(validSets);

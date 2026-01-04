@@ -4,15 +4,51 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { useCollection } from '../../hooks/useCollection';
 import { api } from '../../services/api';
+import { parseSmartPrompt } from '../../services/smartPromptService';
+import RuleBuilder from '../SmartBinder/RuleBuilder';
 
 const STEPS = {
     METHOD: 1,
     CONFIG: 2,
-    CARDS: 3,
-    REVIEW: 4
+    REVIEW: 3 // Consolidated CARDS into REVIEW/Preview
 };
 
-const BinderWizardModal = ({ isOpen, onClose, selectedCards = [] }) => {
+const EMOJIS = [
+    // Objects & Symbols
+    '📁', '📂', '💾', '📦', '🏷️', '💎', '💍', '🏆', '🥇', '🎨', '🔮', '📜', '⚔️', '🛡️', '🔥', '💧', '💀', '🌲', '☀️', '🤝',
+    '🃏', '🎲', '🧩', '🧿', '✨', '🌟', '🌈', '🌑', '🌕', '🪐', '☄️', '🧨', '🧧', '🎁', '🎈', '🎏', '🏮', '🎐', '🧸', '🪄',
+    '🧪', '🧬', '🔭', '🩺', '🧱', '⛓️', '🪚', '🪓', '⛏️', '⚒️', '🛠️', '⚙️', '⚖️', '🗝️', '🔐', '🔒', '🔓', '🔏', '✒️', '📝',
+    '👑', '🎩', '🎒', '👓', '🕶️', '🥽', '💰', '💴', '💵', '💶', '💷', '🪙', '💳', '🧾', '🕯️', '💡', '🔦', '🏮', '📔', '📕',
+    // Nature & Elements
+    '🌵', '🌴', '🌲', '🌳', '🌱', '🌿', '☘️', '🍀', '🍃', '🍂', '🍁', '🍄', '🐚', '🪨', '🪵', '🔥', '💧', '🌊', '🌪️', '❄️',
+    '🌩️', '⚡', '🌋', '🗻', '🏜️', '🏝️', '🌅', '🌄', '🌠', '🌌', '🌍', '🌝', '🌚', '🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗',
+    // Creatures (Basic)
+    '🦅', '🦆', '🦢', '🦉', '🦩', '🦚', '🦜', '🐸', '🐊', '🐢', '🦎', '🐍', '🐲', '🐉', '🦕', '🦖', '🐳', '🐋', '🐬', '🐟',
+    '🐠', '🐡', '🦈', '🐙', '🐚', '🐌', '🦋', '🐛', '🐜', '🐝', '🪲', '🐞', '🦗', '🕷️', '🕸️', '🦂', '🦟', '🪰', '🪱', '🦠',
+    // Creatures (Mammals/Myth)
+    '🐺', '🦊', '🦝', '🐱', '🦁', '🐯', '🐆', '🐴', '🦄', '🦓', '🦌', '🦬', '🐮', '🐂', '🐃', '🐄', '🐷', '🐏', '🐑', '🐐',
+    '🐪', '🐫', '🦙', '🦒', '🐘', '🦣', '🦏', '🦛', '🐭', '🐁', '🐀', '🐹', '🐰', '🐇', '🐿️', '🦫', '🦔', '🦇', '🐻', '🐨',
+    '🐼', '🦥', '🦦', '🦨', '🦘', '🦡', '👹', '👺', '👻', '👽', '👾', '🤖', '💩',
+    // Expressions/People
+    '😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃', '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '😚', '😙',
+    '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔', '🤐', '🤨', '😐', '😑', '😶', '😏', '😒', '🙄', '😬', '🤥',
+    '😌', '😔', '😪', '🤤', '😴', '😷', '🤒', '🤕', '🤢', '🤮', '🤧', '🥵', '🥶', '🥴', '😵', '🤯', '🤠', '🥳', '😎', '🤓',
+    '🧐', '😕', '😟', '🙁', '☹️', '😮', '😯', '😲', '😳', '🥺', '😦', '😧', '😨', '😰', '😥', '😢', '😭', '😱', '😖', '😣',
+    '🧠', '🫀', '🫁', '🦷', '🦴', '👀', '👁️', '👅', '👄', '🦾', '🦿', '👣',
+    // UI/Abstract
+    '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️',
+    '✝️', '☪️', '🕉️', '☸️', '✡️', '🔯', '🕎', '☯️', '☦️', '🛐', '⛎', '♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑',
+    '♒', '♓', '🆔', '⚛️', '🉑', '☢️', '☣️', '📴', '📳', '🈶', '🈚', '🈸', '🈺', '🈷️', '✴️', '🆚', '💮', '🉐', '㊙️', '㊗️', '🈴',
+    '🈵', '🈹', '🈲', '🅰️', '🅱️', '🆎', '🆑', '🅾️', '🆘', '❌', '⭕', '🛑', '⛔', '📛', '🚫', '💯', '💢', '♨️', '🚷', '🚯',
+    '🚳', '🚱', '🔞', '📵', '🚭', '❗️', '❕', '❓', '❔', '‼️', '⁉️', '🔅', '🔆', '〽️', '⚠️', '🚸', '🔱', '⚜️', '🔰', '♻️',
+    '✅', '🈯', '💹', '❇️', '✳️', '❎', '🌐', '💠', 'Ⓜ️', '🌀', '💤', '🏧', '🚾', '♿', '🅿️', '🛗', '🈳', '🈂️', '🛂', '🛃',
+    '🛄', '🛅', '🚹', '🚺', '🚼', '🚻', '🚮', '🎦', '📶', '🈁', '🔣', 'ℹ️', '🔤', '🔡', '🔠', '🆖', '🆗', '🆙', '🆒', '🆕',
+    '🆓', '0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟', '🔢', '#️⃣', '*️⃣', '⏏️', '▶️', '⏸️',
+    '⏯️', '⏹️', '⏺️', '⏭️', '⏮️', '⏩', '⏪', '⏫', '⏬', '◀️', '🔼', '🔽', '➡️', '⬅️', '⬆️', '⬇️', '↗️', '↘️', '↙️', '↖️',
+    '↕️', '↔️', '↪️', '↩️', '⤴️', '⤵️', '🔀', '🔁', '🔂', '🔄', '🔃', '🎵', '🎶', '➕', '➖', '➗', '✖️', '♾️', '💲', '💱'
+];
+
+const BinderWizardModal = ({ isOpen, onClose, selectedCards = [], editingBinder = null }) => {
     const { addToast } = useToast();
     const { cards: allCards } = useCollection();
 
@@ -27,117 +63,89 @@ const BinderWizardModal = ({ isOpen, onClose, selectedCards = [] }) => {
     const [iconValue, setIconValue] = useState('📁');
     const [color, setColor] = useState('blue');
     const [cardsToAdd, setCardsToAdd] = useState([]);
+    const [rules, setRules] = useState([]);
+    const [isSmartBinder, setIsSmartBinder] = useState(false);
 
-    // Logic State
-    const [smartGroups, setSmartGroups] = useState([]);
-    const [isScanning, setIsScanning] = useState(false);
 
     // Initial Setup
     useEffect(() => {
         if (isOpen) {
-            setStep(STEPS.METHOD);
-            setName('');
-            setType('collection');
-            setIconType('emoji');
-            setIconValue('📁');
-            setColor('blue');
-            setCardsToAdd(selectedCards || []); // Pre-populate if triggered with selection
-            setSmartGroups([]);
+            if (editingBinder) {
+                setStep(STEPS.CONFIG);
+                setName(editingBinder.name || '');
+                setType(editingBinder.type || 'collection');
+                setIconType(editingBinder.icon_type || 'emoji');
+                setIconValue(editingBinder.icon_value || '📁');
+                setColor(editingBinder.color_preference || 'blue');
+                setRules(editingBinder.rules ? (typeof editingBinder.rules === 'string' ? JSON.parse(editingBinder.rules) : editingBinder.rules) : []);
+                setIsSmartBinder(!!editingBinder.rules);
+                setCardsToAdd([]);
+            } else {
+                setStep(STEPS.METHOD);
+                setName('');
+                setType('collection');
+                setIconType('emoji');
+                setIconValue('📁');
+                setColor('blue');
+                setCardsToAdd(selectedCards || []);
+                setRules([]);
+                setIsSmartBinder(false);
+            }
+            setSmartSuggestions([]);
         }
-    }, [isOpen]);
+    }, [isOpen, editingBinder]);
 
-    // --- LOGIC: Smart Scan ---
-    const runSmartScan = () => {
-        setIsScanning(true);
-        // Simulate "Processing" time for UX
+    // --- LOGIC: Smart Scan (Suggestions as Rules) ---
+    const [smartSuggestions, setSmartSuggestions] = useState([]);
+    const [aiPrompt, setAiPrompt] = useState('');
+    const [isGenerating, setIsGenerating] = useState(false);
+
+    // --- LOGIC: AI Prompt Generator ---
+    const handleAiGenerate = async () => {
+        if (!aiPrompt.trim()) return;
+        setIsGenerating(true);
+        setSmartSuggestions([]); // Clear previous suggestions
+
+        // Simulation of AI processing (using advanced local parser)
         setTimeout(() => {
-            const groups = [];
-
-            // 1. Value Heuristic: "High Value" (Cards > $5)
-            const expensiveCards = allCards.filter(c => parseFloat(c.prices?.usd || 0) > 5);
-            if (expensiveCards.length > 0) {
-                groups.push({
-                    id: 'high-value',
-                    name: 'High Value Vault',
-                    description: `${expensiveCards.length} cards worth > $5`,
-                    icon: '💎',
-                    color: 'purple',
-                    cards: expensiveCards
-                });
-            }
-
-            // 2. Rarity Heuristic: "Rare Trade Binder"
-            const rares = allCards.filter(c => c.rarity === 'rare' || c.rarity === 'mythic');
-            if (rares.length > 10) {
-                groups.push({
-                    id: 'rares',
-                    name: 'Trade Binder',
-                    description: `Collection of ${rares.length} Rares & Mythics`,
-                    icon: '🤝',
-                    color: 'green',
-                    cards: rares
-                });
-            }
-
-            // 3. Set Heuristics: Find largest sets
-            const setCounts = {};
-            allCards.forEach(c => {
-                if (c.set_name) {
-                    if (!setCounts[c.set_name]) setCounts[c.set_name] = [];
-                    setCounts[c.set_name].push(c);
-                }
-            });
-
-            Object.entries(setCounts).forEach(([setName, setCards]) => {
-                if (setCards.length > 15) {
-                    groups.push({
-                        id: `set-${setName}`,
-                        name: `${setName} Set`,
-                        description: `Complete set progress (${setCards.length} cards)`,
-                        icon: '📚',
-                        color: 'blue',
-                        cards: setCards
-                    });
-                }
-            });
-
-            // 4. Commander Candidates (Legendary Creatures)
-            const commanders = allCards.filter(c => c.type_line && c.type_line.includes('Legendary Creature'));
-            if (commanders.length > 5) {
-                groups.push({
-                    id: 'commanders',
-                    name: 'Potential Commanders',
-                    description: `${commanders.length} Legendary Creatures`,
-                    icon: '🛡️',
-                    color: 'red',
-                    cards: commanders
-                });
-            }
-
-            setSmartGroups(groups);
-            setIsScanning(false);
+            const suggestion = parseSmartPrompt(aiPrompt);
+            setSmartSuggestions([suggestion]);
+            setIsGenerating(false);
         }, 800);
     };
 
-    const handleSmartGroupSelect = (group) => {
-        setName(group.name);
-        setIconValue(group.icon);
-        setColor(group.color);
-        setCardsToAdd(group.cards);
-        setStep(STEPS.CONFIG); // Skip to Config to confirm details
+    const handleSuggestionSelect = (suggestion) => {
+        setName(suggestion.name);
+        setIconValue(suggestion.icon);
+        setColor(suggestion.color);
+        setRules(suggestion.rules);
+        setIsSmartBinder(true);
+        setStep(STEPS.CONFIG);
     };
-
 
     // --- ACTION: Create ---
     const handleCreate = async () => {
         setLoading(true);
         try {
-            // 1. Create Binder
-            const binderPayload = { name, type, icon_type: iconType, icon_value: iconValue, color_preference: color };
-            const binderRes = await api.post('/api/binders', binderPayload);
-            const binderId = binderRes.id;
+            const binderPayload = {
+                name,
+                type,
+                icon_type: iconType,
+                icon_value: iconValue,
+                color_preference: color,
+                rules: isSmartBinder ? rules : null
+            };
 
-            // 2. Add Cards
+            let binderId;
+            if (editingBinder) {
+                await api.updateBinder(editingBinder.id, binderPayload);
+                binderId = editingBinder.id;
+            } else {
+                const binderRes = await api.post('/api/binders', binderPayload);
+                binderId = binderRes.id;
+            }
+
+            // Add manual cards if any
             if (cardsToAdd.length > 0) {
                 const cardIds = cardsToAdd.map(c => c.firestoreId || c.id);
                 await api.put('/api/collection/batch-update', {
@@ -146,71 +154,124 @@ const BinderWizardModal = ({ isOpen, onClose, selectedCards = [] }) => {
                 });
             }
 
-            addToast('Binder created successfully!', 'success');
+            addToast(editingBinder ? 'Binder updated!' : 'Binder created successfully!', 'success');
             onClose();
-            window.location.reload(); // Refresh to show new binder (Ideally should use context update)
         } catch (err) {
-            console.error(err);
-            addToast('Failed to create binder', 'error');
+            console.error('[BinderWizard] Submit error:', err);
+            addToast('Failed to save binder', 'error');
         } finally {
             setLoading(false);
         }
     };
 
+    const handleDelete = async () => {
+        if (!editingBinder) return;
+        if (!window.confirm(`Are you sure you want to delete "${editingBinder.name}"? This will NOT delete the cards inside.`)) return;
+
+        setLoading(true);
+        try {
+            await api.deleteBinder(editingBinder.id);
+            addToast('Binder deleted', 'success');
+            onClose();
+        } catch (err) {
+            console.error('[BinderWizard] Delete error:', err);
+            addToast('Failed to delete binder', 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     // --- RENDERERS ---
 
     const renderMethodStep = () => (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <button
-                onClick={() => setStep(STEPS.CONFIG)}
-                className="p-6 bg-gray-800 hover:bg-indigo-900/20 border border-gray-700 hover:border-indigo-500 rounded-2xl text-left transition-all group"
-            >
-                <div className="w-12 h-12 bg-gray-700 rounded-full flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">✨</div>
-                <h3 className="text-lg font-bold text-white mb-2">Start Fresh</h3>
-                <p className="text-gray-400 text-sm">Create an empty binder and customize it exactly how you want.</p>
-            </button>
+        <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <button
+                    onClick={() => { setIsSmartBinder(false); setStep(STEPS.CONFIG); }}
+                    className="p-6 bg-gray-950/40 hover:bg-indigo-900/10 border border-white/5 hover:border-indigo-500/50 rounded-3xl text-left transition-all group relative overflow-hidden"
+                >
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <svg className="w-24 h-24" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" /></svg>
+                    </div>
+                    <div className="w-14 h-14 bg-gray-800 rounded-2xl flex items-center justify-center text-3xl mb-4 group-hover:scale-110 transition-transform shadow-xl">📁</div>
+                    <h3 className="text-xl font-black text-white mb-2">Manual Binder</h3>
+                    <p className="text-gray-400 text-sm leading-relaxed">Classic storage. Move cards in and out exactly how you want.</p>
+                </button>
 
-            <button
-                onClick={() => { setStep(STEPS.METHOD); runSmartScan(); }} // Stay on method but expand scan
-                className="p-6 bg-gray-800 hover:bg-indigo-900/20 border border-gray-700 hover:border-indigo-500 rounded-2xl text-left transition-all group relative overflow-hidden"
-            >
-                <div className="w-12 h-12 bg-indigo-600/20 text-indigo-400 rounded-full flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">🧠</div>
-                <h3 className="text-lg font-bold text-white mb-2">Smart Organize</h3>
-                <p className="text-gray-400 text-sm">Let AI scan your collection and suggest logical binders.</p>
-            </button>
+                <div className="p-6 bg-indigo-950/20 border border-indigo-500/20 rounded-3xl relative overflow-hidden flex flex-col h-full">
+                    <div className="absolute top-0 right-0 p-4 opacity-10">
+                        <svg className="w-24 h-24" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.381z" clipRule="evenodd" /></svg>
+                    </div>
 
-            {/* Smart Scan Results (Inline Expansion) */}
-            {(isScanning || smartGroups.length > 0) && (
-                <div className="col-span-1 md:col-span-2 mt-4 space-y-4 animate-fade-in-down">
-                    <div className="h-px bg-gray-800 w-full" />
-                    {isScanning ? (
-                        <div className="flex flex-col items-center py-8">
-                            <div className="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full mb-4"></div>
-                            <p className="text-indigo-400 font-mono text-sm">Analyzing {allCards.length} cards...</p>
+                    <div className="relative z-10 flex flex-col h-full">
+                        <div className="w-14 h-14 bg-indigo-600/20 text-indigo-400 rounded-2xl flex items-center justify-center text-3xl mb-4 shadow-xl shadow-indigo-900/20">✨</div>
+                        <h3 className="text-xl font-black text-white mb-2">Smart Creator</h3>
+                        <p className="text-gray-400 text-sm leading-relaxed mb-6">Describe what you want, and AI will build the rules for you. <button onClick={() => window.open('https://github.com/TristinParker/MTGLibrary/blob/main/docs/SMART_BINDERS.md', '_blank')} className="text-indigo-400 hover:text-indigo-300 underline md:hidden">What is this?</button></p>
+
+                        <div className="mt-auto">
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    value={aiPrompt}
+                                    onChange={(e) => setAiPrompt(e.target.value)}
+                                    placeholder='e.g., "Red Goblins over $5"'
+                                    className="w-full bg-black/40 border border-indigo-500/30 rounded-xl pl-4 pr-12 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-sm"
+                                    onKeyDown={(e) => e.key === 'Enter' && handleAiGenerate()}
+                                />
+                                <button
+                                    onClick={handleAiGenerate}
+                                    disabled={!aiPrompt.trim() || isGenerating}
+                                    className="absolute right-1 top-1 bottom-1 px-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-all flex items-center justify-center"
+                                >
+                                    {isGenerating ? (
+                                        <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                    ) : (
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Smart Suggestions Expansion */}
+            {(isGenerating || smartSuggestions.length > 0) && (
+                <div className="mt-8 space-y-4 animate-fade-in-up">
+                    <div className="flex items-center gap-4">
+                        <div className="h-px bg-white/10 flex-1" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400">Suggested Blueprints</span>
+                        <div className="h-px bg-white/10 flex-1" />
+                    </div>
+
+                    {isGenerating ? (
+                        <div className="py-8 flex flex-col items-center">
+                            <div className="relative w-16 h-16">
+                                <div className="absolute inset-0 border-4 border-indigo-500/20 rounded-full" />
+                                <div className="absolute inset-0 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                            </div>
+                            <p className="mt-4 text-indigo-400 font-mono text-xs animate-pulse">Generating rules...</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {smartGroups.map(group => (
+                            {smartSuggestions.map(suggest => (
                                 <button
-                                    key={group.id}
-                                    onClick={() => handleSmartGroupSelect(group)}
-                                    className="p-4 bg-gray-800/50 hover:bg-gray-700 border border-gray-700 hover:border-white/20 rounded-xl flex items-center gap-4 transition-all text-left"
+                                    key={suggest.id}
+                                    onClick={() => handleSuggestionSelect(suggest)}
+                                    className="p-4 bg-gray-900/60 hover:bg-gray-800 border border-white/5 hover:border-indigo-500/30 rounded-2xl flex items-center gap-4 transition-all text-left group shadow-lg"
                                 >
-                                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center text-2xl bg-${group.color}-900/20`}>
-                                        {group.icon}
+                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl transition-transform group-hover:scale-110`} style={{ backgroundColor: `rgba(${suggest.color === 'purple' ? '139, 92, 246' : suggest.color === 'green' ? '16, 185, 129' : suggest.color === 'orange' ? '249, 115, 22' : '239, 68, 68'}, 0.1)` }}>
+                                        {suggest.icon}
                                     </div>
-                                    <div>
-                                        <div className="font-bold text-white">{group.name}</div>
-                                        <div className="text-xs text-gray-400">{group.description}</div>
+                                    <div className="flex-1">
+                                        <div className="font-bold text-white text-sm">{suggest.name}</div>
+                                        <div className="text-[10px] text-gray-500 leading-tight">{suggest.description}</div>
+                                    </div>
+                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity text-indigo-500">
+                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg>
                                     </div>
                                 </button>
                             ))}
-                            {smartGroups.length === 0 && (
-                                <div className="col-span-full text-center text-gray-500 italic py-4">
-                                    No obvious groups found. Try creating a custom binder!
-                                </div>
-                            )}
                         </div>
                     )}
                 </div>
@@ -219,99 +280,183 @@ const BinderWizardModal = ({ isOpen, onClose, selectedCards = [] }) => {
     );
 
     const renderConfigStep = () => (
-        <div className="space-y-6">
-            {/* Name Input */}
-            <div>
-                <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Binder Name</label>
-                <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g., Rare Trade Binder"
-                    autoFocus
-                    className="w-full bg-gray-800 border-2 border-gray-700 focus:border-indigo-500 text-white px-4 py-3 rounded-xl focus:outline-none font-bold text-lg transition-all"
-                />
-            </div>
+        <div className="space-y-8 max-w-xl mx-auto">
+            {/* Basic Info */}
+            <div className="space-y-4">
+                <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2 ml-1">Binder Name</label>
+                    <input
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="e.g., The Vault"
+                        autoFocus
+                        className="w-full bg-gray-950 border-2 border-white/5 focus:border-indigo-500/50 text-white px-5 py-4 rounded-2xl focus:outline-none font-black text-xl transition-all shadow-inner shadow-black/40 placeholder:text-gray-800"
+                    />
+                </div>
 
-            {/* Icon Picker */}
-            <div>
-                <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Icon</label>
-                <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
-                    <div className="flex gap-2 mb-4 border-b border-gray-700 pb-2">
-                        <button onClick={() => setIconType('emoji')} className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors ${iconType === 'emoji' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-white'}`}>Emojis</button>
-                        <button onClick={() => setIconType('mtg')} className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors ${iconType === 'mtg' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-white'}`}>MTG Symbols</button>
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2 ml-1">Icon Type</label>
+                        <div className="flex bg-gray-950 p-1 rounded-xl border border-white/5">
+                            <button onClick={() => setIconType('emoji')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${iconType === 'emoji' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}>Emoji</button>
+                            <button onClick={() => setIconType('mtg')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${iconType === 'mtg' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}>Symbols</button>
+                        </div>
                     </div>
-
-                    <div className="grid grid-cols-6 sm:grid-cols-8 gap-2 h-32 overflow-y-auto custom-scrollbar p-1">
-                        {iconType === 'emoji' ? (
-                            ['📁', '📂', '💾', '📦', '🏷️', '💎', '💍', '🏆', '🥇', '🎨', '🔮', '📜', '⚔️', '🛡️', '🔥', '💧', '💀', '🌲', '☀️', '🤝'].map(icon => (
+                    <div>
+                        <label className="block text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2 ml-1">Theme Color</label>
+                        <div className="flex gap-2 bg-gray-950 p-2 rounded-xl border border-white/5 overflow-x-auto custom-scrollbar no-scrollbar items-center">
+                            {['blue', 'red', 'green', 'purple', 'orange', 'gray'].map(c => (
                                 <button
-                                    key={icon}
-                                    onClick={() => setIconValue(icon)}
-                                    className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl transition-all ${iconValue === icon ? 'bg-indigo-600 text-white scale-110 shadow-lg' : 'hover:bg-gray-700 text-gray-300'}`}
-                                >
-                                    {icon}
-                                </button>
-                            ))
-                        ) : (
-                            ['ms-w', 'ms-u', 'ms-b', 'ms-r', 'ms-g', 'ms-c', 'ms-planeswalker', 'ms-land', 'ms-artifact', 'ms-enchantment'].map(icon => (
-                                <button
-                                    key={icon}
-                                    onClick={() => setIconValue(icon)}
-                                    className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl transition-all ${iconValue === icon ? 'bg-indigo-600 text-white scale-110 shadow-lg' : 'hover:bg-gray-700 text-gray-300'}`}
-                                >
-                                    <i className={`ms ${icon} ms-cost`}></i>
-                                </button>
-                            ))
-                        )}
+                                    key={c}
+                                    onClick={() => setColor(c)}
+                                    className={`w-6 h-6 shrink-0 rounded-full transition-all ${color === c ? 'ring-2 ring-white scale-110 shadow-lg' : 'opacity-40 hover:opacity-100'}`}
+                                    style={{ backgroundColor: c === 'blue' ? '#3B82F6' : c === 'red' ? '#EF4444' : c === 'green' ? '#10B981' : c === 'purple' ? '#8B5CF6' : c === 'orange' ? '#F59E0B' : '#6B7280' }}
+                                />
+                            ))}
+                            <div className="w-px h-6 bg-white/10 mx-1" />
+                            <div className="relative group">
+                                <div className={`w-6 h-6 rounded-full border border-white/20 flex items-center justify-center overflow-hidden ${!['blue', 'red', 'green', 'purple', 'orange', 'gray'].includes(color) ? 'ring-2 ring-white' : ''}`}>
+                                    <input
+                                        type="color"
+                                        value={['blue', 'red', 'green', 'purple', 'orange', 'gray'].includes(color) ? '#ffffff' : color}
+                                        onChange={(e) => setColor(e.target.value)}
+                                        className="w-8 h-8 -m-1 cursor-pointer"
+                                    />
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {/* Color Theme */}
-            <div>
-                <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Color Theme</label>
-                <div className="flex gap-4">
-                    {['blue', 'red', 'green', 'purple', 'orange', 'gray'].map(c => (
-                        <button
-                            key={c}
-                            onClick={() => setColor(c)}
-                            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${color === c ? 'ring-2 ring-offset-2 ring-offset-gray-900 ring-white scale-110' : 'opacity-50 hover:opacity-100'}`}
-                            style={{ backgroundColor: c === 'blue' ? '#3B82F6' : c === 'red' ? '#EF4444' : c === 'green' ? '#10B981' : c === 'purple' ? '#8B5CF6' : c === 'orange' ? '#F59E0B' : '#6B7280' }}
-                        >
-                            {color === c && <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
-                        </button>
-                    ))}
+            {/* Icon Picker Expanded */}
+            <div className="bg-gray-950 rounded-3xl p-5 border border-white/5 shadow-inner shadow-black/40">
+                <div className="grid grid-cols-6 sm:grid-cols-10 gap-3 h-40 overflow-y-auto custom-scrollbar pr-2">
+                    {iconType === 'emoji' ? (
+                        EMOJIS.map(icon => (
+                            <button
+                                key={icon}
+                                onClick={() => setIconValue(icon)}
+                                className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all ${iconValue === icon ? 'bg-indigo-600 shadow-lg shadow-indigo-900/40' : 'bg-gray-900 border border-white/5 text-gray-500 hover:bg-gray-800 hover:text-white'}`}
+                            >
+                                {icon}
+                            </button>
+                        ))
+                    ) : (
+                        [
+                            // Colors
+                            'ms-w', 'ms-u', 'ms-b', 'ms-r', 'ms-g', 'ms-c', // Basic
+                            'ms-wp', 'ms-up', 'ms-bp', 'ms-rp', 'ms-gp', // Phyrexian
+                            'ms-s', 'ms-x', 'ms-e', // Snow, X, Energy
+                            // Card Types
+                            'ms-planeswalker', 'ms-land', 'ms-artifact', 'ms-enchantment', 'ms-creature', 'ms-instant', 'ms-sorcery', 'ms-multiple',
+                            // Guilds
+                            'ms-guild-azorius', 'ms-guild-selesnya', 'ms-guild-boros', 'ms-guild-dimir', 'ms-guild-simic', 'ms-guild-gruul', 'ms-guild-rakdos', 'ms-guild-orzhov', 'ms-guild-izzet', 'ms-guild-golgari',
+                            // Wedges/Shards
+                            'ms-clan-abzan', 'ms-clan-jeskai', 'ms-clan-sultai', 'ms-clan-mardu', 'ms-clan-temur',
+                            'ms-shard-bant', 'ms-shard-esper', 'ms-shard-grixis', 'ms-shard-jund', 'ms-shard-naya',
+                            // Sets/Symbols
+                            'ms-p', 'ms-chaos', 'ms-loyalty-up', 'ms-loyalty-down', 'ms-loyalty-zero',
+                            'ms-tap', 'ms-untap', 'ms-flashback', 'ms-dfc-day', 'ms-dfc-night'
+                        ].map(icon => (
+                            <button
+                                key={icon}
+                                onClick={() => setIconValue(icon)}
+                                className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all ${iconValue === icon ? 'bg-indigo-600 shadow-lg shadow-indigo-900/40 text-white' : 'bg-gray-900 border border-white/5 text-gray-400 hover:bg-gray-800 hover:text-white'}`}
+                            >
+                                <i className={`ms ${icon} ms-cost`}></i>
+                            </button>
+                        ))
+                    )}
                 </div>
+            </div>
+
+            {/* Smart Rules Toggle */}
+            <div className="bg-gray-950 rounded-3xl p-6 border border-white/5 space-y-4">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-xl transition-colors ${isSmartBinder ? 'bg-indigo-600/20 text-indigo-400' : 'bg-gray-800 text-gray-500'}`}>
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                        </div>
+                        <div>
+                            <h3 className="text-white font-bold text-sm">Automated Smart Rules</h3>
+                            <p className="text-[10px] text-gray-500">Auto-organize collection based on conditions.</p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => setIsSmartBinder(!isSmartBinder)}
+                        className={`w-12 h-6 rounded-full transition-all relative ${isSmartBinder ? 'bg-indigo-600' : 'bg-gray-800'}`}
+                    >
+                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-md ${isSmartBinder ? 'left-7' : 'left-1'}`} />
+                    </button>
+                </div>
+
+                {isSmartBinder && (
+                    <div className="pt-4 border-t border-white/5 animate-fade-in">
+                        <RuleBuilder rules={rules} onChange={setRules} />
+                    </div>
+                )}
             </div>
         </div>
     );
 
     const renderReviewStep = () => (
-        <div className="text-center py-6">
-            <div className={`w-24 h-24 mx-auto bg-${color}-500/20 rounded-3xl flex items-center justify-center text-5xl mb-6 border-2 border-${color}-500 shadow-[0_0_30px_rgba(0,0,0,0.3)]`}>
-                {iconValue.startsWith('ms') ? <i className={`ms ${iconValue} ms-2x`}></i> : iconValue}
+        <div className="text-center py-10 space-y-8 animate-fade-in">
+            <div className="relative inline-block">
+                <div className={`absolute inset-0 bg-${color}-500/20 blur-3xl rounded-full scale-150 animate-pulse`} />
+                <div className={`relative w-32 h-32 bg-gray-900 border-4 border-white/10 rounded-[2.5rem] flex items-center justify-center text-6xl shadow-2xl z-10 overflow-hidden`}>
+                    {/* Gloss effect */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
+                    {iconValue.startsWith('ms') ? <i className={`ms ${iconValue} ms-2x`}></i> : iconValue}
+                </div>
+                <div className={`absolute -bottom-2 -right-2 px-3 py-1 bg-indigo-600 text-white text-[10px] font-black uppercase rounded-full shadow-lg border border-white/20 z-20`}>
+                    {isSmartBinder ? 'Smart' : 'Manual'}
+                </div>
             </div>
 
-            <h2 className="text-3xl font-black text-white mb-2">{name}</h2>
-            <p className="text-gray-400 mb-8">Ready to create your new binder!</p>
+            <div>
+                <h2 className="text-4xl font-black text-white mb-2 leading-tight">{name || 'Unnamed Binder'}</h2>
+                <p className="text-gray-500 text-sm">{isSmartBinder ? `Smart Binder with ${rules.length} rule(s)` : 'Curated collection binder'}</p>
+            </div>
 
-            {cardsToAdd.length > 0 && (
-                <div className="bg-gray-800/50 rounded-xl p-4 max-w-sm mx-auto border border-gray-700">
-                    <div className="font-bold text-white mb-1">{cardsToAdd.length} Cards Selected</div>
-                    <div className="text-xs text-gray-500">These cards will be automatically moved to this binder.</div>
-
-                    {/* Tiny preview pile */}
-                    <div className="flex justify-center -space-x-2 mt-4">
-                        {cardsToAdd.slice(0, 5).map((c, i) => (
-                            <div key={i} className="w-8 h-10 bg-gray-700 rounded border border-gray-600 relative" style={{ transform: `rotate(${(i - 2) * 5}deg)` }}>
-                                {c.image_uris?.small ? <img src={c.image_uris.small} className="w-full h-full object-cover rounded" alt="" /> : null}
-                            </div>
-                        ))}
-                        {cardsToAdd.length > 5 && <div className="w-8 h-10 bg-gray-800 rounded border border-gray-600 flex items-center justify-center text-[8px] text-gray-400 z-10">+{cardsToAdd.length - 5}</div>}
+            {/* Preview Section */}
+            <div className="bg-gray-950/40 rounded-3xl p-6 border border-white/5 max-w-sm mx-auto shadow-inner shadow-black/60">
+                {isSmartBinder ? (
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-2 text-indigo-400">
+                            <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse" />
+                            <span className="text-[10px] font-black uppercase tracking-widest">Recipe Preview</span>
+                        </div>
+                        <div className="space-y-2">
+                            {rules.map((r, i) => (
+                                <div key={i} className="text-xs text-gray-400 bg-black/40 p-2 rounded-xl border border-white/5 flex gap-2">
+                                    <span className="font-bold text-gray-500 uppercase">{i === 0 ? 'IF' : 'AND'}</span>
+                                    <span>{r.field} <span className="text-indigo-400">{r.operator}</span> '{Array.isArray(r.value) ? r.value.join(', ') : r.value}'</span>
+                                </div>
+                            ))}
+                            {rules.length === 0 && <p className="text-xs text-red-400 italic">Warning: No rules defined! This binder will be empty.</p>}
+                        </div>
                     </div>
-                </div>
-            )}
+                ) : (
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-gray-500">
+                            <span>Manifest</span>
+                            <span>{cardsToAdd.length} Cards</span>
+                        </div>
+                        <div className="flex justify-center -space-x-4 pl-4 h-24 items-end pb-2">
+                            {cardsToAdd.length > 0 ? cardsToAdd.slice(0, 5).map((c, i) => (
+                                <div key={i} className="w-16 h-20 bg-gray-800 rounded-lg border-2 border-white/10 shadow-2xl relative transition-transform hover:-translate-y-2 overflow-hidden" style={{ transform: `rotate(${(i - 2) * 8}deg)` }}>
+                                    {c.data?.image_uris?.small || c.image_uris?.small ? <img src={c.data?.image_uris?.small || c.image_uris.small} className="w-full h-full object-cover" alt="" /> : null}
+                                </div>
+                            )) : (
+                                <div className="text-gray-700 italic text-xs">Empty binder (add cards later)</div>
+                            )}
+                        </div>
+                        {cardsToAdd.length > 5 && <div className="text-[10px] text-gray-600 font-bold">+ {cardsToAdd.length - 5} more items</div>}
+                    </div>
+                )}
+            </div>
         </div>
     );
 
@@ -319,68 +464,78 @@ const BinderWizardModal = ({ isOpen, onClose, selectedCards = [] }) => {
     if (!isOpen) return null;
 
     return createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-fade-in">
-            <div className="bg-gray-900 rounded-3xl shadow-2xl w-full max-w-2xl flex flex-col border border-gray-700/50 max-h-[90vh]">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-xl p-4 animate-fade-in">
+            <div className="bg-gray-950 border border-white/10 rounded-[2.5rem] shadow-[0_0_100px_rgba(0,0,0,0.8)] w-full max-w-2xl flex flex-col max-h-[90vh] overflow-hidden relative">
 
-                {/* Header with Progress */}
-                <div className="p-6 border-b border-gray-800">
-                    <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-2xl font-black text-white">
-                            {step === STEPS.METHOD && 'Create New Binder'}
-                            {step === STEPS.CONFIG && 'Customize Binder'}
-                            {step === STEPS.CARDS && 'Select Cards'}
-                            {step === STEPS.REVIEW && 'Confirm Creation'}
+                {/* Visual Accent */}
+                <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-48 h-1 bg-${color}-500 blur-md opacity-30`} />
+
+                {/* Header Section */}
+                <div className="p-8 pb-4 flex justify-between items-center">
+                    <div>
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.3em]">Step 0{step}</span>
+                            <div className="h-px w-8 bg-indigo-500/30" />
+                        </div>
+                        <h2 className="text-3xl font-black text-white tracking-tight">
+                            {step === STEPS.METHOD ? 'Initialize Binder' : step === STEPS.CONFIG ? 'Configure Profile' : 'Final Review'}
                         </h2>
-                        <button onClick={onClose} className="w-8 h-8 rounded-full bg-gray-800 hover:bg-gray-700 flex items-center justify-center text-gray-400 hover:text-white transition-colors">
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                        </button>
                     </div>
-
-                    {/* Progress Bar */}
-                    <div className="flex gap-2">
-                        {[1, 2, 3, 4].map(s => (
-                            <div key={s} className={`h-1.5 rounded-full flex-1 transition-all duration-500 ${s <= step ? 'bg-indigo-500' : 'bg-gray-800'}`} />
-                        ))}
-                    </div>
+                    <button onClick={onClose} className="w-10 h-10 rounded-2xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-500 hover:text-white transition-all active:scale-90">
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
                 </div>
 
-                {/* Content Area */}
-                <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                {/* Content Section */}
+                <div className="flex-1 overflow-y-auto custom-scrollbar px-8 py-4 no-scrollbar">
                     {step === STEPS.METHOD && renderMethodStep()}
                     {step === STEPS.CONFIG && renderConfigStep()}
-                    {step === STEPS.CARDS && (
-                        <div className="text-center py-10 text-gray-500">
-                            Currently, card selection is handled via Smart Organize or Bulk Select on the table.<br />
-                            <button onClick={() => setStep(STEPS.REVIEW)} className="text-indigo-400 underline mt-2">Skip to Confirmation</button>
-                        </div>
-                    )}
                     {step === STEPS.REVIEW && renderReviewStep()}
                 </div>
 
-                {/* Footer Controls */}
-                <div className="p-6 border-t border-gray-800 flex justify-between bg-gray-950/30 rounded-b-3xl">
-                    <button
-                        onClick={() => step > 1 ? setStep(step - 1) : onClose()}
-                        className="px-6 py-2.5 font-bold text-gray-400 hover:text-white transition-colors"
-                    >
-                        {step === 1 ? 'Cancel' : 'Back'}
-                    </button>
+                {/* Footer Section */}
+                <div className="p-8 pt-4 flex items-center justify-between">
+                    <div className="flex gap-4">
+                        <button
+                            onClick={() => step > 1 ? setStep(step - 1) : onClose()}
+                            className="px-6 py-3 font-black text-gray-500 hover:text-white transition-colors text-xs uppercase tracking-widest active:scale-95"
+                        >
+                            {step === 1 ? 'Cancel' : 'Back'}
+                        </button>
+
+                        {editingBinder && step === STEPS.CONFIG && (
+                            <button
+                                onClick={handleDelete}
+                                disabled={loading}
+                                className="px-4 py-3 text-[10px] font-black text-red-500/60 hover:text-red-500 transition-colors uppercase tracking-[0.2em] flex items-center gap-2 bg-red-500/5 rounded-xl border border-red-500/10 hover:border-red-500/30"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                Delete
+                            </button>
+                        )}
+                    </div>
 
                     <button
                         onClick={() => {
                             if (step === STEPS.REVIEW) handleCreate();
-                            else if (step === STEPS.CONFIG) setStep(STEPS.REVIEW); // Skipping CARDS step manually for now as requested by user logic
                             else setStep(step + 1);
                         }}
                         disabled={loading || (step === STEPS.CONFIG && !name)}
-                        className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-8 py-2.5 rounded-xl font-bold transition-all shadow-lg flex items-center gap-2"
+                        className={`group px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${loading
+                            ? 'bg-gray-800 text-gray-600 cursor-not-allowed'
+                            : `bg-indigo-600 hover:bg-indigo-500 text-white shadow-2xl shadow-indigo-900/40 active:scale-95 flex items-center gap-3`
+                            }`}
                     >
-                        {loading ? <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> : (
-                            step === STEPS.REVIEW ? 'Create Binder' : 'Continue'
+                        {loading ? (
+                            <div className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
+                        ) : (
+                            <>
+                                {step === STEPS.REVIEW ? (editingBinder ? 'Push Changes' : 'Initialize') : 'Proceed'}
+                                <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7-7 7" /></svg>
+                            </>
                         )}
                     </button>
                 </div>
-
             </div>
         </div>,
         document.body

@@ -101,7 +101,7 @@ const DonationModal = ({ isOpen, onClose }) => {
         setAmount(val);
         setLoading(true);
         try {
-            const res = await api.post('/payments/create-intent', { amount: val });
+            const res = await api.post('/api/payments/create-intent', { amount: val });
             setClientSecret(res.clientSecret);
             setStep('payment');
         } catch (err) {

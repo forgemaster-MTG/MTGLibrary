@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../services/api';
 
-export function useDecks() {
+export function useDecks(userId = null) {
     const [decks, setDecks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -12,7 +12,8 @@ export function useDecks() {
         if (!currentUser) return;
         setLoading(true);
         try {
-            const fetchedDecks = await api.get('/decks');
+            const url = userId ? `/decks?userId=${userId}` : '/decks';
+            const fetchedDecks = await api.get('/api/decks');
             // Map rows if needed
             setDecks(fetchedDecks);
             setError(null);
@@ -31,7 +32,7 @@ export function useDecks() {
             return;
         }
         refresh();
-    }, [currentUser]);
+    }, [currentUser, userId]);
 
     return { decks, loading, error, refresh };
 }

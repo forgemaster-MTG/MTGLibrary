@@ -7,7 +7,7 @@ export const deckService = {
      */
     async addCardToDeck(userId, deckId, card) {
         // card object must contain Scryfall data
-        return api.post('/collection', {
+        return api.post('/api/collection', {
             scryfall_id: card.id, // Scryfall ID
             name: card.name,
             set_code: card.set || card.set_code,
@@ -25,7 +25,7 @@ export const deckService = {
     async removeCardFromDeck(userId, deckId, cardId) {
         // cardId is the user_cards row ID (managedId or id)
         // Set deck_id to null
-        return api.put(`/collection/${cardId}`, { deck_id: null });
+        return api.put(`/api/collection/${cardId}`, { deck_id: null });
     },
 
     /**
@@ -35,28 +35,28 @@ export const deckService = {
         if (newCount <= 0) {
             return this.removeCardFromDeck(userId, deckId, cardId); // or delete?
         }
-        return api.put(`/collection/${cardId}`, { count: newCount });
+        return api.put(`/api/collection/${cardId}`, { count: newCount });
     },
 
     /**
      * Sets the commander for a deck.
      */
     async setCommander(userId, deckId, card) {
-        return api.put(`/decks/${deckId}`, { commander: card });
+        return api.put(`/api/decks/${deckId}`, { commander: card });
     },
 
     /**
      * Imports a deck with options.
      */
     async importDeck(userId, deck, cards, options) {
-        return api.post('/decks/import', { deck, cards, options });
+        return api.post('/api/decks/import', { deck, cards, options });
     },
 
     async updateDeck(userId, deckId, data) {
-        return api.put(`/decks/${deckId}`, data);
+        return api.put(`/api/decks/${deckId}`, data);
     },
 
     async deleteDeck(userId, deckId) {
-        return api.delete(`/decks/${deckId}`);
+        return api.delete(`/api/decks/${deckId}`);
     }
 };

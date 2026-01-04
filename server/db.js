@@ -1,40 +1,39 @@
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load environment-specific .env file
+const nodeEnv = (process.env.NODE_ENV || 'development').trim().toLowerCase();
+dotenv.config({ path: path.join(__dirname, `../.env.${nodeEnv}`) });
+// Also load standard .env as fallback/shared settings
 dotenv.config();
-import knexConfig from '../knexfile.cjs';
+
+// Dynamic import to ensure .env is loaded BEFORE knexfile is evaluated
+const knexConfigModule = await import('../knexfile.cjs');
+const knexConfig = knexConfigModule.default || knexConfigModule;
+
 import knexPkg from 'knex';
 import { Model } from 'objection';
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-const env = process.env.NODE_ENV || 'development';
-const config = knexConfig[env];
-
-if (!config) {
-    console.error(`[DB] CRITICAL ERROR: No database configuration found for environment: ${env}`);
-    console.error(`[DB] Available environments in knexfile.cjs: ${Object.keys(knexConfig).join(', ')}`);
-    process.exit(1);
-}
-
-console.log(`[DB] Initializing database for environment: ${env}`);
-=======
-=======
->>>>>>> Stashed changes
 const rawEnv = (process.env.NODE_ENV || 'development').trim().toLowerCase();
-// Unwrap default export if present (CJS/ESM interop)
-const configSource = knexConfig.default || knexConfig;
 
+// Environment mapping logic 
 const envMap = {
     'dev': 'development',
     'development': 'development',
     'production': 'production',
-    'staging': 'production'
+    'staging': 'staging'
 };
 
 const env = envMap[rawEnv] || 'production';
 
-console.log(`[DB] Initializing DB connection...`);
-console.log(`[DB] Raw NODE_ENV: '${rawEnv}' (length: ${rawEnv.length})`);
-console.log(`[DB] Resolved Config Key: ${env}`);
+console.log(`[DB] Initializing database for environment: ${env} (Raw: '${rawEnv}')`);
+
+// Config source from the imported module
+const configSource = knexConfig;
 
 if (!configSource[env]) {
     console.error(`[DB] CRITICAL ERROR: Database configuration not found for '${env}'.`);
@@ -43,12 +42,15 @@ if (!configSource[env]) {
 }
 
 const config = configSource[env];
-const connInfo = typeof config.connection === 'string' ? config.connection : `${config.connection.host}:${config.connection.port}`;
+
+if (!config.connection) {
+    console.error(`[DB] CRITICAL ERROR: Connection settings missing for '${env}'.`);
+    console.error(`[DB] Config keys: ${Object.keys(config).join(', ')}`);
+    throw new Error(`Connection settings missing for environment: ${env}`);
+}
+
+const connInfo = typeof config.connection === 'string' ? config.connection : `${config.connection.host || 'unknown'}:${config.connection.port || '5432'}`;
 console.log(`[DB] Using Connection: ${connInfo.replace(/:[^:@/]+@/, ':***@')}`); // Mask password if URL
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
 
 // Force SSL off for local Docker communication (Fix for 'server does not support SSL' error)
 if (config.connection && typeof config.connection === 'object') {

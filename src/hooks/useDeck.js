@@ -14,7 +14,7 @@ export function useDeck(deckId) {
         setLoading(true);
         try {
             // API returns { deck: {...}, items: [...] }
-            const { deck: fetchedDeck, items } = await api.get(`/decks/${deckId}`);
+            const { deck: fetchedDeck, items } = await api.get(`/api/decks/${deckId}`);
 
             setDeck(fetchedDeck);
             // Map items (user_cards rows) to frontend expected shape

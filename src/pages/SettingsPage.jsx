@@ -5,6 +5,7 @@ import { api } from '../services/api';
 import { collectionService } from '../services/collectionService';
 import ImportDataModal from '../components/modals/ImportDataModal';
 import HelperSettingsModal from '../components/modals/HelperSettingsModal';
+import CommunitySettingsTab from '../components/community/CommunitySettingsTab';
 
 const SettingsPage = () => {
     const { user, userProfile, refreshUserProfile, resetPassword, sendVerification, updateProfileFields } = useAuth();
@@ -110,7 +111,7 @@ const SettingsPage = () => {
 
     const handleExportCollection = async () => {
         try {
-            const cards = await api.get('/collection/export');
+            const cards = await api.get('/api/collection/export');
 
             if (!cards || cards.length === 0) {
                 alert('No cards to export.');
@@ -144,7 +145,7 @@ const SettingsPage = () => {
 
             {/* Tabs */}
             <div className="flex border-b border-gray-700 overflow-x-auto">
-                {['account', 'general', 'ai', 'display', 'data', ...(user?.uid === 'Kyrlwz6G6NWICCEPYbXtFfyLzWI3' ? ['admin'] : [])].map((t) => (
+                {['account', 'general', 'community', 'ai', 'display', 'data', ...(user?.uid === 'Kyrlwz6G6NWICCEPYbXtFfyLzWI3' ? ['admin'] : [])].map((t) => (
                     <button
                         key={t}
                         onClick={() => navigate(`/settings/${t}`)}
@@ -378,6 +379,10 @@ const SettingsPage = () => {
                     </div>
                 )}
 
+                {activeTab === 'community' && (
+                    <CommunitySettingsTab />
+                )}
+
                 {activeTab === 'data' && (
                     <div className="space-y-6 animate-fade-in">
                         <h2 className="text-xl font-semibold text-white">Data Management</h2>
@@ -500,7 +505,7 @@ const AdminPanel = () => {
 
     const fetchSets = async () => {
         try {
-            const data = await api.get('/admin/sets');
+            const data = await api.get('/api/admin/sets');
             setSets(data.data || []);
         } catch (err) {
             console.error('Failed to fetch sets', err);

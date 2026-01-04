@@ -39,7 +39,7 @@ export const AuthProvider = ({ children }) => {
                 await refreshUserProfile();
                 // Then update with profile data
                 // We need the numeric ID from the profile
-                const freshProfile = await api.get('/me');
+                const freshProfile = await api.get('/api/me');
                 if (freshProfile?.id) {
                     await api.updateUser(freshProfile.id, profileData);
                     await refreshUserProfile();
@@ -93,38 +93,55 @@ export const AuthProvider = ({ children }) => {
 
     // Upload Profile Picture
     const uploadProfilePicture = async (file) => {
-        if (!currentUser) throw new Error("No user logged in");
+        console.log('[AuthContext] uploadProfilePicture called', { file: file.name, currentUser: !!currentUser });
+
+        if (!currentUser) {
+            console.error('[AuthContext] No user logged in');
+            throw new Error("No user logged in");
+        }
 
         // 1. Safety Checks
         if (!file.type.startsWith('image/')) {
+            console.error('[AuthContext] Invalid file type:', file.type);
             throw new Error("File must be an image.");
         }
-        if (file.size > 2 * 1024 * 1024) { // 2MB limit
-            throw new Error("File size must be under 2MB.");
+        if (file.size > 10 * 1024 * 1024) { // 10MB limit
+            console.error('[AuthContext] File too large:', file.size);
+            throw new Error("File size must be under 10MB.");
         }
 
         try {
-            // 2. Upload to Firebase Storage
-            // Path: users/{uid}/profile.jpg (or original name, but standardizing is cleaner)
-            const fileRef = ref(storage, `users/${currentUser.uid}/profile_${Date.now()}`);
+            console.log('[AuthContext] Converting image to base64...');
 
-            await uploadBytes(fileRef, file);
-            const photoURL = await getDownloadURL(fileRef);
+            // 2. Convert image to base64
+            const reader = new FileReader();
+            const base64Promise = new Promise((resolve, reject) => {
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
 
-            // 3. Update Auth Profile
-            await updateProfile(currentUser, { photoURL });
+            const photoDataURL = await base64Promise;
+            console.log('[AuthContext] Image converted to base64, size:', photoDataURL.length);
 
-            // 4. Update Local State
-            setCurrentUser({ ...currentUser, photoURL });
+            // 3. Save to database
+            console.log('[AuthContext] Saving to database...');
 
-            // Should we also store this in our custom DB? 
-            // The /me endpoint usually syncs from Auth, but we can explicit save if needed.
-            // For now, Auth profile is sufficient for UI.
+            if (!userProfile?.id) {
+                throw new Error("User profile not ready");
+            }
+            await api.updateUser(userProfile.id, { photo_url: photoDataURL });
+            console.log('[AuthContext] Saved to database');
 
-            return photoURL;
+            await refreshUserProfile();
+            console.log('[AuthContext] Profile refreshed');
+
+            return photoDataURL;
 
         } catch (error) {
-            console.error("Error uploading profile picture:", error);
+            console.error("[AuthContext] Error uploading profile picture:", error);
+            console.error("[AuthContext] Error code:", error.code);
+            console.error("[AuthContext] Error message:", error.message);
             throw error;
         }
     };
@@ -132,7 +149,7 @@ export const AuthProvider = ({ children }) => {
     const refreshUserProfile = async () => {
         if (!auth.currentUser) return;
         try {
-            const profile = await api.get('/me'); // Calls /me which returns { id, email, data, settings? }
+            const profile = await api.get('/api/me'); // Calls /api/me which returns { id, email, data, settings? }
             // Note: /me in server returns { id, firestore_id, email, data }. 
             // We need to update server/index.js /me to include 'settings'.
             setUserProfile(profile);

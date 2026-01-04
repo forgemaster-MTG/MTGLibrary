@@ -94,7 +94,7 @@ const CreateDeckPage = () => {
                 params.wishlist = 'false';
             }
 
-            const cards = await api.get('/collection', params);
+            const cards = await api.get('/api/collection', params);
             setAvailableCommanders(cards);
             setStep(STEPS.COMMANDER);
         } catch (err) {
@@ -202,7 +202,7 @@ const CreateDeckPage = () => {
                 isMockup // Pass deck type flag
             };
 
-            const newDeck = await api.post('/decks', payload);
+            const newDeck = await api.post('/api/decks', payload);
             addToast('Deck created successfully!', 'success');
             navigate(`/decks/${newDeck.id}`);
 

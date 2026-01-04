@@ -7,17 +7,163 @@ const router = express.Router();
 // Require authentication for all deck operations
 router.use(authMiddleware);
 
-// List decks for logical logged-in user
+// List decks for logical logged-in user (owned + shared with)
 router.get('/', async (req, res) => {
   try {
-    // Return decks owned by the authenticated user
+    // 0. Handle 'all' (Mixed Decks)
+    if (req.query.userId === 'all') {
+      const ownedDecks = await knex('user_decks')
+        .select([
+          'user_decks.*',
+          knex.raw(`'owner' as permission_role`),
+          knex.raw(`
+                    (SELECT COALESCE(SUM(count), 0) FROM user_cards WHERE deck_id = user_decks.id) +
+                    (CASE WHEN commander IS NOT NULL THEN 1 ELSE 0 END) +
+                    (CASE WHEN commander_partner IS NOT NULL THEN 1 ELSE 0 END)
+                    as card_count
+                `)
+        ])
+        .where({ user_id: req.user.id });
+
+      const sharedDecks = await knex('user_decks')
+        .join('collection_permissions', function () {
+          this.on('collection_permissions.target_deck_id', '=', 'user_decks.id')
+            .orOn('collection_permissions.owner_id', '=', 'user_decks.user_id');
+        })
+        .select([
+          'user_decks.*',
+          'collection_permissions.permission_level as permission_role',
+          knex.raw(`
+                    (SELECT COALESCE(SUM(count), 0) FROM user_cards WHERE deck_id = user_decks.id) +
+                    (CASE WHEN commander IS NOT NULL THEN 1 ELSE 0 END) +
+                    (CASE WHEN commander_partner IS NOT NULL THEN 1 ELSE 0 END)
+                    as card_count
+                `)
+        ])
+        .where('collection_permissions.grantee_id', req.user.id)
+        .whereNull('collection_permissions.target_deck_id');
+
+      // Deduplicate by ID just in case
+      const deckMap = new Map();
+      [...ownedDecks, ...sharedDecks].forEach(d => deckMap.set(d.id, d));
+
+      return res.json(Array.from(deckMap.values()));
+    }
+
+    // 1. Owned Decks
+    const ownedDecks = await knex('user_decks')
+      .select([
+        'user_decks.*',
+        knex.raw(`'owner' as permission_role`),
+        knex.raw(`
+          (SELECT COALESCE(SUM(count), 0) FROM user_cards WHERE deck_id = user_decks.id) +
+          (CASE WHEN commander IS NOT NULL THEN 1 ELSE 0 END) +
+          (CASE WHEN commander_partner IS NOT NULL THEN 1 ELSE 0 END)
+          as card_count
+        `)
+      ])
+      .where({ user_id: req.user.id });
+
+    // 2. Shared Decks (via collection_permissions)
+    const sharedDecks = await knex('user_decks')
+      .join('collection_permissions', function () {
+        this.on('collection_permissions.target_deck_id', '=', 'user_decks.id')
+          .orOn('collection_permissions.owner_id', '=', 'user_decks.user_id');
+      })
+      .select([
+        'user_decks.*',
+        'collection_permissions.permission_level as permission_role',
+        knex.raw(`
+          (SELECT COALESCE(SUM(count), 0) FROM user_cards WHERE deck_id = user_decks.id) +
+          (CASE WHEN commander IS NOT NULL THEN 1 ELSE 0 END) +
+          (CASE WHEN commander_partner IS NOT NULL THEN 1 ELSE 0 END)
+          as card_count
+        `)
+      ])
+      .where('collection_permissions.grantee_id', req.user.id)
+      .whereNull('collection_permissions.target_deck_id'); // Global permissions (TODO: Handle specific deck shares better in query if needed)
+
+    // Note: The specific deck share logic in query is tricky if mixed.
+    // For now, let's just return owned decks + explicit shared decks.
+    // Or simplify: just return owned for the main "My Decks" list.
+    // AND add a separate "Shared With Me" endpoint or sections?
+    // Let's keep this endpoint purely for OWNED decks for now to avoid UI confusion,
+    // unless we want a unified view. User likely expects "My Decks".
+
+    // Returning ONLY owned decks for now to preserve existing behavior.
+    // If we want shared decks, we should create a new endpoint or query param.
+    // Reverting to original logic but keeping the structure ready for future.
+
+    // 4. Check for userId query param (Reviewing another user's decks)
+    if (req.query.userId && req.query.userId != req.user.id) {
+      const targetUserId = req.query.userId;
+
+      // Verify Global Permission
+      const perm = await knex('collection_permissions')
+        .where({
+          owner_id: targetUserId,
+          grantee_id: req.user.id
+        })
+        .whereNull('target_deck_id') // Global permission
+        .first();
+
+      if (!perm) {
+        return res.status(403).json({ error: 'Access denied to these decks' });
+      }
+
+      // Return Owner's Decks (Read-only view mostly)
+      const rows = await knex('user_decks')
+        .select([
+          'user_decks.*',
+          knex.raw(`
+              (SELECT COALESCE(SUM(count), 0) FROM user_cards WHERE deck_id = user_decks.id) +
+              (CASE WHEN commander IS NOT NULL THEN 1 ELSE 0 END) +
+              (CASE WHEN commander_partner IS NOT NULL THEN 1 ELSE 0 END)
+              as card_count
+            `)
+        ])
+        .where({ user_id: targetUserId })
+        .orderBy('updated_at', 'desc');
+
+      return res.json(rows);
+    }
+
     const rows = await knex('user_decks')
+      .select([
+        'user_decks.*',
+        knex.raw(`
+          (SELECT COALESCE(SUM(count), 0) FROM user_cards WHERE deck_id = user_decks.id) +
+          (CASE WHEN commander IS NOT NULL THEN 1 ELSE 0 END) +
+          (CASE WHEN commander_partner IS NOT NULL THEN 1 ELSE 0 END)
+          as card_count
+        `)
+      ])
       .where({ user_id: req.user.id })
       .orderBy('updated_at', 'desc')
       .limit(200);
+
     res.json(rows);
   } catch (err) {
     console.error('[decks] list error', err);
+    res.status(500).json({ error: 'db error' });
+  }
+});
+
+// Get Public Deck by Slug (No Auth Required)
+router.get('/public/:slug', async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const deck = await knex('user_decks').where({ share_slug: slug, is_public: true }).first();
+    if (!deck) return res.status(404).json({ error: 'Deck not found or private' });
+
+    // Fetch cards
+    const items = await knex('user_cards')
+      .where({ deck_id: deck.id })
+      .orderBy('name');
+
+    res.json({ deck, items, isPublicView: true });
+  } catch (err) {
+    console.error('[decks] public get error', err);
     res.status(500).json({ error: 'db error' });
   }
 });
@@ -29,24 +175,47 @@ router.get('/:id', async (req, res) => {
       .where({ id: req.params.id })
       .first();
 
+    if (!deck) return res.status(404).json({ error: 'not found' });
+
     if (deck) {
       deck.aiBlueprint = deck.ai_blueprint;
     }
 
-    if (!deck) return res.status(404).json({ error: 'not found' });
+    // Security check: Owner OR Public OR Shared Permission
+    let hasAccess = false;
+    let permissionLevel = 'viewer';
 
-    // Security check
-    if (deck.user_id !== req.user.id) return res.status(403).json({ error: 'unauthorized' });
+    if (deck.user_id === req.user.id) {
+      hasAccess = true;
+      permissionLevel = 'owner';
+    } else if (deck.is_public) {
+      hasAccess = true;
+      permissionLevel = 'viewer';
+    } else {
+      // Check for specific or global permission
+      const perm = await knex('collection_permissions')
+        .where({ owner_id: deck.user_id, grantee_id: req.user.id })
+        .andWhere(function () {
+          this.where('target_deck_id', deck.id).orWhereNull('target_deck_id');
+        })
+        .orderBy('created_at', 'desc') // specific might be newer? logic: specific overrides?
+        // Actually, let's pick the highest priv? Or just any.
+        .first();
+
+      if (perm) {
+        hasAccess = true;
+        permissionLevel = perm.permission_level;
+      }
+    }
+
+    if (!hasAccess) return res.status(403).json({ error: 'unauthorized' });
 
     // Fetch cards for this deck
-    // We join with the 'cards' table strictly for search/metadata if needed, 
-    // but we can also just return the user_cards row since it has 'name', 'set_code', etc.
-    // The user_cards table has all the instance data.
     const items = await knex('user_cards')
       .where({ deck_id: deck.id })
       .orderBy('name');
 
-    res.json({ deck, items });
+    res.json({ deck: { ...deck, permissionLevel }, items });
   } catch (err) {
     console.error('[decks] get error', err);
     res.status(500).json({ error: 'db error' });
@@ -94,6 +263,8 @@ router.put('/:id', async (req, res) => {
     if (commander !== undefined) update.commander = commander;
     if (commanderPartner !== undefined) update.commander_partner = commanderPartner;
     if (req.body.isMockup !== undefined) update.is_mockup = req.body.isMockup;
+    if (req.body.isPublic !== undefined) update.is_public = req.body.isPublic;
+    if (req.body.shareSlug !== undefined) update.share_slug = req.body.shareSlug;
 
     const [row] = await knex('user_decks')
       .where({ id: req.params.id })

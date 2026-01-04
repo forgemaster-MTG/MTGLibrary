@@ -14,6 +14,7 @@ import WishlistPage from './pages/WishlistPage';
 import DeckBuildWizardPage from './pages/DeckBuildWizardPage';
 import OnboardingPage from './pages/OnboardingPage';
 import AboutPage from './pages/AboutPage';
+import PublicDeckPage from './pages/PublicDeckPage';
 import ChatWidget from './components/ChatWidget';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -30,7 +31,7 @@ function App() {
                     <div className="bg-gray-900 text-gray-200 font-sans min-h-screen flex flex-col">
                         <Navbar />
                         <AuthGuard>
-                            <div className="flex-grow">
+                            <div className="flex-grow pb-24 md:pb-0">
                                 <Routes>
                                     <Route path="/" element={<LandingPage />} />
                                     <Route path="/about" element={<AboutPage />} />
@@ -41,6 +42,7 @@ function App() {
                                     <Route path="/decks" element={<DecksPage />} />
                                     <Route path="/decks/new" element={<CreateDeckPage />} />
                                     <Route path="/decks/:deckId" element={<DeckDetailsPage />} />
+                                    <Route path="/share/:slug" element={<PublicDeckPage />} />
                                     <Route path="/decks/:deckId/build" element={<DeckBuildWizardPage />} />
                                     <Route path="/sets" element={<SetsPage />} />
                                     <Route path="/sets/:setCode" element={<SetDetailsPage />} />

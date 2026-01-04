@@ -1,6 +1,6 @@
 import { auth } from '../lib/firebase';
 
-const BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? `http://localhost:${import.meta.env.VITE_PORT || 3004}` : ''); // Default to 3004 for local dev server
+const BASE_URL = import.meta.env.VITE_API_URL || ''; // Use VITE_API_URL from .env if present, otherwise use relative path
 
 async function getHeaders() {
     const headers = {
@@ -65,5 +65,10 @@ export const api = {
     put: (endpoint, body) => request('PUT', endpoint, body),
     delete: (endpoint) => request('DELETE', endpoint),
     getBugs: () => request('GET', '/bugs').then(res => res.content),
-    updateUser: (id, data) => request('PUT', `/users/${id}`, data)
+    updateUser: (id, data) => request('PUT', `/api/users/${id}`, data),
+    getBinders: () => request('GET', '/api/binders'),
+    getBinderCards: (id) => request('GET', `/api/binders/${id}/cards`),
+    createBinder: (data) => request('POST', '/api/binders', data),
+    updateBinder: (id, data) => request('PUT', `/api/binders/${id}`, data),
+    deleteBinder: (id) => request('DELETE', `/api/binders/${id}`)
 };

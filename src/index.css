@@ -41,4 +41,31 @@ body {
             transform: translateY(0);
         }
     }
+
+    /* Bump up third-party chat widgets/bubbles to avoid pagination footer */
+    /* This targets common chat widget selectors - adjust if your specific chat widget uses different classes/ids */
+    #hubspot-messages-iframe-container,
+    .intercom-launcher-frame,
+    .drift-frame-controller,
+    #launcher,
+    [class*="chat-bubble"],
+    [class*="chat-widget"],
+    [id*="chat-widget"] {
+        bottom: 80px !important;
+        /* Desktop: bump up above pagination footer */
+    }
+
+    @media (max-width: 768px) {
+
+        #hubspot-messages-iframe-container,
+        .intercom-launcher-frame,
+        .drift-frame-controller,
+        #launcher,
+        [class*="chat-bubble"],
+        [class*="chat-widget"],
+        [id*="chat-widget"] {
+            bottom: 280px !important;
+            /* Mobile: bump up above FAB + pagination + nav */
+        }
+    }
 }

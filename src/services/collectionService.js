@@ -1,10 +1,10 @@
 import { api } from './api';
 
 export const collectionService = {
-    async addCardToCollection(userId, card, count = 1, finish, is_wishlist = false) {
+    async addCardToCollection(userId, card, count = 1, finish, is_wishlist = false, targetUserId = null) {
         // API handles upsert logic internally or just adds new instance?
         // Plan: API currently creates new row.
-        return api.post('/collection', {
+        return api.post('/api/collection', {
             scryfall_id: card.id,
             name: card.name,
             set_code: card.set || card.set_code,
@@ -13,19 +13,20 @@ export const collectionService = {
             count: count,
             data: card,
             deck_id: null, // Binder
-            is_wishlist: is_wishlist
+            is_wishlist: is_wishlist,
+            targetUserId: targetUserId
         });
     },
 
     async updateCard(id, updates) {
-        return api.put(`/collection/${id}`, updates);
+        return api.put(`/api/collection/${id}`, updates);
     },
 
     async removeCard(id) {
-        return api.delete(`/collection/${id}`);
+        return api.delete(`/api/collection/${id}`);
     },
 
     async importBatch(userId, cards, mode = 'merge') {
-        return api.post('/collection/batch', { cards, mode });
+        return api.post('/api/collection/batch', { cards, mode });
     }
 };

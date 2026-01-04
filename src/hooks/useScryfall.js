@@ -21,7 +21,7 @@ export function useScryfall() {
         setError(null);
         try {
             // Use local API for caching and advanced search logic
-            const response = await api.post('/cards/search', {
+            const response = await api.post('/api/cards/search', {
                 query: normalizedQuery,
                 set,
                 cn,
@@ -41,7 +41,7 @@ export function useScryfall() {
     const getSuggestions = useCallback(async (query) => {
         if (!query || query.trim().length < 2) return [];
         try {
-            const response = await api.get('/cards/autocomplete', { q: query });
+            const response = await api.get('/api/cards/autocomplete', { q: query });
             return response.data || [];
         } catch (err) {
             console.error('[useScryfall] Autocomplete error:', err);
