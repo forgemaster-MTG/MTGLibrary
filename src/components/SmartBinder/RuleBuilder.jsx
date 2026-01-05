@@ -43,6 +43,8 @@ const FIELDS = [
 ];
 
 const RuleBuilder = ({ rules = [], onChange }) => {
+    const [showRaw, setShowRaw] = useState(false);
+
     const addRule = () => {
         const newRule = { field: 'name', operator: 'contains', value: '' };
         onChange([...rules, newRule]);
