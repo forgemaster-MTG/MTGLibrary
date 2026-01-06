@@ -1,5 +1,8 @@
-
-exports.up = function (knex) {
+/**
+ * @param { import("knex").Knex } knex
+ * @returns { Promise<void> }
+ */
+export function up(knex) {
     return knex.schema.createTable('ticket_notes', (table) => {
         table.increments('id').primary();
         table.integer('ticket_id').notNullable().references('id').inTable('tickets').onDelete('CASCADE');
@@ -7,8 +10,12 @@ exports.up = function (knex) {
         table.text('note').notNullable();
         table.timestamp('created_at').defaultTo(knex.fn.now());
     });
-};
+}
 
-exports.down = function (knex) {
+/**
+ * @param { import("knex").Knex } knex
+ * @returns { Promise<void> }
+ */
+export function down(knex) {
     return knex.schema.dropTableIfExists('ticket_notes');
-};
+}
