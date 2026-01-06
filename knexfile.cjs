@@ -59,6 +59,11 @@ const configs = {
   }
 };
 
+const activeConfig = configs[nodeEnv] || configs.development;
+if (activeConfig.connection) {
+  console.log(`[Knexfile] Target database host: ${activeConfig.connection.host || '127.0.0.1'}`);
+}
+
 // Export only the active config - this makes Knex CLI much more reliable 
 // when environment variables are passed through sudo/Docker.
-module.exports = configs[nodeEnv] || configs.development;
+module.exports = activeConfig;
