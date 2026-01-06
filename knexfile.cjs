@@ -5,18 +5,21 @@ console.error(`!!! KNEXFILE LOADING. NODE_ENV is: "${process.env.NODE_ENV}"`);
 const dotenv = require('dotenv');
 const path = require('path');
 const nodeEnv = (process.env.NODE_ENV || 'development').trim().toLowerCase();
-dotenv.config({ path: path.join(__dirname, `.env.${nodeEnv}`) });
+
+const envPath = path.join(__dirname, `.env.${nodeEnv}`);
+console.error(`!!! Attempting to load: ${envPath}`);
+dotenv.config({ path: envPath });
 dotenv.config();
 
 const configs = {
   development: {
     client: 'pg',
     connection: {
-      host: process.env.PGHOST || 'postgres',
+      host: process.env.PGHOST || '127.0.0.1',
       port: process.env.PGPORT || 5432,
       user: process.env.PGUSER || 'postgres',
       password: process.env.PGPASSWORD || '',
-      database: process.env.PGDATABASE || 'mtg_postgres_db'
+      database: process.env.PGDATABASE || 'mtg_dev'
     },
     migrations: {
       directory: './migrations',
