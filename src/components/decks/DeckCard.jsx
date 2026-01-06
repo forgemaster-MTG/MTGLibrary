@@ -54,12 +54,19 @@ const DeckCard = ({ deck }) => {
                         </div>
                     )}
 
-                    {/* Mockup Badge */}
-                    {deck.is_mockup && (
-                        <div className="absolute top-3 left-3 px-2 py-1 bg-orange-500/20 text-orange-400 border border-orange-500/30 backdrop-blur-md rounded text-[10px] font-black uppercase tracking-widest shadow-lg">
-                            Mockup
-                        </div>
-                    )}
+                    {/* Badges (Mockup, Precon) */}
+                    <div className="absolute top-3 left-3 flex flex-col gap-1">
+                        {deck.tags && deck.tags.includes('Precon') && (
+                            <div className="px-2 py-1 bg-teal-500/20 text-teal-400 border border-teal-500/30 backdrop-blur-md rounded text-[10px] font-black uppercase tracking-widest shadow-lg text-center">
+                                Precon
+                            </div>
+                        )}
+                        {deck.is_mockup && (
+                            <div className="px-2 py-1 bg-orange-500/20 text-orange-400 border border-orange-500/30 backdrop-blur-md rounded text-[10px] font-black uppercase tracking-widest shadow-lg text-center">
+                                Mockup
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* Content Area */}

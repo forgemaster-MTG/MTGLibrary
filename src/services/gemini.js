@@ -89,6 +89,49 @@ ${context}
         throw lastError || new Error("Failed to connect to any Gemini model.");
     },
 
+    /**
+     * Spruces up a text input (Ticket or Epic description)
+     * @param {string} apiKey 
+     * @param {string} text 
+     * @param {string} type 'Ticket' | 'Epic' | 'General'
+     */
+    async spruceUpText(apiKey, text, type = 'General') {
+        const prompt = `
+            You are an expert project manager and communications specialist.
+            Please rewrite the following ${type} description to be more professional, clear, and structured.
+            
+            - Use **HTML** formatting (<b>, <ul>, <li>, <p>, <br>).
+            - Keep it concise but detailed enough.
+            - Correct any grammar or spelling mistakes.
+            - If it's a bug report, ensure steps are clear.
+            - If it's a feature request (Epic), ensure the value/goal is clear.
+            - Do NOT wrap the output in markdown code blocks or quotes. Just return the raw HTML string.
+            
+            Original Text:
+            "${text}"
+        `;
+
+        try {
+            const response = await this.sendMessage(apiKey, [], prompt);
+            // Clean up if Gemini adds markdown blocks despite instruction
+            let clean = response.trim();
+            if (clean.startsWith('```html')) clean = clean.replace('```html', '').replace('```', '');
+            else if (clean.startsWith('```')) clean = clean.replace('```', '').replace('```', '');
+            return clean.trim();
+        } catch (error) {
+            console.error("AI Spruce Up Error:", error);
+            throw new Error("Failed to spruce up text.");
+        }
+    },
+
+    /**
+     * Generate a deck strategy based on commander and playstyle
+     * @param {string} apiKey 
+     * @param {string} commanderName 
+     * @param {string} playstyle 
+     * @param {Array} existingCards 
+     * @param {Object} helper 
+     */
     async getDeckStrategy(apiKey, commanderName, playstyle = null, existingCards = [], helper = null) {
         if (!apiKey) throw new Error("API Key is missing.");
 
@@ -97,7 +140,8 @@ ${context}
 
         const hasExistingCards = existingCards && existingCards.length > 0;
         const deckListContext = hasExistingCards
-            ? `Existing Deck List Analysis:\n${existingCards.map(c => `- ${c.name} (${c.type_line || 'Unknown'})`).join('\n')}`
+            ? `Existing Deck List Analysis:\n${existingCards.map(c => `- ${c.countInDeck || 1}x ${c.name} (${c.type_line || 'Unknown'})`).join('\n')}\n` +
+            `\nTotal Lands: ${existingCards.reduce((acc, c) => (c.type_line?.toLowerCase().includes('land') ? acc + (c.countInDeck || 1) : acc), 0)}`
             : "This is a NEW deck build.";
 
         let playstyleContext = "";
@@ -191,9 +235,13 @@ ${context}
         `;
 
         try {
+            console.log('[GeminiService] sending prompt to Gemini...');
             const response = await this.sendMessage(apiKey, [], prompt);
+            console.log('[GeminiService] raw response length:', response?.length);
             const cleanJson = response.replace(/```json/g, '').replace(/```/g, '').trim();
-            return JSON.parse(cleanJson);
+            const parsed = JSON.parse(cleanJson);
+            console.log('[GeminiService] parsed strategy:', parsed);
+            return parsed;
         } catch (error) {
             console.error("AI Strategy Error:", error);
             throw new Error("Failed to generate strategy. Please try again.");
@@ -655,7 +703,8 @@ ${context}
         const helperName = helper?.name || 'The Deck Doctor';
         const helperPersonality = helper?.personality ? `Adopt the persona of ${helperName}: ${helper.personality}` : 'Personality: Clinical, precise, but encouraging.';
 
-        const deckContext = deckList.map(c => `- ${c.name} (${c.type_line})`).join('\n');
+        const deckContext = deckList.map(c => `- ${c.countInDeck || 1}x ${c.name} (${c.type_line})`).join('\n') +
+            `\n\nTotal Lands: ${deckList.reduce((acc, c) => (c.type_line?.toLowerCase().includes('land') ? acc + (c.countInDeck || 1) : acc), 0)}`;
 
         const systemMessage = `
             You are ${helperName}, an expert Magic: The Gathering deck consultant.

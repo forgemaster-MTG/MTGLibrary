@@ -56,7 +56,13 @@ export const deckService = {
         return api.put(`/api/decks/${deckId}`, data);
     },
 
-    async deleteDeck(userId, deckId) {
-        return api.delete(`/api/decks/${deckId}`);
+    async deleteDeck(userId, deckId, options = {}) {
+        const query = new URLSearchParams(options).toString();
+        return api.delete(`/api/decks/${deckId}?${query}`);
+    },
+
+    async batchRemoveCards(userId, deckId, cardIds, action = 'remove') {
+        // action: 'remove' (return to binder) or 'delete' (delete from DB)
+        return api.delete(`/api/decks/${deckId}/cards?action=${action}`, { cardIds });
     }
 };

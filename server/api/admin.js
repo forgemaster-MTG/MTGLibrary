@@ -179,4 +179,135 @@ router.post('/sync', async (req, res) => {
     }
 });
 
+
+import multer from 'multer';
+const upload = multer({ storage: multer.memoryStorage() });
+
+// POST /admin/precons/upload
+router.post('/precons/upload', upload.single('file'), async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+        const jsonString = req.file.buffer.toString('utf8');
+        let rawData;
+        try {
+            rawData = JSON.parse(jsonString);
+        } catch (e) {
+            return res.status(400).json({ error: 'Invalid JSON file' });
+        }
+
+        // Handle MTGJSON structure (data wrapper) or direct object
+        const deckPayload = rawData.data || rawData;
+
+        // Determine Name
+        let name = deckPayload.name;
+        if (!name && req.file.originalname) {
+            name = req.file.originalname.replace(/\.json$/i, '').replace(/_/g, ' ');
+        }
+        if (!name) name = 'Untitled Precon';
+
+        // Determine Code/Set
+        const setCode = deckPayload.code || deckPayload.set_code || deckPayload.meta?.set_code || 'UNK';
+
+        // Generate stable ID
+        const firestoreId = `precon_${setCode}_${name.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()}`;
+
+        // Aggregate Cards to calculate stats and prepare for insert
+        const allCards = [];
+        const processCards = (list, zone) => {
+            if (!Array.isArray(list)) return;
+            list.forEach(c => {
+                allCards.push({ ...c, zone });
+            });
+        };
+
+        processCards(deckPayload.commander, 'commander');
+        processCards(deckPayload.mainBoard, 'mainBoard');
+        processCards(deckPayload.sideBoard, 'sideBoard');
+
+        const cardCount = allCards.reduce((acc, c) => acc + (c.count || 1), 0);
+
+        // Derive colors from commander or cards
+        let colors = deckPayload.colorIdentity || []; // if top level
+        if (!colors.length || colors.length === 0) {
+            // infer from commander cards
+            const commanders = allCards.filter(c => c.zone === 'commander');
+            const colorSet = new Set();
+            commanders.forEach(c => {
+                if (c.colorIdentity) c.colorIdentity.forEach(color => colorSet.add(color));
+                else if (c.colors) c.colors.forEach(color => colorSet.add(color));
+            });
+            colors = Array.from(colorSet);
+        }
+
+        // Pick Image
+        let imageUri = null;
+        const cmd = allCards.find(c => c.zone === 'commander');
+        if (cmd && cmd.identifiers && cmd.identifiers.scryfallId) {
+            // We might effectively need to fetch this if we want the actual image URL now, 
+            // OR we rely on the frontend/db resolving it later. 
+            // But `precons` table usually stores a cache `image_uri`.
+            // Let's see if we can get it from identifiers or if we leave it null.
+            // The sample JSON doesn't have image URIs directly, only identifiers.
+            // We will leave it null, or if we have it in our DB, we could query it.
+            // For now, let's leave valid image_uri logic if we can, otherwise null.
+            // We'll update it separately or let frontend handle it.
+        }
+
+        const commanderName = cmd ? cmd.name : null;
+
+        await knex.transaction(async (trx) => {
+            // 1. Insert Precon
+            await trx('precons').insert({
+                firestore_id: firestoreId,
+                name: name,
+                set_code: setCode,
+                type: deckPayload.type || 'Commander',
+                card_count: cardCount,
+                colors: colors,
+                commander_name: commanderName,
+                data: deckPayload, // Store original full data
+                created_at: new Date(),
+                updated_at: new Date()
+            }).onConflict('firestore_id').merge();
+
+            // Get the integer ID of the inserted/updated precon
+            const preconRecord = await trx('precons').where({ firestore_id: firestoreId }).first();
+            const preconId = preconRecord.id;
+
+            // 2. Clear existing cards for this precon (replace logic)
+            await trx('precon_cards').where({ precon_id: preconId }).del();
+
+            // 3. Insert Cards
+            if (allCards.length > 0) {
+                // Batch insert?
+                const rows = allCards.map(c => ({
+                    precon_id: preconId,
+                    scryfall_id: c.identifiers?.scryfallId || c.uuid, // Fallback to uuid if scryfallId missing, though join checks scryfallId
+                    count: c.count || 1, // field is 'count' in DB? check schema or precons.js. 'quantity' in precons.js select
+                    // wait, precons.js select uses `pc.quantity`. The `processCards` pushed object has `count`.
+                    quantity: c.count || 1,
+                    zone: c.zone,
+                    card_name: c.name,
+                    set_code: c.setCode,
+                    collector_number: c.number,
+                    finish: (c.finishes && c.finishes[0]) || 'nonfoil'
+                }));
+
+                // Chunking to be safe
+                const CHUNK_SIZE = 100;
+                for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
+                    await trx('precon_cards').insert(rows.slice(i, i + CHUNK_SIZE));
+                }
+            }
+        });
+
+        res.json({ success: true, firestoreId, name, cardCount });
+
+    } catch (err) {
+        console.error('[Admin] Upload Precon Error', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 export default router;

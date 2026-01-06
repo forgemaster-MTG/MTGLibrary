@@ -10,7 +10,6 @@ import CardSearchModal from '../components/CardSearchModal';
 import ConfirmationModal from '../components/modals/ConfirmationModal';
 
 import AddFromCollectionModal from '../components/modals/AddFromCollectionModal';
-import DeckCharts from '../components/DeckCharts';
 import DeckAdvancedStats from '../components/DeckAdvancedStats';
 import DeckStatsModal from '../components/modals/DeckStatsModal';
 import DeckStrategyModal from '../components/modals/DeckStrategyModal';
@@ -70,6 +69,53 @@ const DeckDetailsPage = () => {
 
     // Partner State
     const [activeCommanderIndex, setActiveCommanderIndex] = useState(0); // 0 = Main, 1 = Partner
+    const [deleteCards, setDeleteCards] = useState(false);
+    const [isManageMode, setIsManageMode] = useState(false);
+    const [selectedCardIds, setSelectedCardIds] = useState(new Set());
+
+    const toggleCardSelection = (id) => {
+        const newSet = new Set(selectedCardIds);
+        if (newSet.has(id)) {
+            newSet.delete(id);
+        } else {
+            newSet.add(id);
+        }
+        setSelectedCardIds(newSet);
+    };
+
+    const handleSelectAll = () => {
+        if (selectedCardIds.size === deckCards.length) {
+            setSelectedCardIds(new Set());
+        } else {
+            setSelectedCardIds(new Set(deckCards.map(c => c.id)));
+        }
+    };
+
+    const handleBulkAction = async () => {
+        if (selectedCardIds.size === 0) return;
+
+        const action = deck.is_mockup ? 'delete' : 'remove'; // Delete from DB for mockups, remove to binder for decks
+        const count = selectedCardIds.size;
+
+        if (!window.confirm(`Are you sure you want to ${action === 'delete' ? 'delete' : 'remove'} ${count} cards?`)) return;
+
+        try {
+            await deckService.batchRemoveCards(currentUser.uid, deckId, Array.from(selectedCardIds), action);
+            addToast(`Successfully removed ${count} cards`, 'success');
+            setIsManageMode(false);
+            setSelectedCardIds(new Set());
+            // Ideally refetch deck or optimistic update. 
+            // Trigger refresh via some method if available, or just reload page?
+            // Existing `useDeck` hook poll? Or force update.
+            // Let's assume the mutation triggers re-render if we update local state?
+            // We need to invalidate query or update local list.
+            // For now, reload window is safest or refetch.
+            window.location.reload();
+        } catch (err) {
+            console.error(err);
+            addToast('Failed to remove cards', 'error');
+        }
+    };
     const [flippedCards, setFlippedCards] = useState({}); // { [id]: boolean }
     const [fixingData, setFixingData] = useState(false); // Loading state for fetching back face
 
@@ -97,7 +143,7 @@ const DeckDetailsPage = () => {
         updateSettings({ deckViewMode: mode });
     };
 
-    const { deck, cards: deckCards, loading: deckLoading, error: deckError } = useDeck(deckId);
+    const { deck, cards: deckCards, loading: deckLoading, error: deckError, refresh: refreshDeck } = useDeck(deckId);
     const { decks } = useDecks();
     const { cards: collection } = useCollection();
 
@@ -492,23 +538,41 @@ const DeckDetailsPage = () => {
         }
     };
 
+    const deleteCardsRef = React.useRef(false);
+    const [renderDeleteCheckbox, setRenderDeleteCheckbox] = useState(false);
+
     const handleDeleteDeck = () => {
+        deleteCardsRef.current = false; // Reset
+        setRenderDeleteCheckbox(true);
         setConfirmModal({
             isOpen: true,
             title: 'Delete Deck',
             message: 'Are you sure you want to delete this deck? Cards inside will be returned to your collection binder.',
             onConfirm: async () => {
                 try {
-                    await deckService.deleteDeck(currentUser.uid, deckId);
+                    await deckService.deleteDeck(currentUser.uid, deckId, { deleteCards: deleteCardsRef.current });
                     addToast('Deck deleted successfully', 'success');
                     navigate('/decks');
                 } catch (err) {
                     console.error(err);
                     addToast('Failed to delete deck', 'error');
+                } finally {
+                    setRenderDeleteCheckbox(false);
                 }
             }
         });
     };
+
+
+    // Changing approach: Render ConfirmationModal separately with dynamic props
+    // We already have `confirmModal` state. We can add a child rendering function or just use state directly if we render the modal in JSX.
+    // The current pattern uses a single state object `confirmModal` to drive the modal.
+    // To support checkboxes, we need to render the checkbox IN the modal.
+    // So we should modify how we RENDER ConfirmationModal in the return statement.
+
+    // Let's scroll down to where ConfirmationModal is rendered.
+    // It's likely at the bottom.
+
 
     const getArtCrop = (card) => {
         if (!card) return '';
@@ -556,7 +620,7 @@ const DeckDetailsPage = () => {
             <div className="max-w-[1600px] mx-auto p-4 md:p-6 space-y-6 animate-fade-in pb-24 relative z-10">
 
 
-                <div className="sticky top-16 z-40 px-4 md:px-8 py-3 bg-gray-950/40 backdrop-blur-3xl border-b border-white/5 shadow-2xl transition-all duration-300 rounded-b-3xl mx-2">
+                <div className="sticky top-16 z-40 px-4 md:px-8 py-4 bg-gradient-to-r from-gray-900/95 via-gray-900/80 to-gray-900/40 backdrop-blur-3xl border-b border-white/10 shadow-2xl transition-all duration-300 rounded-b-3xl mx-2">
                     <div className="max-w-[1600px] mx-auto flex flex-col lg:flex-row justify-between items-center gap-6">
                         {/* Left: Identity */}
                         <div className="flex items-center gap-6 w-full lg:w-auto">
@@ -612,7 +676,7 @@ const DeckDetailsPage = () => {
                                                                 key={color}
                                                                 src={colorIdentityMap[color]}
                                                                 alt={color}
-                                                                className="w-4 h-4 shadow-sm"
+                                                                className="w-6 h-6 shadow-sm"
                                                             />
                                                         ));
                                                     })()
@@ -627,6 +691,11 @@ const DeckDetailsPage = () => {
                                         <span className="bg-orange-600/20 text-orange-400 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-orange-500/30">
                                             {deck.format || 'Commander'}
                                         </span>
+                                        {deck.tags && deck.tags.includes('Precon') && (
+                                            <span className="bg-teal-600/20 text-teal-400 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-teal-500/30">
+                                                Precon
+                                            </span>
+                                        )}
                                         {deck.is_mockup && (
                                             <span className="bg-red-600/20 text-red-400 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-red-500/30">
                                                 Mockup
@@ -701,21 +770,23 @@ const DeckDetailsPage = () => {
                                     <button className="p-2.5 bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white rounded-xl border border-gray-700 transition-all shadow-md">
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg>
                                     </button>
-                                    <div className="absolute right-0 top-full mt-2 w-48 bg-gray-900 rounded-xl shadow-2xl border border-gray-800 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all z-50 overflow-hidden">
-                                        <button
-                                            onClick={handleToggleMockup}
-                                            className="w-full text-left px-4 py-3 text-sm hover:bg-gray-800 flex items-center gap-2 transition-colors border-b border-gray-800 text-gray-300"
-                                        >
-                                            <svg className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                                            {deck.is_mockup ? 'Switch to Collection' : 'Switch to Mockup'}
-                                        </button>
-                                        <button
-                                            onClick={handleDeleteDeck}
-                                            className="w-full text-left px-4 py-3 text-sm hover:bg-red-900/30 text-red-400 flex items-center gap-2 transition-colors"
-                                        >
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                            Delete Deck
-                                        </button>
+                                    <div className="absolute right-0 top-full pt-2 w-48 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-200 delay-500 group-hover:delay-0 z-50">
+                                        <div className="bg-gray-900 rounded-xl shadow-2xl border border-gray-800 overflow-hidden">
+                                            <button
+                                                onClick={handleToggleMockup}
+                                                className="w-full text-left px-4 py-3 text-sm hover:bg-gray-800 flex items-center gap-2 transition-colors border-b border-gray-800 text-gray-300"
+                                            >
+                                                <svg className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                                {deck.is_mockup ? 'Switch to Collection' : 'Switch to Mockup'}
+                                            </button>
+                                            <button
+                                                onClick={handleDeleteDeck}
+                                                className="w-full text-left px-4 py-3 text-sm hover:bg-red-900/30 text-red-400 flex items-center gap-2 transition-colors"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                Delete Deck
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -778,7 +849,39 @@ const DeckDetailsPage = () => {
                                     </div>
                                 )}
                             </h3>
-                            <div className="flex bg-gray-900/50 rounded-lg p-1 gap-1 border border-gray-700">
+                            <div className="flex bg-gray-900/50 rounded-lg p-1 gap-1 border border-gray-700 items-center">
+                                {isManageMode ? (
+                                    <div className="flex items-center gap-2 mr-2 animate-fade-in">
+                                        <button
+                                            onClick={handleSelectAll}
+                                            className="px-2 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded text-xs px-2 mr-2 border border-gray-600"
+                                        >
+                                            {selectedCardIds.size === deckCards.length ? 'Deselect All' : 'Select All'}
+                                        </button>
+                                        <span className="text-xs text-indigo-300 font-bold ml-2">{selectedCardIds.size} Selected</span>
+                                        <button
+                                            onClick={handleBulkAction}
+                                            disabled={selectedCardIds.size === 0}
+                                            className="px-3 py-1 bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/30 rounded text-xs font-bold uppercase transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {deck.is_mockup ? 'Delete' : 'Remove'}
+                                        </button>
+                                        <button
+                                            onClick={() => setIsManageMode(false)}
+                                            className="p-1 px-2 text-gray-400 hover:text-white text-xs"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={() => setIsManageMode(true)}
+                                        className="text-xs font-bold text-gray-400 hover:text-indigo-400 px-3 transition-colors uppercase mr-1"
+                                    >
+                                        Select
+                                    </button>
+                                )}
+                                <div className="w-px h-4 bg-gray-700 mx-1" />
                                 <button
                                     onClick={() => setViewMode('grid')}
                                     className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'text-white bg-gray-700 shadow-sm' : 'text-gray-400 hover:text-white'}`}
@@ -825,14 +928,34 @@ const DeckDetailsPage = () => {
                                                         showOwnerTag={true}
                                                         hideDeckTag={true}
                                                         hideOwnerTag={true}
+                                                        selectMode={isManageMode}
+                                                        isSelected={selectedCardIds.has(card.id)}
+                                                        onToggleSelect={toggleCardSelection}
                                                     />
                                                 ))}
                                             </div>
                                         ) : (
                                             <div className="space-y-1">
                                                 {cards.map((card, idx) => (
-                                                    <div key={card.id + idx} className="flex items-center justify-between p-2 hover:bg-gray-700/50 rounded-lg transition-colors text-sm group border border-transparent hover:border-gray-700">
+                                                    <div
+                                                        key={card.id + idx}
+                                                        className={`flex items-center justify-between p-2 hover:bg-gray-700/50 rounded-lg transition-colors text-sm group border ${selectedCardIds.has(card.id) ? 'bg-indigo-900/20 border-indigo-500/50' : 'border-transparent hover:border-gray-700'}`}
+                                                        onClick={(e) => {
+                                                            if (isManageMode) {
+                                                                e.stopPropagation();
+                                                                toggleCardSelection(card.id);
+                                                            }
+                                                        }}
+                                                    >
                                                         <div className="flex items-center gap-3">
+                                                            {isManageMode && (
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={selectedCardIds.has(card.id)}
+                                                                    readOnly
+                                                                    className="rounded bg-gray-700 border-gray-600 text-indigo-500 focus:ring-0 w-4 h-4 cursor-pointer"
+                                                                />
+                                                            )}
                                                             <span className="font-mono text-gray-500 w-6 text-center bg-gray-900 rounded py-0.5 text-xs">{card.countInDeck}</span>
                                                             <div className="flex items-center gap-2">
                                                                 <span className={`font-medium ${card.finish === 'foil' ? 'text-yellow-200' : 'text-gray-200'}`}>{card.name}</span>
@@ -846,7 +969,7 @@ const DeckDetailsPage = () => {
                                                             <span className="hidden md:inline-block text-xs text-gray-500">{card.data?.type_line || card.type_line || ''}</span>
                                                             <span className="font-mono w-16 text-right text-xs">{card.mana_cost || ''}</span>
                                                             <span className="font-mono w-16 text-right text-green-400/80 text-xs">${(parseFloat(card.prices?.[card.finish === 'foil' ? 'usd_foil' : 'usd']) || 0).toFixed(2)}</span>
-                                                            {canEdit && (
+                                                            {canEdit && !isManageMode && (
                                                                 <button
                                                                     onClick={() => handleRemoveFromDeck(card.firestoreId || card.id, card.name)}
                                                                     className="text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -1007,106 +1130,18 @@ const DeckDetailsPage = () => {
 
 
 
-                {/* Search Modal */}
-                <CardSearchModal
-                    isOpen={isSearchOpen}
-                    onClose={() => setIsSearchOpen(false)}
-                    onAddCard={handleAddToDeck}
-                />
-
-                {/* Confirmation Modal */}
-                <ConfirmationModal
-                    isOpen={confirmModal.isOpen}
-                    onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
-                    onConfirm={confirmModal.onConfirm}
-                    title={confirmModal.title}
-                    message={confirmModal.message}
-                    isDanger={true}
-                    confirmText="Remove"
-                />
-
-
-                {/* Strategy Blueprint Modal */}
-                <DeckStrategyModal
-                    isOpen={isStrategyModalOpen}
-                    onClose={() => setIsStrategyModalOpen(false)}
-                    deck={deck}
-                    cards={deckCards}
-                />
-                {/* Add From Collection Modal */}
-                <AddFromCollectionModal
-                    isOpen={isAddCollectionOpen}
-                    onClose={() => setIsAddCollectionOpen(false)}
-                    deck={deck}
-                    deckCards={deckCards}
-                />
-                {/* Stats Modal */}
-                <DeckStatsModal
-                    isOpen={isStatsModalOpen}
-                    onClose={() => setIsStatsModalOpen(false)}
-                    cards={deckCards}
-                    deckName={deck.name}
-                />
+                {/* Modals moved outside to prevent transform context issues */}
 
                 {/* Mobile FAB / Action Bar */}
-                <div className="lg:hidden fixed bottom-24 left-1/2 -translate-x-1/2 z-[60] w-[90%] max-w-sm">
-                    <div className="bg-gray-950/80 backdrop-blur-2xl px-4 py-3 rounded-2xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-center justify-between gap-3 animate-slide-up">
-                        <button
-                            onClick={() => setIsAddCollectionOpen(true)}
-                            className="flex-1 bg-green-600 hover:bg-green-500 text-white font-black py-3 px-4 rounded-xl shadow-lg shadow-green-900/40 transition-all flex items-center justify-center gap-2 uppercase tracking-widest text-[10px]"
-                        >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-                            Collection
-                        </button>
+                {/* ... (Existing mobile FAB code if needed or kept as is) ... */}
 
-                        <div className="flex items-center gap-2">
-                            <button
-                                onClick={() => setIsSearchOpen(true)}
-                                className="p-3 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-xl border border-gray-700 transition-all shadow-md active:scale-95"
-                            >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                            </button>
-
-                            <div className="w-px h-8 bg-gray-800 mx-1" />
-
-                            <div className="relative group">
-                                <button className="p-3 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-xl border border-gray-700 transition-all shadow-md active:scale-95">
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg>
-                                </button>
-                                <div className="absolute right-0 bottom-full mb-3 w-48 bg-gray-900 rounded-xl shadow-2xl border border-gray-800 opacity-0 pointer-events-none group-focus-within:opacity-100 group-focus-within:pointer-events-auto transition-all z-[70] overflow-hidden">
-                                    <button
-                                        onClick={handleExportDeck}
-                                        className="w-full text-left px-4 py-3 text-xs hover:bg-gray-800 text-gray-300 flex items-center gap-2 border-b border-gray-800"
-                                    >
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                                        Export JSON
-                                    </button>
-                                    <button
-                                        onClick={handleToggleMockup}
-                                        className="w-full text-left px-4 py-3 text-xs hover:bg-gray-800 text-gray-300 flex items-center gap-2 border-b border-gray-800"
-                                    >
-                                        <svg className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                                        {deck.is_mockup ? 'To Collection' : 'To Mockup'}
-                                    </button>
-                                    <button
-                                        onClick={handleDeleteDeck}
-                                        className="w-full text-left px-4 py-3 text-xs hover:bg-red-900/30 text-red-400 flex items-center gap-2 transition-colors"
-                                    >
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                        Delete Deck
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
             {/* Share Modal */}
             <ShareModal
                 isOpen={isShareModalOpen}
                 onClose={() => setIsShareModalOpen(false)}
                 deck={deck}
-                onUpdateDeck={(updated) => Object.assign(deck, updated)} // Simple mutation for immediate UI update, ideally use useDeck refresh
+                onUpdateDeck={(updated) => Object.assign(deck, updated)}
             />
 
             {/* Doctor Modal */}
@@ -1116,6 +1151,62 @@ const DeckDetailsPage = () => {
                 deck={deck}
                 cards={deckCards}
                 isOwner={canEdit}
+            />
+
+            {/* Moved Modals */}
+            {/* Search Modal */}
+            <CardSearchModal
+                isOpen={isSearchOpen}
+                onClose={() => setIsSearchOpen(false)}
+                onAddCard={handleAddToDeck}
+            />
+
+            {/* Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+                onConfirm={confirmModal.onConfirm}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                isDanger={true}
+                confirmText="Remove"
+            >
+                {renderDeleteCheckbox && (
+                    <div className="flex items-center gap-2 mb-4 bg-white/5 p-3 rounded-lg border border-white/10">
+                        <input
+                            type="checkbox"
+                            id="deleteCardsCheckbox"
+                            className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-red-600 focus:ring-red-500"
+                            onChange={(e) => deleteCardsRef.current = e.target.checked}
+                        />
+                        <label htmlFor="deleteCardsCheckbox" className="text-gray-300 text-sm select-none">
+                            Also remove these cards from my {deck.is_mockup ? 'wishlist' : 'collection binder'}
+                        </label>
+                    </div>
+                )}
+            </ConfirmationModal>
+
+            {/* Strategy Blueprint Modal */}
+            <DeckStrategyModal
+                isOpen={isStrategyModalOpen}
+                onClose={() => setIsStrategyModalOpen(false)}
+                deck={deck}
+                cards={deckCards}
+                onStrategyUpdate={() => refreshDeck(true)}
+            />
+            {/* Add From Collection Modal */}
+            <AddFromCollectionModal
+                isOpen={isAddCollectionOpen}
+                onClose={() => setIsAddCollectionOpen(false)}
+                deck={deck}
+                deckCards={deckCards}
+            />
+            {/* Stats Modal */}
+            <DeckStatsModal
+                isOpen={isStatsModalOpen}
+                onClose={() => setIsStatsModalOpen(false)}
+                cards={deckCards}
+                deckName={deck.name}
             />
         </div>
     );

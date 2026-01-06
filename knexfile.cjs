@@ -1,6 +1,12 @@
 /**
  * @type { Object.<string, import("knex").Knex.Config> }
  */
+const dotenv = require('dotenv');
+const path = require('path');
+const nodeEnv = (process.env.NODE_ENV || 'development').trim().toLowerCase();
+dotenv.config({ path: path.join(__dirname, `.env.${nodeEnv}`) });
+dotenv.config();
+
 module.exports = {
   development: {
     client: 'pg',

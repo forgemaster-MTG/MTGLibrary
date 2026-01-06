@@ -11,6 +11,7 @@ const DeckDoctorModal = ({ isOpen, onClose, deck, cards, isOwner }) => {
     const { userProfile, currentUser } = useAuth();
     const { addToast } = useToast();
     const navigate = useNavigate();
+    const helperName = userProfile?.settings?.helper?.name || 'The Oracle';
 
     const [loading, setLoading] = useState(false);
     const [report, setReport] = useState(null);
@@ -21,7 +22,7 @@ const DeckDoctorModal = ({ isOpen, onClose, deck, cards, isOwner }) => {
     const runDiagnosis = async () => {
         setLoading(true);
         try {
-            const apiKey = userProfile?.settings?.openAIKey; // Using "openAIKey" field for Gemini per existing convention
+            const apiKey = userProfile?.settings?.geminiApiKey; // Use consistent Gemini API key
             if (!apiKey) {
                 addToast("Please save your API Key in Settings > AI first.", "error");
                 setLoading(false);
@@ -140,10 +141,14 @@ const DeckDoctorModal = ({ isOpen, onClose, deck, cards, isOwner }) => {
                 {/* Header */}
                 <div className="flex justify-between items-start mb-6">
                     <div>
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[10px] font-black font-mono text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">System</span>
+                            <span className="text-[10px] font-black font-mono text-gray-400 uppercase tracking-widest bg-white/5 px-2 py-0.5 rounded border border-white/5">{helperName}</span>
+                        </div>
                         <h2 className="text-2xl font-black text-white italic uppercase flex items-center gap-2">
                             <span className="text-3xl">🩺</span> Deck Doctor
                         </h2>
-                        <p className="text-gray-400 text-sm">AI Analysis & Diagnosis</p>
+                        <p className="text-gray-400 text-sm">{helperName}'s Analysis & Diagnosis</p>
                     </div>
                     <button onClick={onClose} className="text-gray-500 hover:text-white">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>

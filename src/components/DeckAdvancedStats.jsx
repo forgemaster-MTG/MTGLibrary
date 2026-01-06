@@ -103,9 +103,9 @@ const DeckAdvancedStats = ({ cards = [] }) => {
         const maxVal = Math.max(...entries.map(e => e[1]), 1);
 
         return (
-            <div className={`flex items-end gap-1 ${height} w-full px-2`}>
+            <div className={`flex gap-1 ${height} w-full px-2`}>
                 {entries.map(([label, val]) => (
-                    <div key={label} className="flex-1 flex flex-col items-center group relative">
+                    <div key={label} className="flex-1 h-full flex flex-col justify-end items-center group relative">
                         {val > 0 && (
                             <div
                                 className={`w-full ${colorClass} rounded-t transition-all duration-500 group-hover:brightness-125`}

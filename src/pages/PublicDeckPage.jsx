@@ -259,13 +259,13 @@ const PublicDeckPage = () => {
                 className="fixed inset-0 z-0 bg-cover bg-center"
                 style={{ backgroundImage: `url(${commanderImage})` }}
             >
-                <div className="absolute inset-0 bg-gray-950/70 backdrop-blur-sm" />
+                <div className="absolute inset-0 bg-gray-950/20" />
             </div>
 
-            <div className="relative z-10 max-w-7xl mx-auto px-4 py-8 pb-24">
+            <div className="relative z-10 max-w-7xl mx-auto px-4 py-8 pb-24 pt-20">
 
                 {/* Header Card */}
-                <div className="bg-gray-900/40 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-8 mb-8 shadow-2xl">
+                <div className="bg-gradient-to-r from-gray-900/90 via-gray-900/60 to-white/5 backdrop-blur-md border border-white/10 rounded-3xl p-6 md:p-8 mb-8 shadow-2xl">
                     <div className="flex flex-col md:flex-row justify-between gap-6 items-start md:items-center">
                         <div>
                             <div className="flex items-center gap-3 mb-2">
@@ -286,7 +286,7 @@ const PublicDeckPage = () => {
                                         const partnerColors = deck?.commander_partner?.color_identity || [];
                                         const allColors = [...new Set([...mainColors, ...partnerColors])];
                                         return allColors.map(c => (
-                                            <img key={c} src={colorIdentityMap[c]} alt={c} className="w-4 h-4" />
+                                            <img key={c} src={colorIdentityMap[c]} alt={c} className="w-6 h-6" />
                                         ));
                                     })()}
                                 </div>
@@ -326,7 +326,7 @@ const PublicDeckPage = () => {
                         const isOver = kpi.target > 0 && kpi.current > kpi.target;
 
                         return (
-                            <div key={idx} className="bg-gray-900/40 p-3 rounded-xl border border-white/5 backdrop-blur-md shadow-lg">
+                            <div key={idx} className="bg-gray-950/20 p-3 rounded-xl border border-white/5 backdrop-blur-md shadow-lg">
                                 <div className="flex justify-between items-end mb-1">
                                     <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{kpi.label}</span>
                                     <span className={`text-xs font-mono font-bold ${isPerfect ? 'text-green-400' : isOver ? 'text-orange-400' : 'text-indigo-300'}`}>
@@ -351,7 +351,7 @@ const PublicDeckPage = () => {
                     <div className="flex-1 order-3 lg:order-1 space-y-8">
 
                         {/* DECKLIST GRID/TABLE AREA */}
-                        <div className="bg-gray-900/30 backdrop-blur-xl rounded-3xl border border-white/5 overflow-hidden">
+                        <div className="bg-gray-950/10 backdrop-blur-md rounded-3xl border border-white/5 overflow-hidden">
                             <div className="p-4 bg-white/5 border-b border-white/5 flex justify-between items-center">
                                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
                                     <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
@@ -404,7 +404,7 @@ const PublicDeckPage = () => {
 
                         {/* COMMANDER CARD */}
                         {deck.commander && (
-                            <div className="bg-gray-900/30 backdrop-blur-xl rounded-3xl border border-white/5 overflow-hidden p-6 relative">
+                            <div className="bg-gray-950/10 backdrop-blur-md rounded-3xl border border-white/5 overflow-hidden p-6 relative">
                                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 border-b border-white/5 pb-2">Commander</h3>
                                 <img
                                     src={activeCommander?.image_uris?.normal || activeCommander?.card_faces?.[0]?.image_uris?.normal || 'https://placehold.co/400x600'}
@@ -423,7 +423,7 @@ const PublicDeckPage = () => {
                         )}
 
                         {/* ANALYTICS SIDEBAR CARD */}
-                        <div className="bg-gray-900/30 backdrop-blur-xl rounded-3xl border border-white/5 overflow-hidden p-6 order-2">
+                        <div className="bg-gray-950/10 backdrop-blur-md rounded-3xl border border-white/5 overflow-hidden p-6 order-2">
                             <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-2">
                                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Analytics</h3>
                                 <div className="flex gap-2">
@@ -456,7 +456,7 @@ const PublicDeckPage = () => {
 
                         {/* Prompt to Join */}
                         {!currentUser && (
-                            <div className="bg-gradient-to-br from-indigo-900/40 to-purple-900/40 backdrop-blur-xl rounded-3xl border border-white/10 p-6 text-center">
+                            <div className="bg-gradient-to-br from-indigo-900/40 to-purple-900/40 backdrop-blur-md rounded-3xl border border-white/10 p-6 text-center">
                                 <h3 className="font-bold text-white mb-2">Build Your Own Decks</h3>
                                 <p className="text-xs text-gray-400 mb-4">Join MTG Forge to manage your collection, build decks with AI, and track prices.</p>
                                 <Link to="/login" className="block w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold shadow-lg shadow-indigo-900/20 transition-all text-sm">
