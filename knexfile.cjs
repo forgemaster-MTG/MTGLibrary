@@ -7,7 +7,7 @@ const nodeEnv = (process.env.NODE_ENV || 'development').trim().toLowerCase();
 dotenv.config({ path: path.join(__dirname, `.env.${nodeEnv}`) });
 dotenv.config();
 
-module.exports = {
+const configs = {
   development: {
     client: 'pg',
     connection: {
@@ -58,3 +58,7 @@ module.exports = {
     }
   }
 };
+
+// Export only the active config - this makes Knex CLI much more reliable 
+// when environment variables are passed through sudo/Docker.
+module.exports = configs[nodeEnv] || configs.development;
