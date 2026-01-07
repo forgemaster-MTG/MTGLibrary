@@ -1,25 +1,21 @@
 /**
  * @type { Object.<string, import("knex").Knex.Config> }
  */
-console.error(`!!! KNEXFILE LOADING. NODE_ENV is: "${process.env.NODE_ENV}"`);
 const dotenv = require('dotenv');
 const path = require('path');
 const nodeEnv = (process.env.NODE_ENV || 'development').trim().toLowerCase();
-
-const envPath = path.join(__dirname, `.env.${nodeEnv}`);
-console.error(`!!! Attempting to load: ${envPath}`);
-dotenv.config({ path: envPath });
+dotenv.config({ path: path.join(__dirname, `.env.${nodeEnv}`) });
 dotenv.config();
 
-const configs = {
+module.exports = {
   development: {
     client: 'pg',
     connection: {
-      host: process.env.PGHOST || '127.0.0.1',
+      host: process.env.PGHOST || 'postgres',
       port: process.env.PGPORT || 5432,
       user: process.env.PGUSER || 'postgres',
       password: process.env.PGPASSWORD || '',
-      database: process.env.PGDATABASE || 'mtg_dev'
+      database: process.env.PGDATABASE || 'mtg_postgres_db'
     },
     migrations: {
       directory: './migrations',
@@ -62,6 +58,3 @@ const configs = {
     }
   }
 };
-
-// Export the full object so server/db.js and Knex CLI can pick the environment
-module.exports = configs;
