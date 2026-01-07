@@ -5,7 +5,7 @@ import { QRCodeSVG } from 'qrcode.react';
 const QRShareModal = ({ isOpen, onClose }) => {
     if (!isOpen) return null;
 
-    const shareUrl = "http://mtg-forge/share/heir-to-the-hysteria-x26l";
+    const shareUrl = "https://mtg-forge.com/share/heir-to-the-hysteria-x26l";
 
     return createPortal(
         <div className="fixed inset-0 z-[1200] flex items-center justify-center p-4">

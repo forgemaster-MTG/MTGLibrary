@@ -5,7 +5,7 @@ import { GeminiService } from '../../services/gemini';
 import { deckService } from '../../services/deckService';
 import { useToast } from '../../contexts/ToastContext';
 
-const DeckStrategyModal = ({ isOpen, onClose, deck, cards = [] }) => {
+const DeckStrategyModal = ({ isOpen, onClose, deck, cards = [], onStrategyUpdate }) => {
     // ... existing hook logic ...
     const { userProfile, currentUser } = useAuth();
     const { addToast } = useToast();
@@ -32,7 +32,7 @@ const DeckStrategyModal = ({ isOpen, onClose, deck, cards = [] }) => {
 
     // ... variables ...
     const blueprint = deck.aiBlueprint || {};
-    const strategyHtml = blueprint.strategy || '<p class="text-gray-400 italic">No strategy generated for this deck yet. Ask the Oracle to analyze it.</p>';
+    const strategyHtml = blueprint.strategy || `<p class="text-gray-400 italic">No strategy generated for this deck yet. Ask ${helperName} to analyze it.</p>`;
     const theme = blueprint.theme || 'Uncharted Strategy';
 
     // Commander Logic
@@ -67,6 +67,7 @@ const DeckStrategyModal = ({ isOpen, onClose, deck, cards = [] }) => {
 
         setIsRerunning(true);
         try {
+            console.log('[DeckStrategy] requesting new strategy...');
             const newStrategy = await GeminiService.getDeckStrategy(
                 userProfile.settings.geminiApiKey,
                 deck.commander?.name || 'Unknown Commander',
@@ -74,8 +75,9 @@ const DeckStrategyModal = ({ isOpen, onClose, deck, cards = [] }) => {
                 cards,
                 deck.commander_partner?.name // Pass partner if exists
             );
+            console.log('[DeckStrategy] new strategy received:', newStrategy);
 
-            await deckService.updateDeck(currentUser.uid, deck.id, {
+            const updateRes = await deckService.updateDeck(currentUser.uid, deck.id, {
                 aiBlueprint: {
                     ...blueprint,
                     theme: newStrategy.theme,
@@ -83,9 +85,16 @@ const DeckStrategyModal = ({ isOpen, onClose, deck, cards = [] }) => {
                     layout: newStrategy.layout // Save standardized layout
                 }
             });
+            console.log('[DeckStrategy] update response:', updateRes);
 
             addToast("Strategy updated based on your current build!", "success");
-            window.location.reload();
+
+            // Wait a moment for DB propagation
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            if (onStrategyUpdate) {
+                await onStrategyUpdate();
+            }
         } catch (err) {
             console.error(err);
             addToast("Failed to rerun strategy analysis.", "error");
@@ -131,7 +140,7 @@ const DeckStrategyModal = ({ isOpen, onClose, deck, cards = [] }) => {
                             ) : (
                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                             )}
-                            {isRerunning ? 'Consulting Oracle...' : `Have ${helperName} Recreate Strategy`}
+                            {isRerunning ? `Consulting with ${helperName}...` : `Have ${helperName} Recreate Strategy`}
                         </button>
                         <div className="w-px h-8 bg-white/10 mx-2" />
                         <button

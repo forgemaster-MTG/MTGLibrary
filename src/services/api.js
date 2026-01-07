@@ -63,12 +63,32 @@ export const api = {
     get: (endpoint, params) => request('GET', endpoint, null, params),
     post: (endpoint, body) => request('POST', endpoint, body),
     put: (endpoint, body) => request('PUT', endpoint, body),
-    delete: (endpoint) => request('DELETE', endpoint),
+    delete: (endpoint, body) => request('DELETE', endpoint, body),
     getBugs: () => request('GET', '/bugs').then(res => res.content),
     updateUser: (id, data) => request('PUT', `/api/users/${id}`, data),
     getBinders: () => request('GET', '/api/binders'),
     getBinderCards: (id) => request('GET', `/api/binders/${id}/cards`),
     createBinder: (data) => request('POST', '/api/binders', data),
     updateBinder: (id, data) => request('PUT', `/api/binders/${id}`, data),
-    deleteBinder: (id) => request('DELETE', `/api/binders/${id}`)
+    deleteBinder: (id) => request('DELETE', `/api/binders/${id}`),
+
+    // Epics
+    getEpics: () => request('GET', '/api/epics'),
+    createEpic: (data) => request('POST', '/api/epics', data),
+    updateEpic: (id, data) => request('PUT', `/api/epics/${id}`, data),
+    reorderEpics: (order) => request('PUT', '/api/epics/reorder/batch', { order }),
+
+    // Tickets
+    getTickets: (params) => request('GET', '/api/tickets', null, params),
+    createTicket: (data) => request('POST', '/api/tickets', data),
+    updateTicket: (id, data) => request('PUT', `/api/tickets/${id}`, data),
+    deleteTicket: (id) => request('DELETE', `/api/tickets/${id}`),
+    voteTicket: (id) => request('POST', `/api/tickets/${id}/vote`),
+    getAssignees: () => request('GET', '/api/tickets/meta/assignees'),
+    getTicketNotes: (id) => request('GET', `/api/tickets/${id}/notes`),
+    addTicketNote: (id, note) => request('POST', `/api/tickets/${id}/notes`, { note }),
+
+    // Admin / Permissions
+    updateUserPermissions: (id, permissions, isAdmin) => request('PUT', `/api/users/${id}/permissions`, { permissions, isAdmin }),
+    getUsers: () => request('GET', '/api/users')
 };

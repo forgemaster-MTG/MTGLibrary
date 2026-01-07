@@ -9,9 +9,9 @@ export function useDeck(deckId) {
     const [error, setError] = useState(null);
     const { currentUser } = useAuth();
 
-    const refresh = async () => {
+    const refresh = async (silent = false) => {
         if (!currentUser || !deckId || deckId === 'new') return;
-        setLoading(true);
+        if (!silent) setLoading(true);
         try {
             // API returns { deck: {...}, items: [...] }
             const { deck: fetchedDeck, items } = await api.get(`/api/decks/${deckId}`);

@@ -176,7 +176,6 @@ router.put('/:id', async (req, res) => {
         const { deck_id, count, finish, price_bought, tags } = req.body;
         const update = {};
 
-        // Explicit check for undefined to allow setting to null or 0
         if (deck_id !== undefined) update.deck_id = deck_id;
         if (count !== undefined) update.count = count;
         if (finish !== undefined) update.finish = finish;
@@ -185,6 +184,24 @@ router.put('/:id', async (req, res) => {
         if (tags !== undefined) update.tags = JSON.stringify(tags);
 
         if (Object.keys(update).length === 0) return res.json(existing);
+
+        const removeTag = async (dId) => {
+            if (!dId) return;
+            const d = await knex('user_decks').where({ id: dId }).first();
+            if (d && d.tags) {
+                const t = typeof d.tags === 'string' ? JSON.parse(d.tags) : d.tags;
+                if (t.includes('Precon')) {
+                    await knex('user_decks').where({ id: dId }).update({ tags: JSON.stringify(t.filter(x => x !== 'Precon')) });
+                }
+            }
+        };
+
+        if (deck_id !== undefined && deck_id !== existing.deck_id) {
+            if (existing.deck_id) await removeTag(existing.deck_id);
+            if (deck_id) await removeTag(deck_id);
+        } else if (count !== undefined && count !== existing.count && existing.deck_id) {
+            await removeTag(existing.deck_id);
+        }
 
         const [row] = await knex('user_cards')
             .where({ id: req.params.id })
@@ -205,11 +222,41 @@ router.delete('/:id', async (req, res) => {
         if (!existing) return res.status(404).json({ error: 'not found' });
         if (existing.user_id !== req.user.id) return res.status(403).json({ error: 'unauthorized' });
 
+        if (existing.deck_id) {
+            const d = await knex('user_decks').where({ id: existing.deck_id }).first();
+            if (d && d.tags) {
+                const t = typeof d.tags === 'string' ? JSON.parse(d.tags) : d.tags;
+                if (t.includes('Precon')) {
+                    await knex('user_decks').where({ id: existing.deck_id }).update({ tags: JSON.stringify(t.filter(x => x !== 'Precon')) });
+                }
+            }
+        }
+
         await knex('user_cards').where({ id: req.params.id }).del();
         res.json({ success: true });
     } catch (err) {
         console.error('[collection] delete error', err);
         res.status(500).json({ error: 'db error' });
+    }
+});
+
+// Batch Delete Cards
+router.delete('/batch/delete', async (req, res) => {
+    try {
+        const { cardIds } = req.body;
+        const userId = req.user.id;
+
+        if (!Array.isArray(cardIds)) return res.status(400).json({ error: 'cardIds must be an array' });
+
+        await knex('user_cards')
+            .whereIn('id', cardIds)
+            .andWhere({ user_id: userId })
+            .del();
+
+        res.json({ success: true, count: cardIds.length });
+    } catch (err) {
+        console.error('[collection] batch delete error', err);
+        res.status(500).json({ error: 'batch delete failed' });
     }
 });
 

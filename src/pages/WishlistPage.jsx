@@ -3,11 +3,58 @@ import { useCollection } from '../hooks/useCollection';
 import MultiSelect from '../components/MultiSelect';
 import CardSkeleton from '../components/CardSkeleton';
 import CardGridItem from '../components/common/CardGridItem';
+import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
+import { collectionService } from '../services/collectionService';
 
 const WishlistPage = () => {
-    const { cards, loading, error } = useCollection({ wishlist: true });
+    const { cards, loading, error, refresh } = useCollection({ wishlist: true }); // added refresh if useCollection supports it
+    const { currentUser } = useAuth();
+    const { addToast } = useToast();
     const [searchTerm, setSearchTerm] = useState('');
     const [showFilters, setShowFilters] = useState(false);
+
+    // Management Mode State
+    const [isManageMode, setIsManageMode] = useState(false);
+    const [selectedCardIds, setSelectedCardIds] = useState(new Set());
+
+    const toggleCardSelection = (id) => {
+        const newSet = new Set(selectedCardIds);
+        if (newSet.has(id)) {
+            newSet.delete(id);
+        } else {
+            newSet.add(id);
+        }
+        setSelectedCardIds(newSet);
+    };
+
+    const handleSelectAll = (filtered) => {
+        // Select all currently filtered cards
+        if (selectedCardIds.size === filtered.length) {
+            setSelectedCardIds(new Set());
+        } else {
+            setSelectedCardIds(new Set(filtered.map(c => c.id)));
+        }
+    };
+
+    const handleBulkAction = async () => {
+        if (selectedCardIds.size === 0) return;
+        const count = selectedCardIds.size;
+
+        if (!window.confirm(`Are you sure you want to delete ${count} cards from your wishlist?`)) return;
+
+        try {
+            await collectionService.batchRemoveCards(Array.from(selectedCardIds));
+            addToast(`Successfully removed ${count} cards`, 'success');
+            setIsManageMode(false);
+            setSelectedCardIds(new Set());
+            // Trigger refresh (assuming useCollection returns a refresh method or we reload window)
+            window.location.reload();
+        } catch (err) {
+            console.error(err);
+            addToast('Failed to remove cards', 'error');
+        }
+    };
 
     // Filter State
     const [filters, setFilters] = useState({
@@ -103,13 +150,47 @@ const WishlistPage = () => {
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                    <button
-                        onClick={() => setShowFilters(!showFilters)}
-                        className={`px-3 py-2 rounded-md border transition-colors flex items-center gap-2 ${showFilters ? 'bg-orange-600 border-orange-500 text-white' : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-white'}`}
-                    >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
-                        Filters
-                    </button>
+                    <div className="flex items-center gap-2">
+                        {isManageMode ? (
+                            <div className="flex items-center gap-2 bg-gray-900/50 p-1 rounded-lg border border-gray-700 animate-fade-in mr-2">
+                                <button
+                                    onClick={() => handleSelectAll(filteredCards)}
+                                    className="px-2 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded text-xs px-2 mr-2 border border-gray-600"
+                                >
+                                    {selectedCardIds.size === filteredCards.length ? 'Deselect All' : 'Select All'}
+                                </button>
+                                <span className="text-xs text-indigo-300 font-bold ml-2 whitespace-nowrap">{selectedCardIds.size} Selected</span>
+                                <button
+                                    onClick={handleBulkAction}
+                                    disabled={selectedCardIds.size === 0}
+                                    className="px-3 py-1 bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/30 rounded text-xs font-bold uppercase transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    Delete
+                                </button>
+                                <button
+                                    onClick={() => setIsManageMode(false)}
+                                    className="p-1 px-2 text-gray-400 hover:text-white text-xs"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        ) : (
+                            <button
+                                onClick={() => setIsManageMode(true)}
+                                className="px-3 py-2 bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-indigo-400 border border-gray-700 rounded-md transition-colors text-sm font-bold uppercase"
+                            >
+                                Select
+                            </button>
+                        )}
+
+                        <button
+                            onClick={() => setShowFilters(!showFilters)}
+                            className={`px-3 py-2 rounded-md border transition-colors flex items-center gap-2 ${showFilters ? 'bg-orange-600 border-orange-500 text-white' : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-white'}`}
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
+                            Filters
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -206,7 +287,12 @@ const WishlistPage = () => {
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                     {filteredCards.map((card) => (
                         <div key={card.id} className="h-full">
-                            <CardGridItem card={card} />
+                            <CardGridItem
+                                card={card}
+                                selectMode={isManageMode}
+                                isSelected={selectedCardIds.has(card.id)}
+                                onToggleSelect={toggleCardSelection}
+                            />
                         </div>
                     ))}
 

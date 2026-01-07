@@ -1,4 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
+import ScrollToTop from './components/ScrollToTop';
 import Navbar from './components/Navbar';
 import LandingPage from './pages/LandingPage';
 import Dashboard from './pages/Dashboard';
@@ -11,6 +12,8 @@ import SetsPage from './pages/SetsPage';
 import SetDetailsPage from './pages/SetDetailsPage';
 import SettingsPage from './pages/SettingsPage';
 import WishlistPage from './pages/WishlistPage';
+import PreconPage from './pages/PreconPage';
+import PreconDeckPage from './pages/PreconDeckPage';
 import DeckBuildWizardPage from './pages/DeckBuildWizardPage';
 import OnboardingPage from './pages/OnboardingPage';
 import AboutPage from './pages/AboutPage';
@@ -29,6 +32,7 @@ function App() {
             <AuthProvider>
                 <CardModalProvider>
                     <div className="bg-gray-900 text-gray-200 font-sans min-h-screen flex flex-col">
+                        <ScrollToTop />
                         <Navbar />
                         <AuthGuard>
                             <div className="flex-grow pb-24 md:pb-0">
@@ -40,6 +44,10 @@ function App() {
                                     <Route path="/onboarding" element={<OnboardingPage />} />
                                     <Route path="/collection" element={<CollectionPage />} />
                                     <Route path="/decks" element={<DecksPage />} />
+                                    <Route path="/precons" element={<PreconPage />} />
+                                    <Route path="/precons/type/:type" element={<PreconPage />} />
+                                    <Route path="/precons/set/:set" element={<PreconPage />} />
+                                    <Route path="/precons/deck/:id" element={<PreconDeckPage />} />
                                     <Route path="/decks/new" element={<CreateDeckPage />} />
                                     <Route path="/decks/:deckId" element={<DeckDetailsPage />} />
                                     <Route path="/share/:slug" element={<PublicDeckPage />} />

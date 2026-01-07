@@ -4,6 +4,25 @@ import authMiddleware from '../middleware/auth.js';
 
 const router = express.Router();
 
+// Get Public Deck by Slug (No Auth Required)
+router.get('/public/:slug', async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const deck = await knex('user_decks').where({ share_slug: slug, is_public: true }).first();
+    if (!deck) return res.status(404).json({ error: 'Deck not found or private' });
+
+    // Fetch cards
+    const items = await knex('user_cards')
+      .where({ deck_id: deck.id })
+      .orderBy('name');
+
+    res.json({ deck, items, isPublicView: true });
+  } catch (err) {
+    console.error('[decks] public get error', err);
+    res.status(500).json({ error: 'db error' });
+  }
+});
+
 // Require authentication for all deck operations
 router.use(authMiddleware);
 
@@ -149,24 +168,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get Public Deck by Slug (No Auth Required)
-router.get('/public/:slug', async (req, res) => {
-  try {
-    const { slug } = req.params;
-    const deck = await knex('user_decks').where({ share_slug: slug, is_public: true }).first();
-    if (!deck) return res.status(404).json({ error: 'Deck not found or private' });
 
-    // Fetch cards
-    const items = await knex('user_cards')
-      .where({ deck_id: deck.id })
-      .orderBy('name');
-
-    res.json({ deck, items, isPublicView: true });
-  } catch (err) {
-    console.error('[decks] public get error', err);
-    res.status(500).json({ error: 'db error' });
-  }
-});
 
 // Get deck by id, include cards
 router.get('/:id', async (req, res) => {
@@ -265,6 +267,16 @@ router.put('/:id', async (req, res) => {
     if (req.body.isMockup !== undefined) update.is_mockup = req.body.isMockup;
     if (req.body.isPublic !== undefined) update.is_public = req.body.isPublic;
     if (req.body.shareSlug !== undefined) update.share_slug = req.body.shareSlug;
+    if (req.body.aiBlueprint !== undefined) update.ai_blueprint = req.body.aiBlueprint;
+
+    // Remove 'Precon' tag if commander changes
+    if (commander !== undefined || commanderPartner !== undefined) {
+      let tags = existing.tags || [];
+      if (typeof tags === 'string') tags = JSON.parse(tags);
+      if (tags.includes('Precon')) {
+        update.tags = JSON.stringify(tags.filter(t => t !== 'Precon'));
+      }
+    }
 
     const [row] = await knex('user_decks')
       .where({ id: req.params.id })
@@ -298,7 +310,19 @@ router.delete('/:id', async (req, res) => {
     // Usually yes.
     // Migration said `onDelete('SET NULL')`. So DB handles it automatically!
 
-    await knex('user_decks').where({ id: req.params.id }).del();
+    const deleteCards = req.query.deleteCards === 'true';
+
+    await knex.transaction(async (trx) => {
+      // If requested, delete cards in the deck
+      if (deleteCards) {
+        await trx('user_cards').where({ deck_id: req.params.id }).del();
+      }
+
+      // Delete the deck (DB cascade or set null will handle remaining cards if not deleted above)
+      // If we didn't delete cards, they return to binder (deck_id = NULL) due to DB constraint usually,
+      // or we rely on logic. Existing cards just lose their deck_id linkage.
+      await trx('user_decks').where({ id: req.params.id }).del();
+    });
     res.json({ success: true });
   } catch (err) {
     console.error('[decks] delete error', err);
@@ -406,6 +430,15 @@ router.post('/:id/cards/batch', async (req, res) => {
     if (!deck) return res.status(404).json({ error: 'deck not found' });
 
     await knex.transaction(async (trx) => {
+      // Remove Precon tag if exists (Card list modified)
+      const currentTags = deck.tags || [];
+      const tagsArray = typeof currentTags === 'string' ? JSON.parse(currentTags) : currentTags;
+      if (tagsArray.includes('Precon')) {
+        await trx('user_decks').where({ id }).update({
+          tags: JSON.stringify(tagsArray.filter(t => t !== 'Precon'))
+        });
+      }
+
       for (const c of cards) {
         const scryfallId = c.scryfall_id || c.id;
 
@@ -446,6 +479,49 @@ router.post('/:id/cards/batch', async (req, res) => {
   } catch (err) {
     console.error('[decks] batch add error', err);
     res.status(500).json({ error: 'batch add failed' });
+  }
+});
+
+// Batch Remove Cards from Deck
+router.delete('/:id/cards', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { cardIds } = req.body; // Array of user_cards IDs
+    const userId = req.user.id; // Corrected: use req.user.id
+
+    if (!Array.isArray(cardIds)) return res.status(400).json({ error: 'cardIds array is required' });
+
+    await knex('user_cards')
+      .whereIn('id', cardIds)
+      .andWhere({ user_id: userId, deck_id: id }) // Security check
+      .del(); // Actually delete them? Or just remove from deck?
+    // User requested "Wishlist Removal" -> usually "Delete" from wishlist.
+    // If "Collection", usually "Return to Binder".
+    // Let's support both via query param? ?mode=delete vs ?mode=remove
+    // Defaults: If deck is mockup, DELETE. If deck is real, REMOVE (deck_id=null).
+    // Actually, frontend can decide.
+    // Let's assume this endpoint is "Remove from Deck".
+    // But user said "Delete from wishlist".
+    // Let's accept a query param `action=delete` or `action=remove`.
+
+    const action = req.query.action || 'remove'; // 'remove' (nullify deck_id) or 'delete' (delete row)
+
+    if (action === 'delete') {
+      await knex('user_cards')
+        .whereIn('id', cardIds)
+        .andWhere({ user_id: userId, deck_id: id })
+        .del();
+    } else {
+      await knex('user_cards')
+        .whereIn('id', cardIds)
+        .andWhere({ user_id: userId, deck_id: id })
+        .update({ deck_id: null });
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[decks] batch remove error', err);
+    res.status(500).json({ error: 'batch remove failed' });
   }
 });
 

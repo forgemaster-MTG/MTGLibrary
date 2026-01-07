@@ -12,8 +12,7 @@ export function useDecks(userId = null) {
         if (!currentUser) return;
         setLoading(true);
         try {
-            const url = userId ? `/decks?userId=${userId}` : '/decks';
-            const fetchedDecks = await api.get('/api/decks');
+            const fetchedDecks = await api.get('/api/decks', userId ? { userId } : {});
             // Map rows if needed
             setDecks(fetchedDecks);
             setError(null);

@@ -16,7 +16,7 @@ services:
         - VITE_API_URL=${VITE_API_URL}
     container_name: mtg-library-prod
     ports:
-      - "${PORT:-3002}:${PORT:-3002}"
+      - "${PORT}:${PORT}"
     env_file:
       - .env.production
     environment:
@@ -38,9 +38,18 @@ services:
       - POSTGRES_PASSWORD=${PGPASSWORD}
       - POSTGRES_DB=${PGDATABASE}
     ports:
-      - "${PGPORT:-6470}:5432"
+      - "${PGPORT}:5432"
     volumes:
       - /volume1/docker/postgres_prod:/var/lib/postgresql/data
+    networks:
+      - mtg-network
+    restart: unless-stopped
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared-connector
+    # Your specific token
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
     networks:
       - mtg-network
     restart: unless-stopped

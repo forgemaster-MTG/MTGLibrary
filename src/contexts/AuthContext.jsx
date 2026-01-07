@@ -39,7 +39,7 @@ export const AuthProvider = ({ children }) => {
                 await refreshUserProfile();
                 // Then update with profile data
                 // We need the numeric ID from the profile
-                const freshProfile = await api.get('/api/me');
+                const freshProfile = await api.get('/api/users/me');
                 if (freshProfile?.id) {
                     await api.updateUser(freshProfile.id, profileData);
                     await refreshUserProfile();
@@ -149,7 +149,7 @@ export const AuthProvider = ({ children }) => {
     const refreshUserProfile = async () => {
         if (!auth.currentUser) return;
         try {
-            const profile = await api.get('/api/me'); // Calls /api/me which returns { id, email, data, settings? }
+            const profile = await api.get('/api/users/me'); // Calls /api/users/me which returns { id, email, data, settings? }
             // Note: /me in server returns { id, firestore_id, email, data }. 
             // We need to update server/index.js /me to include 'settings'.
             setUserProfile(profile);

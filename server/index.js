@@ -28,6 +28,8 @@ import setsApi from './api/sets.js';
 import syncApi from './api/sync.js';
 import communityApi from './api/community.js';
 import bindersApi from './api/binders.js';
+import epicsApi from './api/epics.js';
+import ticketsApi from './api/tickets.js';
 
 const require = createRequire(import.meta.url);
 
@@ -53,8 +55,8 @@ app.use(helmet({
       scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://apis.google.com", "https://*.firebaseio.com", "https://*.firebaseapp.com", "https://*.google.com", "https://*.gstatic.com"],
       connectSrc: ["'self'", "https://api.scryfall.com", "https://identitytoolkit.googleapis.com", "https://securetoken.googleapis.com", "https://*.firebaseio.com", "ws:", "wss:", "https://*.googleapis.com", "https://*.google.com", "https://*.gstatic.com"],
       imgSrc: ["'self'", "data:", "https://cards.scryfall.io", "https://svgs.scryfall.io", "https://placehold.co", "blob:", "https://*"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "cdn.jsdelivr.net"],
+      fontSrc: ["'self'", "data:", "https://fonts.gstatic.com", "cdn.jsdelivr.net"],
       frameSrc: ["'self'", "https://*.firebaseapp.com", "https://*.google.com"],
     },
   },
@@ -74,6 +76,8 @@ app.use(limiter);
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:5173',
+  'http://localhost:5174', // Vite alternate port
+  'http://localhost:5175', // Vite alternate port
   process.env.PUBLIC_URL // e.g. https://mytunnel.com
 ].filter(Boolean);
 
@@ -180,6 +184,8 @@ app.use('/api/sets', setsApi);
 app.use('/api/sync', syncApi);
 app.use('/api/community', communityApi);
 app.use('/api/binders', bindersApi);
+app.use('/api/epics', epicsApi);
+app.use('/api/tickets', ticketsApi);
 
 // Health endpoint
 app.get('/api/health', (req, res) => {

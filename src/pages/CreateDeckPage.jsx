@@ -42,6 +42,25 @@ const CreateDeckPage = () => {
     const [isMockup, setIsMockup] = useState(false); // Default to Collection Deck
     const [isSearchOpen, setIsSearchOpen] = useState(false);
 
+    // Precons
+    const [preconTypes, setPreconTypes] = useState([]);
+    const [preconTypesLoading, setPreconTypesLoading] = useState(true);
+
+    useEffect(() => {
+        fetchPreconTypes();
+    }, []);
+
+    const fetchPreconTypes = async () => {
+        try {
+            const types = await api.get('/api/precons/types');
+            setPreconTypes(types);
+        } catch (err) {
+            console.error('Failed to fetch precon types', err);
+        } finally {
+            setPreconTypesLoading(false);
+        }
+    };
+
     // Scroll to top on step change
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -836,6 +855,42 @@ const CreateDeckPage = () => {
                                             </div>
                                         </div>
                                     </div>
+                                </div>
+
+                                {/* PRECON SECTION */}
+                                <div className="space-y-6">
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                                        <h2 className="text-xl font-black text-white uppercase tracking-[0.3em]">Precons</h2>
+                                        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                                    </div>
+
+                                    {preconTypesLoading ? (
+                                        <div className="flex justify-center p-8">
+                                            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500"></div>
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                                            {preconTypes.map((type) => (
+                                                <div
+                                                    key={type}
+                                                    onClick={() => navigate(`/precons?type=${encodeURIComponent(type)}`)}
+                                                    className="group cursor-pointer bg-gray-800/40 hover:bg-amber-900/20 border border-white/10 hover:border-amber-500/50 rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-amber-500/10 flex flex-col items-center text-center gap-3 relative overflow-hidden"
+                                                >
+                                                    <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                    <div className="w-12 h-12 bg-amber-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-500 border border-white/5 group-hover:border-amber-500/30">
+                                                        <svg className="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                                                    </div>
+                                                    <h3 className="text-lg font-bold text-white group-hover:text-amber-300 transition-colors">{type}</h3>
+                                                </div>
+                                            ))}
+                                            {preconTypes.length === 0 && (
+                                                <div className="col-span-full text-center text-gray-500 py-8">
+                                                    No precon types found. (Is the DB populated?)
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

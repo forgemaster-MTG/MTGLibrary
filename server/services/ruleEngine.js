@@ -32,12 +32,14 @@ export function applyRules(query, rules) {
                 }
                 break;
             case 'set':
-                // Set name or code
-                applyJsonStringFilter(query, "user_cards.data->>'set_name'", operator, value);
-                // Also allow matching set code if it looks like one
-                if (typeof value === 'string' && value.length <= 4) {
-                    query.orWhereRaw("user_cards.data->>'set' ILIKE ?", [`%${value}%`]);
-                }
+                // Set name or code (Grouped to prevent OR logic leak)
+                query.where(q => {
+                    applyJsonStringFilter(q, "user_cards.data->>'set_name'", operator, value);
+                    // Also allow matching set code if it looks like one
+                    if (typeof value === 'string' && value.length <= 4) {
+                        q.orWhereRaw("user_cards.data->>'set' ILIKE ?", [`%${value}%`]);
+                    }
+                });
                 break;
             case 'cmc':
                 applyNumericFilter(query, "CAST(user_cards.data->>'cmc' AS NUMERIC)", operator, value);

@@ -1,6 +1,6 @@
 import React from 'react';
 
-const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, confirmText = "Confirm", cancelText = "Cancel", isDanger = false }) => {
+const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, confirmText = "Confirm", cancelText = "Cancel", isDanger = false, children }) => {
     if (!isOpen) return null;
 
     return (
@@ -20,6 +20,7 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, confirm
                     <p className="text-gray-300 mb-6">
                         {message}
                     </p>
+                    {children}
 
                     <div className="flex justify-end gap-3">
                         <button
