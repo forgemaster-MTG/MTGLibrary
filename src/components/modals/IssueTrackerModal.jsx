@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { format } from 'date-fns';
 import RichTextEditor from '../common/RichTextEditor';
 
-const TicketItem = ({ ticket, isAdmin, onEdit, onVote, getTypeBadge, getStatusBadge }) => {
+const TicketItem = ({ ticket, isAdmin, currentUserId, onEdit, onDelete, onVote, getTypeBadge, getStatusBadge }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [publicNotes, setPublicNotes] = useState([]);
 
@@ -21,7 +21,10 @@ const TicketItem = ({ ticket, isAdmin, onEdit, onVote, getTypeBadge, getStatusBa
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-1 flex-wrap">
                         {getTypeBadge(ticket.type)}
-                        <h4 className="text-white font-medium hover:text-indigo-300 cursor-pointer truncate" onClick={() => isAdmin && onEdit(ticket)}>
+                        <h4
+                            className="text-white font-medium hover:text-indigo-300 cursor-pointer truncate"
+                            onClick={() => (isAdmin || (ticket.created_by === currentUserId && ticket.status === 'open')) && onEdit(ticket)}
+                        >
                             {ticket.title}
                         </h4>
                         {getStatusBadge(ticket.status)}
@@ -44,6 +47,8 @@ const TicketItem = ({ ticket, isAdmin, onEdit, onVote, getTypeBadge, getStatusBa
                         <span>b/{ticket.created_by_username || 'Unknown'}</span>
                         {ticket.assigned_to && <span className="text-indigo-400">Assigned: {ticket.assigned_to_username}</span>}
                         {ticket.due_date && <span>Due: {format(new Date(ticket.due_date), 'MMM d')}</span>}
+                        {ticket.estimated_release_date && <span className="text-orange-400">Est. Release: {format(new Date(ticket.estimated_release_date), 'MMM d')}</span>}
+                        {ticket.date_released && <span className="text-green-400">Released: {format(new Date(ticket.date_released), 'MMM d')}</span>}
                         {ticket.note_count > 0 && (
                             <span className="flex items-center gap-1 text-gray-400 bg-gray-700/50 px-1.5 py-0.5 rounded">
                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path></svg>
@@ -51,7 +56,23 @@ const TicketItem = ({ ticket, isAdmin, onEdit, onVote, getTypeBadge, getStatusBa
                                 {ticket.last_note_at && <span className="opacity-70 ml-1">• {format(new Date(ticket.last_note_at), 'MMM d, h:mm a')}</span>}
                             </span>
                         )}
-                        {isAdmin && <button onClick={() => onEdit(ticket)} className="hover:text-white">Edit (Admin)</button>}
+                        {(isAdmin || (ticket.created_by === currentUserId && ticket.status === 'open')) && (
+                            <div className="flex gap-3">
+                                <button onClick={() => onEdit(ticket)} className="hover:text-white transition-colors">
+                                    Edit {isAdmin && ticket.created_by !== currentUserId ? '(Admin)' : ''}
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        if (window.confirm('Are you sure you want to delete this ticket?')) {
+                                            onDelete(ticket.id);
+                                        }
+                                    }}
+                                    className="text-gray-500 hover:text-red-400 transition-colors"
+                                >
+                                    Delete
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     {/* Public Notes Display (Expanded Only) */}
@@ -193,6 +214,16 @@ const IssueTrackerModal = ({ isOpen, onClose }) => {
         }
     };
 
+    const handleDeleteTicket = async (id) => {
+        try {
+            await api.deleteTicket(id);
+            setTickets(tickets.filter(t => t.id !== id));
+        } catch (err) {
+            console.error('Delete error:', err);
+            alert('Failed to delete ticket: ' + err.message);
+        }
+    };
+
     const handleUpdateTicket = async (e) => {
         e.preventDefault();
         if (!editingTicket) return;
@@ -326,7 +357,9 @@ const IssueTrackerModal = ({ isOpen, onClose }) => {
                                                 key={ticket.id}
                                                 ticket={ticket}
                                                 isAdmin={isAdmin}
+                                                currentUserId={userProfile?.id}
                                                 onEdit={setEditingTicket}
+                                                onDelete={handleDeleteTicket}
                                                 onVote={handleVote}
                                                 getTypeBadge={getTypeBadge}
                                                 getStatusBadge={getStatusBadge}
@@ -435,81 +468,162 @@ const IssueTrackerModal = ({ isOpen, onClose }) => {
                 </div>
             </div>
 
-            {/* Admin Edit Modal Overlay */}
             {editingTicket && (
-                <div className="absolute inset-0 z-[110] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <div className="bg-gray-800 rounded-xl max-w-lg w-full p-6 border border-white/10 shadow-2xl">
-                        <h3 className="text-lg font-bold text-white mb-4">Edit Ticket (Admin)</h3>
-                        <form onSubmit={handleUpdateTicket} className="space-y-4">
-                            <div>
-                                <label className="text-xs text-gray-500 uppercase">Status</label>
-                                <select
-                                    className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white"
-                                    value={editingTicket.status}
-                                    onChange={e => setEditingTicket({ ...editingTicket, status: e.target.value })}
-                                >
-                                    <option value="open">Open</option>
-                                    <option value="planned">Planned</option>
-                                    <option value="in_progress">In Progress</option>
-                                    <option value="completed">Completed</option>
-                                    <option value="wont_fix">Won't Fix</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="text-xs text-gray-500 uppercase">Project</label>
-                                <select
-                                    className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white"
-                                    value={editingTicket.epic_id || ''}
-                                    onChange={e => setEditingTicket({ ...editingTicket, epic_id: e.target.value || null })}
-                                >
-                                    <option value="">None</option>
-                                    {epics.map(ep => <option key={ep.id} value={ep.id}>{ep.title}</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="text-xs text-gray-500 uppercase">Assignee</label>
-                                <select
-                                    className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white"
-                                    value={editingTicket.assigned_to || ''}
-                                    onChange={e => setEditingTicket({ ...editingTicket, assigned_to: e.target.value || null })}
-                                >
-                                    <option value="">- Unassigned -</option>
-                                    {assignees.map(u => (
-                                        <option key={u.id} value={u.id}>{u.username} (ID: {u.id})</option>
-                                    ))}
-                                </select>
+                <div className="absolute inset-0 z-[110] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
+                    <div className="bg-gray-900 rounded-2xl max-w-3xl w-full p-8 border border-white/10 shadow-3xl overflow-y-auto max-h-[90vh]">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-2xl font-black text-white italic uppercase tracking-tight">
+                                {isAdmin ? 'Edit Ticket (Admin)' : 'Edit Your Ticket'}
+                            </h3>
+                            <button onClick={() => setEditingTicket(null)} className="text-gray-500 hover:text-white transition-colors">
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                        </div>
+                        <form onSubmit={handleUpdateTicket} className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">Issue Type</label>
+                                    <select
+                                        className="w-full bg-gray-800 border border-white/10 rounded-xl p-3 text-white focus:border-indigo-500 transition-colors"
+                                        value={editingTicket.type}
+                                        onChange={e => setEditingTicket({ ...editingTicket, type: e.target.value })}
+                                    >
+                                        <option value="bug">Bug Report</option>
+                                        <option value="feature">Feature Request</option>
+                                    </select>
+                                </div>
+                                {isAdmin && (
+                                    <div>
+                                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">Status</label>
+                                        <select
+                                            className="w-full bg-gray-800 border border-white/10 rounded-xl p-3 text-white focus:border-indigo-500 transition-colors"
+                                            value={editingTicket.status}
+                                            onChange={e => setEditingTicket({ ...editingTicket, status: e.target.value })}
+                                        >
+                                            <option value="open">Open</option>
+                                            <option value="planned">Planned</option>
+                                            <option value="in_progress">In Progress</option>
+                                            <option value="completed">Completed</option>
+                                            <option value="wont_fix">Won't Fix</option>
+                                        </select>
+                                    </div>
+                                )}
                             </div>
 
+                            <div>
+                                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">Title</label>
+                                <input
+                                    type="text"
+                                    className="w-full bg-gray-800 border border-white/10 rounded-xl p-3 text-white focus:border-indigo-500 transition-colors"
+                                    value={editingTicket.title}
+                                    onChange={e => setEditingTicket({ ...editingTicket, title: e.target.value })}
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">Description</label>
+                                <div className="h-64">
+                                    <RichTextEditor
+                                        value={editingTicket.description}
+                                        onChange={val => setEditingTicket({ ...editingTicket, description: val })}
+                                        placeholder="Update description..."
+                                        type="Ticket"
+                                        height="h-56"
+                                    />
+                                </div>
+                            </div>
+
+                            {isAdmin && (
+                                <div className="space-y-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">Project (Epic)</label>
+                                            <select
+                                                className="w-full bg-gray-800 border border-white/10 rounded-xl p-3 text-white focus:border-indigo-500 transition-colors"
+                                                value={editingTicket.epic_id || ''}
+                                                onChange={e => setEditingTicket({ ...editingTicket, epic_id: e.target.value || null })}
+                                            >
+                                                <option value="">None</option>
+                                                {epics.map(ep => <option key={ep.id} value={ep.id}>{ep.title}</option>)}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">Assignee</label>
+                                            <select
+                                                className="w-full bg-gray-800 border border-white/10 rounded-xl p-3 text-white focus:border-indigo-500 transition-colors"
+                                                value={editingTicket.assigned_to || ''}
+                                                onChange={e => setEditingTicket({ ...editingTicket, assigned_to: e.target.value || null })}
+                                            >
+                                                <option value="">- Unassigned -</option>
+                                                {assignees.map(u => (
+                                                    <option key={u.id} value={u.id}>{u.username}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        <div>
+                                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">Due Date</label>
+                                            <input
+                                                type="date"
+                                                className="w-full bg-gray-800 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-indigo-500 transition-colors"
+                                                value={editingTicket.due_date ? format(new Date(editingTicket.due_date), 'yyyy-MM-dd') : ''}
+                                                onChange={e => setEditingTicket({ ...editingTicket, due_date: e.target.value })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">Est. Release</label>
+                                            <input
+                                                type="date"
+                                                className="w-full bg-gray-800 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-indigo-500 transition-colors"
+                                                value={editingTicket.estimated_release_date ? format(new Date(editingTicket.estimated_release_date), 'yyyy-MM-dd') : ''}
+                                                onChange={e => setEditingTicket({ ...editingTicket, estimated_release_date: e.target.value })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">Date Released</label>
+                                            <input
+                                                type="date"
+                                                className="w-full bg-gray-800 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-indigo-500 transition-colors"
+                                                value={editingTicket.date_released ? format(new Date(editingTicket.date_released), 'yyyy-MM-dd') : ''}
+                                                onChange={e => setEditingTicket({ ...editingTicket, date_released: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Internal Notes Section */}
-                            <div className="border-t border-white/10 pt-4 mt-4">
-                                <h4 className="text-sm font-bold text-gray-400 mb-2">Internal Notes</h4>
-                                <div className="space-y-2 max-h-40 overflow-y-auto mb-3">
+                            <div className="border-t border-white/10 pt-6 mt-6">
+                                <h4 className="text-sm font-black text-gray-400 uppercase tracking-widest mb-4">Internal Notes</h4>
+                                <div className="space-y-3 max-h-48 overflow-y-auto mb-4 custom-scrollbar">
                                     {ticketNotes.length === 0 && <p className="text-xs text-gray-600 italic">No notes yet.</p>}
                                     {ticketNotes.map(note => (
-                                        <div key={note.id} className="bg-gray-900/50 p-2 rounded text-xs border border-white/5">
-                                            <div className="flex justify-between text-gray-500 mb-1">
-                                                <span className="font-bold text-indigo-400">{note.username}</span>
+                                        <div key={note.id} className="bg-gray-800/50 p-3 rounded-xl border border-white/5">
+                                            <div className="flex justify-between text-[10px] text-gray-500 mb-1">
+                                                <span className="font-bold text-indigo-400 uppercase tracking-widest">{note.username}</span>
                                                 <span>{format(new Date(note.created_at), 'MMM d, h:mm a')}</span>
                                             </div>
-                                            <p className="text-gray-300">{note.note}</p>
+                                            <p className="text-sm text-gray-300">{note.note}</p>
                                         </div>
                                     ))}
                                 </div>
                                 <div className="flex gap-2">
                                     <input
                                         type="text"
-                                        className="flex-1 bg-gray-900 border border-gray-700 rounded p-2 text-xs text-white"
+                                        className="flex-1 bg-gray-800 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-indigo-500 transition-colors"
                                         placeholder="Add a note..."
                                         value={newNote}
                                         onChange={e => setNewNote(e.target.value)}
                                         onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddNote(e))}
                                     />
-                                    <button type="button" onClick={handleAddNote} className="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white text-xs rounded">Add</button>
+                                    <button type="button" onClick={handleAddNote} className="px-6 py-3 bg-gray-800 hover:bg-gray-700 text-white text-xs font-bold uppercase tracking-widest rounded-xl transition-all">Add</button>
                                 </div>
                             </div>
-                            <div className="flex justify-end gap-3 pt-4">
-                                <button type="button" onClick={() => setEditingTicket(null)} className="px-4 py-2 text-gray-400">Cancel</button>
-                                <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded">Save Changes</button>
+                            <div className="flex justify-end gap-4 pt-6">
+                                <button type="button" onClick={() => setEditingTicket(null)} className="px-6 py-3 text-gray-500 font-bold uppercase tracking-widest text-xs hover:text-white transition-colors">Cancel</button>
+                                <button type="submit" className="px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-indigo-500/20 transition-all">Save Changes</button>
                             </div>
                         </form>
                     </div>

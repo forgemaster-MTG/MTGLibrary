@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
+import { GeminiService } from '../../services/gemini';
 import RichTextEditor from '../common/RichTextEditor';
+import { format } from 'date-fns';
 
 const AdminPanel = () => {
-    const [activeSection, setActiveSection] = useState('sync'); // 'sync', 'permissions'
+    const { userProfile } = useAuth();
+    const [activeSection, setActiveSection] = useState('sync'); // 'sync', 'permissions', 'epics', 'release'
 
     // Sync State
     const [sets, setSets] = useState([]);
@@ -169,6 +173,16 @@ const AdminPanel = () => {
     const [newEpic, setNewEpic] = useState({ title: '', description: '', status: 'active' });
     const [loadingEpics, setLoadingEpics] = useState(false);
 
+    // Release Notes State
+    const [reportPeriod, setReportPeriod] = useState({
+        start: format(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
+        end: format(new Date(), 'yyyy-MM-dd')
+    });
+    const [reportTickets, setReportTickets] = useState([]);
+    const [fetchingReport, setFetchingReport] = useState(false);
+    const [generatedNotes, setGeneratedNotes] = useState('');
+    const [generatingNotes, setGeneratingNotes] = useState(false);
+
     // Fetch Epics when switching to epics tab
     useEffect(() => {
         if (activeSection === 'epics') {
@@ -205,6 +219,42 @@ const AdminPanel = () => {
         alert('Delete not implemented yet.');
     };
 
+    // Release Notes Logic
+    const handleFetchReport = async () => {
+        setFetchingReport(true);
+        try {
+            const data = await api.getTicketReport({
+                startDate: reportPeriod.start,
+                endDate: reportPeriod.end,
+                status: '' // Fetch all activity
+            });
+            setReportTickets(data);
+        } catch (err) {
+            alert('Failed to fetch report: ' + err.message);
+        } finally {
+            setFetchingReport(false);
+        }
+    };
+
+    const handleGenerateNotes = async () => {
+        if (!userProfile?.settings?.geminiApiKey) {
+            alert('Missing Gemini API Key. Please add it in Settings > AI.');
+            return;
+        }
+        setGeneratingNotes(true);
+        try {
+            const notes = await GeminiService.generateReleaseNotes(
+                userProfile.settings.geminiApiKey,
+                reportTickets
+            );
+            setGeneratedNotes(notes);
+        } catch (err) {
+            alert('Failed to generate release notes: ' + err.message);
+        } finally {
+            setGeneratingNotes(false);
+        }
+    };
+
     return (
         <div className="space-y-6 animate-fade-in">
             <div className="flex border-b border-gray-700 mb-6 overflow-x-auto">
@@ -225,6 +275,12 @@ const AdminPanel = () => {
                     className={`px-4 py-2 border-b-2 font-medium transition-colors whitespace-nowrap ${activeSection === 'epics' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-gray-400 hover:text-white'}`}
                 >
                     Epics / Projects
+                </button>
+                <button
+                    onClick={() => setActiveSection('release')}
+                    className={`px-4 py-2 border-b-2 font-medium transition-colors whitespace-nowrap ${activeSection === 'release' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-gray-400 hover:text-white'}`}
+                >
+                    Release Notes
                 </button>
             </div>
 
@@ -425,6 +481,104 @@ const AdminPanel = () => {
                                     </div>
                                 ))}
                                 {epics.length === 0 && <div className="text-gray-500 italic">No projects found.</div>}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {activeSection === 'release' && (
+                <div className="space-y-6 animate-fade-in">
+                    <h2 className="text-xl font-semibold text-white">AI Release Notes Generator</h2>
+
+                    <div className="bg-gray-800/50 p-6 rounded-xl border border-white/10 space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-400 mb-1">Start Date</label>
+                                <input
+                                    type="date"
+                                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500"
+                                    value={reportPeriod.start}
+                                    onChange={e => setReportPeriod({ ...reportPeriod, start: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-400 mb-1">End Date</label>
+                                <input
+                                    type="date"
+                                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500"
+                                    value={reportPeriod.end}
+                                    onChange={e => setReportPeriod({ ...reportPeriod, end: e.target.value })}
+                                />
+                            </div>
+                            <button
+                                onClick={handleFetchReport}
+                                disabled={fetchingReport}
+                                className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg transition-all disabled:opacity-50"
+                            >
+                                {fetchingReport ? 'Fetching...' : 'Fetch Active Tickets'}
+                            </button>
+                        </div>
+
+                        {reportTickets.length > 0 && (
+                            <div className="space-y-4 pt-4 border-t border-white/5">
+                                <div className="flex justify-between items-center">
+                                    <h3 className="text-lg font-medium text-white italic">Tickets Found ({reportTickets.length})</h3>
+                                    <button
+                                        onClick={handleGenerateNotes}
+                                        disabled={generatingNotes}
+                                        className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold rounded-lg shadow-lg transition-all disabled:opacity-50"
+                                    >
+                                        ✨ {generatingNotes ? 'Generating...' : 'Generate AI Release Notes'}
+                                    </button>
+                                </div>
+                                <div className="max-h-64 overflow-y-auto space-y-2 pr-2">
+                                    {reportTickets.map(t => (
+                                        <div key={t.id} className="bg-black/30 p-3 rounded-lg border border-white/5 flex gap-4 items-center">
+                                            <div className="flex flex-col gap-1">
+                                                <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded text-center ${t.type === 'bug' ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                                                    {t.type}
+                                                </span>
+                                                <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded text-center ${t.status === 'completed' ? 'bg-green-500/20 text-green-400' : 'bg-indigo-500/20 text-indigo-400'}`}>
+                                                    {t.status.replace('_', ' ')}
+                                                </span>
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-medium text-white truncate">{t.title}</p>
+                                                <div className="flex gap-2">
+                                                    {t.epic_title && <p className="text-[10px] text-gray-400">Project: {t.epic_title}</p>}
+                                                    {t.type === 'bug' && t.created_by_username && (
+                                                        <p className="text-[10px] text-indigo-400">By: {t.created_by_username}</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <span className="text-[10px] text-gray-500 whitespace-nowrap">
+                                                {format(new Date(t.updated_at), 'MMM d')}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {generatedNotes && (
+                            <div className="space-y-4 pt-6 border-t border-indigo-500/30">
+                                <div className="flex justify-between items-center">
+                                    <h3 className="text-lg font-medium text-indigo-400 font-black uppercase tracking-widest">Release Notes Preview</h3>
+                                    <button
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(generatedNotes);
+                                            alert('Copied to clipboard!');
+                                        }}
+                                        className="text-xs text-indigo-400 hover:text-white transition-colors"
+                                    >
+                                        Copy HTML
+                                    </button>
+                                </div>
+                                <div
+                                    className="bg-gray-900 border border-indigo-500/20 p-6 rounded-xl prose prose-invert max-w-none shadow-2xl"
+                                    dangerouslySetInnerHTML={{ __html: generatedNotes }}
+                                />
                             </div>
                         )}
                     </div>

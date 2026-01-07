@@ -325,9 +325,10 @@ const PlaystyleWizardModal = ({ isOpen, onClose, onComplete }) => {
                                                         `}>
                                                             {String.fromCharCode(65 + idx)}
                                                         </span>
-                                                        <span className={`text-lg transition-colors ${isSelected ? 'text-white' : 'text-gray-300 group-hover:text-white'}`}>
-                                                            {choice}
-                                                        </span>
+                                                        <span
+                                                            className={`text-lg transition-colors ${isSelected ? 'text-white' : 'text-gray-300 group-hover:text-white'}`}
+                                                            dangerouslySetInnerHTML={{ __html: choice }}
+                                                        />
                                                     </button>
                                                 )
                                             })}

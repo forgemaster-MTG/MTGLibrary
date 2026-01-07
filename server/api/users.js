@@ -59,13 +59,13 @@ router.put('/:id', authMiddleware, async (req, res) => {
       if (!isAdmin && isSelf) {
         // Protect critical fields if user is updating self
         // Logic: Existing settings + new keys, but preventing privilege escalation
-        // For now, let's assume the frontend sends safe data or rely on this endpoint mainly for profile updates.
-        // A better approach:
         const existing = await knex('users').where({ id: userId }).first();
-        const safeSettings = { ...existing.settings, ...settings };
+        const existingSettings = existing.settings || {};
+        const safeSettings = { ...existingSettings, ...(settings || {}) };
+
         // Restore protected fields from existing to ensure no tampering
-        safeSettings.isAdmin = existing.settings.isAdmin;
-        safeSettings.permissions = existing.settings.permissions;
+        safeSettings.isAdmin = existingSettings.isAdmin || false;
+        safeSettings.permissions = existingSettings.permissions || [];
         updateData.settings = safeSettings;
       } else {
         updateData.settings = settings;

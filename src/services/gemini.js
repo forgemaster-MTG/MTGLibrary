@@ -776,5 +776,53 @@ ${context}
             }
         }
         throw new Error("Deck Doctor failed to diagnose.");
+    },
+    async generateReleaseNotes(apiKey, tickets) {
+        if (!apiKey) throw new Error("API Key is missing.");
+        if (!tickets || tickets.length === 0) throw new Error("No tickets provided for release notes.");
+
+        const ticketsContext = tickets.map(t => {
+            const submitter = t.type === 'bug' && t.created_by_username ? ` [Submitted by: ${t.created_by_username}]` : '';
+            return `- [${t.type.toUpperCase()}] [Status: ${t.status}] ${t.title}${t.epic_title ? ` (Project: ${t.epic_title})` : ''}${submitter}: ${t.description?.replace(/<[^>]*>?/gm, '').substring(0, 200)}...`;
+        }).join('\n');
+
+        const prompt = `
+            You are a professional software release manager and technical writer for "MTG-Forge". 
+            Generate a Development Update in HTML using Tailwind CSS. 
+            Strictly follow the structure and styling below.
+
+            **TICKETS DATA:**
+            ${ticketsContext}
+
+            **STRICT LAYOUT RULES:**
+            1. **Title**: A large, bold title like "MTG-Forge Development Update! 🛠️".
+            2. **Intro**: A warm greeting for "Planeswalkers" with a globe emoji 🌍.
+            3. **Sections**: Group items into:
+               - "🚀 New Features" (Completed features)
+               - "🐛 Bug Fixes" (Completed bugs)
+               - "🚧 In Progress" (Everything else)
+            4. **Section Cards**: Each section should have ONE large card containing its list of items.
+               - Card Style: <div class="bg-gray-800/40 border-l-4 p-4 rounded-lg mb-6 ...">
+               - Border Colors: green-500 for Features, red-500 for Bugs, gray-500 for In Progress.
+            5. **Feature/Bug items**: Use <strong> for titles. For bugs, include a subtle "@username" shoutout for the report.
+            6. **Highlights**: Use <span class="text-indigo-400 font-bold"> for important keywords or project names.
+            7. **Sign-off**: A final warm closing message to Planeswalkers, ending with "see you in the next patch! ⚔️".
+
+            **TECHNICAL CONSTRAINTS:**
+            - Use only Tailwind CSS classes.
+            - Do NOT use markdown code blocks (\`\`\`html).
+            - Output ONLY the clean HTML string.
+        `;
+
+        try {
+            const response = await this.sendMessage(apiKey, [], prompt);
+            let clean = response.trim();
+            if (clean.startsWith('```html')) clean = clean.replace('```html', '').replace('```', '');
+            else if (clean.startsWith('```')) clean = clean.replace('```', '').replace('```', '');
+            return clean.trim();
+        } catch (error) {
+            console.error("AI Release Notes Error:", error);
+            throw new Error("Failed to generate release notes.");
+        }
     }
 };

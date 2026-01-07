@@ -44,6 +44,56 @@ router.get('/', async (req, res) => {
     }
 });
 
+// Get Ticket Report (Admin only)
+router.get('/report', authMiddleware, async (req, res) => {
+    try {
+        const isRoot = req.user.firestore_id === 'Kyrlwz6G6NWICCEPYbXtFfyLzWI3';
+        const isAdmin = isRoot || req.user.settings?.isAdmin || req.user.settings?.permissions?.includes('manage_tickets');
+        if (!isAdmin) return res.status(403).json({ error: 'Not authorized' });
+
+        const { startDate, endDate, status } = req.query;
+        let query = knex('tickets')
+            .select(
+                'tickets.*',
+                'users.username as created_by_username',
+                'epics.title as epic_title'
+            )
+            .leftJoin('users', 'tickets.created_by', 'users.id')
+            .leftJoin('epics', 'tickets.epic_id', 'epics.id')
+            .orderBy('tickets.date_released', 'asc');
+
+        if (startDate && endDate) {
+            // Ensure end date includes the full day
+            const startStr = `${startDate} 00:00:00`;
+            const endStr = `${endDate} 23:59:59`;
+
+            // Expand to include any ticket with activity in this range
+            query.where(function () {
+                this.whereBetween('tickets.created_at', [startStr, endStr])
+                    .orWhereBetween('tickets.updated_at', [startStr, endStr])
+                    .orWhereBetween('tickets.date_released', [startStr, endStr])
+                    .orWhereExists(function () {
+                        this.select('*')
+                            .from('ticket_notes')
+                            .whereRaw('ticket_notes.ticket_id = tickets.id')
+                            .whereBetween('ticket_notes.created_at', [startStr, endStr]);
+                    });
+            });
+        } else {
+            if (startDate) query.where('tickets.updated_at', '>=', `${startDate} 00:00:00`);
+            if (endDate) query.where('tickets.updated_at', '<=', `${endDate} 23:59:59`);
+        }
+
+        if (status) query.where('tickets.status', status);
+
+        const rows = await query;
+        res.json(rows);
+    } catch (err) {
+        console.error('[tickets] report error', err);
+        res.status(500).json({ error: 'db error' });
+    }
+});
+
 // Create Ticket
 router.post('/', authMiddleware, async (req, res) => {
     try {
@@ -86,11 +136,16 @@ router.put('/:id', authMiddleware, async (req, res) => {
         // Users can update Title/Description/Type of THEIR OWN tickets.
         // Users CANNOT update Status/Priority/Assignment/Dates unless Admin/Manager.
 
-        if (existing.created_by !== req.user.id && !isAdmin) {
-            return res.status(403).json({ error: 'Not authorized' });
+        if (!isAdmin) {
+            if (existing.created_by !== req.user.id) {
+                return res.status(403).json({ error: 'Not authorized' });
+            }
+            if (existing.status !== 'open') {
+                return res.status(403).json({ error: 'Tickets can only be edited while in Open status.' });
+            }
         }
 
-        const { title, description, type, status, priority, epic_id, assigned_to, due_date } = req.body;
+        const { title, description, type, status, priority, epic_id, assigned_to, due_date, date_released, estimated_release_date } = req.body;
         const updateData = { updated_at: knex.fn.now() };
 
         if (title !== undefined) updateData.title = title;
@@ -104,6 +159,8 @@ router.put('/:id', authMiddleware, async (req, res) => {
             if (epic_id !== undefined) updateData.epic_id = epic_id;
             if (assigned_to !== undefined) updateData.assigned_to = assigned_to;
             if (due_date !== undefined) updateData.due_date = due_date;
+            if (date_released !== undefined) updateData.date_released = date_released;
+            if (estimated_release_date !== undefined) updateData.estimated_release_date = estimated_release_date;
         }
 
         const [updated] = await knex('tickets')
@@ -123,7 +180,15 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     try {
         const isRoot = req.user.firestore_id === 'Kyrlwz6G6NWICCEPYbXtFfyLzWI3';
         const isAdmin = isRoot || req.user.settings?.isAdmin || req.user.settings?.permissions?.includes('manage_tickets');
-        if (!isAdmin) return res.status(403).json({ error: 'Not authorized' });
+        const existing = await knex('tickets').where({ id: req.params.id }).first();
+        if (!existing) return res.status(404).json({ error: 'Not found' });
+
+        const isOwner = existing.created_by === req.user.id;
+        const canDelete = isAdmin || (isOwner && existing.status === 'open');
+
+        if (!canDelete) {
+            return res.status(403).json({ error: 'Not authorized to delete this ticket.' });
+        }
 
         await knex('tickets').where({ id: req.params.id }).del();
         res.json({ success: true });

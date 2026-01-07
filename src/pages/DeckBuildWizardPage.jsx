@@ -164,7 +164,7 @@ const DeckBuildWizardPage = () => {
     const startAnalysis = async () => {
         if (!userProfile?.settings?.geminiApiKey) {
             addToast("Gemini API Key missing in settings.", "error");
-            navigate('/settings');
+            navigate('/settings/ai');
             return;
         }
 

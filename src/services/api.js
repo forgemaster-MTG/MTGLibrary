@@ -80,6 +80,7 @@ export const api = {
 
     // Tickets
     getTickets: (params) => request('GET', '/api/tickets', null, params),
+    getTicketReport: (params) => request('GET', '/api/tickets/report', null, params),
     createTicket: (data) => request('POST', '/api/tickets', data),
     updateTicket: (id, data) => request('PUT', `/api/tickets/${id}`, data),
     deleteTicket: (id) => request('DELETE', `/api/tickets/${id}`),

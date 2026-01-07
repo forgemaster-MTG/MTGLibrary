@@ -120,7 +120,7 @@ User's Playstyle Profile:
 
     const wrapperClasses = isExpanded
         ? 'fixed inset-0 top-16 z-40'
-        : `fixed bottom-0 right-0 z-50 transition-all duration-300 ${isOpen ? '' : 'w-16 h-16 mb-20 mr-4 md:mb-6 md:mr-6'}`;
+        : `fixed bottom-0 right-0 z-[60] transition-all duration-300 ${isOpen ? '' : 'w-16 h-16 mb-20 mr-4 md:mb-6 md:mr-6'}`;
 
     return (
         <div className={`${wrapperClasses} ${!isExpanded && isOpen ? 'w-full md:w-96 h-[600px] mb-16 md:mb-0 mr-0' : ''}`}>

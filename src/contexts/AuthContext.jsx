@@ -79,9 +79,14 @@ export const AuthProvider = ({ children }) => {
         return sendEmailVerification(auth.currentUser);
     };
 
-    // Update Profile Fields
     const updateProfileFields = async (fields) => {
-        if (!userProfile?.id) throw new Error("User profile not ready");
+        if (!userProfile?.id) {
+            console.warn('[AuthContext] Profile missing ID, attempting re-fetch before update...');
+            await refreshUserProfile();
+        }
+        if (!userProfile?.id) {
+            throw new Error(`User profile not ready. (User: ${currentUser?.email}, Profile: ${!!userProfile})`);
+        }
         try {
             await api.updateUser(userProfile.id, fields);
             await refreshUserProfile();
@@ -147,14 +152,23 @@ export const AuthProvider = ({ children }) => {
     };
 
     const refreshUserProfile = async () => {
-        if (!auth.currentUser) return;
+        if (!auth.currentUser) {
+            console.warn('[AuthContext] refreshUserProfile: No currentUser found in Firebase Auth');
+            return;
+        }
         try {
-            const profile = await api.get('/api/users/me'); // Calls /api/users/me which returns { id, email, data, settings? }
-            // Note: /me in server returns { id, firestore_id, email, data }. 
-            // We need to update server/index.js /me to include 'settings'.
+            console.log('[AuthContext] Fetching user profile from /api/users/me...');
+            const profile = await api.get('/api/users/me');
+
+            if (!profile || !profile.id) {
+                console.error('[AuthContext] Profile fetch returned invalid data:', profile);
+            } else {
+                console.log('[AuthContext] Profile loaded successfully:', profile.username || profile.email);
+            }
+
             setUserProfile(profile);
         } catch (error) {
-            console.error('Failed to fetch user profile:', error);
+            console.error('[AuthContext] Failed to fetch user profile:', error.message);
         }
     };
 
