@@ -120,4 +120,45 @@ router.put('/:id/permissions', authMiddleware, async (req, res) => {
   }
 });
 
+// Bulk Data Deletion (Protected, Danger Zone)
+router.delete('/me/data', authMiddleware, async (req, res) => {
+  try {
+    const { target } = req.body; // 'decks', 'collection', 'wishlist', 'all'
+    const userId = req.user.id;
+
+    if (!['decks', 'collection', 'wishlist', 'all'].includes(target)) {
+      return res.status(400).json({ error: 'Invalid target' });
+    }
+
+    await knex.transaction(async (trx) => {
+      if (target === 'decks') {
+        // Delete all decks. Cards in them lose their deck link (return to binder) or are deleted?
+        // Logic: "Delete Decks" usually implies deleting the lists. Cards remain in collection.
+        // We will set deck_id = NULL for all cards in these decks first to be safe (though ON DELETE SET NULL might exist)
+        // Actually, if we delete the deck, we want cards to stay in collection ("Binder").
+        await trx('user_cards').where({ user_id: userId }).whereNotNull('deck_id').update({ deck_id: null });
+        await trx('user_decks').where({ user_id: userId }).del();
+      }
+      else if (target === 'collection') {
+        // Delete all cards. Decks become empty.
+        await trx('user_cards').where({ user_id: userId }).del();
+      }
+      else if (target === 'wishlist') {
+        // Delete only wishlist items
+        await trx('user_cards').where({ user_id: userId, is_wishlist: true }).del();
+      }
+      else if (target === 'all') {
+        // Wipe everything
+        await trx('user_cards').where({ user_id: userId }).del();
+        await trx('user_decks').where({ user_id: userId }).del();
+      }
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[users] delete data error', err);
+    res.status(500).json({ error: 'db error' });
+  }
+});
+
 export default router;

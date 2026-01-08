@@ -5,6 +5,36 @@ import { GeminiService } from '../../services/gemini';
 import RichTextEditor from '../common/RichTextEditor';
 import { format } from 'date-fns';
 
+// Simple Modal Component
+const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, confirmText = 'Confirm', creating }) => {
+    if (!isOpen) return null;
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <div className="bg-gray-900 border border-indigo-500/30 rounded-xl p-6 max-w-md w-full shadow-2xl transform transition-all animate-fade-in relative">
+                <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
+                <p className="text-gray-300 mb-6">{message}</p>
+                <div className="flex justify-end gap-3">
+                    <button
+                        onClick={onClose}
+                        disabled={creating}
+                        className="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        disabled={creating}
+                        className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-lg disabled:opacity-50 flex items-center gap-2"
+                    >
+                        {creating && <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>}
+                        {confirmText}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const AdminPanel = () => {
     const { userProfile } = useAuth();
     const [activeSection, setActiveSection] = useState('sync'); // 'sync', 'permissions', 'epics', 'release'
@@ -182,6 +212,9 @@ const AdminPanel = () => {
     const [fetchingReport, setFetchingReport] = useState(false);
     const [generatedNotes, setGeneratedNotes] = useState('');
     const [generatingNotes, setGeneratingNotes] = useState(false);
+    const [publishing, setPublishing] = useState(false);
+    const [releaseVersion, setReleaseVersion] = useState('');
+    const [showPublishModal, setShowPublishModal] = useState(false);
 
     // Fetch Epics when switching to epics tab
     useEffect(() => {
@@ -226,6 +259,7 @@ const AdminPanel = () => {
             const data = await api.getTicketReport({
                 startDate: reportPeriod.start,
                 endDate: reportPeriod.end,
+                excludeReleased: true,
                 status: '' // Fetch all activity
             });
             setReportTickets(data);
@@ -248,6 +282,8 @@ const AdminPanel = () => {
                 reportTickets
             );
             setGeneratedNotes(notes);
+            // Auto-suggest version? e.g. v1.0.X
+            setReleaseVersion(`v${new Date().toISOString().slice(0, 10).replace(/-/g, '.')}`);
         } catch (err) {
             alert('Failed to generate release notes: ' + err.message);
         } finally {
@@ -255,8 +291,55 @@ const AdminPanel = () => {
         }
     };
 
+    const handlePublishClick = () => {
+        if (!releaseVersion) return alert('Please enter a version number (e.g. v1.2.0)');
+        if (!generatedNotes) return alert('No notes generated');
+        setShowPublishModal(true);
+    };
+
+    const handleConfirmPublish = async () => {
+        setPublishing(true);
+        try {
+            // Calculate stats
+            const stats = {
+                features: reportTickets.filter(t => t.type === 'feature').length,
+                bugs: reportTickets.filter(t => t.type === 'bug').length,
+                total: reportTickets.length
+            };
+
+            await api.publishRelease({
+                version: releaseVersion,
+                notes: generatedNotes,
+                ticketIds: reportTickets.map(t => t.id),
+                typeStats: stats
+            });
+
+            // Success feedback
+            setShowPublishModal(false);
+            setGeneratedNotes('');
+            setReportTickets([]);
+            alert('Release Published Successfully!'); // Still use alert for success or could use toast
+        } catch (err) {
+            alert('Failed to publish: ' + err.message);
+            setShowPublishModal(false); // Close on error so they can retry
+        } finally {
+            setPublishing(false);
+        }
+    };
+
     return (
         <div className="space-y-6 animate-fade-in">
+            {/* Modal */}
+            <ConfirmModal
+                isOpen={showPublishModal}
+                onClose={() => setShowPublishModal(false)}
+                onConfirm={handleConfirmPublish}
+                title={`Publish Release ${releaseVersion}?`}
+                message={`This will move ${reportTickets.length} tickets to the "Released" status and they will no longer appear on the active board. Are you sure?`}
+                confirmText={publishing ? "Publishing..." : "Confirm Publish"}
+                creating={publishing}
+            />
+
             <div className="flex border-b border-gray-700 mb-6 overflow-x-auto">
                 <button
                     onClick={() => setActiveSection('sync')}
@@ -561,19 +644,37 @@ const AdminPanel = () => {
                             </div>
                         )}
 
+
+
                         {generatedNotes && (
                             <div className="space-y-4 pt-6 border-t border-indigo-500/30">
                                 <div className="flex justify-between items-center">
                                     <h3 className="text-lg font-medium text-indigo-400 font-black uppercase tracking-widest">Release Notes Preview</h3>
-                                    <button
-                                        onClick={() => {
-                                            navigator.clipboard.writeText(generatedNotes);
-                                            alert('Copied to clipboard!');
-                                        }}
-                                        className="text-xs text-indigo-400 hover:text-white transition-colors"
-                                    >
-                                        Copy HTML
-                                    </button>
+                                    <div className="flex items-center gap-3">
+                                        <input
+                                            type="text"
+                                            placeholder="v1.0.0"
+                                            className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-1 text-white text-sm"
+                                            value={releaseVersion}
+                                            onChange={e => setReleaseVersion(e.target.value)}
+                                        />
+                                        <button
+                                            onClick={handlePublishClick}
+                                            disabled={publishing}
+                                            className="px-4 py-1.5 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg text-sm shadow-lg disabled:opacity-50"
+                                        >
+                                            🚀 Publish Release
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(generatedNotes);
+                                                alert('Copied to clipboard!');
+                                            }}
+                                            className="text-xs text-indigo-400 hover:text-white transition-colors"
+                                        >
+                                            Copy HTML
+                                        </button>
+                                    </div>
                                 </div>
                                 <div
                                     className="bg-gray-900 border border-indigo-500/20 p-6 rounded-xl prose prose-invert max-w-none shadow-2xl"
@@ -584,7 +685,7 @@ const AdminPanel = () => {
                     </div>
                 </div>
             )}
-        </div>
+        </div >
     );
 };
 

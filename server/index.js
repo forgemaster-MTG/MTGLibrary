@@ -30,6 +30,7 @@ import communityApi from './api/community.js';
 import bindersApi from './api/binders.js';
 import epicsApi from './api/epics.js';
 import ticketsApi from './api/tickets.js';
+import releasesApi from './api/releases.js';
 
 const require = createRequire(import.meta.url);
 
@@ -186,6 +187,7 @@ app.use('/api/community', communityApi);
 app.use('/api/binders', bindersApi);
 app.use('/api/epics', epicsApi);
 app.use('/api/tickets', ticketsApi);
+app.use('/api/releases', releasesApi);
 
 // Health endpoint
 app.get('/api/health', (req, res) => {

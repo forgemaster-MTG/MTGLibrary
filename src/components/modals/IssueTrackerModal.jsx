@@ -255,11 +255,26 @@ const IssueTrackerModal = ({ isOpen, onClose }) => {
             planned: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
             in_progress: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
             completed: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+            complete_pending: 'bg-pink-500/20 text-pink-400 border-pink-500/30',
+            complete_scheduled: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
+            complete_blocked: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
             wont_fix: 'bg-gray-500/20 text-gray-400 border-gray-500/30'
         };
+
+        const labels = {
+            open: 'Open',
+            planned: 'Planned',
+            in_progress: 'In Progress',
+            completed: 'Completed',
+            complete_pending: 'Complete - Pending Release',
+            complete_scheduled: 'Complete - Release Scheduled',
+            complete_blocked: 'Complete - Waiting on Epic',
+            wont_fix: "Won't Fix"
+        };
+
         return (
-            <span className={`px-2 py-0.5 rounded text-xs font-bold border ${colors[status] || colors.open} uppercase tracking-wider`}>
-                {(status || 'open').replace('_', ' ')}
+            <span className={`px-2 py-0.5 rounded text-xs font-bold border ${colors[status] || colors.open} uppercase tracking-wider whitespace-nowrap`}>
+                {labels[status] || (status || 'open').replace(/_/g, ' ')}
             </span>
         );
     };
@@ -330,7 +345,12 @@ const IssueTrackerModal = ({ isOpen, onClose }) => {
                                         <option value="">All Statuses</option>
                                         <option value="open">Open</option>
                                         <option value="in_progress">In Progress</option>
+                                        <option value="planned">Planned</option>
                                         <option value="completed">Completed</option>
+                                        <option value="complete_pending">Pending Release</option>
+                                        <option value="complete_scheduled">Release Scheduled</option>
+                                        <option value="complete_blocked">Waiting on Epic</option>
+                                        <option value="wont_fix">Won't Fix</option>
                                     </select>
                                     <select
                                         className="bg-gray-800 border border-white/10 rounded px-3 py-1 text-sm text-gray-300"
@@ -504,6 +524,9 @@ const IssueTrackerModal = ({ isOpen, onClose }) => {
                                             <option value="planned">Planned</option>
                                             <option value="in_progress">In Progress</option>
                                             <option value="completed">Completed</option>
+                                            <option value="complete_pending">Complete - Pending Release</option>
+                                            <option value="complete_scheduled">Complete - Release Scheduled</option>
+                                            <option value="complete_blocked">Complete - Waiting on Epic</option>
                                             <option value="wont_fix">Won't Fix</option>
                                         </select>
                                     </div>
@@ -562,7 +585,7 @@ const IssueTrackerModal = ({ isOpen, onClose }) => {
                                             </select>
                                         </div>
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div>
                                             <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">Due Date</label>
                                             <input
@@ -572,6 +595,17 @@ const IssueTrackerModal = ({ isOpen, onClose }) => {
                                                 onChange={e => setEditingTicket({ ...editingTicket, due_date: e.target.value })}
                                             />
                                         </div>
+                                        <div>
+                                            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">Est. Completion</label>
+                                            <input
+                                                type="date"
+                                                className="w-full bg-gray-800 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-indigo-500 transition-colors"
+                                                value={editingTicket.est_completion_date ? format(new Date(editingTicket.est_completion_date), 'yyyy-MM-dd') : ''}
+                                                onChange={e => setEditingTicket({ ...editingTicket, est_completion_date: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div>
                                             <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">Est. Release</label>
                                             <input

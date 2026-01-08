@@ -90,7 +90,7 @@ const CommunityWidget = () => {
                 ) : friends.length > 0 ? (
                     <>
                         <div className="space-y-2">
-                            {friends.slice(0, 3).map((rel) => (
+                            {friends.slice(0, 2).map((rel) => (
                                 <div key={rel.id} className="group/item flex items-center justify-between p-2 rounded-xl hover:bg-white/5 transition-colors border border-transparent hover:border-white/5">
                                     <div className="flex items-center gap-3">
                                         <div className="w-8 h-8 rounded-full bg-indigo-900 flex items-center justify-center text-xs font-bold text-indigo-200 ring-2 ring-gray-900">
@@ -110,9 +110,9 @@ const CommunityWidget = () => {
                             ))}
                         </div>
 
-                        {friends.length > 3 && (
+                        {friends.length > 2 && (
                             <Link to="/settings/community" className="block text-center text-xs text-gray-500 hover:text-indigo-400 mt-2 font-medium transition-colors">
-                                + {friends.length - 3} others
+                                + {friends.length - 2} others
                             </Link>
                         )}
                     </>

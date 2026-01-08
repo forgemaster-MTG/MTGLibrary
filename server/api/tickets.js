@@ -34,6 +34,8 @@ router.get('/', async (req, res) => {
             (tickets.status != 'completed' OR tickets.updated_at > NOW() - INTERVAL '30 days')
             AND
             (tickets.status != 'wont_fix' OR tickets.updated_at > NOW() - INTERVAL '7 days')
+            AND
+            (tickets.status != 'released')
         `);
 
         const rows = await query;
@@ -85,6 +87,9 @@ router.get('/report', authMiddleware, async (req, res) => {
         }
 
         if (status) query.where('tickets.status', status);
+        if (req.query.excludeReleased === 'true') {
+            query.whereNot('tickets.status', 'released');
+        }
 
         const rows = await query;
         res.json(rows);
@@ -145,7 +150,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
             }
         }
 
-        const { title, description, type, status, priority, epic_id, assigned_to, due_date, date_released, estimated_release_date } = req.body;
+        const { title, description, type, status, priority, epic_id, assigned_to, due_date, date_released, estimated_release_date, est_completion_date } = req.body;
         const updateData = { updated_at: knex.fn.now() };
 
         if (title !== undefined) updateData.title = title;
@@ -161,6 +166,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
             if (due_date !== undefined) updateData.due_date = due_date;
             if (date_released !== undefined) updateData.date_released = date_released;
             if (estimated_release_date !== undefined) updateData.estimated_release_date = estimated_release_date;
+            if (est_completion_date !== undefined) updateData.est_completion_date = est_completion_date;
         }
 
         const [updated] = await knex('tickets')

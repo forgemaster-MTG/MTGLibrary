@@ -10,6 +10,8 @@ import { getIdentity } from '../data/mtg_identity_registry';
 import DonationWidget from '../components/dashboard/DonationWidget';
 import CommunityWidget from '../components/dashboard/CommunityWidget';
 import TipsWidget from '../components/dashboard/TipsWidget';
+import OrganizationWidget from '../components/dashboard/OrganizationWidget';
+import ReleasesWidget from '../components/dashboard/ReleasesWidget';
 
 import DonationModal from '../components/modals/DonationModal';
 import BinderGuideModal from '../components/modals/BinderGuideModal';
@@ -187,7 +189,7 @@ const Dashboard = () => {
                     <div className="lg:col-span-2 space-y-8">
 
                         {/* Quick Actions */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                             <QuickAction
                                 title="New Deck"
                                 icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>}
@@ -212,6 +214,7 @@ const Dashboard = () => {
                                 color="from-pink-600 to-rose-600"
                                 onClick={() => navigate('/collection?wishlist=true')}
                             />
+                            <OrganizationWidget />
                         </div>
 
 
@@ -313,7 +316,7 @@ const Dashboard = () => {
                         </div>
 
                         {/* System & Support Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                             {/* System Status */}
                             <div className="bg-red-900/10 border border-red-500/20 rounded-3xl p-6 backdrop-blur-md">
                                 <h2 className="font-bold text-white mb-2 flex items-center gap-2">
@@ -333,12 +336,20 @@ const Dashboard = () => {
 
                             {/* Donation Widget */}
                             <DonationWidget onOpenModal={() => setIsDonationModalOpen(true)} />
+
+                            {/* Community Widget (My Pod) */}
+                            <div className="h-full">
+                                <CommunityWidget />
+                            </div>
                         </div>
 
                     </div>
 
                     {/* Right Column: Key Stats / Profile / Reports */}
-                    <div className="space-y-6">
+                    <div className="space-y-6 flex flex-col h-full">
+
+
+
 
 
 
@@ -383,12 +394,14 @@ const Dashboard = () => {
                             </div>
                         </div>
 
-
-
-                        {/* Community Widget (My Pod) */}
-                        <div className="h-auto">
-                            <CommunityWidget />
+                        {/* Recent Releases Hub - Fill remaining space */}
+                        <div className="flex-1 min-h-[300px]">
+                            <ReleasesWidget />
                         </div>
+
+
+
+
 
 
 

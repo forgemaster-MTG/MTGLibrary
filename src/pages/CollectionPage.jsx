@@ -17,6 +17,7 @@ import ViewToggle from '../components/ViewToggle';
 import BulkCollectionImportModal from '../components/modals/BulkCollectionImportModal';
 import BinderWizardModal from '../components/modals/BinderWizardModal';
 import BinderGuideModal from '../components/modals/BinderGuideModal';
+import OrganizationWizardModal from '../components/modals/OrganizationWizardModal';
 import { evaluateRules } from '../services/ruleEvaluator';
 
 
@@ -93,6 +94,7 @@ const CollectionPage = () => {
     const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
     const [isWizardOpen, setIsWizardOpen] = useState(false);
     const [isGuideOpen, setIsGuideOpen] = useState(false);
+    const [isOrganizationWizardOpen, setIsOrganizationWizardOpen] = useState(false);
     const [editingBinder, setEditingBinder] = useState(null);
 
     // Filter State (Persisted)
@@ -176,9 +178,71 @@ const CollectionPage = () => {
         return decks.map(d => ({ value: d.id, label: d.name }));
     }, [decks]);
 
-    // Filtering Logic (Applies to all cards initially)
+    // Advanced Sorting Internal Comparator
+    const compareCards = (a, b, criterion) => {
+        switch (criterion) {
+            case 'color':
+            case 'color_identity': {
+                // W U B R G M C
+                const wubrgOrder = { 'W': 0, 'U': 1, 'B': 2, 'R': 3, 'G': 4 };
+
+                const getSortKey = (card) => {
+                    let colors = card.color_identity || [];
+                    if (typeof colors === 'string') try { colors = JSON.parse(colors); } catch (e) { }
+                    if (colors.length === 0) return 6; // Colorless
+                    if (colors.length > 1) return 5; // Multicolor
+                    return wubrgOrder[colors[0]] ?? 7;
+                };
+                return getSortKey(a) - getSortKey(b);
+            }
+            case 'type': {
+                const typePriority = {
+                    'Creature': 0,
+                    'Instant': 1,
+                    'Sorcery': 2,
+                    'Enchantment': 3,
+                    'Artifact': 4,
+                    'Planeswalker': 5,
+                    'Land': 6
+                };
+                const getTypeRank = (card) => {
+                    const line = card.type_line || '';
+                    for (const [t, rank] of Object.entries(typePriority)) {
+                        if (line.includes(t)) return rank;
+                    }
+                    return 7;
+                };
+                return getTypeRank(a) - getTypeRank(b);
+            }
+            case 'cmc':
+                return (parseFloat(a.cmc) || 0) - (parseFloat(b.cmc) || 0);
+            case 'price':
+                return (parseFloat(a.prices?.usd || 0) - parseFloat(b.prices?.usd || 0));
+            case 'collector_number': {
+                // Handle "123a" strings
+                const numA = parseInt(a.collector_number || 0);
+                const numB = parseInt(b.collector_number || 0);
+                return numA - numB;
+            }
+            case 'set':
+                // Simple atomic compare. Ideally we'd have release date map.
+                return (a.set || '').localeCompare(b.set || '');
+            case 'name':
+                return (a.name || '').localeCompare(b.name || '');
+            case 'power':
+                return (parseFloat(a.power) || 0) - (parseFloat(b.power) || 0);
+            case 'toughness':
+                return (parseFloat(a.toughness) || 0) - (parseFloat(b.toughness) || 0);
+            case 'artist':
+                return (a.artist || '').localeCompare(b.artist || '');
+            default:
+                return 0;
+        }
+    };
+
+    // Filtered & Sorted Cards
     const filteredCards = useMemo(() => {
-        return cards.filter(card => {
+        let result = cards.filter(card => {
             // Search Term
             const name = card.name || '';
             if (searchTerm && !name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
@@ -226,33 +290,37 @@ const CollectionPage = () => {
             }
 
             return true;
-        }).sort((a, b) => {
-            let valA, valB;
+        });
 
-            switch (sortBy) {
-                case 'name':
-                    valA = a.name || '';
-                    valB = b.name || '';
-                    break;
-                case 'price':
-                    valA = parseFloat(a.prices?.usd || a.prices?.usd_foil || 0);
-                    valB = parseFloat(b.prices?.usd || b.prices?.usd_foil || 0);
-                    break;
-                case 'owner':
-                    valA = a.owner_username || 'ME';
-                    valB = b.owner_username || 'ME';
-                    break;
-                case 'added_at':
-                default:
-                    valA = new Date(a.added_at || 0).getTime();
-                    valB = new Date(b.added_at || 0).getTime();
+        return result.sort((a, b) => {
+            // Priority 1: User Defined Hierarchy (from Settings)
+            const userHierarchy = userProfile?.settings?.organization?.sortHierarchy;
+
+            // If user has advanced sorting set, use it
+            if (userHierarchy && Array.isArray(userHierarchy) && userHierarchy.length > 0) {
+                for (const criterion of userHierarchy) {
+                    const diff = compareCards(a, b, criterion);
+                    if (diff !== 0) return diff;
+                }
+                // Fallback to name if equal
+                return compareCards(a, b, 'name');
             }
 
-            if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
-            if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
-            return 0;
+            // Priority 2: Standard UI Sort Controls (Legacy)
+            if (sortBy === 'added_at') {
+                const valA = new Date(a.added_at || 0).getTime();
+                const valB = new Date(b.added_at || 0).getTime();
+                return sortOrder === 'asc' ? valA - valB : valB - valA;
+            }
+
+            // Map UI sortBy to our comparator keys for consistency 
+            let criterion = sortBy;
+            if (sortBy === 'owner') return (a.owner_username || 'ME').localeCompare(b.owner_username || 'ME');
+
+            const diff = compareCards(a, b, criterion);
+            return sortOrder === 'asc' ? diff : -diff;
         });
-    }, [cards, searchTerm, filters, sortBy, sortOrder]);
+    }, [cards, searchTerm, filters, sortBy, sortOrder, userProfile]);
 
 
     // Grouping Logic
@@ -297,91 +365,135 @@ const CollectionPage = () => {
             return result.sort((a, b) => a.label.localeCompare(b.label));
         }
 
-        // Smart Mode: Sets, Decks, Colors
-        const setGroups = {};
-        const deckGroups = {};
-        const colorGroups = {};
+        // Smart Mode: Decks + User Selected Preference
+        if (groupingMode === 'smart') {
+            const result = [];
+            const deckGroups = {};
 
-        filteredCards.forEach(card => {
-            // By Set
-            if (card.set_name) {
-                if (!setGroups[card.set_name]) setGroups[card.set_name] = [];
-                setGroups[card.set_name].push(card);
-            }
-
-            // By Deck
-            if (card.deck_id) {
-                const deckName = decks.find(d => d.id === card.deck_id)?.name || 'Unknown Deck';
-                if (!deckGroups[deckName]) deckGroups[deckName] = [];
-                deckGroups[deckName].push(card);
-            }
-
-            // By Color
-            let colors = card.color_identity;
-            if (typeof colors === 'string') {
-                try { colors = JSON.parse(colors); } catch (e) { colors = []; }
-            }
-            if (!Array.isArray(colors)) colors = [];
-
-            // Normalize: Filter valid colors, sort, and handle Colorless
-            const wubrgOrder = { 'W': 0, 'U': 1, 'B': 2, 'R': 3, 'G': 4 };
-            const validColors = colors.filter(c => wubrgOrder[c] !== undefined);
-
-            const sortedKey = validColors
-                .sort((a, b) => wubrgOrder[a] - wubrgOrder[b])
-                .join('');
-
-            const key = sortedKey.length === 0 ? 'C' : sortedKey;
-
-            if (!colorGroups[key]) colorGroups[key] = [];
-            colorGroups[key].push(card);
-        });
-
-        const result = [];
-
-        // Push Decks first
-        Object.entries(deckGroups).forEach(([name, cards]) => {
-            // Get owner info from first card in the deck for mixed view
-            const ownerName = isMixedView && cards[0]?.owner_username ? cards[0].owner_username : null;
-            result.push({
-                id: `deck-${name}`,
-                label: name,
-                type: 'deck',
-                cards,
-                icon: '♟️',
-                color: 'purple',
-                sub: 'Deck',
-                ownerName
-            });
-        });
-
-        // Push Colors (Sorted by color count, then name)
-        Object.entries(colorGroups)
-            .sort(([codeA], [codeB]) => {
-                const countA = codeA === 'C' ? 0 : codeA.length;
-                const countB = codeB === 'C' ? 0 : codeB.length;
-                if (countA !== countB) return countA - countB;
-                const identityA = getIdentity(codeA);
-                const identityB = getIdentity(codeB);
-                return (identityA.name || '').localeCompare(identityB.name || '');
-            })
-            .forEach(([code, cards]) => {
-                if (cards.length > 0) {
-                    const identity = getIdentity(code);
-                    result.push({
-                        id: `color-${code}`,
-                        label: identity.name,
-                        type: 'color',
-                        cards,
-                        icon: '🎨',
-                        pips: identity.pips,
-                        flavor: identity.flavor,
-                        theme: identity.theme,
-                        color: identity.bg?.replace('bg-', '')?.split(' ')[0] || 'blue',
-                        sub: 'Color Identity'
-                    });
+            // 1. Always Group by Deck first
+            filteredCards.forEach(card => {
+                if (card.deck_id) {
+                    const deckName = decks.find(d => d.id === card.deck_id)?.name || 'Unknown Deck';
+                    if (!deckGroups[deckName]) deckGroups[deckName] = [];
+                    deckGroups[deckName].push(card);
                 }
             });
+
+            // Push Decks
+            Object.entries(deckGroups).forEach(([name, cards]) => {
+                const ownerName = isMixedView && cards[0]?.owner_username ? cards[0].owner_username : null;
+                result.push({
+                    id: `deck-${name}`,
+                    label: name,
+                    type: 'deck',
+                    cards,
+                    icon: '♟️',
+                    color: 'purple',
+                    sub: 'Deck',
+                    ownerName
+                });
+            });
+
+            // 2. Determine Secondary Grouping (from User Settings)
+            const pref = userProfile?.settings?.organization?.groupingPreference || 'color';
+            const dynamicGroups = {};
+
+            filteredCards.forEach(card => {
+                // Skip cards that are already in decks? 
+                // Usually Smart View shows deck cards in Deck folders, and non-deck cards in attribute folders?
+                // Or duplicates them? The original logic verified:
+                // Original logic: "if (card.deck_id) --> deckGroup; and INDEPENDENTLY 'By Color' --> colorGroup"
+                // So cards appeared in BOTH Deck folder and Color folder?
+                // Looking at old code: yes, it ran sequentially. So a card in a deck was ALSO counted in colorGroups.
+                // We will maintain this behavior as it allows browsing by trait even if deck-bound.
+
+                let key = 'Other';
+                let label = 'Other';
+                let sortValue = 0;
+                let meta = {};
+
+                if (pref === 'set') {
+                    key = card.set || 'unknown';
+                    label = card.set_name || 'Unknown Set';
+                    sortValue = card.released_at ? new Date(card.released_at).getTime() : 0;
+                    meta = { icon: '📦', color: 'blue' };
+                }
+                else if (pref === 'type') {
+                    // Simple Type Grouping (Main type)
+                    const types = ['Creature', 'Instant', 'Sorcery', 'Enchantment', 'Artifact', 'Planeswalker', 'Land'];
+                    const line = card.type_line || '';
+                    const mainType = types.find(t => line.includes(t)) || 'Other';
+                    key = mainType;
+                    label = mainType;
+                    meta = { icon: '🃏', color: 'emerald' };
+                }
+                else if (pref === 'rarity') {
+                    key = card.rarity || 'common';
+                    label = key.charAt(0).toUpperCase() + key.slice(1);
+                    const rOrder = { 'common': 0, 'uncommon': 1, 'rare': 2, 'mythic': 3 };
+                    sortValue = rOrder[key] || 0;
+                    meta = { icon: '💎', color: 'yellow' };
+                }
+                else {
+                    // Default: Color Grouping
+                    let colors = card.color_identity;
+                    if (typeof colors === 'string') try { colors = JSON.parse(colors); } catch (e) { colors = []; }
+                    if (!Array.isArray(colors)) colors = [];
+
+                    const wubrgOrder = { 'W': 0, 'U': 1, 'B': 2, 'R': 3, 'G': 4 };
+                    const validColors = colors.filter(c => wubrgOrder[c] !== undefined);
+                    const sortedKey = validColors.sort((a, b) => wubrgOrder[a] - wubrgOrder[b]).join('');
+
+                    key = sortedKey.length === 0 ? 'C' : sortedKey;
+                    const identity = getIdentity(key);
+                    label = identity.name;
+                    sortValue = key === 'C' ? -1 : key.length; // Colorless first or last?
+                    meta = {
+                        icon: '🎨',
+                        color: identity.bg?.replace('bg-', '')?.split(' ')[0] || 'blue',
+                        pips: identity.pips,
+                        flavor: identity.flavor,
+                        theme: identity.theme
+                    };
+                }
+
+                if (!dynamicGroups[key]) dynamicGroups[key] = { label, cards: [], sortValue, ...meta };
+                dynamicGroups[key].cards.push(card);
+            });
+
+            // Convert dynamicGroups to result array
+            const dynamicResult = Object.entries(dynamicGroups).map(([k, g]) => ({
+                id: `group-${k}`,
+                label: g.label,
+                type: pref,
+                cards: g.cards,
+                icon: g.icon,
+                color: g.color || 'gray',
+                sub: pref.charAt(0).toUpperCase() + pref.slice(1),
+                pips: g.pips,
+                flavor: g.flavor,
+                theme: g.theme,
+                sortValue: g.sortValue
+            }));
+
+            // Sort dynamic groups
+            dynamicResult.sort((a, b) => {
+                // Custom sorts per type
+                if (pref === 'rarity') return b.sortValue - a.sortValue; // Mythic first?
+                if (pref === 'set') return b.sortValue - a.sortValue; // Newest sets first
+                if (pref === 'color') {
+                    // Sort logic from original: Count then Identity Name
+                    const countA = a.id.replace('group-', '').length; // approximation
+                    // Actually better to rely on sortValue if we set it correctly, strictly speaking WUBRG order is nice.
+                    // Let's stick to localeCompare of label for simple types, or special logic for colors.
+                    if (a.theme && b.theme) return a.label.localeCompare(b.label);
+                    return 0; // fallback
+                }
+                return a.label.localeCompare(b.label);
+            });
+
+            return [...result, ...dynamicResult];
+        }
 
         // Binder Mode (User Binders)
         if (groupingMode === 'binders') {
@@ -404,9 +516,9 @@ const CollectionPage = () => {
             });
         }
 
-        return result;
+        return [];
 
-    }, [filteredCards, groupingMode, viewMode, decks, binders, cards]);
+    }, [filteredCards, groupingMode, viewMode, decks, binders, cards, userProfile]);
 
     // Helpers
     const toggleFilter = (category, value) => {
@@ -489,6 +601,14 @@ const CollectionPage = () => {
                                 >
                                     <svg className="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                     <span className="text-[10px] font-bold uppercase tracking-widest hidden lg:inline-block">New Binder</span>
+                                </button>
+
+                                <button
+                                    onClick={() => setIsOrganizationWizardOpen(true)}
+                                    className="hidden md:flex bg-gray-900 hover:bg-gray-800 text-gray-400 hover:text-white p-2.5 md:px-3 md:py-3 rounded-xl transition-all border border-gray-800 hover:border-gray-700 items-center justify-center shadow-lg"
+                                    title="Organize Collection"
+                                >
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" /></svg>
                                 </button>
 
                                 <button
@@ -1048,9 +1168,18 @@ w - 8 h - 8 rounded - full border flex items - center justify - center transitio
                 )
             }
 
+            {/* Organization Wizard */}
+            <OrganizationWizardModal
+                isOpen={isOrganizationWizardOpen}
+                onClose={() => setIsOrganizationWizardOpen(false)}
+                onComplete={() => {
+                    setIsOrganizationWizardOpen(false);
+                    // Force refresh or just let state update do it (since we stick to filters)
+                    window.location.reload(); // Simple reload to apply new sort settings fresh
+                }}
+            />
         </div >
     );
 };
 
 export default CollectionPage;
-

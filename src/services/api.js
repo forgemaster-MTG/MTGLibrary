@@ -91,5 +91,9 @@ export const api = {
 
     // Admin / Permissions
     updateUserPermissions: (id, permissions, isAdmin) => request('PUT', `/api/users/${id}/permissions`, { permissions, isAdmin }),
-    getUsers: () => request('GET', '/api/users')
+    getUsers: () => request('GET', '/api/users'),
+
+    // Releases
+    getReleases: () => request('GET', '/api/releases'),
+    publishRelease: (data) => request('POST', '/api/releases', data)
 };
