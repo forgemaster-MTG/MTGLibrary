@@ -11,6 +11,7 @@ import { getIdentity } from '../data/mtg_identity_registry';
 import MultiSelect from '../components/MultiSelect';
 import CardSkeleton from '../components/CardSkeleton';
 import CardGridItem from '../components/common/CardGridItem';
+import StartAuditButton from '../components/Audit/StartAuditButton';
 import CardSearchModal from '../components/CardSearchModal';
 import CollectionTable from '../components/CollectionTable';
 import ViewToggle from '../components/ViewToggle';
@@ -931,6 +932,14 @@ w - 8 h - 8 rounded - full border flex items - center justify - center transitio
                                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                                                 </button>
                                             )}
+                                            {activeGroup.type === 'binder' && (
+                                                <StartAuditButton
+                                                    type="binder"
+                                                    targetId={activeFolder.replace('binder-', '')}
+                                                    label="Audit"
+                                                    className="text-xs bg-gray-800 border-gray-700 hover:bg-gray-700 hover:text-white py-2"
+                                                />
+                                            )}
                                         </div>
                                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
                                             {activeGroup.cards.map(card => (
@@ -1019,7 +1028,7 @@ w - 8 h - 8 rounded - full border flex items - center justify - center transitio
                     <>
                         {/* Desktop Pagination Footer */}
                         <div className="hidden md:block fixed bottom-0 left-0 right-0 z-[55] bg-gray-950/95 backdrop-blur-xl border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
-                            <div className="max-w-[1600px] mx-auto px-6 py-4">
+                            <div className="max-w-[1600px] mx-auto px-6 pr-24 py-4">
                                 <div className="flex items-center justify-between gap-4">
                                     {/* Page Info */}
                                     <div className="text-sm text-gray-400 font-medium whitespace-nowrap">
@@ -1115,7 +1124,7 @@ w - 8 h - 8 rounded - full border flex items - center justify - center transitio
 
                         {/* Mobile Pagination Footer */}
                         <div className="md:hidden fixed bottom-16 left-0 right-0 z-[55] bg-gray-950/95 backdrop-blur-xl border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
-                            <div className="px-4 py-3">
+                            <div className="px-4 pr-24 py-3">
                                 <div className="flex items-center justify-between gap-3">
                                     {/* Compact Page Info */}
                                     <div className="text-xs text-gray-400 font-medium">

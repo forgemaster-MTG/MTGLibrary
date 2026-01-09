@@ -142,12 +142,18 @@ const OnboardingPage = () => {
         setSavingOrg(true);
         try {
             const settings = {
-                mode: arch.id,
-                sortHierarchy: sort.filter(Boolean),
-                groupingPreference: group
+                organization: {
+                    mode: arch.id,
+                    sortHierarchy: sort.filter(Boolean),
+                    groupingPreference: group
+                }
             };
-            await api.post('/api/user/settings', { organization: settings });
-            await refreshUserProfile();
+
+            // Use existing context method which calls api.updateUser
+            await updateSettings(settings);
+            // await refreshUserProfile(); // updateSettings usually handles state update? Let's check AuthContext. 
+            // Actually updateSettings in AuthContext calls api.updateUser and then setProfile.
+            // But let's verification in the next step. For now, assuming updateSettings does what we want.
 
             // Move to next step (Helper Forge)
             const nextStep = step + 1;

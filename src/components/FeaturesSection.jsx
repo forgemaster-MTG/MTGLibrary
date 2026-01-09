@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import BinderGuideModal from './modals/BinderGuideModal';
 import PodGuideModal from './modals/PodGuideModal';
 import QRShareModal from './modals/QRShareModal';
+import AuditGuideModal from './modals/AuditGuideModal';
 
 const FeatureCard = ({ title, description, icon }) => (
     <div className="bg-gray-800/50 p-6 rounded-2xl border border-gray-700 hover:border-indigo-500/50 transition-all hover:bg-gray-800 group">
@@ -71,21 +72,20 @@ const FeaturesSection = () => {
                         <p className="text-gray-400 text-lg leading-relaxed">
                             Go beyond solo collection. Link accounts with your playgroup ("Pods") to browse friends' trades instantly. Share your builds with the world via dynamic QR Codes.
                         </p>
-                        <div className="space-y-4 relative">
-                            <p className="absolute -top-6 right-0 text-[10px] text-gray-500 font-medium uppercase tracking-wider animate-pulse">Click to preview guides</p>
-                            <button
-                                onClick={() => setActiveFeature('smart')}
-                                className="w-full bg-gray-800/50 p-4 rounded-xl border border-white/5 flex flex-col items-start gap-2 hover:bg-gray-800 hover:border-indigo-500/30 transition-all cursor-pointer group text-left relative overflow-hidden"
-                            >
-                                <h4 className="text-white font-bold mb-1 flex items-center gap-2 group-hover:text-indigo-400 transition-colors">
-                                    <span className="text-xl">✨</span> Smart Binders
-                                </h4>
-                                <p className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors pr-6">AI automatically sorts cards into binders based on your rules.</p>
-                                <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0 text-indigo-500">
-                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-                                </div>
-                            </button>
+                        <div className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
+                                <button
+                                    onClick={() => setActiveFeature('smart')}
+                                    className="bg-gray-800/50 p-4 rounded-xl border border-white/5 text-left hover:bg-gray-800 hover:border-indigo-500/30 transition-all cursor-pointer group relative overflow-hidden"
+                                >
+                                    <h4 className="text-white font-bold mb-1 flex items-center gap-2 group-hover:text-indigo-400 transition-colors">
+                                        <span className="text-xl">✨</span> Smart Binders
+                                    </h4>
+                                    <p className="text-[10px] text-gray-400 group-hover:text-gray-300 transition-colors leading-tight">AI automatically sorts cards into binders based on your rules.</p>
+                                    <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0 text-indigo-500">
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                                    </div>
+                                </button>
                                 <button
                                     onClick={() => setActiveFeature('pods')}
                                     className="bg-gray-800/50 p-4 rounded-xl border border-white/5 text-left hover:bg-gray-800 hover:border-purple-500/30 transition-all cursor-pointer group relative overflow-hidden"
@@ -93,7 +93,7 @@ const FeaturesSection = () => {
                                     <h4 className="text-white font-bold mb-1 flex items-center gap-2 group-hover:text-purple-400 transition-colors">
                                         <span className="text-xl">🤝</span> Pods
                                     </h4>
-                                    <p className="text-xs text-gray-400 group-hover:text-gray-300 transition-colors pr-4">Link with friends for real-time trading.</p>
+                                    <p className="text-[10px] text-gray-400 group-hover:text-gray-300 transition-colors leading-tight">Link with friends for real-time trading.</p>
                                     <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0 text-purple-500">
                                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
                                     </div>
@@ -105,8 +105,20 @@ const FeaturesSection = () => {
                                     <h4 className="text-white font-bold mb-1 flex items-center gap-2 group-hover:text-blue-400 transition-colors">
                                         <span className="text-xl">📱</span> QR Share
                                     </h4>
-                                    <p className="text-xs text-gray-400 group-hover:text-gray-300 transition-colors pr-4">Showcase deck lists instantly.</p>
+                                    <p className="text-[10px] text-gray-400 group-hover:text-gray-300 transition-colors leading-tight">Showcase deck lists instantly.</p>
                                     <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0 text-blue-500">
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                                    </div>
+                                </button>
+                                <button
+                                    onClick={() => setActiveFeature('audit')}
+                                    className="bg-gray-800/50 p-4 rounded-xl border border-white/5 text-left hover:bg-gray-800 hover:border-green-500/30 transition-all cursor-pointer group relative overflow-hidden"
+                                >
+                                    <h4 className="text-white font-bold mb-1 flex items-center gap-2 group-hover:text-green-400 transition-colors">
+                                        <span className="text-xl">🛡️</span> Audits
+                                    </h4>
+                                    <p className="text-[10px] text-gray-400 group-hover:text-gray-300 transition-colors leading-tight">Reconcile physical cards with records.</p>
+                                    <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0 text-green-500">
                                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
                                     </div>
                                 </button>
@@ -128,9 +140,9 @@ const FeaturesSection = () => {
                                     <div className="text-4xl mb-2">📱</div>
                                     <div className="text-xs font-bold text-blue-300 uppercase">QR Share</div>
                                 </div>
-                                <div className="bg-gray-800/50 rounded-xl border border-white/5 p-4 flex flex-col items-center justify-center">
-                                    <div className="text-4xl mb-2">👥</div>
-                                    <div className="text-xs font-bold text-gray-400 uppercase">Friend List</div>
+                                <div className="bg-green-900/30 rounded-xl border border-green-500/20 p-4 flex flex-col items-center justify-center">
+                                    <div className="text-4xl mb-2">🛡️</div>
+                                    <div className="text-xs font-bold text-green-300 uppercase">Audit The Forge</div>
                                 </div>
                             </div>
                         </div>
@@ -242,6 +254,11 @@ const FeaturesSection = () => {
 
             <QRShareModal
                 isOpen={activeFeature === 'qr'}
+                onClose={() => setActiveFeature(null)}
+            />
+
+            <AuditGuideModal
+                isOpen={activeFeature === 'audit'}
                 onClose={() => setActiveFeature(null)}
             />
         </section >

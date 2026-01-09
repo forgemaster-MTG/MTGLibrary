@@ -321,7 +321,7 @@ const CardSearchModal = ({ isOpen, onClose, onAddCard }) => {
                     {/* Search & Filters */}
                     <div className="p-6 bg-gray-900 space-y-4 relative z-[60] border-b border-white/5">
                         <form onSubmit={handleSearch} className="relative flex flex-col gap-4">
-                            <div className="flex gap-4">
+                            <div className="flex flex-col md:flex-row gap-4">
                                 <div className="relative flex-1 group">
                                     <input
                                         ref={inputRef}

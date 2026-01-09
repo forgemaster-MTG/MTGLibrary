@@ -77,6 +77,7 @@ export const api = {
     createEpic: (data) => request('POST', '/api/epics', data),
     updateEpic: (id, data) => request('PUT', `/api/epics/${id}`, data),
     reorderEpics: (order) => request('PUT', '/api/epics/reorder/batch', { order }),
+    deleteEpic: (id) => request('DELETE', `/api/epics/${id}`),
 
     // Tickets
     getTickets: (params) => request('GET', '/api/tickets', null, params),
@@ -94,6 +95,23 @@ export const api = {
     getUsers: () => request('GET', '/api/users'),
 
     // Releases
+    // Releases
     getReleases: () => request('GET', '/api/releases'),
-    publishRelease: (data) => request('POST', '/api/releases', data)
+    publishRelease: (data) => request('POST', '/api/releases', data),
+
+    // Audit
+    getActiveAudit: () => request('GET', '/api/audit/active'),
+    startAudit: (data) => request('POST', '/api/audit/start', data),
+    getAuditItems: (id, params) => request('GET', `/api/audit/${id}/items`, null, params),
+    updateAuditItem: (sessionId, itemId, quantity, reviewed = null) => {
+        const payload = { quantity };
+        if (reviewed !== null) payload.reviewed = reviewed;
+        return request('PUT', `/api/audit/${sessionId}/item/${itemId}`, payload);
+    },
+
+    swapFoilAuditItem: (sessionId, itemId) => request('POST', `/api/audit/${sessionId}/item/${itemId}/swap-foil`),
+
+    cancelAudit: (id) => request('POST', `/api/audit/${id}/cancel`),
+    finalizeAudit: (id) => request('POST', `/api/audit/${id}/finalize`),
+    reviewAuditSection: (id, data) => request('POST', `/api/audit/${id}/section/review`, data)
 };

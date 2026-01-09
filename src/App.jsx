@@ -18,6 +18,8 @@ import DeckBuildWizardPage from './pages/DeckBuildWizardPage';
 import OnboardingPage from './pages/OnboardingPage';
 import AboutPage from './pages/AboutPage';
 import PublicDeckPage from './pages/PublicDeckPage';
+import AuditWizard from './components/Audit/AuditWizard';
+import AuditHub from './components/Audit/AuditHub';
 import ChatWidget from './components/ChatWidget';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -56,6 +58,9 @@ function App() {
                                     <Route path="/sets/:setCode" element={<SetDetailsPage />} />
                                     <Route path="/wishlist" element={<WishlistPage />} />
                                     <Route path="/settings/:tab?" element={<SettingsPage />} />
+                                    <Route path="/audit" element={<AuditHub />} />
+                                    <Route path="/audit/:id" element={<AuditHub />} />
+                                    <Route path="/audit/:auditId/wizard" element={<AuditWizard />} />
                                 </Routes>
                             </div>
                         </AuthGuard>

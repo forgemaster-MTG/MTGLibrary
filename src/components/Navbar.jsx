@@ -104,12 +104,7 @@ const Navbar = () => {
 
                             {/* Desktop Nav Links */}
                             <div className="hidden lg:ml-10 lg:flex lg:items-baseline lg:space-x-4">
-                                {isLanding ? (
-                                    <>
-                                        <a href="#features" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Features</a>
-                                        <Link to="/about" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">About</Link>
-                                    </>
-                                ) : (
+                                {currentUser ? (
                                     <>
                                         <Link to="/dashboard" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Dashboard</Link>
                                         <Link to="/collection" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Collection</Link>
@@ -117,7 +112,19 @@ const Navbar = () => {
                                         <Link to="/decks" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Decks</Link>
                                         <Link to="/precons" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Precons</Link>
                                         <Link to="/sets" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Sets</Link>
-                                        {/* Settings moved to user menu to save space */}
+                                    </>
+                                ) : (
+                                    <>
+                                        {isLanding ? (
+                                            <>
+                                                <a href="#features" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Features</a>
+                                                <Link to="/about" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">About</Link>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Link to="/about" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">About</Link>
+                                            </>
+                                        )}
                                     </>
                                 )}
                             </div>

@@ -41,13 +41,29 @@ const LandingPage = () => {
                     <p className="mt-4 max-w-2xl text-xl text-gray-300 mx-auto">
                         The ultimate tool for Magic: The Gathering players. Organize your cards, analyze your mana curves, and playtest your strategies in one modern interface.
                     </p>
-                    <div className="mt-10 flex gap-4 justify-center">
+                    <div className="mt-10 flex flex-wrap gap-4 justify-center">
                         <Link to="/dashboard" className="px-8 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-lg transition-all shadow-lg shadow-indigo-500/30 transform hover:-translate-y-1">
                             Get Started
                         </Link>
-                        <button className="px-8 py-3 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 font-semibold text-lg border border-gray-700 transition-all">
+                        <button className="px-8 py-3 rounded-lg bg-gray-800/80 backdrop-blur-md hover:bg-gray-700 text-gray-200 font-semibold text-lg border border-gray-700 transition-all">
                             Learn More
                         </button>
+                    </div>
+
+                    {/* Quick Access Grid */}
+                    <div className="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-3xl animate-fade-in-up delay-200">
+                        <Link to="/collection" className="group p-4 bg-gray-800/30 backdrop-blur-sm border border-white/5 rounded-2xl hover:bg-indigo-900/20 hover:border-indigo-500/30 transition-all text-center">
+                            <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">🗂️</div>
+                            <div className="text-xs font-bold text-gray-400 uppercase tracking-widest group-hover:text-indigo-300 transition-colors">Collection</div>
+                        </Link>
+                        <Link to="/decks" className="group p-4 bg-gray-800/30 backdrop-blur-sm border border-white/5 rounded-2xl hover:bg-purple-900/20 hover:border-purple-500/30 transition-all text-center">
+                            <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">⚔️</div>
+                            <div className="text-xs font-bold text-gray-400 uppercase tracking-widest group-hover:text-purple-300 transition-colors">Decks</div>
+                        </Link>
+                        <Link to="/sets" className="group p-4 bg-gray-800/30 backdrop-blur-sm border border-white/5 rounded-2xl hover:bg-amber-900/20 hover:border-amber-500/30 transition-all text-center">
+                            <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">📚</div>
+                            <div className="text-xs font-bold text-gray-400 uppercase tracking-widest group-hover:text-amber-300 transition-colors">Sets</div>
+                        </Link>
                     </div>
                 </div>
             </div>

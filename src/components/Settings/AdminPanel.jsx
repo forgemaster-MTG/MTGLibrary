@@ -200,7 +200,8 @@ const AdminPanel = () => {
 
     // Epic State
     const [epics, setEpics] = useState([]);
-    const [newEpic, setNewEpic] = useState({ title: '', description: '', status: 'active' });
+    const [newEpic, setNewEpic] = useState({ title: '', description: '', status: 'open' });
+    const [editingEpic, setEditingEpic] = useState(null);
     const [loadingEpics, setLoadingEpics] = useState(false);
 
     // Release Notes State
@@ -239,7 +240,7 @@ const AdminPanel = () => {
         e.preventDefault();
         try {
             await api.createEpic(newEpic);
-            setNewEpic({ title: '', description: '', status: 'active' });
+            setNewEpic({ title: '', description: '', status: 'open' });
             fetchEpics();
             alert('Epic created successfully!');
         } catch (err) {
@@ -247,9 +248,55 @@ const AdminPanel = () => {
         }
     };
 
+    const handleUpdateEpic = async (e) => {
+        e.preventDefault();
+        if (!editingEpic) return;
+        try {
+            await api.updateEpic(editingEpic.id, editingEpic);
+            setEditingEpic(null);
+            fetchEpics();
+            alert('Epic updated successfully!');
+        } catch (err) {
+            alert('Failed to update epic: ' + err.message);
+        }
+    };
+
     const handleDeleteEpic = async (id) => {
         if (!window.confirm('Delete this epic? This will NOT delete associated tickets but will unlink them.')) return;
-        alert('Delete not implemented yet.');
+        try {
+            await api.deleteEpic(id);
+            fetchEpics();
+        } catch (err) {
+            alert('Failed to delete epic: ' + err.message);
+        }
+    };
+
+    const getStatusBadge = (status) => {
+        const colors = {
+            open: 'bg-green-500/20 text-green-400 border-green-500/30',
+            planned: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+            in_progress: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+            completed: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+            complete_pending: 'bg-pink-500/20 text-pink-400 border-pink-500/30',
+            complete_scheduled: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
+            complete_blocked: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+            wont_fix: 'bg-gray-500/20 text-gray-400 border-gray-500/30'
+        };
+        const labels = {
+            open: 'Open',
+            planned: 'Planned',
+            in_progress: 'In Progress',
+            completed: 'Completed',
+            complete_pending: 'Pend. Release',
+            complete_scheduled: 'Rel. Sched.',
+            complete_blocked: 'Blocked',
+            wont_fix: "Won't Fix"
+        };
+        return (
+            <span className={`text-[10px] px-2 py-0.5 rounded uppercase font-bold tracking-wider border ${colors[status] || colors.open}`}>
+                {labels[status] || status}
+            </span>
+        );
     };
 
     // Release Notes Logic
@@ -476,18 +523,25 @@ const AdminPanel = () => {
                 <div className="space-y-6">
                     <h2 className="text-xl font-semibold text-white">Manage Projects (Epics)</h2>
 
-                    {/* Create Form */}
-                    <div className="bg-gray-800/50 p-6 rounded-xl border border-white/10">
-                        <h3 className="text-lg font-medium text-white mb-4">Create New Project</h3>
-                        <form onSubmit={handleCreateEpic} className="space-y-4">
+                    {/* Create / Edit Form */}
+                    <div className={`bg-gray-800/50 p-6 rounded-xl border ${editingEpic ? 'border-indigo-500/50 shadow-lg shadow-indigo-500/10' : 'border-white/10'}`}>
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-lg font-medium text-white">{editingEpic ? 'Edit Project' : 'Create New Project'}</h3>
+                            {editingEpic && (
+                                <button onClick={() => setEditingEpic(null)} className="text-xs text-gray-400 hover:text-white underline">
+                                    Cancel Edit
+                                </button>
+                            )}
+                        </div>
+                        <form onSubmit={editingEpic ? handleUpdateEpic : handleCreateEpic} className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-400 mb-1">Title</label>
                                 <input
                                     type="text"
                                     required
                                     className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500"
-                                    value={newEpic.title}
-                                    onChange={e => setNewEpic({ ...newEpic, title: e.target.value })}
+                                    value={editingEpic ? editingEpic.title : newEpic.title}
+                                    onChange={e => editingEpic ? setEditingEpic({ ...editingEpic, title: e.target.value }) : setNewEpic({ ...newEpic, title: e.target.value })}
                                     placeholder="e.g. Q1 Mobile App"
                                 />
                             </div>
@@ -495,8 +549,8 @@ const AdminPanel = () => {
                                 <label className="block text-sm font-medium text-gray-400 mb-1">Description</label>
                                 <div className="h-48">
                                     <RichTextEditor
-                                        value={newEpic.description}
-                                        onChange={val => setNewEpic({ ...newEpic, description: val })}
+                                        value={editingEpic ? editingEpic.description : newEpic.description}
+                                        onChange={val => editingEpic ? setEditingEpic({ ...editingEpic, description: val }) : setNewEpic({ ...newEpic, description: val })}
                                         placeholder="Detailed epic goal..."
                                         type="Epic"
                                         height="h-40"
@@ -507,32 +561,27 @@ const AdminPanel = () => {
                                 <label className="block text-sm font-medium text-gray-400 mb-1">Status</label>
                                 <select
                                     className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500"
-                                    value={newEpic.status}
-                                    onChange={e => setNewEpic({ ...newEpic, status: e.target.value })}
+                                    value={editingEpic ? editingEpic.status : newEpic.status}
+                                    onChange={e => editingEpic ? setEditingEpic({ ...editingEpic, status: e.target.value }) : setNewEpic({ ...newEpic, status: e.target.value })}
                                 >
-                                    <option value="active">Active</option>
+                                    <option value="open">Open</option>
+                                    <option value="planned">Planned</option>
+                                    <option value="in_progress">In Progress</option>
                                     <option value="completed">Completed</option>
-                                    <option value="archived">Archived</option>
+                                    <option value="complete_pending">Complete - Pending Release</option>
+                                    <option value="complete_scheduled">Complete - Release Scheduled</option>
+                                    <option value="complete_blocked">Complete - Waiting on Epic</option>
+                                    <option value="wont_fix">Won't Fix</option>
+                                    <option value="active" className="text-gray-500">Active (Legacy)</option>
+                                    <option value="archived" className="text-gray-500">Archived (Legacy)</option>
                                 </select>
                             </div>
                             <div className="flex justify-end pt-4 gap-2">
                                 <button
-                                    type="button"
-                                    onClick={async () => {
-                                        try {
-                                            const res = await api.get('/api/epics/me');
-                                            alert(JSON.stringify(res, null, 2));
-                                        } catch (e) { alert(e); }
-                                    }}
-                                    className="px-4 py-2 text-xs font-bold text-gray-500 border border-gray-700 rounded-lg hover:text-white"
-                                >
-                                    Debug Auth
-                                </button>
-                                <button
                                     type="submit"
-                                    className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg shadow-lg hover:shadow-indigo-500/25 transition-all"
+                                    className={`px-6 py-2 font-bold rounded-lg shadow-lg transition-all text-white ${editingEpic ? 'bg-green-600 hover:bg-green-500' : 'bg-indigo-600 hover:bg-indigo-500'}`}
                                 >
-                                    Create Epic
+                                    {editingEpic ? 'Save Changes' : 'Create Epic'}
                                 </button>
                             </div>
                         </form>
@@ -544,22 +593,41 @@ const AdminPanel = () => {
                         {loadingEpics ? <div className="text-gray-500">Loading...</div> : (
                             <div className="space-y-2">
                                 {epics.map(epic => (
-                                    <div key={epic.id} className="bg-gray-800 p-4 rounded-xl border border-white/5 flex justify-between items-center group">
-                                        <div>
-                                            <div className="flex items-center gap-3">
-                                                <h4 className="font-bold text-white">{epic.title}</h4>
-                                                <span className={`text-[10px] px-2 py-0.5 rounded uppercase font-bold tracking-wider ${epic.status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-gray-600/20 text-gray-400'}`}>
-                                                    {epic.status}
-                                                </span>
+                                    <div key={epic.id} className={`bg-gray-800 p-4 rounded-xl border flex justify-between items-center group transition-all ${editingEpic?.id === epic.id ? 'border-indigo-500 ring-1 ring-indigo-500 bg-gray-800/80' : 'border-white/5 hover:border-white/10'}`}>
+                                        <div className="flex-1 min-w-0 pr-4">
+                                            <div className="flex items-center gap-3 mb-1">
+                                                <h4 className="font-bold text-white truncate">{epic.title}</h4>
+                                                {getStatusBadge(epic.status)}
                                             </div>
                                             <div
-                                                className="text-sm text-gray-400 prose prose-invert prose-sm max-w-none line-clamp-2"
+                                                className="text-sm text-gray-400 prose prose-invert prose-sm max-w-none line-clamp-1"
                                                 dangerouslySetInnerHTML={{ __html: epic.description || '' }}
                                             />
                                         </div>
-                                        <div className="text-right">
-                                            <span className="text-xs text-gray-500 block">ID: {epic.id}</span>
-                                            <span className="text-xs text-indigo-400 block">{epic.ticket_count || 0} tickets</span>
+                                        <div className="flex items-center gap-4 shrink-0">
+                                            <div className="text-right hidden sm:block">
+                                                <span className="text-xs text-gray-500 block">ID: {epic.id}</span>
+                                                <span className="text-xs text-indigo-400 block">{epic.ticket_count || 0} tickets</span>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingEpic(epic);
+                                                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                                                    }}
+                                                    className="p-2 text-gray-400 hover:text-white bg-gray-700/50 hover:bg-gray-700 rounded-lg transition-colors"
+                                                    title="Edit"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteEpic(epic.id)}
+                                                    className="p-2 text-gray-400 hover:text-red-400 bg-gray-700/50 hover:bg-gray-700 rounded-lg transition-colors"
+                                                    title="Delete"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}

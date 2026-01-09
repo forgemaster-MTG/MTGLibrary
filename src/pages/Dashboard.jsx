@@ -12,10 +12,12 @@ import CommunityWidget from '../components/dashboard/CommunityWidget';
 import TipsWidget from '../components/dashboard/TipsWidget';
 import OrganizationWidget from '../components/dashboard/OrganizationWidget';
 import ReleasesWidget from '../components/dashboard/ReleasesWidget';
+import AuditDashboardWidget from '../components/Audit/AuditDashboardWidget';
 
 import DonationModal from '../components/modals/DonationModal';
 import BinderGuideModal from '../components/modals/BinderGuideModal';
 import PodGuideModal from '../components/modals/PodGuideModal';
+import AuditGuideModal from '../components/modals/AuditGuideModal';
 
 const Dashboard = () => {
     const { currentUser, userProfile } = useAuth();
@@ -25,6 +27,7 @@ const Dashboard = () => {
     const [isDonationModalOpen, setIsDonationModalOpen] = useState(false);
     const [showBinderGuide, setShowBinderGuide] = useState(false);
     const [showPodGuide, setShowPodGuide] = useState(false);
+    const [showAuditGuide, setShowAuditGuide] = useState(false);
     const [syncLoading, setSyncLoading] = useState(false);
     const navigate = useNavigate();
 
@@ -347,6 +350,7 @@ const Dashboard = () => {
 
                     {/* Right Column: Key Stats / Profile / Reports */}
                     <div className="space-y-6 flex flex-col h-full">
+                        <AuditDashboardWidget />
 
 
 
@@ -391,6 +395,19 @@ const Dashboard = () => {
                                     </div>
                                     <svg className="w-4 h-4 text-gray-600 group-hover:text-purple-400 ml-auto transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                                 </button>
+                                <button
+                                    onClick={() => setShowAuditGuide(true)}
+                                    className="w-full text-left p-3 rounded-xl bg-gray-950/50 hover:bg-gray-800 border border-white/5 hover:border-green-500/30 transition-all group flex items-center gap-3"
+                                >
+                                    <div className="p-2 bg-green-500/10 rounded-lg text-green-400 group-hover:scale-110 transition-transform">
+                                        🛡️
+                                    </div>
+                                    <div>
+                                        <div className="text-sm font-bold text-gray-200 group-hover:text-white">Audit & Verification</div>
+                                        <div className="text-xs text-gray-500">Maintain a perfect collection</div>
+                                    </div>
+                                    <svg className="w-4 h-4 text-gray-600 group-hover:text-green-400 ml-auto transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                                </button>
                             </div>
                         </div>
 
@@ -428,6 +445,11 @@ const Dashboard = () => {
             <PodGuideModal
                 isOpen={showPodGuide}
                 onClose={() => setShowPodGuide(false)}
+            />
+
+            <AuditGuideModal
+                isOpen={showAuditGuide}
+                onClose={() => setShowAuditGuide(false)}
             />
         </div>
     );

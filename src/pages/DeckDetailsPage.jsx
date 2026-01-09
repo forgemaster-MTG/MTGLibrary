@@ -17,6 +17,7 @@ import ShareModal from '../components/modals/ShareModal';
 import DeckDoctorModal from '../components/modals/DeckDoctorModal';
 import DeckAI from '../components/DeckAI';
 import CardGridItem from '../components/common/CardGridItem';
+import StartAuditButton from '../components/Audit/StartAuditButton';
 
 const MTG_IDENTITY_REGISTRY = [
     { badge: "White", colors: ["W"], theme: "Absolute Order", flavor_text: "A single spark of light can banish a world of shadows." },
@@ -732,7 +733,9 @@ const DeckDetailsPage = () => {
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
                                     Collection
                                 </button>
+
                             )}
+                            {canEdit && <StartAuditButton type="deck" targetId={deckId} label="Audit" className="text-xs bg-gray-800 border-gray-700 hover:bg-gray-700 hover:text-white" />}
                             <button
                                 onClick={() => setIsSearchOpen(true)}
                                 className="p-2.5 bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white rounded-xl border border-gray-700 transition-all shadow-md"
@@ -1208,7 +1211,7 @@ const DeckDetailsPage = () => {
                 cards={deckCards}
                 deckName={deck.name}
             />
-        </div>
+        </div >
     );
 };
 

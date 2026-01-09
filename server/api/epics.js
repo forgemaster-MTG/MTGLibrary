@@ -114,4 +114,29 @@ router.put('/reorder/batch', authMiddleware, async (req, res) => {
     }
 });
 
+// Delete Epic
+router.delete('/:id', authMiddleware, async (req, res) => {
+    try {
+        const isRoot = req.user.firestore_id === 'Kyrlwz6G6NWICCEPYbXtFfyLzWI3';
+        const isAdmin = isRoot || req.user.settings?.isAdmin || req.user.settings?.permissions?.includes('manage_tickets');
+        if (!isAdmin) return res.status(403).json({ error: 'Not authorized' });
+
+        // Unlink associated tickets first
+        await knex('tickets')
+            .where({ epic_id: req.params.id })
+            .update({ epic_id: null });
+
+        const deleted = await knex('epics')
+            .where({ id: req.params.id })
+            .del();
+
+        if (!deleted) return res.status(404).json({ error: 'Not found' });
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error('[epics] delete error', err);
+        res.status(500).json({ error: 'db error' });
+    }
+});
+
 export default router;

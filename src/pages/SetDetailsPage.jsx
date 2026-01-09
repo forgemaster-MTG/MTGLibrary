@@ -8,6 +8,7 @@ import { collectionService } from '../services/collectionService';
 import CardSkeleton from '../components/CardSkeleton';
 import InteractiveCard from '../components/common/InteractiveCard';
 import CardAutocomplete from '../components/common/CardAutocomplete';
+import StartAuditButton from '../components/Audit/StartAuditButton';
 
 const SetDetailsPage = () => {
     const { setCode } = useParams();
@@ -222,6 +223,7 @@ const SetDetailsPage = () => {
                                 <span className="text-sm font-black text-emerald-400 tabular-nums">${stats.value}</span>
                             </div>
                         </div>
+                        <StartAuditButton type="set" targetId={setCode} label="Audit Set" className="text-xs py-1.5" />
                     </div>
 
                     {/* Bottom Row: Filters and Search */}
