@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GeminiService } from '../../services/gemini';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
+import { getTierConfig } from '../../config/tiers';
 
 const MAX_TURNS = 15;
 
@@ -115,16 +117,31 @@ export const HelperForgeStep = ({ onNext, onBack }) => {
                         </button>
 
                         <button
-                            onClick={startForge}
-                            className="p-6 bg-amber-900/20 hover:bg-amber-900/30 border border-amber-500/30 hover:border-amber-500 rounded-xl transition-all group text-left relative overflow-hidden"
+                            onClick={() => {
+                                const allowed = getTierConfig(userProfile?.subscription_tier).features.customAiPersona;
+                                if (!allowed) {
+                                    // Optional: Add toast usage here if desired, but button disables click mostly
+                                    return;
+                                }
+                                startForge();
+                            }}
+                            disabled={!getTierConfig(userProfile?.subscription_tier).features.customAiPersona}
+                            className={`p-6 border rounded-xl transition-all group text-left relative overflow-hidden ${getTierConfig(userProfile?.subscription_tier).features.customAiPersona
+                                    ? 'bg-amber-900/20 hover:bg-amber-900/30 border-amber-500/30 hover:border-amber-500 cursor-pointer'
+                                    : 'bg-gray-800/50 border-gray-700 opacity-50 cursor-not-allowed'
+                                }`}
                         >
-                            <div className="absolute top-0 right-0 p-2 opacity-50">
-                                <svg className="w-16 h-16 text-amber-500" fill="currentColor" viewBox="0 0 24 24"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg>
+                            <div className={`absolute top-0 right-0 p-2 ${getTierConfig(userProfile?.subscription_tier).features.customAiPersona ? 'opacity-50' : 'opacity-20'}`}>
+                                <svg className={`w-16 h-16 ${getTierConfig(userProfile?.subscription_tier).features.customAiPersona ? 'text-amber-500' : 'text-gray-600'}`} fill="currentColor" viewBox="0 0 24 24"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg>
                             </div>
                             <div className="relative z-10">
-                                <div className="text-xl font-bold text-white mb-2 group-hover:text-amber-400">Forge Custom Helper</div>
+                                <div className={`text-xl font-bold mb-2 ${getTierConfig(userProfile?.subscription_tier).features.customAiPersona ? 'text-white group-hover:text-amber-400' : 'text-gray-400'}`}>
+                                    Forge Custom Helper
+                                </div>
                                 <p className="text-gray-400 text-sm mb-4">Create a unique companion. Define their name, species, and personality via chat.</p>
-                                <span className="text-xs font-bold uppercase text-amber-500 group-hover:text-white tracking-wider">Start Forging →</span>
+                                <span className={`text-xs font-bold uppercase tracking-wider ${getTierConfig(userProfile?.subscription_tier).features.customAiPersona ? 'text-amber-500 group-hover:text-white' : 'text-gray-600'}`}>
+                                    {getTierConfig(userProfile?.subscription_tier).features.customAiPersona ? 'Start Forging →' : 'Requires Wizard Tier'}
+                                </span>
                             </div>
                         </button>
                     </div>

@@ -3,9 +3,27 @@ import { knex } from '../db.js';
 import authMiddleware from '../middleware/auth.js';
 import { cardService } from '../services/cardService.js';
 
+import { checkLimit } from '../middleware/usageLimits.js';
+
 const router = express.Router();
 
 router.use(authMiddleware);
+
+const dynamicLimitCheck = (req, res, next) => {
+    const resource = req.body.is_wishlist ? 'wishlist' : 'collection';
+    const amount = req.body.count || 1;
+    return checkLimit(resource, amount)(req, res, next);
+};
+
+const batchLimitCheck = (req, res, next) => {
+    // Determine if this is a collection batch or wishlist batch?
+    // Currently batch import is usually collection.
+    // If we support wishlist batch later, we check req.query or body.
+    // For now, assume collection.
+    const cards = req.body.cards || [];
+    const amount = cards.reduce((sum, c) => sum + (c.count || 1), 0);
+    return checkLimit('collection', amount)(req, res, next);
+};
 
 // Export entire collection
 router.get('/export', async (req, res) => {
@@ -116,7 +134,7 @@ router.get('/', async (req, res) => {
 
 
 // Add card to collection (or deck)
-router.post('/', async (req, res) => {
+router.post('/', dynamicLimitCheck, async (req, res) => {
     try {
         // Body should contain scryfall_id, and other cache data
         const { scryfall_id, name, set_code, collector_number, finish, count, data, deck_id, targetUserId } = req.body;

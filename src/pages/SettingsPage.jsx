@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../services/api';
 import { collectionService } from '../services/collectionService';
@@ -9,6 +9,7 @@ import OrganizationWizardModal from '../components/modals/OrganizationWizardModa
 import DeleteConfirmationModal from '../components/modals/DeleteConfirmationModal';
 import CommunitySettingsTab from '../components/community/CommunitySettingsTab';
 import AdminPanel from '../components/Settings/AdminPanel';
+import Membership from '../components/Settings/Membership';
 
 const SettingsPage = () => {
     const { user, userProfile, refreshUserProfile, resetPassword, sendVerification, updateProfileFields } = useAuth();
@@ -36,10 +37,12 @@ const SettingsPage = () => {
     const [resetLoading, setResetLoading] = useState(false);
     const [verifyLoading, setVerifyLoading] = useState(false);
 
+    const [searchParams, setSearchParams] = useSearchParams();
+
     useEffect(() => {
         if (userProfile?.settings) {
             // Populate state from userProfile.settings
-            if (userProfile.settings.geminiApiKey) setGeminiKey(userProfile.settings.geminiApiKey); // Note: key might be masked in real app, assuming stored plain for now per plan
+            if (userProfile.settings.geminiApiKey) setGeminiKey(userProfile.settings.geminiApiKey);
             if (userProfile.settings.viewMode) setViewMode(userProfile.settings.viewMode);
             if (userProfile.settings.gridSize) setGridSize(userProfile.settings.gridSize);
         }
@@ -48,7 +51,24 @@ const SettingsPage = () => {
             setFirstName(userProfile.first_name || '');
             setLastName(userProfile.last_name || '');
         }
-    }, [userProfile]);
+
+        // Handle Subscription Return
+        const success = searchParams.get('success');
+        if (success === 'true') {
+            const sync = async () => {
+                try {
+                    await api.post('/api/payments/sync-subscription');
+                    await refreshUserProfile();
+                    // Clear param
+                    setSearchParams({});
+                    alert('Subscription updated successfully!');
+                } catch (e) {
+                    console.error("Sync failed", e);
+                }
+            };
+            sync();
+        }
+    }, [userProfile, searchParams, setSearchParams, refreshUserProfile]);
 
     const handleSave = async () => {
         if (!userProfile?.id) {
@@ -154,7 +174,7 @@ const SettingsPage = () => {
 
             {/* Tabs */}
             <div className="flex border-b border-gray-700 overflow-x-auto">
-                {['account', 'general', 'community', 'ai', 'display', 'data', ...((user?.uid === 'Kyrlwz6G6NWICCEPYbXtFfyLzWI3' || userProfile?.settings?.isAdmin) ? ['admin'] : [])].map((t) => (
+                {['account', 'membership', 'general', 'community', 'ai', 'display', 'data', ...((user?.uid === 'Kyrlwz6G6NWICCEPYbXtFfyLzWI3' || userProfile?.settings?.isAdmin) ? ['admin'] : [])].map((t) => (
                     <button
                         key={t}
                         onClick={() => navigate(`/settings/${t}`)}
@@ -511,6 +531,10 @@ const SettingsPage = () => {
                             </div>
                         </div>
                     </div>
+                )}
+
+                {activeTab === 'membership' && (
+                    <Membership />
                 )}
 
                 {activeTab === 'admin' && (user?.uid === 'Kyrlwz6G6NWICCEPYbXtFfyLzWI3' || userProfile?.settings?.isAdmin) && (

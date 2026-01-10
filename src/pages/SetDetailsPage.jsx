@@ -9,6 +9,7 @@ import CardSkeleton from '../components/CardSkeleton';
 import InteractiveCard from '../components/common/InteractiveCard';
 import CardAutocomplete from '../components/common/CardAutocomplete';
 import StartAuditButton from '../components/Audit/StartAuditButton';
+import { getTierConfig, TIER_CONFIG, TIERS } from '../config/tiers';
 
 const SetDetailsPage = () => {
     const { setCode } = useParams();
@@ -223,7 +224,18 @@ const SetDetailsPage = () => {
                                 <span className="text-sm font-black text-emerald-400 tabular-nums">${stats.value}</span>
                             </div>
                         </div>
-                        <StartAuditButton type="set" targetId={setCode} label="Audit Set" className="text-xs py-1.5" />
+                        {getTierConfig(userProfile?.subscription_tier).features.setAudit ? (
+                            <StartAuditButton type="set" targetId={setCode} label="Audit Set" className="text-xs py-1.5" />
+                        ) : (
+                            <button
+                                onClick={() => addToast(`Set Audits are available on ${TIER_CONFIG[TIERS.TIER_2].name} tier and above.`, 'info')}
+                                className="bg-gray-800/50 border border-gray-700 text-gray-500 px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest cursor-not-allowed flex items-center gap-2"
+                                title={`Requires ${TIER_CONFIG[TIERS.TIER_2].name} Tier`}
+                            >
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                                Audit Set
+                            </button>
+                        )}
                     </div>
 
                     {/* Bottom Row: Filters and Search */}

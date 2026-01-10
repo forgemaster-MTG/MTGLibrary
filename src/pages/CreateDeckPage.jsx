@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { GeminiService } from '../services/gemini';
 import { MTG_IDENTITY_REGISTRY, getIdentity } from '../utils/identityRegistry';
+import { getTierConfig } from '../config/tiers';
 import CommanderSearchModal from '../components/modals/CommanderSearchModal';
 
 const STEPS = {
@@ -143,13 +144,23 @@ const CreateDeckPage = () => {
         if (hasPartner) {
             setStep(STEPS.PARTNER);
         } else {
-            setStep(STEPS.AI_STRATEGY);
+            const allowed = getTierConfig(userProfile?.subscription_tier).features.aiStrategy;
+            if (allowed) {
+                setStep(STEPS.AI_STRATEGY);
+            } else {
+                setStep(STEPS.REVIEW);
+            }
         }
     };
 
     const handlePartnerSelect = (card) => {
         setSelectedPartner(card);
-        setStep(STEPS.AI_STRATEGY);
+        const allowed = getTierConfig(userProfile?.subscription_tier).features.aiStrategy;
+        if (allowed) {
+            setStep(STEPS.AI_STRATEGY);
+        } else {
+            setStep(STEPS.REVIEW);
+        }
     };
 
     const generateStrategy = async () => {

@@ -4,11 +4,13 @@ import KPIBar from '../components/KPIBar';
 import IssueTrackerModal from '../components/modals/IssueTrackerModal';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import { useCollection } from '../hooks/useCollection';
 import { useDecks } from '../hooks/useDecks';
 import { getIdentity } from '../data/mtg_identity_registry';
-import DonationWidget from '../components/dashboard/DonationWidget';
+import SubscriptionWidget from '../components/dashboard/SubscriptionWidget';
 import CommunityWidget from '../components/dashboard/CommunityWidget';
+import { TIER_CONFIG, getTierConfig } from '../config/tiers';
 import TipsWidget from '../components/dashboard/TipsWidget';
 import OrganizationWidget from '../components/dashboard/OrganizationWidget';
 import ReleasesWidget from '../components/dashboard/ReleasesWidget';
@@ -21,6 +23,7 @@ import AuditGuideModal from '../components/modals/AuditGuideModal';
 
 const Dashboard = () => {
     const { currentUser, userProfile } = useAuth();
+    const { addToast } = useToast();
     const { cards: collection, loading: collectionLoading, refresh: refreshCollection } = useCollection();
     const { decks, loading: decksLoading } = useDecks();
     const [isIssueModalOpen, setIsIssueModalOpen] = useState(false);
@@ -50,7 +53,14 @@ const Dashboard = () => {
 
         // Total Cards (Collection + Header-only Commanders)
         const collectionScryfallIds = new Set(collection.map(c => c.scryfall_id || c.id));
-        let totalCards = collection.reduce((acc, card) => acc + (card.count || 1), 0);
+
+        // Split Collection vs Wishlist
+        const collectionItems = collection.filter(c => !c.is_wishlist);
+        const wishlistItems = collection.filter(c => c.is_wishlist);
+
+        let totalCards = collectionItems.reduce((acc, card) => acc + (card.count || 1), 0);
+        let wishlistCount = wishlistItems.reduce((acc, card) => acc + (card.count || 1), 0);
+        let collectionCount = totalCards; // Base collection count
 
         // Add commanders that aren't in the card-level collection list
         decks.forEach(deck => {
@@ -103,6 +113,8 @@ const Dashboard = () => {
 
         return {
             totalCards,
+            collectionCount,
+            wishlistCount,
             uniqueDecks: decks.length,
             value: value.toLocaleString('en-US', { style: 'currency', currency: 'USD' }),
             topColor: topColorData
@@ -197,7 +209,15 @@ const Dashboard = () => {
                                 title="New Deck"
                                 icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>}
                                 color="from-indigo-600 to-purple-600"
-                                onClick={() => navigate('/decks/new')}
+                                onClick={() => {
+                                    const limit = TIER_CONFIG[userProfile?.subscription_tier || 'free'].limits.decks;
+                                    const current = stats.uniqueDecks;
+                                    if (limit !== Infinity && current >= limit) {
+                                        addToast(`Deck limit reached (${current}/${limit}). Upgrade to create more!`, 'error');
+                                        return;
+                                    }
+                                    navigate('/decks/new');
+                                }}
                             />
                             <QuickAction
                                 title="Add Cards"
@@ -337,12 +357,32 @@ const Dashboard = () => {
                                 </button>
                             </div>
 
-                            {/* Donation Widget */}
-                            <DonationWidget onOpenModal={() => setIsDonationModalOpen(true)} />
+                            {/* Subscription Widget */}
+                            <SubscriptionWidget
+                                tier={TIER_CONFIG[userProfile?.subscription_tier || 'free']}
+                                counts={{
+                                    decks: stats.uniqueDecks,
+                                    collection: stats.collectionCount,
+                                    wishlist: stats.wishlistCount
+                                }}
+                            />
 
-                            {/* Community Widget (My Pod) */}
-                            <div className="h-full">
-                                <CommunityWidget />
+                            {/* Community Widget (My Pod) - GATED */}
+                            <div className="h-full relative group">
+                                {getTierConfig(userProfile?.subscription_tier).features.pods ? (
+                                    <CommunityWidget />
+                                ) : (
+                                    <div className="h-full bg-gray-900/60 border border-gray-800 rounded-3xl p-6 backdrop-blur-sm flex flex-col items-center justify-center text-center opacity-75 hover:opacity-100 transition-opacity">
+                                        <div className="p-3 bg-purple-500/20 rounded-full mb-4">
+                                            <svg className="w-8 h-8 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                                        </div>
+                                        <h3 className="text-xl font-bold text-white mb-2">My Pods</h3>
+                                        <p className="text-sm text-gray-400 mb-4">Create private playgroups and share collections with friends.</p>
+                                        <Link to="/settings/membership" className="text-xs font-bold uppercase tracking-widest text-purple-400 hover:text-white border border-purple-500/30 px-4 py-2 rounded-lg hover:bg-purple-500/20 transition-all">
+                                            Unlock on Wizard Tier
+                                        </Link>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -351,11 +391,6 @@ const Dashboard = () => {
                     {/* Right Column: Key Stats / Profile / Reports */}
                     <div className="space-y-6 flex flex-col h-full">
                         <AuditDashboardWidget />
-
-
-
-
-
 
                         {/* Tips Widget */}
                         <TipsWidget />
@@ -384,7 +419,7 @@ const Dashboard = () => {
                                 </button>
                                 <button
                                     onClick={() => setShowPodGuide(true)}
-                                    className="w-full text-left p-3 rounded-xl bg-gray-950/50 hover:bg-gray-800 border border-white/5 hover:border-purple-500/30 transition-all group flex items-center gap-3"
+                                    className="w-full text-left p-3 rounded-xl border transition-all group flex items-center gap-3 bg-gray-950/50 hover:bg-gray-800 border-white/5 hover:border-purple-500/30"
                                 >
                                     <div className="p-2 bg-purple-500/10 rounded-lg text-purple-400 group-hover:scale-110 transition-transform">
                                         🤝
@@ -397,7 +432,7 @@ const Dashboard = () => {
                                 </button>
                                 <button
                                     onClick={() => setShowAuditGuide(true)}
-                                    className="w-full text-left p-3 rounded-xl bg-gray-950/50 hover:bg-gray-800 border border-white/5 hover:border-green-500/30 transition-all group flex items-center gap-3"
+                                    className="w-full text-left p-3 rounded-xl border transition-all group flex items-center gap-3 bg-gray-950/50 hover:bg-gray-800 border-white/5 hover:border-green-500/30"
                                 >
                                     <div className="p-2 bg-green-500/10 rounded-lg text-green-400 group-hover:scale-110 transition-transform">
                                         🛡️
@@ -425,7 +460,7 @@ const Dashboard = () => {
                     </div>
 
                 </div>
-            </div>
+            </div >
 
             <IssueTrackerModal
                 isOpen={isIssueModalOpen}
@@ -451,7 +486,7 @@ const Dashboard = () => {
                 isOpen={showAuditGuide}
                 onClose={() => setShowAuditGuide(false)}
             />
-        </div>
+        </div >
     );
 };
 

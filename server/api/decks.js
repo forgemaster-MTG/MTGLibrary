@@ -1,6 +1,7 @@
 import express from 'express';
 import { knex } from '../db.js';
 import authMiddleware from '../middleware/auth.js';
+import { checkLimit } from '../middleware/usageLimits.js';
 
 const router = express.Router();
 
@@ -225,7 +226,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create a deck
-router.post('/', async (req, res) => {
+router.post('/', checkLimit('decks'), async (req, res) => {
   try {
     const { name, commander, commanderPartner, aiBlueprint, format } = req.body;
     if (!name) return res.status(400).json({ error: 'name is required' });
@@ -331,7 +332,7 @@ router.delete('/:id', async (req, res) => {
 });
 
 // Import Deck with Smart Collection Logic
-router.post('/import', async (req, res) => {
+router.post('/import', checkLimit('decks'), async (req, res) => {
   try {
     const { deck, cards, options } = req.body;
     // options: { checkCollection: boolean, addToCollection: boolean }

@@ -7,7 +7,7 @@ const router = express.Router();
 // List users (admin use) - protected
 router.get('/', authMiddleware, async (req, res) => {
   try {
-    const rows = await knex('users').select('id', 'firestore_id', 'email', 'username', 'settings', 'data').limit(200);
+    const rows = await knex('users').select('id', 'firestore_id', 'email', 'username', 'settings', 'data', 'subscription_tier', 'override_tier', 'subscription_status').limit(200);
     res.json(rows);
   } catch (err) {
     console.error('[users] list error', err);
@@ -89,7 +89,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// Update Permissions (Admin Only)
+// Update Permissions & Subscription (Admin Only)
 router.put('/:id/permissions', authMiddleware, async (req, res) => {
   try {
     const adminUser = req.user;
@@ -97,20 +97,71 @@ router.put('/:id/permissions', authMiddleware, async (req, res) => {
     if (!isRoot && !adminUser.settings?.isAdmin) return res.status(403).json({ error: 'Admin access required' });
 
     const targetId = parseInt(req.params.id, 10);
-    const { permissions, isAdmin } = req.body; // Expect { permissions: ['manage_tickets'], isAdmin: boolean }
+    const { permissions, isAdmin, subscription_tier, user_override_tier, subscription_status } = req.body;
+
+    // Helper to compare tiers
+    const TIER_LEVELS = {
+      'free': 0,
+      'tier_1': 1,
+      'tier_2': 2,
+      'tier_3': 3,
+      'tier_4': 4,
+      'tier_5': 5
+    };
+
+    // subscription_tier, user_override_tier, subscription_status are optional updates
 
     const user = await knex('users').where({ id: targetId }).first();
     if (!user) return res.status(404).json({ error: 'User not found' });
 
+    // 1. Update Settings (Permissions/Admin)
     const newSettings = {
       ...user.settings,
-      permissions: permissions || [],
-      isAdmin: isAdmin === true // Explicit set
+      permissions: permissions !== undefined ? permissions : user.settings?.permissions,
+      isAdmin: isAdmin !== undefined ? isAdmin : user.settings?.isAdmin
     };
+
+    // 2. Validate Tier Constraint logic
+    // If Admin attempts to change tier, ensure it's not below the PAID tier (if active)
+    if (subscription_tier && user.stripe_subscription_id && user.stripe_customer_id) {
+      try {
+        const { stripe, mapPriceToTier } = await import('../services/stripe.js');
+        if (stripe) {
+          const sub = await stripe.subscriptions.retrieve(user.stripe_subscription_id);
+          if (sub && sub.status === 'active') {
+            const priceId = sub.items.data[0].price.id;
+            let paidTier = mapPriceToTier(priceId);
+
+            // Safety: If active sub but price unknown (e.g. config mismatch), treat as at least Tier 1
+            if (paidTier === 'free') {
+              console.warn(`[UserUpdate] Active sub ${sub.id} has unknown price ${priceId}. Assuming Tier 1.`);
+              paidTier = 'tier_1';
+            }
+
+            if (TIER_LEVELS[subscription_tier] < TIER_LEVELS[paidTier]) {
+              return res.status(400).json({
+                error: `Cannot downgrade user below their paid tier (${paidTier}). Upgrade or Cancel subscription first.`
+              });
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Failed to validate stripe tier:", e);
+        // We allow proceeding if Stripe check fails? Or block? 
+        // Let's block to be safe, or just log warn. Block is requested behavior.
+        return res.status(500).json({ error: "Failed to validate subscription status with Stripe" });
+      }
+    }
+
+    // 3. Prepare Subsciption Updates
+    const updatePayload = { settings: newSettings };
+    if (subscription_tier !== undefined) updatePayload.subscription_tier = subscription_tier;
+    if (user_override_tier !== undefined) updatePayload.override_tier = user_override_tier; // Map to DB column 'override_tier'
+    if (subscription_status !== undefined) updatePayload.subscription_status = subscription_status;
 
     const [updated] = await knex('users')
       .where({ id: targetId })
-      .update({ settings: newSettings })
+      .update(updatePayload)
       .returning('*');
 
     res.json(updated);

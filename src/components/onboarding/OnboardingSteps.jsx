@@ -1,4 +1,54 @@
 import React, { useState } from 'react';
+import SubscriptionSelection from './SubscriptionSelection';
+import { TIERS } from '../../config/tiers';
+
+export const SubscriptionStep = ({ onNext, onBack, currentTier }) => {
+    const [billingInterval, setBillingInterval] = useState('monthly');
+    const [isLoading, setIsLoading] = useState(false);
+
+    const handleSubscribe = async (tierId) => {
+        setIsLoading(true);
+        // We pass the tierId and interval up to the page controller
+        await onNext(tierId, billingInterval);
+        setIsLoading(false);
+    };
+
+    return (
+        <div className="max-w-7xl w-full text-center space-y-8 animate-fade-in-up">
+            <div className="space-y-4 mb-8">
+                <div className="w-20 h-20 mx-auto bg-purple-500/20 rounded-full flex items-center justify-center mb-6 ring-1 ring-purple-500/50 shadow-[0_0_30px_rgba(168,85,247,0.3)]">
+                    <svg className="w-10 h-10 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                </div>
+                <h2 className="text-4xl font-extrabold text-white">Choose Your Power Level</h2>
+                <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+                    Unlock advanced deck building tools, unlimited storage, and AI-powered insights.
+                </p>
+            </div>
+
+            <SubscriptionSelection
+                billingInterval={billingInterval}
+                setBillingInterval={setBillingInterval}
+                onSubscribe={handleSubscribe}
+                isLoading={isLoading}
+                currentTier={currentTier || 'free'}
+                showIntervalSelector={true}
+            />
+
+            <div className="flex justify-center pt-8">
+                {onBack && (
+                    <button
+                        onClick={onBack}
+                        className="text-gray-500 hover:text-white transition-colors flex items-center gap-2"
+                        disabled={isLoading}
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                        Back
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+};
 
 export const WelcomeStep = ({ onNext }) => (
     <div className="max-w-2xl w-full text-center space-y-8 animate-fade-in-up">

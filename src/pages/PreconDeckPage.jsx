@@ -5,6 +5,9 @@ import CardGridItem from '../components/common/CardGridItem';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import DeckCharts from '../components/DeckCharts';
+import { useCollection } from '../hooks/useCollection';
+import { useDecks } from '../hooks/useDecks';
+import { getTierConfig } from '../config/tiers';
 
 const MTG_IDENTITY_REGISTRY = [
     { badge: "White", colors: ["W"], theme: "Absolute Order" },
@@ -39,7 +42,7 @@ const MTG_IDENTITY_REGISTRY = [
 const PreconDeckPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { currentUser } = useAuth();
+    const { currentUser, userProfile } = useAuth();
     const { addToast } = useToast();
 
     const [deck, setDeck] = useState(null);
@@ -184,7 +187,41 @@ const PreconDeckPage = () => {
         return match || MTG_IDENTITY_REGISTRY.find(i => i.badge === 'Colorless');
     }, [deck]);
 
+    const { cards: collection } = useCollection();
+    const { decks } = useDecks();
+
     const handleCreate = async (mode) => {
+        // Enforce Limits
+        const tierId = userProfile?.subscription_tier || 'free';
+        const config = getTierConfig(tierId);
+
+        // 1. Deck Limit
+        const deckLimit = config.limits.decks;
+        if (deckLimit !== Infinity && decks && decks.length >= deckLimit) {
+            addToast(`Deck limit reached (${decks.length}/${deckLimit}). Upgrade to add this deck!`, 'error');
+            return;
+        }
+
+        // 2. Collection/Wishlist Limit
+        const isWishlist = mode === 'wishlist';
+        const limitType = isWishlist ? 'wishlist' : 'collection';
+        const limit = config.limits[limitType];
+
+        if (limit !== Infinity && collection) {
+            // Count current
+            const currentCount = collection
+                .filter(c => !!c.is_wishlist === isWishlist)
+                .reduce((acc, c) => acc + (c.count || 1), 0);
+
+            // Count adding
+            const addingCount = totalCards; // pre-calculated memo
+
+            if (currentCount + addingCount > limit) {
+                addToast(`${isWishlist ? 'Wishlist' : 'Collection'} limit reached. Cannot add ${addingCount} cards. Upgrade needed!`, 'error');
+                return;
+            }
+        }
+
         setCreating(mode);
         try {
             const result = await api.post(`/api/precons/${deck.id}/create`, { mode });
@@ -194,7 +231,11 @@ const PreconDeckPage = () => {
             }
         } catch (err) {
             console.error(err);
-            addToast('Failed to create deck', 'error');
+            if (err.message && err.message.includes('Limit reached')) {
+                addToast(err.message, 'error');
+            } else {
+                addToast('Failed to create deck', 'error');
+            }
         } finally {
             setCreating(null);
         }

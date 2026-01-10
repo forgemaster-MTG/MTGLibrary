@@ -4,6 +4,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { GeminiService } from '../../services/gemini';
 import RichTextEditor from '../common/RichTextEditor';
 import { format } from 'date-fns';
+import { TIERS } from '../../config/tiers';
+import SubscriptionOverrideModal from './SubscriptionOverrideModal';
 
 // Simple Modal Component
 const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, confirmText = 'Confirm', creating }) => {
@@ -198,6 +200,49 @@ const AdminPanel = () => {
         }
     };
 
+    // Subscription Override State
+    const [showSubModal, setShowSubModal] = useState(false);
+    const [selectedUserForSub, setSelectedUserForSub] = useState(null);
+
+    const handleOpenSubModal = (user) => {
+        setSelectedUserForSub(user);
+        setShowSubModal(true);
+    };
+
+    const handleConfirmSubOverride = async (newTier) => {
+        if (!selectedUserForSub) return;
+        try {
+            // Determine effective tier (newTier if setting, 'free' if removing default)
+            // Note: In a real app we might want to "restore" their Stripe status, but for now reverting to free is safest.
+            const effectiveTier = newTier || 'free';
+
+            // Optimistic Update
+            setUsers(users.map(u => u.id === selectedUserForSub.id ? {
+                ...u,
+                override_tier: newTier,
+                subscription_tier: effectiveTier
+            } : u));
+
+            const payload = {
+                user_override_tier: newTier,
+                subscription_status: newTier ? 'active' : 'canceled' // or free
+            };
+
+            // Should we update the actual subscription_tier column? Yes, to enforce limits.
+            payload.subscription_tier = effectiveTier;
+
+            await api.updateUserPermissions(selectedUserForSub.id, selectedUserForSub.settings?.permissions, selectedUserForSub.settings?.isAdmin, payload);
+
+            setShowSubModal(false);
+            setSelectedUserForSub(null);
+        } catch (err) {
+            alert(err.message || 'Failed to update subscription');
+            fetchUsers();
+        }
+    };
+
+
+
     // Epic State
     const [epics, setEpics] = useState([]);
     const [newEpic, setNewEpic] = useState({ title: '', description: '', status: 'open' });
@@ -387,6 +432,13 @@ const AdminPanel = () => {
                 creating={publishing}
             />
 
+            <SubscriptionOverrideModal
+                isOpen={showSubModal}
+                onClose={() => setShowSubModal(false)}
+                onConfirm={handleConfirmSubOverride}
+                user={selectedUserForSub}
+            />
+
             <div className="flex border-b border-gray-700 mb-6 overflow-x-auto">
                 <button
                     onClick={() => setActiveSection('sync')}
@@ -480,6 +532,7 @@ const AdminPanel = () => {
                                     <tr className="border-b border-gray-700 text-gray-400 text-sm uppercase">
                                         <th className="py-3 px-4">User</th>
                                         <th className="py-3 px-4">Email</th>
+                                        <th className="py-3 px-4">Subscription</th>
                                         <th className="py-3 px-4 text-center">Admin</th>
                                         <th className="py-3 px-4 text-center">Ticket Mgr</th>
                                         <th className="py-3 px-4 text-right">Actions</th>
@@ -496,6 +549,23 @@ const AdminPanel = () => {
                                                     {u.id === 1 && <span className="ml-2 text-[10px] bg-yellow-500 text-black px-1 rounded">ROOT</span>}
                                                 </td>
                                                 <td className="py-3 px-4 text-gray-400">{u.email}</td>
+
+                                                {/* Subscription Column */}
+                                                <td className="py-3 px-4">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={`text-xs px-2 py-0.5 rounded border ${u.override_tier ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' : 'bg-gray-700 text-gray-300 border-gray-600'}`}>
+                                                            {(u.override_tier || u.subscription_tier || 'free').replace('tier_', 'Tier ')}
+                                                        </span>
+                                                        <button
+                                                            onClick={() => handleOpenSubModal(u)}
+                                                            className="text-[10px] bg-gray-700 hover:bg-gray-600 text-white px-2 py-1 rounded transition-colors"
+                                                        >
+                                                            Manage
+                                                        </button>
+                                                    </div>
+                                                </td>
+
+                                                {/* Admin Column */}
                                                 <td className="py-3 px-4 text-center">
                                                     <button onClick={() => toggleAdmin(u)} className={`w-8 h-4 rounded-full transition-colors relative ${isAdmin ? 'bg-indigo-600' : 'bg-gray-600'}`}>
                                                         <span className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform ${isAdmin ? 'translate-x-4' : 'translate-x-0'}`} />

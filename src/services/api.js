@@ -16,21 +16,20 @@ async function getHeaders() {
     return headers;
 }
 
+// Global toast handler injection
+let globalToast = null;
+export const setGlobalToast = (fn) => { globalToast = fn; };
+
 async function request(method, endpoint, body = null, params = {}) {
-    // If BASE_URL is set, use it. data URL construction requires a base if the path is relative. 
-    // If BASE_URL is empty (relative mode), we just use the endpoint path directly (fetch supports relative URLs).
+    // ... (url construction same as before) ...
     let urlString = `${BASE_URL}${endpoint}`;
-    const url = new URL(urlString, window.location.origin); // safe constructor using current origin as fallback base
+    const url = new URL(urlString, window.location.origin);
 
     Object.keys(params).forEach(key => {
         if (params[key] !== null && params[key] !== undefined) {
             url.searchParams.append(key, params[key]);
         }
     });
-
-    // Fetch using the string logic to avoid accidental absolute localhost conversion if we want relative
-    // But URL object is nicer for params. 
-    // If BASE_URL is empty, url will be "http://current-origin/endpoint". This is fine.
 
     const config = {
         method,
@@ -46,11 +45,24 @@ async function request(method, endpoint, body = null, params = {}) {
     if (!response.ok) {
         // Try to parse error message
         let errMsg = response.statusText;
+        let errCode = null;
+        let errData = null;
         try {
-            const errData = await response.json();
+            errData = await response.json();
             if (errData.error) errMsg = errData.error;
+            if (errData.code) errCode = errData.code;
         } catch (e) { /* ignore */ }
-        throw new Error(`API Error (${response.status}): ${errMsg}`);
+
+        // Intercept Usage Limits
+        if (response.status === 403 && errCode === 'LIMIT_REACHED' && globalToast) {
+            globalToast(`Subscription Limit Reached: ${errMsg}`, 'error', 5000);
+            // We still throw so the calling component can stop its loading state
+        }
+
+        const error = new Error(`API Error (${response.status}): ${errMsg}`);
+        error.response = { status: response.status, data: errData };
+        error.code = errCode;
+        throw error;
     }
 
     // Return null for 204 No Content
@@ -91,7 +103,7 @@ export const api = {
     addTicketNote: (id, note) => request('POST', `/api/tickets/${id}/notes`, { note }),
 
     // Admin / Permissions
-    updateUserPermissions: (id, permissions, isAdmin) => request('PUT', `/api/users/${id}/permissions`, { permissions, isAdmin }),
+    updateUserPermissions: (id, permissions, isAdmin, subscriptionData = {}) => request('PUT', `/api/users/${id}/permissions`, { permissions, isAdmin, ...subscriptionData }),
     getUsers: () => request('GET', '/api/users'),
 
     // Releases

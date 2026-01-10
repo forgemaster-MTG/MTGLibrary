@@ -76,7 +76,7 @@ app.use(limiter);
 
 // CORS Config (Restrict to trusted domains in production)
 const allowedOrigins = [
-  'http://localhost:3000',
+  'http://localhost:3004',
   'http://localhost:5173',
   'http://localhost:5174', // Vite alternate port
   'http://localhost:5175', // Vite alternate port
@@ -205,12 +205,12 @@ app.get('/api/health', (req, res) => {
 app.use(express.static(path.join(__dirname, '../dist')));
 
 // Serve "public" folder as well if needed (optional, Vite usually bundles everything)
-app.use(express.static(path.join(__dirname, '../public')));
+app.use(express.static(path.join(__dirname, '../Public')));
 
 // Bug Tracker list - Read from Public/tasklist.txt
 app.get('/bugs', (req, res) => {
   try {
-    const bugPath = path.join(process.cwd(), 'public', 'tasklist.txt');
+    const bugPath = path.join(process.cwd(), 'Public', 'tasklist.txt');
     if (fs.existsSync(bugPath)) {
       const content = fs.readFileSync(bugPath, 'utf-8');
       res.json({ content });

@@ -8,6 +8,7 @@ import { api } from '../services/api';
 import { communityService } from '../services/communityService';
 import { useToast } from '../contexts/ToastContext';
 import { getIdentity } from '../data/mtg_identity_registry';
+import { getTierConfig, TIER_CONFIG, TIERS } from '../config/tiers';
 import MultiSelect from '../components/MultiSelect';
 import CardSkeleton from '../components/CardSkeleton';
 import CardGridItem from '../components/common/CardGridItem';
@@ -554,6 +555,15 @@ const CollectionPage = () => {
         return Math.ceil(filteredCards.length / itemsPerPage);
     }, [filteredCards.length, itemsPerPage, viewMode]);
 
+    // Verify View Permissions on Load
+    useEffect(() => {
+        const canAccessBinders = getTierConfig(userProfile?.subscription_tier).features.binders;
+        // If in folder view, grouping by binders, and not allowed -> force grid
+        if (viewMode === 'folder' && groupingMode === 'binders' && !canAccessBinders) {
+            setViewMode('grid');
+        }
+    }, [userProfile, viewMode, groupingMode]);
+
     return (
         <div className="relative min-h-screen overflow-x-hidden">
             {/* Immersive Background */}
@@ -589,25 +599,58 @@ const CollectionPage = () => {
                     </div>
 
                     <div className="flex gap-2 md:gap-3 w-full md:w-auto items-center justify-between md:justify-end">
-                        <ViewToggle mode={viewMode} onChange={(m) => { setViewMode(m); setActiveFolder(null); }} />
+                        <ViewToggle
+                            mode={viewMode}
+                            onChange={(m) => {
+                                setViewMode(m);
+                                setActiveFolder(null);
+                                // If switching to folder and binders restricted, default to smart
+                                if (m === 'folder') {
+                                    const canAccess = getTierConfig(userProfile?.subscription_tier).features.binders;
+                                    if (!canAccess) {
+                                        setGroupingMode('smart');
+                                    }
+                                }
+                            }}
+                        />
 
                         {!isSharedView && (
                             <div className="flex h-10 items-center gap-2">
                                 <div className="h-6 w-px bg-gray-700 mx-1 md:mx-2" />
 
                                 <button
-                                    onClick={() => setIsWizardOpen(true)}
-                                    className="flex bg-gray-800 hover:bg-gray-700 text-indigo-400 hover:text-white p-2.5 md:px-4 md:py-3 rounded-xl transition-all border border-gray-700 hover:border-indigo-500/50 items-center justify-center gap-2 group"
-                                    title="Create New Binder"
+                                    onClick={() => {
+                                        const allowed = getTierConfig(userProfile?.subscription_tier).features.binders;
+                                        if (!allowed) {
+                                            addToast('Custom Binders are available on Wizard tier and above.', 'info');
+                                            return;
+                                        }
+                                        setIsWizardOpen(true);
+                                    }}
+                                    className={`flex p-2.5 md:px-4 md:py-3 rounded-xl transition-all border items-center justify-center gap-2 group ${getTierConfig(userProfile?.subscription_tier).features.binders
+                                        ? 'bg-gray-800 hover:bg-gray-700 text-indigo-400 hover:text-white border-gray-700 hover:border-indigo-500/50 cursor-pointer'
+                                        : 'bg-gray-800/50 text-gray-600 border-gray-700 cursor-not-allowed opacity-60'
+                                        }`}
+                                    title={getTierConfig(userProfile?.subscription_tier).features.binders ? "Create New Binder" : "Requires Wizard Tier"}
                                 >
                                     <svg className="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                     <span className="text-[10px] font-bold uppercase tracking-widest hidden lg:inline-block">New Binder</span>
                                 </button>
 
                                 <button
-                                    onClick={() => setIsOrganizationWizardOpen(true)}
-                                    className="hidden md:flex bg-gray-900 hover:bg-gray-800 text-gray-400 hover:text-white p-2.5 md:px-3 md:py-3 rounded-xl transition-all border border-gray-800 hover:border-gray-700 items-center justify-center shadow-lg"
-                                    title="Organize Collection"
+                                    onClick={() => {
+                                        const allowed = getTierConfig(userProfile?.subscription_tier).features.collectionAudit;
+                                        if (!allowed) {
+                                            addToast('Collection Organization tools are available on Wizard tier.', 'info');
+                                            return;
+                                        }
+                                        setIsOrganizationWizardOpen(true);
+                                    }}
+                                    className={`hidden md:flex p-2.5 md:px-3 md:py-3 rounded-xl transition-all border items-center justify-center shadow-lg ${getTierConfig(userProfile?.subscription_tier).features.collectionAudit
+                                        ? 'bg-gray-900 hover:bg-gray-800 text-gray-400 hover:text-white border-gray-800 hover:border-gray-700 cursor-pointer'
+                                        : 'bg-gray-900/50 text-gray-600 border-gray-800 cursor-not-allowed opacity-50'
+                                        }`}
+                                    title={getTierConfig(userProfile?.subscription_tier).features.collectionAudit ? "Organize Collection" : "Requires Wizard Tier"}
                                 >
                                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" /></svg>
                                 </button>
@@ -639,6 +682,21 @@ const CollectionPage = () => {
                         )}
                     </div>
                 </div>
+
+                {/* Error State */}
+                {error && (
+                    <div className="bg-red-500/10 border border-red-500/20 rounded-3xl p-8 text-center backdrop-blur-md">
+                        <svg className="w-12 h-12 text-red-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                        <h3 className="text-xl font-bold text-white mb-2">Failed to load collection</h3>
+                        <p className="text-red-200 mb-6">{error.message || 'Something went wrong while fetching your cards.'}</p>
+                        <button
+                            onClick={() => refresh()}
+                            className="px-6 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-red-900/20"
+                        >
+                            Try Again
+                        </button>
+                    </div>
+                )}
 
                 {/* Filters & Grid Container */}
                 <div className="bg-gray-950/40 border border-white/5 rounded-3xl p-4 md:p-6 backdrop-blur-md shadow-2xl">
@@ -711,10 +769,25 @@ const CollectionPage = () => {
                             <div className="flex gap-2">
                                 <div className="bg-gray-900 border border-gray-700 p-1 rounded-xl flex self-start overflow-hidden">
                                     <button
-                                        onClick={() => setGroupingMode('binders')}
-                                        className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${groupingMode === 'binders' ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:text-gray-300'}`}
+                                        onClick={() => {
+                                            const allowed = getTierConfig(userProfile?.subscription_tier).features.binders;
+                                            if (!allowed) {
+                                                addToast(`Custom Binders are available on ${TIER_CONFIG[TIERS.TIER_2].name} tier.`, 'info');
+                                                return;
+                                            }
+                                            setGroupingMode('binders');
+                                        }}
+                                        className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${groupingMode === 'binders'
+                                            ? 'bg-indigo-600 text-white'
+                                            : getTierConfig(userProfile?.subscription_tier).features.binders
+                                                ? 'text-gray-500 hover:text-gray-300'
+                                                : 'text-gray-600 cursor-not-allowed opacity-60'
+                                            }`}
                                     >
                                         Binders
+                                        {!getTierConfig(userProfile?.subscription_tier).features.binders && (
+                                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                                        )}
                                     </button>
                                     <button
                                         onClick={() => setGroupingMode('smart')}

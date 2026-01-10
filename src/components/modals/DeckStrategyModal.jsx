@@ -4,9 +4,9 @@ import { useAuth } from '../../contexts/AuthContext';
 import { GeminiService } from '../../services/gemini';
 import { deckService } from '../../services/deckService';
 import { useToast } from '../../contexts/ToastContext';
+import { TIER_CONFIG, TIERS, getTierConfig } from '../../config/tiers';
 
 const DeckStrategyModal = ({ isOpen, onClose, deck, cards = [], onStrategyUpdate }) => {
-    // ... existing hook logic ...
     const { userProfile, currentUser } = useAuth();
     const { addToast } = useToast();
     const helperName = userProfile?.settings?.helper?.name || 'The Oracle';
@@ -54,10 +54,13 @@ const DeckStrategyModal = ({ isOpen, onClose, deck, cards = [], onStrategyUpdate
         return activeCommander.image_uris?.art_crop || activeCommander.image_uris?.large || activeCommander.image_uris?.normal || activeCommander.image_uri;
     };
 
-
     // Support both new nested layout and legacy flat structures
     const functionalNeeds = blueprint.layout?.functional || blueprint.suggestedCounts || {};
     const typeDistribution = blueprint.layout?.types || blueprint.typeCounts || {};
+
+    // Check Feature Access
+    const canRecreate = getTierConfig(userProfile?.subscription_tier).features.aiStrategy;
+    const hasStrategy = !!blueprint.strategy;
 
     const handleRerunning = async () => {
         if (!userProfile?.settings?.geminiApiKey) {
@@ -128,12 +131,13 @@ const DeckStrategyModal = ({ isOpen, onClose, deck, cards = [], onStrategyUpdate
                     </div>
                     <div className="flex items-center gap-4">
                         <button
-                            onClick={handleRerunning}
-                            disabled={isRerunning}
-                            className={`flex items-center gap-3 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all border ${isRerunning
+                            onClick={canRecreate ? handleRerunning : () => addToast(`Upgrade to ${TIER_CONFIG[TIERS.TIER_2].name} to use AI Strategy tools.`, 'info')}
+                            disabled={isRerunning || !canRecreate}
+                            className={`flex items-center gap-3 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all border ${isRerunning || !canRecreate
                                 ? 'bg-white/5 text-gray-500 border-white/5 cursor-not-allowed'
                                 : 'bg-indigo-600 hover:bg-indigo-500 text-white border-white/20 shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_30px_rgba(79,70,229,0.5)] active:scale-95'
                                 }`}
+                            title={!canRecreate ? `Requires ${TIER_CONFIG[TIERS.TIER_2].name} Tier` : ''}
                         >
                             {isRerunning ? (
                                 <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
@@ -238,11 +242,15 @@ const DeckStrategyModal = ({ isOpen, onClose, deck, cards = [], onStrategyUpdate
                                 </div>
                                 <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-6 flex items-center gap-3">
                                     <span className="w-8 h-px bg-gray-700"></span>
-                                    Tactical Overview
+                                    {hasStrategy || canRecreate ? 'Tactical Overview' : `Tactical Overview (Requires ${TIER_CONFIG[TIERS.TIER_2].name})`}
                                 </h3>
                                 <div
                                     className="text-gray-300 leading-relaxed strategy-content-refined font-medium text-lg/8"
-                                    dangerouslySetInnerHTML={{ __html: strategyHtml }}
+                                    dangerouslySetInnerHTML={{
+                                        __html: (hasStrategy || canRecreate)
+                                            ? strategyHtml
+                                            : `<p class="italic text-gray-500">Strategy generation is available on the ${TIER_CONFIG[TIERS.TIER_2].name} tier. Upgrade to unlock deep strategic insights for your deck.</p>`
+                                    }}
                                 />
                             </div>
 

@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useCollection } from '../hooks/useCollection';
 import { deckService } from '../services/deckService';
+import { getTierConfig } from '../config/tiers';
 import CardSearchModal from '../components/CardSearchModal';
 import ConfirmationModal from '../components/modals/ConfirmationModal';
 
@@ -735,7 +736,20 @@ const DeckDetailsPage = () => {
                                 </button>
 
                             )}
-                            {canEdit && <StartAuditButton type="deck" targetId={deckId} label="Audit" className="text-xs bg-gray-800 border-gray-700 hover:bg-gray-700 hover:text-white" />}
+                            {canEdit && (
+                                getTierConfig(userProfile?.subscription_tier).features.deckAudit ? (
+                                    <StartAuditButton type="deck" targetId={deckId} label="Audit" className="text-xs bg-gray-800 border-gray-700 hover:bg-gray-700 hover:text-white" />
+                                ) : (
+                                    <button
+                                        onClick={() => addToast('Deck Audits are available on Magician tier and above.', 'info')}
+                                        className="text-xs bg-gray-800/50 border-gray-700 text-gray-600 px-4 py-2 rounded-xl border flex items-center gap-2 cursor-not-allowed"
+                                        title="Requires Magician Tier"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                        Audit
+                                    </button>
+                                )
+                            )}
                             <button
                                 onClick={() => setIsSearchOpen(true)}
                                 className="p-2.5 bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white rounded-xl border border-gray-700 transition-all shadow-md"
@@ -754,17 +768,36 @@ const DeckDetailsPage = () => {
                                 <span className="text-xs font-bold uppercase tracking-wider hidden xl:block">Share</span>
                             </button>
                             <button
-                                onClick={() => setIsDoctorOpen(true)}
-                                className="p-2.5 bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-300 hover:text-white rounded-xl border border-indigo-500/30 transition-all shadow-md flex items-center gap-2"
-                                title="Run Deck Doctor Diagnosis"
+                                onClick={() => {
+                                    const tierConfig = getTierConfig(userProfile?.subscription_tier);
+                                    if (!tierConfig.features.deckDoctor) {
+                                        addToast('Deck Doctor is available on Wizard tier and above.', 'info');
+                                        return;
+                                    }
+                                    setIsDoctorOpen(true);
+                                }}
+                                className={`p-2.5 rounded-xl border transition-all shadow-md flex items-center gap-2 ${getTierConfig(userProfile?.subscription_tier).features.deckDoctor
+                                    ? 'bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-300 hover:text-white border-indigo-500/30'
+                                    : 'bg-gray-800 text-gray-600 border-gray-700 cursor-not-allowed opacity-50'
+                                    }`}
+                                title={getTierConfig(userProfile?.subscription_tier).features.deckDoctor ? "Run Deck Doctor Diagnosis" : "Requires Wizard Tier"}
                             >
                                 <span>🩺</span>
                                 <span className="text-xs font-bold uppercase tracking-wider hidden xl:block">Doctor</span>
                             </button>
                             <button
-                                onClick={handleExportDeck}
-                                className="p-2.5 bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white rounded-xl border border-gray-700 transition-all shadow-md"
-                                title="Export JSON"
+                                onClick={() => {
+                                    if (getTierConfig(userProfile?.subscription_tier).features.deckBackup) {
+                                        handleExportDeck();
+                                    } else {
+                                        addToast('Deck Export/Backup is available on Magician tier and above.', 'error');
+                                    }
+                                }}
+                                className={`p-2.5 rounded-xl border transition-all shadow-md ${getTierConfig(userProfile?.subscription_tier).features.deckBackup
+                                    ? 'bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white border-gray-700'
+                                    : 'bg-gray-800/50 text-gray-600 border-gray-700 cursor-not-allowed opacity-50'
+                                    }`}
+                                title={getTierConfig(userProfile?.subscription_tier).features.deckBackup ? "Export JSON" : "Requires Magician Tier"}
                             >
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                             </button>
@@ -776,8 +809,17 @@ const DeckDetailsPage = () => {
                                     <div className="absolute right-0 top-full pt-2 w-48 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all duration-200 delay-500 group-hover:delay-0 z-50">
                                         <div className="bg-gray-900 rounded-xl shadow-2xl border border-gray-800 overflow-hidden">
                                             <button
-                                                onClick={handleToggleMockup}
-                                                className="w-full text-left px-4 py-3 text-sm hover:bg-gray-800 flex items-center gap-2 transition-colors border-b border-gray-800 text-gray-300"
+                                                onClick={() => {
+                                                    if (getTierConfig(userProfile?.subscription_tier).features.mockupDeck) {
+                                                        handleToggleMockup();
+                                                    } else {
+                                                        addToast('Mockup Mode is available on Magician tier and above.', 'error');
+                                                    }
+                                                }}
+                                                className={`w-full text-left px-4 py-3 text-sm flex items-center gap-2 transition-colors border-b border-gray-800 ${getTierConfig(userProfile?.subscription_tier).features.mockupDeck
+                                                    ? 'hover:bg-gray-800 text-gray-300'
+                                                    : 'text-gray-600 cursor-not-allowed'
+                                                    }`}
                                             >
                                                 <svg className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                                                 {deck.is_mockup ? 'Switch to Collection' : 'Switch to Mockup'}

@@ -36,13 +36,13 @@ const BinderGuideModal = ({ isOpen, onClose }) => {
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="bg-gray-800/40 p-4 rounded-2xl border border-white/5">
-                                <h4 className="text-white font-bold mb-1 flex items-center gap-2">📁 Manual Binder</h4>
+                                <h4 className="text-white font-bold mb-1 flex items-center gap-2">📁 Manual Binder <span className="text-[9px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded uppercase tracking-wider">Magician Tier</span></h4>
                                 <p className="text-xs text-gray-400 leading-relaxed">
                                     Classic storage. You drag and drop exactly which cards go inside. Great for mirroring your physical binders.
                                 </p>
                             </div>
                             <div className="bg-indigo-900/10 p-4 rounded-2xl border border-indigo-500/20">
-                                <h4 className="text-indigo-300 font-bold mb-1 flex items-center gap-2">✨ Smart Binder</h4>
+                                <h4 className="text-indigo-300 font-bold mb-1 flex items-center gap-2">✨ Smart Binder <span className="text-[9px] bg-green-500/20 text-green-300 px-2 py-0.5 rounded uppercase tracking-wider">Free & Up</span></h4>
                                 <p className="text-xs text-indigo-200/60 leading-relaxed">
                                     Live automation. You set rules (like "Price &gt; $10"), and the binder automatically grabs matching cards from your collection.
                                 </p>

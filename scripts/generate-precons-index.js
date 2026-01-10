@@ -10,7 +10,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const preconsDir = path.join(__dirname, '..', 'Public', 'precons');
+const preconsDir = path.join(__dirname, '..', 'public', 'precons');
 const outFile = path.join(preconsDir, 'index.generated.json');
 
 function safeReadJson(filePath) {
@@ -74,7 +74,7 @@ function run() {
   });
 
   // sort alphabetically by name
-  entries.sort((a,b) => (a.name || '').localeCompare(b.name || ''));
+  entries.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
   fs.writeFileSync(outFile, JSON.stringify(entries, null, 2), 'utf8');
   console.log(`Wrote ${outFile} with ${entries.length} entries.`);
