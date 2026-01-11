@@ -64,12 +64,13 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'", "https://*.google.com", "https://*.googleapis.com", "https://*.gstatic.com", "https://*.firebaseapp.com", "https://*.firebaseio.com"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://apis.google.com", "https://*.firebaseio.com", "https://*.firebaseapp.com", "https://*.google.com", "https://*.gstatic.com"],
-      connectSrc: ["'self'", "https://api.scryfall.com", "https://identitytoolkit.googleapis.com", "https://securetoken.googleapis.com", "https://*.firebaseio.com", "ws:", "wss:", "https://*.googleapis.com", "https://*.google.com", "https://*.gstatic.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://apis.google.com", "https://*.firebaseio.com", "https://*.firebaseapp.com", "https://*.google.com", "https://*.gstatic.com", "https://js.stripe.com", "https://cdn.jsdelivr.net", "blob:", "https://static.cloudflareinsights.com"],
+      connectSrc: ["'self'", "https://api.scryfall.com", "https://identitytoolkit.googleapis.com", "https://securetoken.googleapis.com", "https://*.firebaseio.com", "ws:", "wss:", "https://*.googleapis.com", "https://*.google.com", "https://*.gstatic.com", "https://api.stripe.com", "https://cdn.jsdelivr.net"],
       imgSrc: ["'self'", "data:", "https://cards.scryfall.io", "https://svgs.scryfall.io", "https://placehold.co", "blob:", "https://*"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "cdn.jsdelivr.net"],
-      fontSrc: ["'self'", "data:", "https://fonts.gstatic.com", "cdn.jsdelivr.net"],
-      frameSrc: ["'self'", "https://*.firebaseapp.com", "https://*.google.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "cdn.jsdelivr.net", "https://cdn.jsdelivr.net"],
+      fontSrc: ["'self'", "data:", "https://fonts.gstatic.com", "cdn.jsdelivr.net", "https://cdn.jsdelivr.net"],
+      frameSrc: ["'self'", "https://*.firebaseapp.com", "https://*.google.com", "https://js.stripe.com"],
+      workerSrc: ["'self'", "blob:"],
     },
   },
   crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
