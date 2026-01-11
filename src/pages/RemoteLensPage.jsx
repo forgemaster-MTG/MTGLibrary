@@ -6,6 +6,40 @@ import { Camera, RefreshCw, Check, AlertCircle, Smartphone, Wifi, WifiOff } from
 import { io } from 'socket.io-client';
 import { api } from '../services/api';
 
+// Simple On-Screen Console for Mobile Debugging
+const ConsoleBridge = () => {
+    const [logs, setLogs] = useState([]);
+
+    useEffect(() => {
+        const originalLog = console.log;
+        const originalWarn = console.warn;
+        const originalError = console.error;
+
+        const addLog = (type, args) => {
+            const msg = args.map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ');
+            setLogs(prev => [`[${type}] ${msg}`, ...prev].slice(0, 8)); // Keep last 8 logs
+        };
+
+        console.log = (...args) => { originalLog(...args); addLog('LOG', args); };
+        console.warn = (...args) => { originalWarn(...args); addLog('WARN', args); };
+        console.error = (...args) => { originalError(...args); addLog('ERR', args); };
+
+        return () => {
+            console.log = originalLog;
+            console.warn = originalWarn;
+            console.error = originalError;
+        };
+    }, []);
+
+    return (
+        <div className="fixed bottom-0 left-0 w-full h-32 bg-black/80 text-[10px] font-mono text-green-400 p-2 overflow-y-auto pointer-events-none z-50 border-t border-green-500/20">
+            {logs.map((l, i) => (
+                <div key={i} className="border-b border-white/5 pb-0.5 mb-0.5">{l}</div>
+            ))}
+        </div>
+    );
+};
+
 const RemoteLensPage = () => {
     const { sessionId } = useParams();
     const [status, setStatus] = useState('connecting'); // connecting | ready | error
@@ -77,16 +111,19 @@ const RemoteLensPage = () => {
             await new Promise(r => image.onload = r);
 
             const results = await processRegions(image);
-            if (results.name) {
-                await resolveAndPush(results);
-            } else {
-                setLastDetection({ error: "Blurry scan. try again." });
-            }
+
+            // Proceed to resolution regardless of 'name' since we rely on set/cn now
+            await resolveAndPush(results);
+
         } catch (err) {
             console.error("Processing error", err);
+            setLastDetection({ error: "Processing Error" });
         } finally {
             setIsProcessing(false);
-            setTimeout(() => setLastDetection(null), 2000);
+            // Clear error but keep success msg for a bit
+            setTimeout(() => {
+                setLastDetection(prev => prev?.error ? null : prev);
+            }, 3000);
         }
     };
 
@@ -200,7 +237,7 @@ const RemoteLensPage = () => {
     };
 
     const resolveAndPush = async ({ name, set, cn, raw_footer }) => {
-        console.log(`[RemoteLens] Resolving: Name="${name}", Set="${set}", CN="${cn}"`);
+        console.log(`[RemoteLens] Resolving: Set="${set}", CN="${cn}"`);
 
         // 1. PRIORITIZE SET & CN SEARCH
         if (set && cn) {
@@ -209,7 +246,7 @@ const RemoteLensPage = () => {
                 const resp = await api.post('/api/cards/search', { set, cn });
                 if (resp.data && resp.data.length > 0) {
                     const data = resp.data[0];
-                    console.log(`[RemoteLens] Match found by Set/CN: ${data.name}`);
+                    console.log(`[RemoteLens] Match found: ${data.name}`);
                     const variants = resp.data.length > 1 ? resp.data : [data];
                     pushCardToDesktop(data, variants, { name, set, cn });
                     return;
@@ -222,60 +259,14 @@ const RemoteLensPage = () => {
             }
         }
 
-        if (!name || name.length < 3) {
-            setLastDetection({ error: "Try scanning Set Code & Number again." });
-            return;
-        }
-
-        console.log(`[RemoteLens] Attempting Name search: "${name}"`);
-        try {
-            const resp = await api.post('/api/cards/search', { query: name });
-            const localCards = resp.data || [];
-
-            if (localCards.length > 0) {
-                const data = localCards[0];
-                const variants = localCards.length > 1 ? localCards : [data];
-                pushCardToDesktop(data, variants, { name, set, cn });
-                return;
-            } else {
-                console.log(`[RemoteLens] No direct match for "${name}". Trying fuzzy fallback...`);
-                // FALLBACK: Try first word OR first 8 characters for long words
-                const words = name.split(/\s+/).filter(w => w.length > 3);
-                let fallbackQuery = null;
-                if (words.length > 0 && words[0].length < name.length) {
-                    fallbackQuery = words[0];
-                } else if (name.length > 8) {
-                    fallbackQuery = name.substring(0, 8);
-                }
-
-                if (fallbackQuery) {
-                    console.log(`[RemoteLens] Fuzzy fallback attempt with: "${fallbackQuery}"`);
-                    const fallbackResp = await api.post('/api/cards/search', { query: fallbackQuery });
-                    if (fallbackResp.data?.length > 0) {
-                        const data = fallbackResp.data[0];
-                        console.log(`[RemoteLens] Fuzzy match found: "${data.name}"`);
-
-                        const matchDetected = name.toLowerCase().includes(data.name.toLowerCase());
-                        const matchResult = data.name.toLowerCase().includes(fallbackQuery.toLowerCase());
-
-                        if (matchDetected || matchResult) {
-                            console.log(`[RemoteLens] Fallback match accepted: "${data.name}"`);
-                            const variants = fallbackResp.data.length > 1 ? fallbackResp.data : [data];
-                            pushCardToDesktop(data, variants, { name, set, cn });
-                            return;
-                        }
-                    }
-                }
-                setLastDetection({ error: `Not found: ${name}` });
-            }
-        } catch (err) {
-            console.error("[RemoteLens] Search failed", err);
-            setLastDetection({ error: "Search failed" });
-        }
+        // If we get here, no Set/CN match
+        setLastDetection({ error: "Scan Set Code & Number" });
     };
 
     return (
         <div className="fixed inset-0 bg-gray-950 flex flex-col items-center justify-between p-6 text-white overflow-hidden">
+            <ConsoleBridge />
+
             {/* Header */}
             <div className="w-full flex justify-between items-center mb-4">
                 <div className="flex items-center gap-2">
@@ -321,7 +312,7 @@ const RemoteLensPage = () => {
                             </div>
                         ) : (
                             <div className="bg-black/60 backdrop-blur-md text-white/60 text-[10px] py-2 rounded-full text-center uppercase font-bold tracking-widest">
-                                Center Card & Tap
+                                Align Set Code & Number
                             </div>
                         )}
                     </div>
@@ -329,7 +320,7 @@ const RemoteLensPage = () => {
             </div>
 
             {/* Controls */}
-            <div className="w-full flex flex-col items-center gap-6">
+            <div className="w-full flex flex-col items-center gap-6 mb-20">
                 <button
                     onClick={captureAndProcess}
                     disabled={isProcessing || !isWorkerReady}
@@ -348,11 +339,6 @@ const RemoteLensPage = () => {
                             </div>
                         </div>
                     ))}
-                    {scannedHistory.length === 0 && (
-                        <div className="w-full flex items-center justify-center text-gray-700 font-bold uppercase text-[10px] tracking-widest border border-dashed border-gray-800 rounded-2xl">
-                            Awaiting Scans...
-                        </div>
-                    )}
                 </div>
             </div>
 
