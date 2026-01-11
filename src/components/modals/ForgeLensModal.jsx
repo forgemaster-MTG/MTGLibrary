@@ -241,13 +241,37 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
             return { lines, preview: previewUrl };
         };
 
-        // ROI Coordinates - Optimized for standard MTG frames
-        // Name is usually in the top 12% of the card
+        // ROI Coordinates - Optimized for standard MTG frames within a SQUARE viewport
+        // Since the UI uses object-cover on a square container, we must crop the source image
+        // to its central square to match what the user is seeing/aligning.
         const iw = image.width;
         const ih = image.height;
 
-        const nameResult = await extractText(iw * 0.05, ih * 0.02, iw * 0.9, ih * 0.08);
-        const footerResult = await extractText(iw * 0.04, ih * 0.9, iw * 0.3, ih * 0.09);
+        const minDim = Math.min(iw, ih);
+        const startX = (iw - minDim) / 2;
+        const startY = (ih - minDim) / 2;
+
+        // ROI Relative to the Central Square
+        // We assume the user fits the card mostly within this square.
+        // Magic cards are 63x88mm (~0.71 aspect). width is smaller than height.
+        // If they fit the height, the width will be ~70% of the square.
+
+        // Name: Top 5-15% of the square
+        // We scan a bit wide to catch it if they are close
+        const nameResult = await extractText(
+            startX + (minDim * 0.1),  // X: 10% in (centered-ish)
+            startY + (minDim * 0.04), // Y: Near top (4% down)
+            minDim * 0.8,             // W: 80% width
+            minDim * 0.12             // H: ~12% height
+        );
+
+        // Footer: Bottom 10% of the square
+        const footerResult = await extractText(
+            startX + (minDim * 0.15), // X: 15% in
+            startY + (minDim * 0.82), // Y: Near bottom (82% down)
+            minDim * 0.7,             // W: 70% width
+            minDim * 0.12             // H: ~12% height
+        );
 
         setDebugPreviews({ name: nameResult.preview, footer: footerResult.preview });
 
