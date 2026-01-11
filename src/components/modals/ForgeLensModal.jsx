@@ -250,49 +250,49 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
         // Magic cards are 63x88mm (~0.71 aspect). width is smaller than height.
         // If they fit the height, the width will be ~70% of the square.
 
-        console.log(`[ForgeLens] Source: ${iw}x${ih}, Crop Square: ${minDim}x${minDim} @ (${startX}, ${startY})`);
+        console.log(`[ForgeLens] Precision Mode: ${iw}x${ih}, Crop: ${minDim}x${minDim} @ (${startX}, ${startY})`);
 
-        // Name: Top 3-12% of the card (visually)
-        // We accept a wider vertical range to handle slight tilt/misalignment
-        const nameResult = await extractText(
-            startX + (minDim * 0.08), // X: 8% in (slightly wider scan)
-            startY + (minDim * 0.03), // Y: Start 3% down from top edge of card
-            minDim * 0.84,            // W: 84% width
-            minDim * 0.11             // H: 11% height
-        );
-
-        // Footer: Bottom area
+        // Scan the visual center of the viewport (where the user points)
+        // We take a central band (Center 80% width, Middle 30% height)
         const footerResult = await extractText(
-            startX + (minDim * 0.12), // X: 12% in
-            startY + (minDim * 0.85), // Y: 85% down from top
-            minDim * 0.76,            // W: 76% width
-            minDim * 0.08             // H: 8% height
+            startX + (minDim * 0.1),  // 10% padding X
+            startY + (minDim * 0.35), // Start 35% down (middle horizontal band)
+            minDim * 0.8,             // 80% Width
+            minDim * 0.3              // 30% Height
         );
 
-        setDebugPreviews({ name: nameResult.preview, footer: footerResult.preview });
+        setDebugPreviews({ footer: footerResult.preview });
 
-        // Parse Name (take first valid line > 2 chars)
-        const nameText = nameResult.lines.find(l => l.length > 2) || '';
-
-        // Parse Footer (look for Set Code and Collector Number)
+        // Parse Footer (Set Code & CN)
         let set = '';
         let cn = '';
-
         const footerText = footerResult.lines.join(' ');
+        console.log(`[ForgeLens] Raw Scan: "${footerText}"`);
 
-        // Collector Number: usually 1-4 digits
-        const cnMatch = footerText.match(/\b\d{1,4}\b/);
-        if (cnMatch) cn = cnMatch[0];
+        // Collector Number Logic
+        const potentialNumbers = footerText.match(/\b\d{1,5}[a-z]?\b/gi) || [];
+        const validUn = potentialNumbers.filter(n => {
+            if (/^(19|20)\d{2}$/.test(n)) return false; // Exclude Years
+            return true;
+        });
 
-        // Set Code: 3-4 uppercase characters (e.g. MH2, MH3, EN)
+        if (validUn.length > 0) cn = validUn[0];
+
+        // Set Code Logic
         const setMatches = footerText.match(/\b[A-Z0-9]{3,4}\b/g);
         if (setMatches) {
+            const blocklist = ['THE', 'LLC', 'WIZ', 'TM', 'INC', 'COM', 'ART', 'NOT', 'FOR'];
             const languages = ['EN', 'JP', 'FR', 'DE', 'IT', 'CN', 'RU', 'KO', 'ES', 'PT', 'PH'];
-            const foundSet = setMatches.find(s => !languages.includes(s) && !/^\d+$/.test(s));
+
+            const foundSet = setMatches.find(s =>
+                !languages.includes(s) &&
+                !blocklist.includes(s) &&
+                !/^\d+$/.test(s)
+            );
             if (foundSet) set = foundSet;
         }
 
-        return { name: nameText, set, cn, raw_footer: footerText };
+        return { name: '', set, cn, raw_footer: footerText };
     };
 
     const resolveCard = async ({ name, set, cn, raw_footer }) => {
@@ -315,9 +315,9 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
             }
         }
 
-        // 2. FALLBACK TO NAME SEARCH
+        // 2. FALLBACK TO NAME SEARCH (Disabled in Precision Mode)
         if (!name || name.length < 3) {
-            setLastDetection({ error: "No readable name or set info." });
+            setLastDetection({ error: "Try scanning Set Code & Number again." });
             return;
         }
 
@@ -538,7 +538,7 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
                                                     {lastDetection.error}
                                                 </div>
                                             ) : (
-                                                <p className="text-white/60 text-[10px] px-3 py-1 bg-black/40 rounded-full backdrop-blur-sm">Align Card & Snapshot</p>
+                                                <p className="text-white/60 text-[10px] px-3 py-1 bg-black/40 rounded-full backdrop-blur-sm">Align Set Code & Number</p>
                                             )}
                                         </div>
                                     </div>
@@ -580,17 +580,14 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
                                     </button>
                                 )}
 
-                                {isDebugMode && debugPreviews.name && (
+                                {isDebugMode && debugPreviews.footer && (
                                     <div className="flex flex-col gap-2 p-3 bg-black/40 rounded-2xl border border-orange-500/20">
                                         <div className="text-[10px] font-black uppercase text-orange-400 tracking-widest flex items-center gap-2">
                                             <AlertCircle className="w-3 h-3" />
                                             ROI Crops
                                         </div>
                                         <div className="flex flex-col gap-2">
-                                            <div className="relative group">
-                                                <img src={debugPreviews.name} className="h-8 w-full object-contain bg-white rounded border border-white/10" alt="Name" />
-                                                <div className="absolute top-0 right-0 bg-black/60 text-white text-[8px] px-1 rounded-bl">Name</div>
-                                            </div>
+                                            {/* Name Preview Removed in Precision Mode */}
                                             <div className="relative group">
                                                 <img src={debugPreviews.footer} className="h-8 w-full object-contain bg-white rounded border border-white/10" alt="Footer" />
                                                 <div className="absolute top-0 right-0 bg-black/60 text-white text-[8px] px-1 rounded-bl">Footer</div>

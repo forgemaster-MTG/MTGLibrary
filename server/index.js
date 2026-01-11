@@ -216,12 +216,12 @@ app.get('/api/health', (req, res) => {
 app.use(express.static(path.join(__dirname, '../dist')));
 
 // Serve "public" folder as well if needed (optional, Vite usually bundles everything)
-app.use(express.static(path.join(__dirname, '../Public')));
+app.use(express.static(path.join(__dirname, '../public')));
 
 // Bug Tracker list - Read from Public/tasklist.txt
 app.get('/bugs', (req, res) => {
   try {
-    const bugPath = path.join(process.cwd(), 'Public', 'tasklist.txt');
+    const bugPath = path.join(process.cwd(), 'public', 'tasklist.txt');
     if (fs.existsSync(bugPath)) {
       const content = fs.readFileSync(bugPath, 'utf-8');
       res.json({ content });
