@@ -11,6 +11,8 @@ import fs from 'fs';
 import path from 'path';
 import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -46,6 +48,14 @@ try {
 }
 
 const app = express();
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: "*", // allow from any device for pairing
+    methods: ["GET", "POST"]
+  }
+});
+
 // Trust Proxy (Required for rate limiting behind Cloudflare/Docker)
 app.set('trust proxy', 1);
 
@@ -76,7 +86,7 @@ app.use(limiter);
 
 // CORS Config (Restrict to trusted domains in production)
 const allowedOrigins = [
-  'http://localhost:3000',
+  'http://localhost:3004',
   'http://localhost:5173',
   'http://localhost:5174', // Vite alternate port
   'http://localhost:5175', // Vite alternate port
@@ -205,12 +215,12 @@ app.get('/api/health', (req, res) => {
 app.use(express.static(path.join(__dirname, '../dist')));
 
 // Serve "public" folder as well if needed (optional, Vite usually bundles everything)
-app.use(express.static(path.join(__dirname, '../public')));
+app.use(express.static(path.join(__dirname, '../Public')));
 
 // Bug Tracker list - Read from Public/tasklist.txt
 app.get('/bugs', (req, res) => {
   try {
-    const bugPath = path.join(process.cwd(), 'public', 'tasklist.txt');
+    const bugPath = path.join(process.cwd(), 'Public', 'tasklist.txt');
     if (fs.existsSync(bugPath)) {
       const content = fs.readFileSync(bugPath, 'utf-8');
       res.json({ content });
@@ -237,6 +247,26 @@ if (yaml && swaggerUi) {
   }
 }
 
+// Socket.io logic
+io.on('connection', (socket) => {
+  console.log('User connected:', socket.id);
+
+  socket.on('join-pairing', (sessionId) => {
+    socket.join(`pair-${sessionId}`);
+    console.log(`Socket ${socket.id} joined pairing room: pair-${sessionId}`);
+  });
+
+  socket.on('card-scanned', ({ sessionId, card }) => {
+    // Broadcast to the desktop in the same pairing room
+    socket.to(`pair-${sessionId}`).emit('remote-card', card);
+    console.log(`Card pushed to pairing room pair-${sessionId}:`, card.name);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('User disconnected:', socket.id);
+  });
+});
+
 const port = process.env.PORT || 3000;
 
 // Catch-All Handler for SPA (Must be last)
@@ -245,4 +275,4 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../dist/index.html'));
 });
 
-app.listen(port, () => console.log(`Server listening on ${port}`));
+httpServer.listen(port, () => console.log(`Server listening on ${port}`));

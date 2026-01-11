@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import StartAuditButton from './StartAuditButton';
 import { api } from '../../services/api';
 import AuditGuideModal from '../modals/AuditGuideModal';
+import { useAuth } from '../../contexts/AuthContext';
+import { getTierConfig } from '../../config/tiers';
 
 export default function AuditDashboardWidget() {
     const [session, setSession] = useState(null);
@@ -10,6 +12,7 @@ export default function AuditDashboardWidget() {
     const [loading, setLoading] = useState(true);
     const [showGuide, setShowGuide] = useState(false);
     const navigate = useNavigate();
+    const { userProfile } = useAuth();
 
     useEffect(() => {
         const check = async () => {
@@ -28,6 +31,36 @@ export default function AuditDashboardWidget() {
         };
         check();
     }, []);
+
+    // Check permissions
+    const { features } = getTierConfig(userProfile?.subscription_tier);
+
+    if (!features.collectionAudit) {
+        return (
+            <div className="bg-gray-900/50 rounded-2xl p-4 border border-gray-800 transition-all group relative overflow-hidden flex flex-col h-full min-h-[140px] opacity-75 hover:opacity-100">
+                <div className="flex justify-between items-start mb-1 relative z-10">
+                    <div>
+                        <h3 className="text-gray-400 text-xs font-medium flex items-center gap-2">
+                            Audit The Forge
+                        </h3>
+                    </div>
+                </div>
+
+                <div className="flex-1 flex flex-col items-center justify-center text-center relative z-10">
+                    <div className="p-2 bg-green-500/10 rounded-full mb-2">
+                        <svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </div>
+                    <p className="text-[10px] text-gray-400 mb-2">Verify your physical collection.</p>
+                    <button
+                        onClick={() => navigate('/settings/membership')}
+                        className="text-[9px] font-bold uppercase tracking-widest text-green-400 hover:text-white border border-green-500/30 px-3 py-1.5 rounded-lg hover:bg-green-500/20 transition-all"
+                    >
+                        Unlock on Wizard
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     if (loading) return null;
 

@@ -2,12 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useDecks } from '../hooks/useDecks';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import { communityService } from '../services/communityService';
 import DeckRow from '../components/decks/DeckRow';
 import SharedDeckRow from '../components/decks/SharedDeckRow';
+import { TIER_CONFIG } from '../config/tiers';
 
 const DecksPage = () => {
-    const { user } = useAuth();
+    const { user, userProfile } = useAuth();
+    const { addToast } = useToast();
     const [availableSources, setAvailableSources] = useState([]);
 
     // Fetch My Decks
@@ -29,6 +32,15 @@ const DecksPage = () => {
         if (user) fetchSources();
     }, [user]);
 
+    const handleCreateDeck = (e) => {
+        const limit = TIER_CONFIG[userProfile?.subscription_tier || 'free'].limits.decks;
+        const current = myDecks?.length || 0;
+        if (limit !== Infinity && current >= limit) {
+            e.preventDefault();
+            addToast(`Deck limit reached (${current}/${limit}). Upgrade to create more!`, 'error');
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gray-950 relative overflow-hidden">
             {/* Ambient Background */}
@@ -43,6 +55,7 @@ const DecksPage = () => {
                     </div>
                     <Link
                         to="/decks/new"
+                        onClick={handleCreateDeck}
                         className="group bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs transition-all shadow-lg shadow-indigo-500/20 flex items-center gap-2 border border-indigo-400/20 hover:border-indigo-400"
                     >
                         <span className="text-xl leading-none font-light">+</span>

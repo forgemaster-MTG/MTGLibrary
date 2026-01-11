@@ -17,7 +17,10 @@ const AuditGuideModal = ({ isOpen, onClose }) => {
                         </div>
                         <div>
                             <h2 className="text-xl font-black text-white tracking-tight">Audit & Verification Guide</h2>
-                            <p className="text-gray-400 text-xs">Maintain a perfect collection with 'Audit The Forge'.</p>
+                            <p className="text-gray-400 text-xs flex items-center gap-2">
+                                Audit The Forge to verify your collection.
+                                <span className="text-[9px] bg-green-500/20 text-green-300 px-2 py-0.5 rounded uppercase tracking-wider border border-green-500/30">Requires Wizard Tier</span>
+                            </p>
                         </div>
                     </div>
                     <button onClick={onClose} className="w-8 h-8 rounded-full bg-black/20 flex items-center justify-center text-gray-400 hover:text-white transition-colors">

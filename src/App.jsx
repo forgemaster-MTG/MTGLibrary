@@ -3,6 +3,7 @@ import ScrollToTop from './components/ScrollToTop';
 import Navbar from './components/Navbar';
 import LandingPage from './pages/LandingPage';
 import Dashboard from './pages/Dashboard';
+import PricingPage from './pages/PricingPage';
 import LoginPage from './pages/LoginPage';
 import CollectionPage from './pages/CollectionPage';
 import DecksPage from './pages/DecksPage';
@@ -18,6 +19,7 @@ import DeckBuildWizardPage from './pages/DeckBuildWizardPage';
 import OnboardingPage from './pages/OnboardingPage';
 import AboutPage from './pages/AboutPage';
 import PublicDeckPage from './pages/PublicDeckPage';
+import RemoteLensPage from './pages/RemoteLensPage';
 import AuditWizard from './components/Audit/AuditWizard';
 import AuditHub from './components/Audit/AuditHub';
 import ChatWidget from './components/ChatWidget';
@@ -27,6 +29,7 @@ import { ToastProvider } from './contexts/ToastContext';
 import { CardModalProvider } from './contexts/CardModalContext';
 import CardDetailsModal from './components/modals/CardDetailsModal';
 import AuthGuard from './components/AuthGuard';
+import ApiInterceptor from './components/ApiInterceptor';
 
 function App() {
     return (
@@ -45,6 +48,7 @@ function App() {
                                     <Route path="/login" element={<LoginPage />} />
                                     <Route path="/onboarding" element={<OnboardingPage />} />
                                     <Route path="/collection" element={<CollectionPage />} />
+                                    <Route path="/pricing" element={<PricingPage />} />
                                     <Route path="/decks" element={<DecksPage />} />
                                     <Route path="/precons" element={<PreconPage />} />
                                     <Route path="/precons/type/:type" element={<PreconPage />} />
@@ -61,9 +65,11 @@ function App() {
                                     <Route path="/audit" element={<AuditHub />} />
                                     <Route path="/audit/:id" element={<AuditHub />} />
                                     <Route path="/audit/:auditId/wizard" element={<AuditWizard />} />
+                                    <Route path="/remote/:sessionId" element={<RemoteLensPage />} />
                                 </Routes>
                             </div>
                         </AuthGuard>
+                        <ApiInterceptor />
                         {/* Global Components */}
                         <ChatWidget />
                         <CardDetailsModal />

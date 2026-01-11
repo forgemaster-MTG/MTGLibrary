@@ -1,6 +1,7 @@
 import express from 'express';
 import { knex } from '../db.js';
 import auth from '../middleware/auth.js';
+import { verifyLimit } from '../middleware/usageLimits.js';
 
 const router = express.Router();
 
@@ -199,6 +200,17 @@ router.post('/:id/create', auth, async (req, res) => {
       })
       .select('pc.*', 'c.data as card_data')
       .where('pc.precon_id', id);
+
+    // CHECK LIMITS
+    const tierId = req.user.override_tier || req.user.subscription_tier || 'free';
+
+    // 1. Check Deck Limit (adding 1 deck)
+    await verifyLimit(userId, tierId, 'decks', 1);
+
+    // 2. Check Collection/Wishlist Limit (adding N cards)
+    const cardCount = cards.reduce((acc, c) => acc + (c.quantity || 1), 0);
+    const targetResource = mode === 'wishlist' ? 'wishlist' : 'collection';
+    await verifyLimit(userId, tierId, targetResource, cardCount);
 
     // 1. Create Deck
     const isWishlist = mode === 'wishlist';

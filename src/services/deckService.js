@@ -19,6 +19,14 @@ export const deckService = {
         });
     },
 
+    async batchAddCardsToDeck(userId, deckId, cards) {
+        const payload = cards.map(c => ({
+            ...c,
+            deck_id: deckId
+        }));
+        return api.batchAddToCollection(payload, 'merge');
+    },
+
     /**
      * Removes a card from a deck (Return to binder).
      */

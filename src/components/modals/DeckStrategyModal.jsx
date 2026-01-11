@@ -4,9 +4,9 @@ import { useAuth } from '../../contexts/AuthContext';
 import { GeminiService } from '../../services/gemini';
 import { deckService } from '../../services/deckService';
 import { useToast } from '../../contexts/ToastContext';
+import { TIER_CONFIG, TIERS, getTierConfig } from '../../config/tiers';
 
 const DeckStrategyModal = ({ isOpen, onClose, deck, cards = [], onStrategyUpdate }) => {
-    // ... existing hook logic ...
     const { userProfile, currentUser } = useAuth();
     const { addToast } = useToast();
     const helperName = userProfile?.settings?.helper?.name || 'The Oracle';
@@ -54,10 +54,13 @@ const DeckStrategyModal = ({ isOpen, onClose, deck, cards = [], onStrategyUpdate
         return activeCommander.image_uris?.art_crop || activeCommander.image_uris?.large || activeCommander.image_uris?.normal || activeCommander.image_uri;
     };
 
-
     // Support both new nested layout and legacy flat structures
     const functionalNeeds = blueprint.layout?.functional || blueprint.suggestedCounts || {};
     const typeDistribution = blueprint.layout?.types || blueprint.typeCounts || {};
+
+    // Check Feature Access
+    const canRecreate = getTierConfig(userProfile?.subscription_tier).features.aiStrategy;
+    const hasStrategy = !!blueprint.strategy;
 
     const handleRerunning = async () => {
         if (!userProfile?.settings?.geminiApiKey) {
@@ -113,34 +116,36 @@ const DeckStrategyModal = ({ isOpen, onClose, deck, cards = [], onStrategyUpdate
                 <div className="absolute -bottom-[20%] -left-[10%] w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[100px] pointer-events-none" />
 
                 {/* Header */}
-                <div className="px-10 py-8 border-b border-white/5 flex justify-between items-center bg-white/5 shrink-0 relative z-10">
-                    <div className="flex items-center gap-6">
+                <div className="px-4 py-6 md:px-10 md:py-8 border-b border-white/5 flex flex-col md:flex-row justify-between items-center bg-white/5 shrink-0 relative z-10 gap-4 md:gap-0">
+                    <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto">
                         <div className="w-14 h-14 bg-indigo-500/20 rounded-2xl flex items-center justify-center border border-indigo-500/30 shadow-inner backdrop-blur-sm">
                             <span className="text-3xl">🔮</span>
                         </div>
                         <div>
                             <h2
-                                className="text-3xl font-black text-white tracking-tighter uppercase leading-none mb-1"
+                                className="text-xl md:text-3xl font-black text-white tracking-tighter uppercase leading-none mb-1"
                                 dangerouslySetInnerHTML={{ __html: theme }}
                             />
                             <p className="text-[10px] font-black text-indigo-400/60 uppercase tracking-[0.3em]">{helperName} Strategic Blueprint</p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 md:gap-4 w-full md:w-auto justify-end">
                         <button
-                            onClick={handleRerunning}
-                            disabled={isRerunning}
-                            className={`flex items-center gap-3 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all border ${isRerunning
+                            onClick={canRecreate ? handleRerunning : () => addToast(`Upgrade to ${TIER_CONFIG[TIERS.TIER_2].name} to use AI Strategy tools.`, 'info')}
+                            disabled={isRerunning || !canRecreate}
+                            className={`flex-1 md:flex-none flex items-center justify-center gap-2 md:gap-3 px-4 md:px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all border ${isRerunning || !canRecreate
                                 ? 'bg-white/5 text-gray-500 border-white/5 cursor-not-allowed'
                                 : 'bg-indigo-600 hover:bg-indigo-500 text-white border-white/20 shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_30px_rgba(79,70,229,0.5)] active:scale-95'
                                 }`}
+                            title={!canRecreate ? `Requires ${TIER_CONFIG[TIERS.TIER_2].name} Tier` : ''}
                         >
                             {isRerunning ? (
                                 <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
                             ) : (
                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                             )}
-                            {isRerunning ? `Consulting with ${helperName}...` : `Have ${helperName} Recreate Strategy`}
+                            <span className="md:hidden">{isRerunning ? 'Consulting...' : 'Recreate'}</span>
+                            <span className="hidden md:inline">{isRerunning ? `Consulting with ${helperName}...` : `Have ${helperName} Recreate Strategy`}</span>
                         </button>
                         <div className="w-px h-8 bg-white/10 mx-2" />
                         <button
@@ -238,11 +243,15 @@ const DeckStrategyModal = ({ isOpen, onClose, deck, cards = [], onStrategyUpdate
                                 </div>
                                 <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-6 flex items-center gap-3">
                                     <span className="w-8 h-px bg-gray-700"></span>
-                                    Tactical Overview
+                                    {hasStrategy || canRecreate ? 'Tactical Overview' : `Tactical Overview (Requires ${TIER_CONFIG[TIERS.TIER_2].name})`}
                                 </h3>
                                 <div
                                     className="text-gray-300 leading-relaxed strategy-content-refined font-medium text-lg/8"
-                                    dangerouslySetInnerHTML={{ __html: strategyHtml }}
+                                    dangerouslySetInnerHTML={{
+                                        __html: (hasStrategy || canRecreate)
+                                            ? strategyHtml
+                                            : `<p class="italic text-gray-500">Strategy generation is available on the ${TIER_CONFIG[TIERS.TIER_2].name} tier. Upgrade to unlock deep strategic insights for your deck.</p>`
+                                    }}
                                 />
                             </div>
 

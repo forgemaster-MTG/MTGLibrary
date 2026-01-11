@@ -5,6 +5,7 @@ import CardSearchModal from './CardSearchModal';
 import PlaystyleWizardModal from './modals/PlaystyleWizardModal';
 import PlaystyleProfileModal from './modals/PlaystyleProfileModal';
 import BadgeSelectionModal from './modals/BadgeSelectionModal';
+import { TIERS, TIER_CONFIG } from '../config/tiers';
 
 const Navbar = () => {
     const location = useLocation();
@@ -67,9 +68,32 @@ const Navbar = () => {
 
     // Override display for Master
     const displayEmail = isMaster ? "FORGE MASTER" : (currentUser?.email || '');
+
+    // Tier Badge Logic
+    let tierBadge = null;
+    const tier = userProfile?.subscription_tier;
+
+    if (tier && tier !== 'free') {
+        const config = TIER_CONFIG[tier];
+        if (config) {
+            tierBadge = {
+                icon: '🛡️', // Default
+                label: config.name,
+                color: 'text-blue-400 border-blue-500/30 bg-blue-500/10'
+            };
+
+            // Custom icons/colors per tier
+            if (tier === TIERS.TIER_1) tierBadge = { icon: '✨', label: 'Apprentice', color: 'text-blue-400 border-blue-500/30 bg-blue-500/10' };
+            if (tier === TIERS.TIER_2) tierBadge = { icon: '🔮', label: 'Magician', color: 'text-purple-400 border-purple-500/30 bg-purple-500/10' };
+            if (tier === TIERS.TIER_3) tierBadge = { icon: '🧙‍♂️', label: 'Wizard', color: 'text-yellow-400 border-yellow-500/30 bg-yellow-500/10' };
+            if (tier === TIERS.TIER_4) tierBadge = { icon: '⚡', label: 'Archmage', color: 'text-orange-400 border-orange-500/30 bg-orange-500/10' };
+            if (tier === TIERS.TIER_5) tierBadge = { icon: '🪐', label: 'Planeswalker', color: 'text-red-400 border-red-500/30 bg-red-500/10' };
+        }
+    }
+
     const displayBadge = isMaster
-        ? { icon: '👑', label: 'Architect', id: 'architect' }
-        : (userProfile?.settings?.badge || { icon: '🧪', label: 'Alpha Tester', id: 'alpha_tester' });
+        ? { icon: '👑', label: 'Architect', id: 'architect', color: 'text-amber-500 bg-amber-500/20 border-amber-500/50' }
+        : (tierBadge || userProfile?.settings?.badge || { icon: '🧪', label: 'Alpha Tester', id: 'alpha_tester', color: 'text-gray-400 bg-gray-800 border-gray-700' });
 
     // Handle logout with redirect
     const handleLogout = async () => {
@@ -91,14 +115,59 @@ const Navbar = () => {
                         <div className="flex items-center justify-between w-full">
                             {/* Logo */}
                             <div className="flex-shrink-0 flex items-center gap-3">
-                                <Link to="/" className="flex items-center gap-2 transform hover:scale-105 transition-transform">
+                                <Link to="/" className="flex items-center gap-3 transform hover:scale-105 transition-transform">
                                     <img src="/logo.png" alt="MTG Forge Logo" className="h-10 w-auto" />
-                                    <span className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent hidden sm:inline-block">
-                                        MTG-Forge
-                                    </span>
-                                    <span className="bg-orange-500/10 border border-orange-500/30 text-orange-400 text-[9px] font-bold px-1.5 py-0.5 rounded ml-1 animate-pulse">
-                                        ALPHA
-                                    </span>
+
+                                    {/* Mobile Badges (Right of Logo) */}
+                                    <div className="flex flex-col gap-1 sm:hidden">
+                                        <span className="bg-orange-500/10 border border-orange-500/30 text-orange-400 text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse w-fit leading-none">
+                                            ALPHA
+                                        </span>
+                                        {tier && tier !== 'free' && (() => {
+                                            const config = TIER_CONFIG[tier];
+                                            let badgeColor = 'text-gray-400 border-gray-600 bg-gray-800';
+
+                                            if (tier === TIERS.TIER_1) badgeColor = 'text-blue-400 border-blue-500/30 bg-blue-500/10';
+                                            if (tier === TIERS.TIER_2) badgeColor = 'text-purple-400 border-purple-500/30 bg-purple-500/10';
+                                            if (tier === TIERS.TIER_3) badgeColor = 'text-yellow-400 border-yellow-500/30 bg-yellow-500/10';
+                                            if (tier === TIERS.TIER_4) badgeColor = 'text-orange-400 border-orange-500/30 bg-orange-500/10';
+                                            if (tier === TIERS.TIER_5) badgeColor = 'text-red-400 border-red-500/30 bg-red-500/10';
+
+                                            return (
+                                                <span className={`border text-[9px] font-bold px-1.5 py-0.5 rounded leading-none uppercase w-fit ${badgeColor}`}>
+                                                    {config?.name || 'MEMBER'}
+                                                </span>
+                                            );
+                                        })()}
+                                    </div>
+
+                                    {/* Desktop Title & Badges */}
+                                    <div className="hidden sm:flex flex-col justify-center">
+                                        <span className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent leading-none pb-1">
+                                            MTG-Forge
+                                        </span>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <span className="bg-orange-500/10 border border-orange-500/30 text-orange-400 text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse leading-none">
+                                                ALPHA
+                                            </span>
+                                            {tier && tier !== 'free' && (() => {
+                                                const config = TIER_CONFIG[tier];
+                                                let badgeColor = 'text-gray-400 border-gray-600 bg-gray-800';
+
+                                                if (tier === TIERS.TIER_1) badgeColor = 'text-blue-400 border-blue-500/30 bg-blue-500/10'; // Apprentice
+                                                if (tier === TIERS.TIER_2) badgeColor = 'text-purple-400 border-purple-500/30 bg-purple-500/10'; // Magician
+                                                if (tier === TIERS.TIER_3) badgeColor = 'text-yellow-400 border-yellow-500/30 bg-yellow-500/10'; // Wizard
+                                                if (tier === TIERS.TIER_4) badgeColor = 'text-orange-400 border-orange-500/30 bg-orange-500/10'; // Archmage
+                                                if (tier === TIERS.TIER_5) badgeColor = 'text-red-400 border-red-500/30 bg-red-500/10'; // Planeswalker
+
+                                                return (
+                                                    <span className={`border text-[9px] font-bold px-1.5 py-0.5 rounded leading-none uppercase ${badgeColor}`}>
+                                                        {config?.name || 'MEMBER'}
+                                                    </span>
+                                                );
+                                            })()}
+                                        </div>
+                                    </div>
                                 </Link>
                             </div>
 
@@ -145,13 +214,11 @@ const Navbar = () => {
                                     <div className="relative">
                                         <div className="flex items-center gap-3">
 
-                                            {/* Founder Badge - Simplified for clutter reduction */}
+                                            {/* Founder/Tier Badge */}
                                             <button
                                                 onClick={() => setIsBadgeModalOpen(true)}
-                                                className={`flex items-center justify-center w-8 h-8 rounded-full border transition-all group relative ${isMaster
-                                                    ? 'bg-amber-500/20 border-amber-500/50 hover:bg-amber-500/30 shadow-[0_0_10px_rgba(245,158,11,0.3)]'
-                                                    : 'bg-indigo-900/30 border-indigo-500/30 hover:bg-indigo-900/50'}`}
-                                                title={isMaster ? "Data Architect" : "Click to change badge"}
+                                                className={`flex items-center justify-center w-8 h-8 rounded-full border transition-all group relative ${displayBadge.color || 'bg-gray-800 border-gray-700 hover:bg-gray-700'}`}
+                                                title={displayBadge.label || "Change Badge"}
                                             >
                                                 <span className="text-base">{displayBadge.icon}</span>
                                                 {isMaster && (

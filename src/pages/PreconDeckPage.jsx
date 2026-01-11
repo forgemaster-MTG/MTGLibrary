@@ -5,6 +5,9 @@ import CardGridItem from '../components/common/CardGridItem';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import DeckCharts from '../components/DeckCharts';
+import { useCollection } from '../hooks/useCollection';
+import { useDecks } from '../hooks/useDecks';
+import { getTierConfig } from '../config/tiers';
 
 const MTG_IDENTITY_REGISTRY = [
     { badge: "White", colors: ["W"], theme: "Absolute Order" },
@@ -39,7 +42,7 @@ const MTG_IDENTITY_REGISTRY = [
 const PreconDeckPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { currentUser } = useAuth();
+    const { currentUser, userProfile } = useAuth();
     const { addToast } = useToast();
 
     const [deck, setDeck] = useState(null);
@@ -184,7 +187,41 @@ const PreconDeckPage = () => {
         return match || MTG_IDENTITY_REGISTRY.find(i => i.badge === 'Colorless');
     }, [deck]);
 
+    const { cards: collection } = useCollection();
+    const { decks } = useDecks();
+
     const handleCreate = async (mode) => {
+        // Enforce Limits
+        const tierId = userProfile?.subscription_tier || 'free';
+        const config = getTierConfig(tierId);
+
+        // 1. Deck Limit
+        const deckLimit = config.limits.decks;
+        if (deckLimit !== Infinity && decks && decks.length >= deckLimit) {
+            addToast(`Deck limit reached (${decks.length}/${deckLimit}). Upgrade to add this deck!`, 'error');
+            return;
+        }
+
+        // 2. Collection/Wishlist Limit
+        const isWishlist = mode === 'wishlist';
+        const limitType = isWishlist ? 'wishlist' : 'collection';
+        const limit = config.limits[limitType];
+
+        if (limit !== Infinity && collection) {
+            // Count current
+            const currentCount = collection
+                .filter(c => !!c.is_wishlist === isWishlist)
+                .reduce((acc, c) => acc + (c.count || 1), 0);
+
+            // Count adding
+            const addingCount = totalCards; // pre-calculated memo
+
+            if (currentCount + addingCount > limit) {
+                addToast(`${isWishlist ? 'Wishlist' : 'Collection'} limit reached. Cannot add ${addingCount} cards. Upgrade needed!`, 'error');
+                return;
+            }
+        }
+
         setCreating(mode);
         try {
             const result = await api.post(`/api/precons/${deck.id}/create`, { mode });
@@ -194,7 +231,11 @@ const PreconDeckPage = () => {
             }
         } catch (err) {
             console.error(err);
-            addToast('Failed to create deck', 'error');
+            if (err.message && err.message.includes('Limit reached')) {
+                addToast(err.message, 'error');
+            } else {
+                addToast('Failed to create deck', 'error');
+            }
         } finally {
             setCreating(null);
         }
@@ -261,7 +302,29 @@ const PreconDeckPage = () => {
                             <div className="text-xs text-gray-500 uppercase tracking-widest font-bold">
                                 {totalCards} Cards
                             </div>
-                            <div className="flex gap-2 mt-2">
+                            <div className="flex flex-wrap justify-end gap-2 mt-2">
+                                <a
+                                    href={`https://www.amazon.com/s?k=${encodeURIComponent(deck.name)}&tag=mtgsite-20`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="bg-[#FF9900] text-black px-4 py-2 rounded-xl font-black hover:bg-[#FF9900]/90 transition-colors shadow-lg shadow-orange-900/20 text-xs uppercase tracking-wider flex items-center gap-2"
+                                >
+                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M15.54 13.924c-1.35 1.572-3.645 2.502-5.466 2.502-3.132 0-5.187-1.487-6.264-2.292l-.768 1.488c1.374 1.05 4.092 3.036 8.046 2.454 2.829-.414 5.37-2.67 6.096-3.816l-1.644-.336zM3.444 19.542l1.626 1.104c.126.066.27.018.33-.096.792-2.142 2.766-3.21 2.898-3.276.102-.054.126-.18.066-.27l-1.632-2.07c-.066-.09-.192-.09-.264-.024-.03.042-2.22 2.652-3.09 4.392-.048.102.006.21.066.24zM20.598 6.942C20.598 6.942 18.078 2.37 11.232 2.598 4.296 2.826 2.898 7.356 2.898 7.356c-.054.168.042.33.204.372l1.83.474c.144.036.294-.036.354-.168.03-.066 1.038-2.61 5.388-2.88 2.058-.126 4.194.516 5.34 1.764.57.624.81 1.434.69 2.214-1.284.186-2.58.348-3.84.48-4.2.438-6.198 2.052-6.114 4.542.06 1.764 1.344 3.324 3.96 3.258 2.634-.066 4.104-1.848 4.104-1.848v1.446c0 .168.126.3.288.3h1.992c.162 0 .288-.132.288-.3l.006-4.944c-.006-3.324-1.746-5.124-4.8-5.124H20.598zM12.924 10.998c0 .672-.084 1.458-.87 2.016-.624.456-1.398.546-1.956.558-1.098.024-1.722-.594-1.758-1.218-.048-1.02 0-1.872 4.584-2.316v.96z" />
+                                    </svg>
+                                    Amazon
+                                </a>
+                                <a
+                                    href={`https://partner.tcgplayer.com/jexzaZ?u=${encodeURIComponent(`https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=${deck.name}&view=grid`)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="bg-[#2a2a2a] text-white px-4 py-2 rounded-xl font-black hover:bg-[#3a3a3a] transition-colors shadow-lg shadow-black/20 text-xs uppercase tracking-wider flex items-center gap-2 border border-white/10"
+                                >
+                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M12 2L2 7l10 5 10-5-10-5zm0 9l2.5-1.25L12 8.5l-2.5 1.25L12 11zm0 2.5l-5-2.5-5 2.5L12 22l10-8.5-5-2.5-5 2.5z" />
+                                    </svg>
+                                    TCGPlayer
+                                </a>
                                 <button
                                     onClick={() => handleCreate('collection')}
                                     disabled={creating}
@@ -379,7 +442,7 @@ const PreconDeckPage = () => {
                                     <h4 className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 text-center">Mana Curve</h4>
                                     <DeckCharts cards={allCards} type="mana" />
                                 </div>
-                                <div className="h-[160px]">
+                                <div className="h-[220px]">
                                     <h4 className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 text-center">Type Dist</h4>
                                     <DeckCharts cards={allCards} type="types" />
                                 </div>

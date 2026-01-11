@@ -1,27 +1,50 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { WelcomeStep, SupportStep, AISetupStep, WalkthroughStep } from '../components/onboarding/OnboardingSteps';
+import { WelcomeStep, SubscriptionStep, AISetupStep, WalkthroughStep } from '../components/onboarding/OnboardingSteps';
 import { HelperForgeStep } from '../components/onboarding/HelperForgeStep';
 import PlaystyleWizardModal from '../components/modals/PlaystyleWizardModal';
-import DonationModal from '../components/modals/DonationModal';
-
 import { api } from '../services/api';
+import { TIERS } from '../config/tiers';
 
 const OnboardingPage = () => {
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
     const { userProfile, updateSettings, refreshUserProfile } = useAuth();
     // Initialize step from saved settings or default to 0
     const [step, setStep] = useState(userProfile?.settings?.onboarding_step || 0);
     const [isPlaystyleConfiguring, setIsPlaystyleConfiguring] = useState(false);
-    const [isDonationModalOpen, setIsDonationModalOpen] = useState(false);
 
     // Organization State
     const [selectedArchetype, setSelectedArchetype] = useState(null);
     const [customSort, setCustomSort] = useState([null, null, null, null]);
     const [orgSubStep, setOrgSubStep] = useState(1);
-    const [hybridOptions, setHybridOptions] = useState({ rares: true, foils: true, value: true, valueThreshold: 2.00 });
     const [savingOrg, setSavingOrg] = useState(false);
+
+    // Check for Stripe return
+    useEffect(() => {
+        const success = searchParams.get('success');
+        if (success === 'true' && step <= 1) {
+            // User returned from Stripe successfully
+            const advanceStep = async () => {
+                try {
+                    // Force sync with Stripe to get new Tier
+                    await api.post('/api/payments/sync-subscription');
+                    await refreshUserProfile(); // Update local context
+                } catch (e) {
+                    console.error("Sync failed", e);
+                }
+
+                await updateSettings({
+                    subscription_status: 'active',
+                    onboarding_step: 2
+                });
+                setStep(2);
+                setSearchParams({}); // Clear query params
+            };
+            advanceStep();
+        }
+    }, [searchParams, step, updateSettings, setSearchParams]);
 
     const ARCHETYPES = [
         {
@@ -85,11 +108,12 @@ const OnboardingPage = () => {
 
     // Step Order:
     // 0: Welcome
-    // 1: Support / Donation (New)
+    // 1: Subscription (Was Support)
     // 2: AI Setup (Info/Enable)
-    // 3: Forge Helper (Persona)
-    // 4: Playstyle (Modal flow)
-    // 5: Walkthrough (Carousel)
+    // 3: Organization (Was 3)
+    // 4: Forge Helper (Persona)
+    // 5: Playstyle (Modal flow)
+    // 6: Walkthrough (Carousel)
 
     const handleNext = async () => {
         const nextStep = step + 1;
@@ -112,19 +136,30 @@ const OnboardingPage = () => {
         });
     };
 
-    const handleSupportComplete = async (action) => {
-        if (action === 'donate') {
-            setIsDonationModalOpen(true);
+    const handleSubscriptionComplete = async (tierId, interval) => {
+        if (tierId === TIERS.FREE || tierId === 'free') {
+            const nextStep = step + 1;
+            setStep(nextStep);
+            await updateSettings({
+                subscription_tier: 'free',
+                onboarding_step: nextStep
+            });
             return;
         }
 
-        // If skip or after modal close, go to next
-        const nextStep = step + 1;
-        setStep(nextStep);
-        await updateSettings({
-            subscription_tier: 'alpha_tester',
-            onboarding_step: nextStep
-        });
+        // Paid Tier
+        try {
+            const response = await api.post('/api/payments/create-checkout-session', {
+                tierId,
+                interval,
+                successUrl: `${window.location.origin}/onboarding?success=true`,
+                cancelUrl: `${window.location.origin}/onboarding?canceled=true`
+            });
+            if (response.url) window.location.href = response.url;
+        } catch (error) {
+            console.error('Subscription error:', error);
+            alert('Failed to start checkout. Please try again.');
+        }
     };
 
     const handleAISetupComplete = async (apiKey) => {
@@ -149,11 +184,7 @@ const OnboardingPage = () => {
                 }
             };
 
-            // Use existing context method which calls api.updateUser
             await updateSettings(settings);
-            // await refreshUserProfile(); // updateSettings usually handles state update? Let's check AuthContext. 
-            // Actually updateSettings in AuthContext calls api.updateUser and then setProfile.
-            // But let's verification in the next step. For now, assuming updateSettings does what we want.
 
             // Move to next step (Helper Forge)
             const nextStep = step + 1;
@@ -161,7 +192,6 @@ const OnboardingPage = () => {
             await updateSettings({ onboarding_step: nextStep });
         } catch (e) {
             console.error(e);
-            // alert("Failed to save organization."); 
         } finally {
             setSavingOrg(false);
         }
@@ -228,7 +258,7 @@ const OnboardingPage = () => {
 
                 {step === 0 && <WelcomeStep onNext={handleNext} />}
 
-                {step === 1 && <SupportStep onNext={handleSupportComplete} onBack={handleBack} />}
+                {step === 1 && <SubscriptionStep onNext={handleSubscriptionComplete} onBack={handleBack} currentTier={userProfile?.subscription_tier} />}
 
                 {step === 2 && <AISetupStep onNext={handleAISetupComplete} onBack={handleBack} />}
 
@@ -373,15 +403,6 @@ const OnboardingPage = () => {
                 isOpen={isPlaystyleConfiguring}
                 onClose={() => setIsPlaystyleConfiguring(false)}
                 onComplete={handlePlaystyleComplete}
-            />
-
-            <DonationModal
-                isOpen={isDonationModalOpen}
-                onClose={() => {
-                    setIsDonationModalOpen(false);
-                    // After donation (or cancel), we still proceed to next step in onboarding
-                    handleSupportComplete('skip');
-                }}
             />
 
         </div>

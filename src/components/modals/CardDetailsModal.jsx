@@ -308,14 +308,27 @@ const CardDetailsModal = () => {
 
                             {/* Wishlist Indicator Badge */}
                             {selectedCard.is_wishlist && !isEditing && (
-                                <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3 flex items-center gap-3 animate-pulse">
-                                    <div className="p-2 bg-orange-500 rounded-full text-white">
-                                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg>
+                                <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3 animate-pulse space-y-3">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-orange-500 rounded-full text-white shrink-0">
+                                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" /></svg>
+                                        </div>
+                                        <div>
+                                            <div className="text-orange-400 font-black text-xs uppercase tracking-wider">In Wishlist</div>
+                                            <div className="text-gray-400 text-[10px]">This card is on your want list.</div>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <div className="text-orange-400 font-black text-xs uppercase tracking-wider">In Wishlist</div>
-                                        <div className="text-gray-400 text-[10px]">This card is on your want list.</div>
-                                    </div>
+                                    <a
+                                        href={`https://partner.tcgplayer.com/jexzaZ?u=${encodeURIComponent(`https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=${selectedCard.name}&view=grid`)}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="block w-full text-center py-2 bg-gray-900/50 hover:bg-gray-900 text-white text-[10px] font-bold uppercase tracking-widest rounded border border-white/10 hover:border-white/20 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M12 2L2 7l10 5 10-5-10-5zm0 9l2.5-1.25L12 8.5l-2.5 1.25L12 11zm0 2.5l-5-2.5-5 2.5L12 22l10-8.5-5-2.5-5 2.5z" />
+                                        </svg>
+                                        Find on TCGPlayer
+                                    </a>
                                 </div>
                             )}
 
