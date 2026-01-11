@@ -44,12 +44,17 @@ const RemoteLensPage = () => {
         let activeWorker = null;
         const init = async () => {
             try {
-                const w = await createWorker('eng');
+                console.log("[OCR] Initializing Tesseract (Remote)...");
+                const w = await createWorker('eng', 1, {
+                    workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js',
+                    corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5/tesseract-core.wasm.js',
+                });
+                console.log("[OCR] Worker Ready");
                 activeWorker = w;
                 setWorker(w);
                 setIsWorkerReady(true);
             } catch (err) {
-                console.error("OCR Worker Init Failed", err);
+                console.error("OCR Worker Init Failed", err || "Unknown Error");
             }
         };
         init();
