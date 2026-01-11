@@ -10,6 +10,40 @@ import QRCode from "react-qr-code";
 import { useAuth } from '../../contexts/AuthContext';
 import { TIERS, getTierConfig } from '../../config/tiers';
 
+// Simple On-Screen Console for Debugging (Ported from RemoteLens)
+const ConsoleBridge = () => {
+    const [logs, setLogs] = useState([]);
+
+    useEffect(() => {
+        const originalLog = console.log;
+        const originalWarn = console.warn;
+        const originalError = console.error;
+
+        const addLog = (type, args) => {
+            const msg = args.map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ');
+            setLogs(prev => [`[${type}] ${msg}`, ...prev].slice(0, 8)); // Keep last 8 logs
+        };
+
+        console.log = (...args) => { originalLog(...args); addLog('LOG', args); };
+        console.warn = (...args) => { originalWarn(...args); addLog('WARN', args); };
+        console.error = (...args) => { originalError(...args); addLog('ERR', args); };
+
+        return () => {
+            console.log = originalLog;
+            console.warn = originalWarn;
+            console.error = originalError;
+        };
+    }, []);
+
+    return (
+        <div className="absolute top-24 left-4 right-4 h-32 bg-black/80 text-[10px] font-mono text-green-400 p-2 overflow-y-auto pointer-events-none z-50 border border-green-500/20 rounded-xl backdrop-blur-md">
+            {logs.map((l, i) => (
+                <div key={i} className="border-b border-white/5 pb-0.5 mb-0.5 break-all">{l}</div>
+            ))}
+        </div>
+    );
+};
+
 const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
     const { addToast } = useToast();
     const { userProfile } = useAuth();
@@ -121,12 +155,9 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
             const results = await processRegions(image);
             console.log("[ForgeLens] Region extraction complete:", results);
 
-            if (results.name) {
-                await resolveCard(results);
-            } else {
-                console.warn("[ForgeLens] No card name detected in regions.");
-                setLastDetection({ error: "No card name detected. Try better lighting or a clearer image." });
-            }
+            // Updated Logic: We rely on Set/CN now, so we always attempt resolution
+            await resolveCard(results);
+
         } catch (err) {
             console.error("[ForgeLens] Processing error", err);
             setLastDetection({ error: "Processing failed. Invalid image format?" });
@@ -630,6 +661,9 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
                                 accept="image/*"
                                 className="hidden"
                             />
+
+                            {/* On-Screen Debug Console */}
+                            {isDebugMode && <ConsoleBridge />}
                         </div>
                     )}
 
