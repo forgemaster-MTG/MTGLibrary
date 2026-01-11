@@ -213,19 +213,13 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const data = imageData.data;
 
-            // Adaptive Inversion: Only invert if background is dark
-            let total = 0;
-            for (let i = 0; i < data.length; i += 4) {
-                total += (data[i] + data[i + 1] + data[i + 2]) / 3;
-            }
-            const avgRegion = total / (data.length / 4);
-            const reverse = avgRegion < 110; // Dark background threshold
-
+            // Simple Grayscale Conversion
+            // We avoid aggressive binarization (turning to pure black/white) because
+            // mobile camera feeds often have variable lighting/noise that 
+            // fixed thresholding can destroy. Tesseract handles grayscale better.
             for (let i = 0; i < data.length; i += 4) {
                 const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-                let val = avg > (reverse ? avgRegion * 1.15 : avgRegion * 0.85) ? 255 : 0;
-                if (reverse) val = 255 - val;
-                data[i] = data[i + 1] = data[i + 2] = val;
+                data[i] = data[i + 1] = data[i + 2] = avg; // Set R,G,B to avg
             }
             ctx.putImageData(imageData, 0, 0);
 
