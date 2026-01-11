@@ -256,27 +256,29 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
         // Magic cards are 63x88mm (~0.71 aspect). width is smaller than height.
         // If they fit the height, the width will be ~70% of the square.
 
-        // Name: Top 5-15% of the square
-        // We scan a bit wide to catch it if they are close
+        console.log(`[ForgeLens] Source: ${iw}x${ih}, Crop Square: ${minDim}x${minDim} @ (${startX}, ${startY})`);
+
+        // Name: Top 3-12% of the card (visually)
+        // We accept a wider vertical range to handle slight tilt/misalignment
         const nameResult = await extractText(
-            startX + (minDim * 0.1),  // X: 10% in (centered-ish)
-            startY + (minDim * 0.04), // Y: Near top (4% down)
-            minDim * 0.8,             // W: 80% width
-            minDim * 0.12             // H: ~12% height
+            startX + (minDim * 0.08), // X: 8% in (slightly wider scan)
+            startY + (minDim * 0.03), // Y: Start 3% down from top edge of card
+            minDim * 0.84,            // W: 84% width
+            minDim * 0.11             // H: 11% height
         );
 
-        // Footer: Bottom 10% of the square
+        // Footer: Bottom area
         const footerResult = await extractText(
-            startX + (minDim * 0.15), // X: 15% in
-            startY + (minDim * 0.82), // Y: Near bottom (82% down)
-            minDim * 0.7,             // W: 70% width
-            minDim * 0.12             // H: ~12% height
+            startX + (minDim * 0.12), // X: 12% in
+            startY + (minDim * 0.85), // Y: 85% down from top
+            minDim * 0.76,            // W: 76% width
+            minDim * 0.08             // H: 8% height
         );
 
         setDebugPreviews({ name: nameResult.preview, footer: footerResult.preview });
 
-        // Parse Name (take first line)
-        const nameText = nameResult.lines[0] || '';
+        // Parse Name (take first valid line > 2 chars)
+        const nameText = nameResult.lines.find(l => l.length > 2) || '';
 
         // Parse Footer (look for Set Code and Collector Number)
         let set = '';
