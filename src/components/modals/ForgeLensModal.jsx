@@ -266,11 +266,11 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
         // Parse Footer (Set Code & CN)
         let set = '';
         let cn = '';
-        const footerText = footerResult.lines.join(' ');
+        const footerText = footerResult.lines.join(' ').toUpperCase(); // Force Upper
         console.log(`[ForgeLens] Raw Scan: "${footerText}"`);
 
         // Collector Number Logic
-        const potentialNumbers = footerText.match(/\b\d{1,5}[a-z]?\b/gi) || [];
+        const potentialNumbers = footerText.match(/\b\d{1,5}[A-Z]?\b/g) || [];
         const validUn = potentialNumbers.filter(n => {
             if (/^(19|20)\d{2}$/.test(n)) return false; // Exclude Years
             return true;
@@ -309,9 +309,14 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
                     const variants = resp.data.length > 1 ? resp.data : [data];
                     addCardToHistory(data, variants, { name, set, cn });
                     return;
+                } else {
+                    // Specific error if Set/CN found but not in DB
+                    setLastDetection({ error: `Not Found: ${set} #${cn}` });
+                    // Prevent falling back to Name search which is empty
+                    return;
                 }
             } catch (err) {
-                console.warn("[ForgeLens] Set/CN search failed, falling back to name", err);
+                console.warn("[ForgeLens] Set/CN search failed", err);
             }
         }
 

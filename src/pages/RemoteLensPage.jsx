@@ -92,10 +92,9 @@ const RemoteLensPage = () => {
 
     const processRegions = async (image) => {
         const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
         const extractText = async (x, y, w, h) => {
-            // Smart Scaling: Target a height of ~250px for the OCR block
             let scale = 250 / h;
             scale = Math.max(0.1, Math.min(scale, 4));
 
@@ -108,7 +107,7 @@ const RemoteLensPage = () => {
                 finalH = Math.floor(h * scale);
             }
 
-            console.log(`[RemoteLens] OCR Crop: ${finalW}x${finalH} (Src: ${Math.floor(w)}x${Math.floor(h)}, Scale: ${scale.toFixed(2)})`);
+            console.log(`[RemoteLens] OCR Crop: ${finalW}x${finalH} (Src: ${Math.floor(w)}x${Math.floor(h)})`);
 
             canvas.width = finalW;
             canvas.height = finalH;
@@ -120,58 +119,62 @@ const RemoteLensPage = () => {
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const data = imageData.data;
 
-            // Adaptive Inversion: Only invert if background is dark
-            let total = 0;
-            for (let i = 0; i < data.length; i += 4) {
-                total += (data[i] + data[i + 1] + data[i + 2]) / 3;
-            }
-            const avgRegion = total / (data.length / 4);
-            const reverse = avgRegion < 110;
-
+            // Simple Grayscale Conversion (No Binarization)
             for (let i = 0; i < data.length; i += 4) {
                 const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-                let val = avg > (reverse ? avgRegion * 1.15 : avgRegion * 0.85) ? 255 : 0;
-                if (reverse) val = 255 - val;
-                data[i] = data[i + 1] = data[i + 2] = val;
+                data[i] = data[i + 1] = data[i + 2] = avg;
             }
             ctx.putImageData(imageData, 0, 0);
 
-            // Recognize directly from canvas (faster/memory efficient)
             const { data: { text } } = await worker.recognize(canvas);
 
             const lines = text.split('\n')
-                .map(l => l.replace(/[^a-zA-Z0-9\s-·]/g, '').trim())
-                .filter(l => l.length >= 2 || (l.length >= 1 && /^\d+$/.test(l)));
-
-            console.log(`[RemoteLens] Sanitized lines:`, lines);
+                .map(l => l.replace(/[^a-zA-Z0-9\s-·]/g, '').trim()) // Allow dots/midpoints? actually keep simple
+                .filter(l => l.length >= 1);
             return lines;
         };
 
         const iw = image.width;
         const ih = image.height;
-        // Tighter ROIs - Name is very top (2-9%), Footer is bottom left (90-99%)
-        const nameLines = await extractText(iw * 0.05, ih * 0.02, iw * 0.9, ih * 0.08);
-        const footerLines = await extractText(iw * 0.04, ih * 0.9, iw * 0.35, ih * 0.09);
 
-        // Parse Name
-        const nameText = nameLines[0] || '';
+        const minDim = Math.min(iw, ih);
+        const startX = (iw - minDim) / 2;
+        const startY = (ih - minDim) / 2;
+
+        console.log(`[RemoteLens] Precision Mode: ${iw}x${ih}, Crop: ${minDim}x${minDim} @ (${startX}, ${startY})`);
+
+        // Scan Center Band (Footer Only)
+        // 80% Width, 30% Height, centered vertically in the square
+        const footerLines = await extractText(
+            startX + (minDim * 0.1),
+            startY + (minDim * 0.35),
+            minDim * 0.8,
+            minDim * 0.3
+        );
 
         // Parse Footer
         let set = '';
         let cn = '';
-        const footerText = footerLines.join(' ');
+        const footerText = footerLines.join(' ').toUpperCase(); // ToUpperCase for safety
+        console.log(`[RemoteLens] Raw Scan: "${footerText}"`);
 
-        const cnMatch = footerText.match(/\b\d{1,4}\b/);
-        if (cnMatch) cn = cnMatch[0];
+        const potentialNumbers = footerText.match(/\b\d{1,5}[A-Z]?\b/g) || [];
+        const validUn = potentialNumbers.filter(n => {
+            if (/^(19|20)\d{2}$/.test(n)) return false;
+            return true;
+        });
+
+        if (validUn.length > 0) cn = validUn[0];
 
         const setMatches = footerText.match(/\b[A-Z0-9]{3,4}\b/g);
         if (setMatches) {
+            const blocklist = ['THE', 'LLC', 'WIZ', 'TM', 'INC', 'COM', 'ART', 'NOT', 'FOR'];
             const languages = ['EN', 'JP', 'FR', 'DE', 'IT', 'CN', 'RU', 'KO', 'ES', 'PT', 'PH'];
-            const foundSet = setMatches.find(s => !languages.includes(s) && !/^\d+$/.test(s));
+            const foundSet = setMatches.find(s => !languages.includes(s) && !blocklist.includes(s) && !/^\d+$/.test(s));
             if (foundSet) set = foundSet;
         }
 
-        return { name: nameText, set, cn, raw_footer: footerText };
+        return { name: '', set, cn, raw_footer: footerText };
     };
 
     const pushCardToDesktop = (data, variants, rawOcr) => {
@@ -210,13 +213,19 @@ const RemoteLensPage = () => {
                     const variants = resp.data.length > 1 ? resp.data : [data];
                     pushCardToDesktop(data, variants, { name, set, cn });
                     return;
+                } else {
+                    setLastDetection({ error: `Not Found: ${set} #${cn}` });
+                    return;
                 }
             } catch (err) {
-                console.warn("[RemoteLens] Set/CN search failed, falling back to name", err);
+                console.warn("[RemoteLens] Set/CN search failed", err);
             }
         }
 
-        if (!name || name.length < 3) return;
+        if (!name || name.length < 3) {
+            setLastDetection({ error: "Try scanning Set Code & Number again." });
+            return;
+        }
 
         console.log(`[RemoteLens] Attempting Name search: "${name}"`);
         try {
