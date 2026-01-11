@@ -228,7 +228,7 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
 
 
             const lines = text.split('\n')
-                .map(l => l.replace(/[^a-zA-Z0-9\s-·]/g, '').trim())
+                .map(l => l.replace(/[^a-zA-Z0-9\s-·/]/g, '').trim()) // Allow / for 127/285
                 .filter(l => l.length >= 1);
 
             const previewUrl = canvas.toDataURL('image/png');
@@ -311,7 +311,7 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
                     return;
                 } else {
                     // Specific error if Set/CN found but not in DB
-                    setLastDetection({ error: `Not Found: ${set} #${cn}` });
+                    setLastDetection({ error: `Not Found: ${set} #${cn}`, raw: raw_footer });
                     // Prevent falling back to Name search which is empty
                     return;
                 }
@@ -322,7 +322,7 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
 
         // 2. FALLBACK TO NAME SEARCH (Disabled in Precision Mode)
         if (!name || name.length < 3) {
-            setLastDetection({ error: "Try scanning Set Code & Number again." });
+            setLastDetection({ error: "Try scanning Set Code & Number again.", raw: raw_footer });
             return;
         }
 
@@ -586,7 +586,7 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
                                 )}
 
                                 {isDebugMode && debugPreviews.footer && (
-                                    <div className="flex flex-col gap-2 p-3 bg-black/40 rounded-2xl border border-orange-500/20">
+                                    <div className="flex flex-col gap-2 p-3 bg-black/40 rounded-2xl border border-orange-500/20 max-w-[200px]">
                                         <div className="text-[10px] font-black uppercase text-orange-400 tracking-widest flex items-center gap-2">
                                             <AlertCircle className="w-3 h-3" />
                                             ROI Crops
@@ -598,6 +598,14 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
                                                 <div className="absolute top-0 right-0 bg-black/60 text-white text-[8px] px-1 rounded-bl">Footer</div>
                                             </div>
                                         </div>
+                                        {/* Raw Text Output for Debugging */}
+                                        {lastDetection?.error && (
+                                            <div className="mt-2 pt-2 border-t border-white/10">
+                                                <p className="text-[8px] text-gray-400 font-mono break-all leading-tight">
+                                                    RAW: {lastDetection.raw || '---'}
+                                                </p>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 

@@ -129,7 +129,7 @@ const RemoteLensPage = () => {
             const { data: { text } } = await worker.recognize(canvas);
 
             const lines = text.split('\n')
-                .map(l => l.replace(/[^a-zA-Z0-9\s-·]/g, '').trim()) // Allow dots/midpoints? actually keep simple
+                .map(l => l.replace(/[^a-zA-Z0-9\s-·/]/g, '').trim()) // Allow / for 127/285
                 .filter(l => l.length >= 1);
             return lines;
         };
