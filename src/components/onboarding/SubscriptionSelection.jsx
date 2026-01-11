@@ -3,8 +3,8 @@ import { TIERS, TIER_CONFIG } from '../../config/tiers';
 import { getNewFeatures } from '../../data/pricing_data';
 import { Check, X, ArrowRight } from 'lucide-react';
 
-const FeatureItem = ({ label, check, highlight, tooltip }) => (
-    <div className={`flex items-start text-sm ${check ? (highlight ? 'text-white font-medium' : 'text-gray-300') : 'text-gray-500'}`} title={tooltip}>
+const FeatureItem = ({ label, check, highlight, bold, tooltip }) => (
+    <div className={`flex items-start text-sm ${check ? (highlight ? 'text-white font-medium' : 'text-gray-300') : 'text-gray-500'} ${bold ? 'font-bold' : ''}`} title={tooltip}>
         {check ? <Check className={`w-4 h-4 mr-2 mt-0.5 flex-shrink-0 ${highlight ? 'text-purple-400' : 'text-green-500'}`} />
             : <X className="w-4 h-4 mr-2 text-red-900/50 mt-0.5 flex-shrink-0" />}
         <span>{label}</span>
@@ -128,7 +128,7 @@ const SubscriptionSelection = ({
                                             {tierKey === TIERS.FREE ? 'Includes:' : 'Adds / Increases:'}
                                         </p>
                                         {limits.map((f, i) => (
-                                            <FeatureItem key={`limit-${i}`} label={f.label} check={true} highlight={true} tooltip={f.tooltip} />
+                                            <FeatureItem key={`limit-${i}`} label={f.label} check={true} highlight={true} bold={f.bold} tooltip={f.tooltip} />
                                         ))}
 
                                         {limits.length > 0 && features.length > 0 && (
@@ -136,7 +136,7 @@ const SubscriptionSelection = ({
                                         )}
 
                                         {features.map((f, i) => (
-                                            <FeatureItem key={`feat-${i}`} label={f.label} check={true} highlight={true} tooltip={f.tooltip} />
+                                            <FeatureItem key={`feat-${i}`} label={f.label} check={true} highlight={true} bold={f.bold} tooltip={f.tooltip} />
                                         ))}
                                     </div>
                                 )}

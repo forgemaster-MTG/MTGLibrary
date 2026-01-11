@@ -20,6 +20,8 @@ export const FEATURE_GROUPS = [
             { label: "Smart Binders", type: 'feature', key: 'smartBinders' },
             { label: "Binders", type: 'feature', key: 'binders' },
             { label: "Collection Audit", type: 'feature', key: 'collectionAudit' },
+            { label: "Snap Version (Scanner)", type: 'feature', key: 'snapScan' },
+            { label: "Quick Scan (Batch)", type: 'feature', key: 'batchScan' },
         ]
     },
     {
@@ -89,6 +91,7 @@ export const getNewFeatures = (currentTier, previousTier) => {
                     { label: `Collection: ${current.limits.collection}`, type: 'limit' },
                     { label: `Wishlist: ${current.limits.wishlist}`, type: 'limit' },
                     { label: `Decks: ${current.limits.decks}`, type: 'limit' },
+                    { label: `Pods (Shared Accounts): 0`, type: 'limit' },
                 ],
                 features: [
                     { label: "AI Chatbot", type: 'feature' }
@@ -108,12 +111,19 @@ export const getNewFeatures = (currentTier, previousTier) => {
         limits.push({ label: `Wishlist: ${current.limits.wishlist === Infinity ? 'Unlimited' : current.limits.wishlist}`, type: 'limit' });
     if (current.limits.decks > prev.limits.decks)
         limits.push({ label: `Decks: ${current.limits.decks === Infinity ? 'Unlimited' : current.limits.decks}`, type: 'limit' });
-    if (current.limits.pods > prev.limits.pods)
+
+    // Pods Logic: Explicitly show for lower tiers, bold for Wizard
+    const isWizard = currentTier === TIERS.TIER_3;
+    const isLowerTier = [TIERS.TIER_1, TIERS.TIER_2].includes(currentTier);
+
+    if (current.limits.pods > prev.limits.pods || isLowerTier) {
         limits.push({
             label: `Pods (Shared Accounts): ${current.limits.pods === Infinity ? 'Unlimited' : current.limits.pods}`,
             type: 'limit',
+            bold: isWizard,
             tooltip: "Pods allow you to link accounts (friends/family) to share your collection and deck building tools."
         });
+    }
 
     // Check Features
     Object.keys(current.features).forEach(key => {

@@ -19,6 +19,7 @@ import DeckBuildWizardPage from './pages/DeckBuildWizardPage';
 import OnboardingPage from './pages/OnboardingPage';
 import AboutPage from './pages/AboutPage';
 import PublicDeckPage from './pages/PublicDeckPage';
+import RemoteLensPage from './pages/RemoteLensPage';
 import AuditWizard from './components/Audit/AuditWizard';
 import AuditHub from './components/Audit/AuditHub';
 import ChatWidget from './components/ChatWidget';
@@ -64,6 +65,7 @@ function App() {
                                     <Route path="/audit" element={<AuditHub />} />
                                     <Route path="/audit/:id" element={<AuditHub />} />
                                     <Route path="/audit/:auditId/wizard" element={<AuditWizard />} />
+                                    <Route path="/remote/:sessionId" element={<RemoteLensPage />} />
                                 </Routes>
                             </div>
                         </AuthGuard>

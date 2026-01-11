@@ -4,6 +4,8 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCardModal } from '../../contexts/CardModalContext';
+import ForgeLensModal from '../modals/ForgeLensModal';
+import { useToast } from '../../contexts/ToastContext';
 
 // --- Sub-Component: Audit Item Card ---
 // --- Sub-Component: Audit Item Card ---
@@ -180,6 +182,8 @@ export default function AuditWizard() {
     const group = searchParams.get('group');
 
     const { openCardModal } = useCardModal();
+    const { addToast } = useToast();
+    const [isForgeLensOpen, setIsForgeLensOpen] = useState(false);
     const [session, setSession] = useState(null);
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -305,6 +309,15 @@ export default function AuditWizard() {
                         <button onClick={() => setFilter('mismatch')} className={`px-3 py-1.5 rounded-md transition-colors ${filter === 'mismatch' ? 'bg-red-600 text-white' : 'text-gray-400 hover:text-white'}`}>Mismatches</button>
                     </div>
 
+                    <button
+                        onClick={() => setIsForgeLensOpen(true)}
+                        className="px-4 py-2 bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 hover:bg-indigo-600/30 font-bold rounded-lg text-sm flex items-center gap-2 transition-all"
+                        title="Verify Cards with Camera"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        Scan Verify
+                    </button>
+
                     <button onClick={handleFinishSection} className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg shadow-lg shadow-blue-500/20 text-sm flex items-center gap-2">
                         Finish Section
                     </button>
@@ -328,6 +341,77 @@ export default function AuditWizard() {
             {visibleCount < filteredItems.length && (
                 <div ref={loadMoreRef} className="h-24 flex items-center justify-center"><div className="animate-spin w-6 h-6 border-2 border-indigo-500 rounded-full" /></div>
             )}
+
+            <ForgeLensModal
+                isOpen={isForgeLensOpen}
+                onClose={() => setIsForgeLensOpen(false)}
+                onFinish={async (scannedBatch) => {
+                    if (!scannedBatch.length) return;
+                    const ownedBatch = scannedBatch.filter(c => !c.is_wishlist);
+                    const wishlistBatch = scannedBatch.filter(c => c.is_wishlist);
+
+                    // Add wishlist items directly to collection
+                    if (wishlistBatch.length > 0) {
+                        try {
+                            const payload = wishlistBatch.map(item => ({
+                                name: item.name,
+                                scryfall_id: item.scryfall_id,
+                                set_code: item.set_code,
+                                collector_number: item.collector_number,
+                                image_uri: item.data.image_uris?.normal || item.data.card_faces?.[0]?.image_uris?.normal,
+                                count: item.quantity,
+                                data: item.data,
+                                is_wishlist: true,
+                                tags: []
+                            }));
+                            await api.batchAddToCollection(payload);
+                            addToast(`Saved ${wishlistBatch.length} items to wishlist!`, 'success');
+                        } catch (err) {
+                            console.error("Wishlist save failed", err);
+                        }
+                    }
+
+                    let matchCount = 0;
+                    let failCount = 0;
+
+                    const newItems = [...items];
+                    for (const scanned of ownedBatch) {
+                        // Try to find a match in the current items
+                        const index = newItems.findIndex(i =>
+                            i.scryfall_id === scanned.scryfall_id &&
+                            (scanned.finish ? i.finish === scanned.finish : true)
+                        );
+
+                        if (index !== -1) {
+                            const item = newItems[index];
+                            const newQty = (item.actual_quantity || 0) + scanned.quantity;
+
+                            newItems[index] = {
+                                ...item,
+                                actual_quantity: newQty,
+                                reviewed: true
+                            };
+
+                            try {
+                                await api.updateAuditItem(session.id, item.id, newQty, true);
+                                matchCount++;
+                            } catch (e) {
+                                console.error("Failed to update audit item", e);
+                            }
+                        } else {
+                            failCount++;
+                        }
+                    }
+
+                    setItems(newItems);
+                    if (matchCount > 0) {
+                        addToast(`Verified ${matchCount} cards!`, 'success');
+                    }
+                    if (failCount > 0) {
+                        addToast(`${failCount} scanned cards were not in this section.`, 'warning');
+                    }
+                }}
+            />
         </div>
     );
 }

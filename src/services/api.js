@@ -76,6 +76,7 @@ export const api = {
     post: (endpoint, body) => request('POST', endpoint, body),
     put: (endpoint, body) => request('PUT', endpoint, body),
     delete: (endpoint, body) => request('DELETE', endpoint, body),
+    batchAddToCollection: (cards, mode = 'merge') => request('POST', '/api/collection/batch', { cards, mode }),
     getBugs: () => request('GET', '/bugs').then(res => res.content),
     updateUser: (id, data) => request('PUT', `/api/users/${id}`, data),
     getBinders: () => request('GET', '/api/binders'),

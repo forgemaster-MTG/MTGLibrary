@@ -15,14 +15,34 @@ const dynamicLimitCheck = (req, res, next) => {
     return checkLimit(resource, amount)(req, res, next);
 };
 
-const batchLimitCheck = (req, res, next) => {
-    // Determine if this is a collection batch or wishlist batch?
-    // Currently batch import is usually collection.
-    // If we support wishlist batch later, we check req.query or body.
-    // For now, assume collection.
-    const cards = req.body.cards || [];
-    const amount = cards.reduce((sum, c) => sum + (c.count || 1), 0);
-    return checkLimit('collection', amount)(req, res, next);
+const batchLimitCheck = async (req, res, next) => {
+    try {
+        const cards = req.body.cards || [];
+        const collectionAmount = cards.filter(c => !c.is_wishlist).reduce((sum, c) => sum + (c.count || 1), 0);
+        const wishlistAmount = cards.filter(c => c.is_wishlist).reduce((sum, c) => sum + (c.count || 1), 0);
+
+        const tierId = req.user.override_tier || req.user.subscription_tier || 'free';
+
+        if (collectionAmount > 0) {
+            await verifyLimit(req.user.id, tierId, 'collection', collectionAmount);
+        }
+        if (wishlistAmount > 0) {
+            await verifyLimit(req.user.id, tierId, 'wishlist', wishlistAmount);
+        }
+        next();
+    } catch (err) {
+        if (err.code === 'LIMIT_REACHED') {
+            return res.status(403).json({
+                error: err.message,
+                code: err.code,
+                limit: err.limit,
+                current: err.current,
+                tier: err.tier
+            });
+        }
+        console.error('[collection] batch limit check error', err);
+        res.status(500).json({ error: 'Failed to verify usage limits' });
+    }
 };
 
 // Export entire collection
@@ -279,7 +299,7 @@ router.delete('/batch/delete', async (req, res) => {
 });
 
 // Batch Import (Replace or Merge)
-router.post('/batch', async (req, res) => {
+router.post('/batch', batchLimitCheck, async (req, res) => {
     try {
         const { cards, mode } = req.body; // mode: 'replace' | 'merge'
         const userId = req.user.id;
@@ -309,6 +329,8 @@ router.post('/batch', async (req, res) => {
                 const collectorNumber = c.collector_number || '0';
                 const finish = c.finish || 'nonfoil';
 
+                const isWishlist = c.is_wishlist || false;
+
                 // Check for existing card with same attributes
                 const existing = await trx('user_cards')
                     .where({
@@ -316,7 +338,8 @@ router.post('/batch', async (req, res) => {
                         scryfall_id: scryfallId,
                         set_code: setCode,
                         collector_number: collectorNumber,
-                        finish: finish
+                        finish: finish,
+                        is_wishlist: isWishlist
                     })
                     .whereNull('deck_id') // Only merge binder cards
                     .first();
@@ -325,10 +348,10 @@ router.post('/batch', async (req, res) => {
                     // Update existing card - increment count
                     const newCount = (existing.count || 1) + (c.count || 1);
 
-                    // Merge tags
-                    const existingTags = JSON.parse(existing.tags || '[]');
-                    const newTags = JSON.parse(c.tags || '[]');
-                    const mergedTags = [...new Set([...existingTags, ...newTags])];
+                    // Merge tags - handle both string and native object (jsonb)
+                    const existingTags = typeof existing.tags === 'string' ? JSON.parse(existing.tags || '[]') : (existing.tags || []);
+                    const incomingTags = typeof c.tags === 'string' ? JSON.parse(c.tags || '[]') : (c.tags || []);
+                    const mergedTags = [...new Set([...existingTags, ...incomingTags])];
 
                     await trx('user_cards')
                         .where({ id: existing.id })
@@ -352,8 +375,9 @@ router.post('/batch', async (req, res) => {
                         image_uri: cardService.resolveImage(cardData) || c.image_uri || null,
                         count: c.count || 1,
                         data: cardData,
-                        deck_id: null,
-                        tags: c.tags || '[]'
+                        deck_id: c.deck_id || null,
+                        is_wishlist: isWishlist,
+                        tags: typeof c.tags === 'string' ? c.tags : JSON.stringify(c.tags || [])
                     });
 
                     inserted++;

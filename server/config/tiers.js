@@ -3,7 +3,7 @@
 
 export const TIERS = {
     FREE: 'free',
-    TIER_1: 'tier_1', // Initiate ($2.99)
+    TIER_1: 'tier_1', // Apprentice ($2.99)
     TIER_2: 'tier_2', // Magician ($4.99)
     TIER_3: 'tier_3', // Wizard ($9.99)
     TIER_4: 'tier_4', // Archmage ($14.99)
@@ -35,7 +35,9 @@ export const TIER_CONFIG = {
             deckBackup: false,
             deckDoctor: false, // Wizard+
             sharedEdit: false, // Wizard+
-            customAiPersona: false // Wizard+
+            customAiPersona: false, // Wizard+
+            snapScan: true,
+            batchScan: false
         }
     },
     [TIERS.TIER_1]: { // $2.99
@@ -45,10 +47,6 @@ export const TIER_CONFIG = {
             monthly: 'price_1SnxT7RZLrZbIKATICyA3jfB', // $9.99
             biannual: 'price_1SnxUeRZLrZbIKATlErTgHtz', // $49.99
             yearly: 'price_1SnxUuRZLrZbIKATm6nmPnUr'     // $99.99
-            //MTG-Forge Live ID's
-            // monthly: 'price_1SnvKxDBKqoK8H1RXvh1VsT3', // $9.99
-            // biannual: 'price_1SnvUkDBKqoK8H1RgX9mlcxs', // $49.99
-            // yearly: 'price_1SnvUwDBKqoK8H1RAUVYJtmM'     // $99.99
         },
         description: 'Perfect for new potential. Store up to 10 decks and 1,000 cards.',
         limits: {
@@ -59,7 +57,7 @@ export const TIER_CONFIG = {
         },
         features: {
             aiChatbot: true,
-            smartBinders: false,
+            smartBinders: true,
             binders: false, // Magician+
             collectionAudit: false,
             mockupDeck: false,
@@ -71,7 +69,9 @@ export const TIER_CONFIG = {
             deckBackup: false,
             deckDoctor: false,
             sharedEdit: false,
-            customAiPersona: false
+            customAiPersona: false,
+            snapScan: true,
+            batchScan: false
         }
     },
     [TIERS.TIER_2]: { // $4.99
@@ -102,7 +102,9 @@ export const TIER_CONFIG = {
             deckBackup: true,
             deckDoctor: true,
             sharedEdit: false, // Wizard+
-            customAiPersona: false // Wizard+
+            customAiPersona: false, // Wizard+
+            snapScan: true,
+            batchScan: true
         }
     },
     [TIERS.TIER_3]: { // $9.99
@@ -133,7 +135,9 @@ export const TIER_CONFIG = {
             deckBackup: true,
             deckDoctor: true,
             sharedEdit: true,
-            customAiPersona: true
+            customAiPersona: true,
+            snapScan: true,
+            batchScan: true
         }
     },
     [TIERS.TIER_4]: { // $14.99
@@ -164,7 +168,9 @@ export const TIER_CONFIG = {
             deckBackup: true,
             deckDoctor: true,
             sharedEdit: true,
-            customAiPersona: true
+            customAiPersona: true,
+            snapScan: true,
+            batchScan: true
         }
     },
     [TIERS.TIER_5]: { // $19.99
@@ -195,7 +201,9 @@ export const TIER_CONFIG = {
             deckBackup: true,
             deckDoctor: true,
             sharedEdit: true,
-            customAiPersona: true
+            customAiPersona: true,
+            snapScan: true,
+            batchScan: true
         }
     }
 };

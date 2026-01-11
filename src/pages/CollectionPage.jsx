@@ -20,6 +20,7 @@ import BulkCollectionImportModal from '../components/modals/BulkCollectionImport
 import BinderWizardModal from '../components/modals/BinderWizardModal';
 import BinderGuideModal from '../components/modals/BinderGuideModal';
 import OrganizationWizardModal from '../components/modals/OrganizationWizardModal';
+import ForgeLensModal from '../components/modals/ForgeLensModal';
 import { evaluateRules } from '../services/ruleEvaluator';
 
 
@@ -97,6 +98,7 @@ const CollectionPage = () => {
     const [isWizardOpen, setIsWizardOpen] = useState(false);
     const [isGuideOpen, setIsGuideOpen] = useState(false);
     const [isOrganizationWizardOpen, setIsOrganizationWizardOpen] = useState(false);
+    const [isForgeLensOpen, setIsForgeLensOpen] = useState(false);
     const [editingBinder, setEditingBinder] = useState(null);
 
     // Filter State (Persisted)
@@ -678,6 +680,15 @@ const CollectionPage = () => {
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                                     <span className="hidden md:inline-block">Add Cards</span>
                                 </button>
+
+                                <button
+                                    onClick={() => setIsForgeLensOpen(true)}
+                                    className="flex bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 font-bold p-2.5 md:px-6 md:py-3 rounded-xl border border-indigo-500/20 transition-all items-center gap-2 uppercase tracking-widest text-xs whitespace-nowrap"
+                                    title="Scan Cards with Camera"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                    <span className="hidden md:inline-block italic">Forge Lens</span>
+                                </button>
                             </div>
                         )}
                     </div>
@@ -1076,6 +1087,33 @@ w - 8 h - 8 rounded - full border flex items - center justify - center transitio
             <BinderGuideModal
                 isOpen={isGuideOpen}
                 onClose={() => setIsGuideOpen(false)}
+            />
+            <ForgeLensModal
+                isOpen={isForgeLensOpen}
+                onClose={() => setIsForgeLensOpen(false)}
+                onFinish={async (scannedBatch) => {
+                    if (!scannedBatch.length) return;
+                    try {
+                        const payload = scannedBatch.map(item => ({
+                            name: item.name,
+                            scryfall_id: item.scryfall_id,
+                            set_code: item.set_code,
+                            collector_number: item.collector_number,
+                            image_uri: item.data.image_uris?.normal || item.data.card_faces?.[0]?.image_uris?.normal,
+                            count: item.quantity,
+                            data: item.data,
+                            is_wishlist: item.is_wishlist,
+                            tags: [] // Pass as array, backend handles stringification
+                        }));
+
+                        await api.batchAddToCollection(payload);
+                        addToast(`Successfully added ${scannedBatch.length} cards to collection!`, 'success');
+                        refresh();
+                    } catch (err) {
+                        console.error("Forge Lens Add Failed", err);
+                        addToast("Failed to add scanned cards.", "error");
+                    }
+                }}
             />
             <BinderWizardModal
                 isOpen={isWizardOpen}
