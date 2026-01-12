@@ -26,8 +26,8 @@ export const collectionService = {
         return api.delete(`/api/collection/${id}`);
     },
 
-    async importBatch(userId, cards, mode = 'merge') {
-        return api.post('/api/collection/batch', { cards, mode });
+    async importBatch(userId, cards, mode = 'merge', decks = null) {
+        return api.post('/api/collection/batch', { cards, mode, decks });
     },
 
     async batchRemoveCards(cardIds) {

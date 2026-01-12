@@ -140,27 +140,44 @@ const SettingsPage = () => {
 
     const handleExportCollection = async () => {
         try {
-            const cards = await api.get('/api/collection/export');
+            const result = await api.get('/api/collection/export');
 
-            if (!cards || cards.length === 0) {
-                alert('No cards to export.');
+            let cards = [];
+            let decks = [];
+
+            if (Array.isArray(result)) {
+                // Legacy support: result is just the cards array
+                cards = result;
+            } else if (result && typeof result === 'object') {
+                // New format: result is { cards, decks }
+                cards = result.cards || [];
+                decks = result.decks || [];
+            }
+
+            if (cards.length === 0 && decks.length === 0) {
+                alert('No data to export.');
                 return;
             }
 
-            const dataStr = JSON.stringify({ cards, exported_at: new Date() }, null, 2);
+            const dataStr = JSON.stringify({
+                cards,
+                decks,
+                exported_at: new Date()
+            }, null, 2);
+
             const blob = new Blob([dataStr], { type: "application/json" });
             const url = URL.createObjectURL(blob);
 
             const link = document.createElement("a");
             link.href = url;
-            link.download = `mtg_collection_backup_${new Date().toISOString().split('T')[0]}.json`;
+            link.download = `mtg_library_backup_${new Date().toISOString().split('T')[0]}.json`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
 
         } catch (error) {
             console.error('Export failed:', error);
-            alert('Failed to export collection.');
+            alert('Failed to export library.');
         }
     };
 

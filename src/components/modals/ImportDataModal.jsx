@@ -32,8 +32,13 @@ const ImportDataModal = ({ isOpen, onClose, mode = 'global' }) => { // mode: 'gl
             try {
                 const json = JSON.parse(event.target.result);
                 // Auto-detect type if possible
+                // Auto-detect type if possible
                 if (json.deck && json.cards) {
                     setImportType('deck');
+                    setFileData(json);
+                } else if (json.cards && json.decks) {
+                    // Full Library Backup
+                    setImportType('cards');
                     setFileData(json);
                 } else if (json.collection && typeof json.collection === 'object' && !Array.isArray(json.collection)) {
                     // Legacy Firestore Backup (Object-based)
@@ -72,8 +77,8 @@ const ImportDataModal = ({ isOpen, onClose, mode = 'global' }) => { // mode: 'gl
         setLoading(true);
         try {
             if (importType === 'cards') {
-                await collectionService.importBatch(currentUser.uid, fileData.cards, replaceMode);
-                addToast(`Successfully imported ${fileData.cards.length} cards`, 'success');
+                await collectionService.importBatch(currentUser.uid, fileData.cards, replaceMode, fileData.decks);
+                addToast(`Successfully imported ${fileData.cards.length} cards${fileData.decks?.length ? ` and ${fileData.decks.length} decks` : ''}`, 'success');
                 onClose();
             } else if (importType === 'deck') {
                 const result = await deckService.importDeck(currentUser.uid, fileData.deck, fileData.cards, deckOptions);
@@ -131,7 +136,12 @@ const ImportDataModal = ({ isOpen, onClose, mode = 'global' }) => { // mode: 'gl
                                 <div>
                                     <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Detected Content</span>
                                     <p className="text-white font-bold text-lg">
-                                        {importType === 'cards' ? `Collection (${fileData.cards?.length || 0} cards)` : `Deck: ${fileData.deck?.name} (${fileData.cards?.length || 0} cards)`}
+                                        {importType === 'cards' ? (
+                                            <>
+                                                Collection ({fileData.cards?.length || 0} cards)
+                                                {fileData.decks?.length > 0 && ` + ${fileData.decks.length} Decks`}
+                                            </>
+                                        ) : `Deck: ${fileData.deck?.name} (${fileData.cards?.length || 0} cards)`}
                                     </p>
                                 </div>
                                 <button onClick={() => setFileData(null)} className="text-sm text-red-400 hover:text-red-300 underline">Change File</button>
@@ -166,7 +176,13 @@ const ImportDataModal = ({ isOpen, onClose, mode = 'global' }) => { // mode: 'gl
                                             />
                                             <div>
                                                 <span className="block text-white font-medium">Replace (Use with Caution)</span>
-                                                <span className="block text-red-300 text-sm">Delete your ENTIRE current collection and replace it with this file.</span>
+                                                <span className="block text-red-300 text-sm">
+                                                    Delete your ENTIRE current collection.
+                                                    {fileData.decks?.length > 0
+                                                        ? " Existing decks will also be replaced by those in the backup."
+                                                        : " Your decks will be preserved since this backup only contains cards."
+                                                    }
+                                                </span>
                                             </div>
                                         </label>
                                     </div>

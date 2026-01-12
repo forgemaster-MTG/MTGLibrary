@@ -14,8 +14,8 @@ export default defineConfig({
     server: {
         port: 5173,
         proxy: {
-            '/api': 'http://localhost:3004',
-            '/bugs': 'http://localhost:3004'
+            '/api': 'http://localhost:3002',
+            '/bugs': 'http://localhost:3002'
         },
         open: true
     }

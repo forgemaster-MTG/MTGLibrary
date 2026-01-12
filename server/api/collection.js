@@ -45,13 +45,18 @@ const batchLimitCheck = async (req, res, next) => {
     }
 };
 
-// Export entire collection
+// Export entire library (Collection + Decks)
 router.get('/export', async (req, res) => {
     try {
-        const rows = await knex('user_cards')
+        const cards = await knex('user_cards')
             .where({ user_id: req.user.id })
             .orderBy('id', 'desc');
-        res.json(rows);
+
+        const decks = await knex('user_decks')
+            .where({ user_id: req.user.id })
+            .orderBy('updated_at', 'desc');
+
+        res.json({ cards, decks });
     } catch (err) {
         console.error('[collection] export error', err);
         res.status(500).json({ error: 'db error' });
@@ -301,7 +306,7 @@ router.delete('/batch/delete', async (req, res) => {
 // Batch Import (Replace or Merge)
 router.post('/batch', batchLimitCheck, async (req, res) => {
     try {
-        const { cards, mode } = req.body; // mode: 'replace' | 'merge'
+        const { cards, decks, mode } = req.body; // cards: [], decks: [] (optional), mode: 'replace' | 'merge'
         const userId = req.user.id;
 
         if (!Array.isArray(cards)) return res.status(400).json({ error: 'cards must be an array' });
@@ -313,42 +318,102 @@ router.post('/batch', batchLimitCheck, async (req, res) => {
         }
 
         await knex.transaction(async (trx) => {
-            // 1. If Replace, wipe existing collection AND decks
+            console.log(`[collection] TRACE: userId ${userId} starting batch import mode=${mode}`);
+            console.log(`[collection] TRACE: decks type is ${typeof decks}, isArray=${Array.isArray(decks)}, length=${decks?.length}`);
+
+            // 1. If Replace, wipe existing collection
             if (mode === 'replace') {
-                await trx('user_cards').where({ user_id: userId }).del();
-                await trx('user_decks').where({ user_id: userId }).del();
+                const wipedCards = await trx('user_cards').where({ user_id: userId }).del();
+                console.log(`[collection] TRACE: Wiped ${wipedCards} cards for user ${userId}`);
+
+                // CRITICAL: Only wipe decks if we have decks in the backup to replace them with!
+                if (decks !== undefined && decks !== null && Array.isArray(decks) && decks.length > 0) {
+                    const wipedDecks = await trx('user_decks').where({ user_id: userId }).del();
+                    console.log(`[collection] TRACE: WIPING DECKS! Count: ${wipedDecks}`);
+                } else {
+                    console.log(`[collection] TRACE: PRESERVING DECKS (Condition: decks=${decks}, isArray=${Array.isArray(decks)}, len=${decks?.length})`);
+                }
             }
 
-            // 2. Process each card - check for existing and merge or insert
+            // 2. Restore Decks if present
+            const deckIdMap = new Map(); // Old ID -> New ID mapping if they change
+            if (decks && Array.isArray(decks)) {
+                for (const d of decks) {
+                    const [newDeck] = await trx('user_decks').insert({
+                        user_id: userId,
+                        name: d.name,
+                        format: d.format || 'Commander',
+                        commander: d.commander || null,
+                        commander_partner: d.commander_partner || null,
+                        ai_blueprint: d.ai_blueprint || d.aiBlueprint || null,
+                        is_mockup: d.is_mockup || d.isMockup || false,
+                        is_public: d.is_public || d.isPublic || false,
+                        share_slug: d.share_slug || d.shareSlug || null,
+                        tags: typeof d.tags === 'string' ? d.tags : JSON.stringify(d.tags || []),
+                        firestore_id: d.firestore_id || d.id // Preserve original ID for card mapping
+                    }).returning('*');
+
+                    deckIdMap.set(d.id, newDeck.id);
+                }
+            }
+
+            // 3. Fetch valid deck and binder IDs for validation (including newly created ones)
+            const currentUserDecks = await trx('user_decks').where({ user_id: userId }).select('id', 'firestore_id');
+            const currentUserBinders = await trx('binders').where({ user_id: userId }).select('id');
+
+            const validDeckIds = new Set(currentUserDecks.map(d => d.id));
+            const validBinderIds = new Set(currentUserBinders.map(b => b.id));
+
+            // Map original firestore_ids or string IDs to current UUIDs
+            const deckLegacyMap = new Map();
+            currentUserDecks.forEach(d => {
+                if (d.firestore_id) deckLegacyMap.set(d.firestore_id, d.id);
+            });
+
+            // 4. Process each card
             let inserted = 0;
             let updated = 0;
 
             for (const c of validCards) {
                 const scryfallId = c.scryfall_id || c.id;
-                const setCode = c.set_code || c.set || '???';
+                const setCode = (c.set_code || c.set || '???').toUpperCase();
                 const collectorNumber = c.collector_number || '0';
                 const finish = c.finish || 'nonfoil';
-
                 const isWishlist = c.is_wishlist || false;
 
-                // Check for existing card with same attributes
-                const existing = await trx('user_cards')
-                    .where({
-                        user_id: userId,
-                        scryfall_id: scryfallId,
-                        set_code: setCode,
-                        collector_number: collectorNumber,
-                        finish: finish,
-                        is_wishlist: isWishlist
-                    })
-                    .whereNull('deck_id') // Only merge binder cards
-                    .first();
+                // Validate FKs
+                let deckId = null;
+                const incomingDeckId = c.deck_id || c.deckId;
+                if (incomingDeckId) {
+                    if (validDeckIds.has(incomingDeckId)) deckId = incomingDeckId;
+                    else if (deckIdMap.has(incomingDeckId)) deckId = deckIdMap.get(incomingDeckId);
+                    else if (deckLegacyMap.has(incomingDeckId)) deckId = deckLegacyMap.get(incomingDeckId);
+                }
+
+                const binderId = (c.binder_id && validBinderIds.has(c.binder_id)) ? c.binder_id : null;
+
+                // Check for existing card with same attributes (Binder merge only)
+                let existing = null;
+                if (mode !== 'replace' && !deckId) {
+                    existing = await trx('user_cards')
+                        .where({
+                            user_id: userId,
+                            scryfall_id: scryfallId,
+                            set_code: setCode,
+                            collector_number: collectorNumber,
+                            finish: finish,
+                            is_wishlist: isWishlist,
+                            deck_id: null,
+                            binder_id: binderId
+                        })
+                        .first();
+                }
 
                 if (existing) {
                     // Update existing card - increment count
                     const newCount = (existing.count || 1) + (c.count || 1);
 
-                    // Merge tags - handle both string and native object (jsonb)
+                    // Merge tags
                     const existingTags = typeof existing.tags === 'string' ? JSON.parse(existing.tags || '[]') : (existing.tags || []);
                     const incomingTags = typeof c.tags === 'string' ? JSON.parse(c.tags || '[]') : (c.tags || []);
                     const mergedTags = [...new Set([...existingTags, ...incomingTags])];
@@ -358,7 +423,9 @@ router.post('/batch', batchLimitCheck, async (req, res) => {
                         .update({
                             count: newCount,
                             tags: JSON.stringify(mergedTags),
-                            data: c.data || existing.data // Update data if provided
+                            data: c.data || existing.data,
+                            price_bought: c.price_bought !== undefined ? c.price_bought : existing.price_bought,
+                            binder_id: binderId || existing.binder_id
                         });
 
                     updated++;
@@ -375,8 +442,10 @@ router.post('/batch', batchLimitCheck, async (req, res) => {
                         image_uri: cardService.resolveImage(cardData) || c.image_uri || null,
                         count: c.count || 1,
                         data: cardData,
-                        deck_id: c.deck_id || null,
+                        deck_id: deckId,
+                        binder_id: binderId,
                         is_wishlist: isWishlist,
+                        price_bought: c.price_bought || null,
                         tags: typeof c.tags === 'string' ? c.tags : JSON.stringify(c.tags || [])
                     });
 
@@ -384,14 +453,14 @@ router.post('/batch', batchLimitCheck, async (req, res) => {
                 }
             }
 
-            console.log(`[collection] Batch import: ${inserted} inserted, ${updated} updated`);
+            console.log(`[collection] Batch import (${mode}): ${inserted} inserted, ${updated} updated, ${decks?.length || 0} decks processed`);
         });
 
         res.json({ success: true, count: validCards.length });
 
     } catch (err) {
         console.error('[collection] batch import error', err);
-        res.status(500).json({ error: 'batch import failed' });
+        res.status(500).json({ error: 'batch import failed', details: err.message });
     }
 });
 
