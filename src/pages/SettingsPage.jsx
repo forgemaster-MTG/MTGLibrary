@@ -584,7 +584,7 @@ const SettingsPage = () => {
                 onConfirm={async () => {
                     setDeleteLoading(true);
                     try {
-                        await api.delete('/api/users/me/data', { data: { target: deleteTarget } });
+                        await api.delete('/api/users/me/data', { target: deleteTarget });
                         window.location.reload();
                     } catch (err) {
                         console.error(err);

@@ -20,6 +20,7 @@ import OnboardingPage from './pages/OnboardingPage';
 import AboutPage from './pages/AboutPage';
 import PublicDeckPage from './pages/PublicDeckPage';
 import RemoteLensPage from './pages/RemoteLensPage';
+import AIStrategyPage from './pages/AIStrategyPage';
 import AuditWizard from './components/Audit/AuditWizard';
 import AuditHub from './components/Audit/AuditHub';
 import ChatWidget from './components/ChatWidget';
@@ -30,6 +31,7 @@ import { CardModalProvider } from './contexts/CardModalContext';
 import CardDetailsModal from './components/modals/CardDetailsModal';
 import AuthGuard from './components/AuthGuard';
 import ApiInterceptor from './components/ApiInterceptor';
+import ReferralTracker from './components/ReferralTracker';
 
 function App() {
     return (
@@ -38,6 +40,7 @@ function App() {
                 <CardModalProvider>
                     <div className="bg-gray-900 text-gray-200 font-sans min-h-screen flex flex-col">
                         <ScrollToTop />
+                        <ReferralTracker />
                         <Navbar />
                         <AuthGuard>
                             <div className="flex-grow pb-24 md:pb-0">
@@ -66,6 +69,7 @@ function App() {
                                     <Route path="/audit/:id" element={<AuditHub />} />
                                     <Route path="/audit/:auditId/wizard" element={<AuditWizard />} />
                                     <Route path="/remote/:sessionId" element={<RemoteLensPage />} />
+                                    <Route path="/strategy" element={<AIStrategyPage />} />
                                 </Routes>
                             </div>
                         </AuthGuard>

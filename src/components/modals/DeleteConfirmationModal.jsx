@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, targetName }) => {
     const [confirmText, setConfirmText] = useState('');
-    const isMatched = confirmText === 'DELETE';
+    const isMatched = confirmText.toUpperCase() === 'DELETE';
 
     if (!isOpen) return null;
 
@@ -56,8 +56,8 @@ const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, t
                         onClick={onConfirm}
                         disabled={!isMatched}
                         className={`flex-1 px-4 py-3 font-bold rounded-xl transition-all shadow-lg ${isMatched
-                                ? 'bg-red-600 hover:bg-red-500 text-white shadow-red-900/30'
-                                : 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                            ? 'bg-red-600 hover:bg-red-500 text-white shadow-red-900/30'
+                            : 'bg-gray-800 text-gray-500 cursor-not-allowed'
                             }`}
                     >
                         Delete Forever

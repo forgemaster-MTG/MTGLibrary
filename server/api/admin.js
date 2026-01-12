@@ -310,4 +310,36 @@ router.post('/precons/upload', upload.single('file'), async (req, res) => {
     }
 });
 
+// GET /admin/invitations
+// List all external invitations
+router.get('/invitations', async (req, res) => {
+    try {
+        const invitations = await knex('pending_external_invitations')
+            .join('users', 'pending_external_invitations.inviter_id', '=', 'users.id')
+            .select(
+                'pending_external_invitations.*',
+                'users.username as inviter_username',
+                'users.email as inviter_email'
+            )
+            .orderBy('created_at', 'desc');
+        res.json(invitations);
+    } catch (err) {
+        console.error('[Admin] Get Invitations Error', err);
+        res.status(500).json({ error: 'Failed to fetch invitations' });
+    }
+});
+
+// DELETE /admin/invitations/:id
+// Delete/Reset an invitation
+router.delete('/invitations/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        await knex('pending_external_invitations').where({ id }).del();
+        res.json({ success: true });
+    } catch (err) {
+        console.error('[Admin] Delete Invitation Error', err);
+        res.status(500).json({ error: 'Failed to delete invitation' });
+    }
+});
+
 export default router;

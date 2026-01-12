@@ -395,7 +395,7 @@ const CreateDeckPage = () => {
         );
 
         return (
-            <div className="animate-fade-in space-y-6 h-full flex flex-col">
+            <div className="animate-fade-in space-y-6">
                 <div className="flex flex-col md:flex-row justify-between items-end mb-4 gap-4 shrink-0">
                     <div>
                         <h2 className="text-3xl font-black text-white mb-2">{format === 'Commander' ? 'Choose Commander' : 'Choose Spotlight Card'}</h2>
@@ -600,7 +600,7 @@ const CreateDeckPage = () => {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-h-[65vh] overflow-y-auto pr-2 custom-scrollbar">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {filtered.map(card => (
                         <PosterCard key={card.id} card={card} onClick={handlePartnerSelect} />
                     ))}
@@ -635,71 +635,82 @@ const CreateDeckPage = () => {
         const types = strategyData?.layout?.types || {};
 
         return (
-            <div className="animate-fade-in space-y-8 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
-
-                {/* Header */}
-                <div className="space-y-4">
-                    <label className="block text-sm font-bold text-gray-400 uppercase tracking-wider">Deck Name</label>
-                    <input
-                        type="text"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className="w-full text-4xl font-black bg-transparent border-b-2 border-white/10 focus:border-indigo-500 text-white placeholder-gray-600 outline-none pb-2 transition-colors"
-                        placeholder="Name your deck..."
-                    />
+            <div className="animate-fade-in flex flex-col space-y-8">
+                {/* Header with Name Input & Action Button (Sticky) */}
+                <div className="flex flex-col md:flex-row justify-between items-start gap-6 mb-8 shrink-0 sticky -top-8 z-30 bg-gray-950/90 backdrop-blur-xl pt-4 pb-6 -mx-8 px-8 rounded-t-3xl border-b border-white/5">
+                    <div className="space-y-2 flex-1 w-full">
+                        <label className="block text-sm font-bold text-gray-400 uppercase tracking-wider">Deck Name</label>
+                        <input
+                            type="text"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            className="w-full text-4xl font-black bg-transparent border-b-2 border-white/10 focus:border-indigo-500 text-white placeholder-gray-600 outline-none pb-2 transition-colors"
+                            placeholder="Name your deck..."
+                        />
+                    </div>
+                    <button
+                        onClick={createDeck}
+                        disabled={loading}
+                        className="bg-indigo-600 hover:bg-indigo-500 text-white text-xl font-bold py-4 px-10 rounded-2xl shadow-lg shadow-indigo-500/20 transform hover:-translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 shrink-0"
+                    >
+                        {loading ? 'Forging...' : 'Create Deck'}
+                        {!loading && <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>}
+                    </button>
                 </div>
 
-                {/* Strategy Text */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div className="bg-gray-800/40 border border-white/5 rounded-2xl p-6 backdrop-blur-md">
-                        <h3 className="text-xl font-bold text-indigo-300 mb-4">Theme & Strategy</h3>
-                        <div className="space-y-4">
-                            <div>
-                                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Theme</span>
-                                <p className="text-lg text-white font-medium">{strategyData?.theme}</p>
+                <div className="space-y-8 flex-1">
+
+                    {/* Strategy Text */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div className="bg-gray-800/40 border border-white/5 rounded-2xl p-6 backdrop-blur-md">
+                            <h3 className="text-xl font-bold text-indigo-300 mb-4">Theme & Strategy</h3>
+                            <div className="space-y-4">
+                                <div>
+                                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Theme</span>
+                                    <p className="text-lg text-white font-medium">{strategyData?.theme}</p>
+                                </div>
+                                <div>
+                                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Gameplan</span>
+                                    <div
+                                        className="text-sm text-gray-300 leading-relaxed prose prose-invert max-w-none"
+                                        dangerouslySetInnerHTML={{ __html: strategyData?.strategy }}
+                                    />
+                                </div>
                             </div>
+                        </div>
+
+                        {/* Composition */}
+                        <div className="bg-gray-800/40 border border-white/5 rounded-2xl p-6 backdrop-blur-md space-y-6">
+                            <h3 className="text-xl font-bold text-green-300 mb-4">Composition Preview</h3>
+
+                            {/* Functional Grid */}
                             <div>
-                                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Gameplan</span>
-                                <div
-                                    className="text-sm text-gray-300 leading-relaxed prose prose-invert max-w-none"
-                                    dangerouslySetInnerHTML={{ __html: strategyData?.strategy }}
-                                />
+                                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Functional Needs</h4>
+                                <div className="grid grid-cols-2 gap-4">
+                                    {Object.entries(functional).map(([key, val]) => (
+                                        <div key={key} className="flex justify-between items-center bg-gray-900/50 px-3 py-2 rounded-lg border border-white/5">
+                                            <span className="text-sm text-gray-300">{key}</span>
+                                            <span className="font-mono font-bold text-indigo-400">{val}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Type Grid */}
+                            <div>
+                                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Type Balance</h4>
+                                <div className="grid grid-cols-2 gap-4">
+                                    {Object.entries(types).map(([key, val]) => (
+                                        <div key={key} className="flex justify-between items-center bg-gray-900/50 px-3 py-2 rounded-lg border border-white/5">
+                                            <span className="text-sm text-gray-300">{key}</span>
+                                            <span className="font-mono font-bold text-emerald-400">{val}</span>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     </div>
-
-                    {/* Composition */}
-                    <div className="bg-gray-800/40 border border-white/5 rounded-2xl p-6 backdrop-blur-md space-y-6">
-                        <h3 className="text-xl font-bold text-green-300 mb-4">Composition Preview</h3>
-
-                        {/* Functional Grid */}
-                        <div>
-                            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Functional Needs</h4>
-                            <div className="grid grid-cols-2 gap-4">
-                                {Object.entries(functional).map(([key, val]) => (
-                                    <div key={key} className="flex justify-between items-center bg-gray-900/50 px-3 py-2 rounded-lg border border-white/5">
-                                        <span className="text-sm text-gray-300">{key}</span>
-                                        <span className="font-mono font-bold text-indigo-400">{val}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Type Grid */}
-                        <div>
-                            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Type Balance</h4>
-                            <div className="grid grid-cols-2 gap-4">
-                                {Object.entries(types).map(([key, val]) => (
-                                    <div key={key} className="flex justify-between items-center bg-gray-900/50 px-3 py-2 rounded-lg border border-white/5">
-                                        <span className="text-sm text-gray-300">{key}</span>
-                                        <span className="font-mono font-bold text-emerald-400">{val}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
                 </div>
-
             </div>
         );
     };
@@ -708,7 +719,7 @@ const CreateDeckPage = () => {
     const bgImage = selectedCommander ? getArtCrop(selectedCommander) : null;
 
     return (
-        <div className="min-h-screen bg-gray-950 relative overflow-hidden flex flex-col">
+        <div className="min-h-screen bg-gray-950 relative flex flex-col pb-20">
 
             {/* Dynamic Background */}
             {bgImage && (
@@ -727,7 +738,7 @@ const CreateDeckPage = () => {
             )}
 
             {/* Main Content */}
-            <div className="relative z-10 flex-1 flex flex-col max-w-[1600px] mx-auto w-full px-6 py-8">
+            <div className="relative z-10 max-w-[1600px] mx-auto w-full px-6 py-8">
 
                 {/* Header / Steps */}
                 <div className="flex items-center gap-4 mb-8">
@@ -743,7 +754,7 @@ const CreateDeckPage = () => {
                 </div>
 
                 {/* Content Container (Glass Box) */}
-                <div className="flex-1 bg-gray-950/40 border border-white/5 rounded-3xl p-8 shadow-2xl backdrop-blur-xl animate-fade-in-up flex flex-col overflow-hidden">
+                <div className="bg-gray-950/40 border border-white/5 rounded-3xl p-8 shadow-2xl backdrop-blur-xl animate-fade-in-up">
                     {loading && step !== STEPS.AI_STRATEGY && (
                         <div className="flex justify-center items-center h-full">
                             <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-indigo-500"></div>
@@ -751,7 +762,7 @@ const CreateDeckPage = () => {
                     )}
 
                     {!loading && step === STEPS.BASICS && (
-                        <div className="flex flex-col items-center justify-center min-h-full space-y-12 animate-fade-in py-8">
+                        <div className="flex flex-col items-center space-y-12 animate-fade-in py-8">
                             <h1 className="text-5xl font-black text-white tracking-tight text-center">Let's build something <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">legendary.</span></h1>
 
                             <div className="w-full max-w-5xl px-4 space-y-12">
@@ -911,32 +922,15 @@ const CreateDeckPage = () => {
                     {!loading && step === STEPS.PARTNER && renderPartnerSelection()}
                     {step === STEPS.AI_STRATEGY && renderAIStrategy()}
                     {!loading && step === STEPS.REVIEW && renderReview()}
-                </div >
+                </div>
+            </div>
 
-                {/* Footer Action Bar (Fixed at bottom right of content area) */}
-                {
-                    !loading && step === STEPS.REVIEW && (
-                        <div className="mt-6 flex justify-end animate-fade-in-up">
-                            <button
-                                onClick={createDeck}
-                                disabled={loading}
-                                className="bg-indigo-600 hover:bg-indigo-500 text-white text-xl font-bold py-4 px-12 rounded-2xl shadow-lg shadow-indigo-500/20 transform hover:-translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
-                            >
-                                {loading ? 'Forging Deck...' : 'Create Deck'}
-                                {!loading && <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>}
-                            </button>
-                        </div>
-                    )
-                }
-            </div >
-
-            {/* Search Modal */}
             <CommanderSearchModal
                 isOpen={isSearchOpen}
                 onClose={() => setIsSearchOpen(false)}
-                onAdd={() => fetchCommanders()} // Refresh list on add
+                onAdd={() => fetchCommanders()}
             />
-        </div >
+        </div>
     );
 };
 

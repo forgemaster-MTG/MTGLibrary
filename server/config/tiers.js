@@ -37,7 +37,8 @@ export const TIER_CONFIG = {
             sharedEdit: false, // Wizard+
             customAiPersona: false, // Wizard+
             snapScan: true,
-            batchScan: false
+            batchScan: false,
+            pods: false
         }
     },
     [TIERS.TIER_1]: { // $2.99
@@ -71,7 +72,8 @@ export const TIER_CONFIG = {
             sharedEdit: false,
             customAiPersona: false,
             snapScan: true,
-            batchScan: false
+            batchScan: false,
+            pods: false
         }
     },
     [TIERS.TIER_2]: { // $4.99
@@ -104,7 +106,8 @@ export const TIER_CONFIG = {
             sharedEdit: false, // Wizard+
             customAiPersona: false, // Wizard+
             snapScan: true,
-            batchScan: true
+            batchScan: true,
+            pods: false
         }
     },
     [TIERS.TIER_3]: { // $9.99
@@ -137,7 +140,8 @@ export const TIER_CONFIG = {
             sharedEdit: true,
             customAiPersona: true,
             snapScan: true,
-            batchScan: true
+            batchScan: true,
+            pods: true
         }
     },
     [TIERS.TIER_4]: { // $14.99
@@ -170,7 +174,8 @@ export const TIER_CONFIG = {
             sharedEdit: true,
             customAiPersona: true,
             snapScan: true,
-            batchScan: true
+            batchScan: true,
+            pods: true
         }
     },
     [TIERS.TIER_5]: { // $19.99
@@ -203,7 +208,8 @@ export const TIER_CONFIG = {
             sharedEdit: true,
             customAiPersona: true,
             snapScan: true,
-            batchScan: true
+            batchScan: true,
+            pods: true
         }
     }
 };

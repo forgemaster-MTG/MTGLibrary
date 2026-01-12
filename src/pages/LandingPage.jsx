@@ -76,9 +76,9 @@ const LandingPage = () => {
                             <span>Enter The Forge</span>
                             <svg className="w-6 h-6 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                         </Link>
-                        <button className="px-10 py-5 rounded-2xl bg-white/5 backdrop-blur-xl hover:bg-white/10 text-white font-bold text-lg border border-white/10 transition-all hover:border-white/20">
-                            Watch AI Demo
-                        </button>
+                        <Link to="/strategy" className="px-10 py-5 rounded-2xl bg-white/5 backdrop-blur-xl hover:bg-white/10 text-white font-bold text-lg border border-white/10 transition-all hover:border-white/20 flex items-center justify-center">
+                            Explore AI Strategic Edge
+                        </Link>
                     </div>
 
                     {/* Meta Stats or Quick Info */}
@@ -88,8 +88,8 @@ const LandingPage = () => {
                             <span className="text-[10px] text-gray-500 uppercase tracking-[0.2em] font-bold">Analysis Accuracy</span>
                         </div>
                         <div className="flex flex-col items-center">
-                            <span className="text-3xl font-black text-white mb-1">25k+</span>
-                            <span className="text-[10px] text-gray-500 uppercase tracking-[0.2em] font-bold">Decks Optimized</span>
+                            <span className="text-3xl font-black text-white mb-1">Real-Time</span>
+                            <span className="text-[10px] text-gray-500 uppercase tracking-[0.2em] font-bold">Pricing & Sync</span>
                         </div>
                         <div className="flex flex-col items-center">
                             <span className="text-3xl font-black text-white mb-1">5</span>

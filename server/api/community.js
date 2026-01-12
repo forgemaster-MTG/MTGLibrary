@@ -1,6 +1,7 @@
 import express from 'express';
 import { knex } from '../db.js';
 import authMiddleware from '../middleware/auth.js';
+import { emailService } from '../services/emailService.js';
 
 const router = express.Router();
 
@@ -20,6 +21,7 @@ router.get('/relationships', authMiddleware, async (req, res) => {
             .select(
                 'user_relationships.id',
                 'user_relationships.status',
+                'user_relationships.type',
                 'user_relationships.created_at',
                 'requester.id as requester_id',
                 'requester.username as requester_username',
@@ -39,6 +41,7 @@ router.get('/relationships', authMiddleware, async (req, res) => {
             return {
                 id: r.id,
                 status: r.status,
+                type: r.type || 'pod',
                 direction: isRequester ? 'outgoing' : 'incoming',
                 friend: otherUser, // The other person in the relationship
                 startedAt: r.created_at
@@ -56,13 +59,41 @@ router.get('/relationships', authMiddleware, async (req, res) => {
 router.post('/relationships/request', authMiddleware, async (req, res) => {
     try {
         const requesterId = req.user.id;
-        const { targetEmail } = req.body;
+        const { targetEmail, type = 'pod' } = req.body;
 
         if (!targetEmail) return res.status(400).json({ error: 'Target email is required' });
 
         // Find user by email
         const targetUser = await knex('users').where('email', targetEmail).first();
-        if (!targetUser) return res.status(404).json({ error: 'User not found' });
+
+        if (!targetUser) {
+            // Check if already invited
+            const existingInvite = await knex('pending_external_invitations')
+                .where({ inviter_id: requesterId, invitee_email: targetEmail })
+                .first();
+
+            if (existingInvite) {
+                return res.status(400).json({ error: 'Invitation already sent to this email' });
+            }
+
+            // Create external invitation
+            await knex('pending_external_invitations').insert({
+                inviter_id: requesterId,
+                invitee_email: targetEmail,
+                type: type
+            });
+
+            // Send Email
+            try {
+                await emailService.sendInvitation(targetEmail, req.user, type);
+            } catch (emailErr) {
+                console.error('[Community] Email failed but invite saved:', emailErr);
+                // We proceed since the invite is saved to DB for later auto-join
+            }
+
+            return res.json({ success: true, external: true, message: 'Invitation sent to guest' });
+        }
+
         if (targetUser.id === requesterId) return res.status(400).json({ error: 'Cannot add yourself' });
 
         // Check existing relationship
@@ -79,7 +110,8 @@ router.post('/relationships/request', authMiddleware, async (req, res) => {
         const [newRel] = await knex('user_relationships').insert({
             requester_id: requesterId,
             addressee_id: targetUser.id,
-            status: 'pending'
+            status: 'pending',
+            type: type
         }).returning('*');
 
         res.json(newRel);

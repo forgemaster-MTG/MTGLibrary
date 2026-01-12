@@ -39,7 +39,7 @@ const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, confirmText 
 
 const AdminPanel = () => {
     const { userProfile } = useAuth();
-    const [activeSection, setActiveSection] = useState('sync'); // 'sync', 'permissions', 'epics', 'release'
+    const [activeSection, setActiveSection] = useState('sync'); // 'sync', 'permissions', 'epics', 'release', 'referrals'
 
     // Sync State
     const [sets, setSets] = useState([]);
@@ -59,6 +59,10 @@ const AdminPanel = () => {
     const [users, setUsers] = useState([]);
     const [loadingUsers, setLoadingUsers] = useState(false);
 
+    // Referrals State
+    const [invitations, setInvitations] = useState([]);
+    const [loadingInvites, setLoadingInvites] = useState(false);
+
     useEffect(() => {
         fetchSets();
         const stored = localStorage.getItem('admin_last_sync');
@@ -71,6 +75,8 @@ const AdminPanel = () => {
     useEffect(() => {
         if (activeSection === 'permissions') {
             fetchUsers();
+        } else if (activeSection === 'referrals') {
+            fetchInvitations();
         }
     }, [activeSection]);
 
@@ -92,6 +98,28 @@ const AdminPanel = () => {
             console.error(err);
         } finally {
             setLoadingUsers(false);
+        }
+    };
+
+    const fetchInvitations = async () => {
+        setLoadingInvites(true);
+        try {
+            const data = await api.get('/api/admin/invitations');
+            setInvitations(data);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoadingInvites(false);
+        }
+    };
+
+    const handleResetInvitation = async (id) => {
+        if (!window.confirm('Are you sure you want to reset this invitation? This will delete the pending record.')) return;
+        try {
+            await api.delete(`/api/admin/invitations/${id}`);
+            fetchInvitations();
+        } catch (err) {
+            alert('Failed to reset invitation');
         }
     };
 
@@ -464,6 +492,12 @@ const AdminPanel = () => {
                 >
                     Release Notes
                 </button>
+                <button
+                    onClick={() => setActiveSection('referrals')}
+                    className={`px-4 py-2 border-b-2 font-medium transition-colors whitespace-nowrap ${activeSection === 'referrals' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-gray-400 hover:text-white'}`}
+                >
+                    Referrals
+                </button>
             </div>
 
             {activeSection === 'sync' && (
@@ -821,6 +855,72 @@ const AdminPanel = () => {
                             </div>
                         )}
                     </div>
+                </div>
+            )}
+            {activeSection === 'referrals' && (
+                <div className="space-y-6">
+                    <div className="flex justify-between items-center">
+                        <h2 className="text-xl font-semibold text-white">External Invitations (Referrals)</h2>
+                        <button
+                            onClick={fetchInvitations}
+                            className="text-xs text-indigo-400 hover:text-indigo-300 font-medium"
+                        >
+                            Refresh List
+                        </button>
+                    </div>
+
+                    {loadingInvites ? <p className="text-gray-400">Loading invitations...</p> : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="border-b border-gray-700 text-gray-400 text-sm uppercase">
+                                        <th className="py-3 px-4">Invitee Email</th>
+                                        <th className="py-3 px-4">Invited By</th>
+                                        <th className="py-3 px-4">Sent At</th>
+                                        <th className="py-3 px-4">Status</th>
+                                        <th className="py-3 px-4 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="text-sm divide-y divide-gray-800">
+                                    {invitations.map(invite => (
+                                        <tr key={invite.id} className="hover:bg-gray-800/50 transition-colors">
+                                            <td className="py-3 px-4 font-medium text-white">{invite.invitee_email}</td>
+                                            <td className="py-3 px-4 text-gray-400">
+                                                <div>{invite.inviter_username}</div>
+                                                <div className="text-[10px] text-gray-500">{invite.inviter_email}</div>
+                                            </td>
+                                            <td className="py-3 px-4 text-gray-400">
+                                                {format(new Date(invite.created_at), 'MMM dd, yyyy HH:mm')}
+                                            </td>
+                                            <td className="py-3 px-4">
+                                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${invite.status === 'completed'
+                                                    ? 'bg-green-500/10 text-green-400 border-green-500/20'
+                                                    : 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
+                                                    }`}>
+                                                    {invite.status}
+                                                </span>
+                                            </td>
+                                            <td className="py-3 px-4 text-right">
+                                                <button
+                                                    onClick={() => handleResetInvitation(invite.id)}
+                                                    className="text-red-400 hover:text-red-300 transition-colors font-medium text-xs"
+                                                >
+                                                    Reset
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {invitations.length === 0 && (
+                                        <tr>
+                                            <td colSpan="5" className="py-8 text-center text-gray-500 italic">
+                                                No invitations found.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                 </div>
             )}
         </div >

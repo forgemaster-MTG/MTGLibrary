@@ -201,8 +201,15 @@ app.get('/api/health', (req, res) => {
 // Serve static assets from the "dist" directory (Vite build output)
 app.use(express.static(path.join(__dirname, '../dist')));
 
-// Serve "public" folder as well if needed (optional, Vite usually bundles everything)
-app.use(express.static(path.join(__dirname, '../public')));
+// Serve "Public" folder (Vite standard is capital P)
+const publicPath = path.join(__dirname, '../Public');
+const publicPathLower = path.join(__dirname, '../public');
+
+if (fs.existsSync(publicPath)) {
+  app.use(express.static(publicPath));
+} else if (fs.existsSync(publicPathLower)) {
+  app.use(express.static(publicPathLower));
+}
 
 // Bug Tracker list - Read from Public/tasklist.txt
 app.get('/bugs', (req, res) => {

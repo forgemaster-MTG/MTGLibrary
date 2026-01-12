@@ -13,6 +13,13 @@ async function getHeaders() {
     } else {
         console.warn('[API] No currentUser found, sending request without auth.');
     }
+
+    // Include referral code if present
+    const referralCode = localStorage.getItem('mtg_forge_ref');
+    if (referralCode) {
+        headers['X-Referral-Code'] = referralCode;
+    }
+
     return headers;
 }
 
