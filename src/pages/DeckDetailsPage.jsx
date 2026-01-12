@@ -713,11 +713,26 @@ const DeckDetailsPage = () => {
                                                 Precon
                                             </span>
                                         )}
+                                        {deck.aiBlueprint?.grade?.commanderBracket && (
+                                            <span className="bg-indigo-600/20 text-indigo-300 px-2 md:px-2.5 py-0.5 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest border border-indigo-500/30">
+                                                <span className="hidden md:inline">Bracket </span>{deck.aiBlueprint.grade.commanderBracket}
+                                            </span>
+                                        )}
                                         {deck.is_mockup && (
                                             <span className="bg-red-600/20 text-red-400 px-2 md:px-2.5 py-0.5 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest border border-red-500/30">
                                                 Mockup
                                             </span>
                                         )}
+
+                                        {deck.aiBlueprint?.grade?.powerLevel > 0 && (
+                                            <div className="flex items-center">
+                                                <div className="h-4 w-px bg-white/10 mx-1" />
+                                                <span className="text-gray-400 text-[10px] md:text-xs font-bold uppercase tracking-widest opacity-80">
+                                                    <span className="hidden md:inline">power </span>{deck.aiBlueprint.grade.powerLevel.toFixed(1)}
+                                                </span>
+                                            </div>
+                                        )}
+
                                         <div className="h-4 w-px bg-white/10 mx-1" />
                                         <span className="text-gray-400 text-[10px] md:text-xs font-bold font-mono">
                                             ${totalValue.toFixed(2)}
@@ -800,6 +815,8 @@ const DeckDetailsPage = () => {
                                                             <span className="text-[10px] font-bold text-gray-300">Scan</span>
                                                         </button>
                                                     )}
+
+
                                                     <button
                                                         onClick={(e) => { e.stopPropagation(); setIsSearchOpen(true); setIsToolsMenuOpen(false); }}
                                                         className={`flex flex-col items-center gap-2 p-3 bg-white/5 rounded-xl border border-white/5 transition-all group ${canEdit ? 'hover:bg-indigo-500/20' : 'opacity-50 cursor-not-allowed'}`}

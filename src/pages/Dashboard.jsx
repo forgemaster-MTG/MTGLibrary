@@ -306,10 +306,45 @@ const Dashboard = () => {
                                                 {/* Content */}
                                                 <div className="absolute inset-0 p-5 flex flex-col justify-end">
                                                     <div className="mb-1">
-                                                        <div className="flex justify-between items-end mb-2">
-                                                            <span className="px-2 py-0.5 bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 rounded text-[10px] font-bold uppercase tracking-wider backdrop-blur-sm">
-                                                                {deck.format || 'Commander'}
-                                                            </span>
+                                                        <div className="flex justify-between items-start mb-2">
+                                                            <div className="flex flex-col gap-2">
+                                                                <span className="px-2 py-0.5 bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 rounded text-[10px] font-bold uppercase tracking-wider backdrop-blur-sm self-start">
+                                                                    {deck.format || 'Commander'}
+                                                                </span>
+
+                                                                {/* Mana Pips */}
+                                                                <div className="flex gap-1 bg-black/40 backdrop-blur-sm rounded-full px-1.5 py-0.5 border border-white/10 self-start">
+                                                                    {(() => {
+                                                                        const mainColors = deck?.commander?.color_identity || [];
+                                                                        const partnerColors = deck?.commander_partner?.color_identity || [];
+                                                                        const allColors = [...new Set([...mainColors, ...partnerColors])];
+                                                                        if (allColors.length === 0) allColors.push('C');
+
+                                                                        return allColors.map(c => (
+                                                                            <img
+                                                                                key={c}
+                                                                                src={`https://svgs.scryfall.io/card-symbols/${c}.svg`}
+                                                                                alt={c}
+                                                                                className="w-3.5 h-3.5 shadow-sm"
+                                                                            />
+                                                                        ));
+                                                                    })()}
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Rating Cluster */}
+                                                            {(deck.ai_blueprint?.grade?.powerLevel > 0 || deck.aiBlueprint?.grade?.powerLevel > 0) && (
+                                                                <div className="flex flex-col items-end gap-1">
+                                                                    <div className="flex items-center gap-1 bg-indigo-600/30 border border-indigo-500/40 rounded px-1.5 py-0.5 backdrop-blur-sm">
+                                                                        <span className="text-[8px] font-black text-indigo-300 uppercase">B</span>
+                                                                        <span className="text-[10px] font-bold text-white">{deck.ai_blueprint?.grade?.commanderBracket || deck.aiBlueprint?.grade?.commanderBracket}</span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-1 bg-emerald-600/30 border border-emerald-500/40 rounded px-1.5 py-0.5 backdrop-blur-sm">
+                                                                        <span className="text-[8px] font-black text-emerald-300 uppercase italic">P</span>
+                                                                        <span className="text-[10px] font-bold text-white">{Number(deck.ai_blueprint?.grade?.powerLevel || deck.aiBlueprint?.grade?.powerLevel).toFixed(1)}</span>
+                                                                    </div>
+                                                                </div>
+                                                            )}
                                                         </div>
 
                                                         <h3 className="text-xl font-bold text-white leading-tight mb-1 group-hover:text-indigo-400 transition-colors line-clamp-2">

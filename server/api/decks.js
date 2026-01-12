@@ -443,18 +443,55 @@ router.post('/:id/cards/batch', async (req, res) => {
       for (const c of cards) {
         const scryfallId = c.scryfall_id || c.id;
 
-        // 1. Try to find an unassigned copy in the binder first
-        const existing = await trx('user_cards')
-          .where({
-            user_id: userId,
-            scryfall_id: scryfallId,
-            finish: c.finish || 'nonfoil'
-          })
+        // 1. Try to find an unassigned copy in the binder with a 3-TIER Strategy
+        // Tier A: Exact Match (ID + Finish)
+        let existing = await trx('user_cards')
+          .where({ user_id: userId, scryfall_id: scryfallId, finish: c.finish || 'nonfoil' })
           .whereNull('deck_id')
           .first();
 
+        // Tier B: Loose ID Match (Same Card, Any Finish) -> Prefer Foil
+        if (!existing) {
+          existing = await trx('user_cards')
+            .where({ user_id: userId, scryfall_id: scryfallId })
+            .whereNull('deck_id')
+            .orderBy('finish', 'asc') // 'etched' < 'foil' < 'nonfoil' (Correctly prefers foils)
+            .first();
+        }
+
+        // Tier C: Loose Name Match (Same Name, Any Set/Finish) -> Prefer Foil
+        if (!existing) {
+          existing = await trx('user_cards')
+            .where({ user_id: userId, name: c.name })
+            .whereNull('deck_id')
+            .orderBy('finish', 'asc') // Prefer foils even if different set
+            .first();
+        }
+
         if (existing) {
-          await trx('user_cards').where({ id: existing.id }).update({ deck_id: id });
+          if (existing.count > 1) {
+            // Split the stack: Decrement binder count
+            await trx('user_cards').where({ id: existing.id }).update({ count: existing.count - 1 });
+
+            // Insert a single copy into the deck
+            // CRITICAL: Use the EXISTING card's physical data (finish/set)
+            await trx('user_cards').insert({
+              user_id: userId,
+              scryfall_id: existing.scryfall_id, // Use owned ID
+              name: existing.name,
+              set_code: existing.set_code,
+              collector_number: existing.collector_number,
+              finish: existing.finish,
+              image_uri: existing.image_uri,
+              data: existing.data,
+              is_wishlist: existing.is_wishlist,
+              deck_id: id,
+              count: 1
+            });
+          } else {
+            // Move the single existing card to the deck
+            await trx('user_cards').where({ id: existing.id }).update({ deck_id: id });
+          }
         } else {
           // 2. Create a new entry (defaulting to wishlist if it's an AI suggestion and we don't own it)
           // For now, if we're adding from AI builder, we'll assume it's a wishlist copy if not found in binder

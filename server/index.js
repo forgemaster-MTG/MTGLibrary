@@ -85,29 +85,15 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// CORS Config (Restrict to trusted domains in production)
-const allowedOrigins = [
-  'http://localhost:3004',
-  'http://localhost:5173',
-  'http://localhost:5174', // Vite alternate port
-  'http://localhost:5175', // Vite alternate port
-  process.env.PUBLIC_URL // e.g. https://mytunnel.com
-].filter(Boolean);
-
+// CORS Config (Permissive for local/personal usage)
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.some(o => origin.startsWith(o))) {
-      callback(null, true);
-    } else {
-      console.warn(`Blocked CORS from: ${origin}`);
-      callback(null, false); // Block unknown origins? Or just allow all for now but warn.
-      // For user ease, let's stick to simple CORS for now unless they specify a domain.
-      // callback(new Error('Not allowed by CORS')); 
-    }
-  }
+  origin: true, // Reflects the request origin, functionality allowing any origin
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 }));
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
 // Authenticated user endpoints
 app.get('/me', auth, async (req, res) => {

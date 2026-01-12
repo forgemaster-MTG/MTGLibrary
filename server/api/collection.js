@@ -3,7 +3,7 @@ import { knex } from '../db.js';
 import authMiddleware from '../middleware/auth.js';
 import { cardService } from '../services/cardService.js';
 
-import { checkLimit } from '../middleware/usageLimits.js';
+import { checkLimit, verifyLimit } from '../middleware/usageLimits.js';
 
 const router = express.Router();
 

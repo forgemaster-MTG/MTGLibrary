@@ -86,6 +86,25 @@ const DeckCard = ({ deck }) => {
                         })}
                     </div>
 
+                    {/* Deck Grade Badge */}
+                    {(deck.ai_blueprint?.grade?.powerLevel > 0 || deck.aiBlueprint?.grade?.powerLevel > 0) && (
+                        <div className="absolute -top-3 right-5 flex items-center gap-1.5 bg-gray-900 backdrop-blur-md rounded-full px-3 py-1 border border-white/10 shadow-xl group-hover:border-indigo-500/50 transition-colors">
+                            <div className="flex items-center gap-1">
+                                <span className="text-[9px] font-black uppercase text-indigo-400 tracking-wider">B</span>
+                                <span className="text-xs font-mono font-bold text-white">
+                                    {(deck.ai_blueprint?.grade?.commanderBracket || deck.aiBlueprint?.grade?.commanderBracket) || '?'}
+                                </span>
+                            </div>
+                            <div className="w-px h-2.5 bg-white/10" />
+                            <div className="flex items-center gap-1">
+                                <span className="text-[9px] font-black uppercase text-teal-400 tracking-wider">PWR</span>
+                                <span className="text-xs font-mono font-bold text-white">
+                                    {Number(deck.ai_blueprint?.grade?.powerLevel || deck.aiBlueprint?.grade?.powerLevel).toFixed(1)}
+                                </span>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="mt-4">
                         <div className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 mb-1 opacity-80">
                             {identity.badge}

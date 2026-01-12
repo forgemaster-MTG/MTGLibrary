@@ -17,7 +17,6 @@ const PodGuideModal = ({ isOpen, onClose }) => {
                         </div>
                         <div>
                             <h2 className="text-xl font-black text-white tracking-tight">Access Control Guide</h2>
-                            <h2 className="text-xl font-black text-white tracking-tight">Access Control Guide</h2>
                             <p className="text-gray-400 text-xs flex items-center gap-2">
                                 For Pods & Permissions.
                                 <span className="text-[9px] bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded uppercase tracking-wider border border-purple-500/30">Requires Wizard Tier</span>

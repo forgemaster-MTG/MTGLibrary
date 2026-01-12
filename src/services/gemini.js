@@ -1,4 +1,138 @@
+const MODEL_NAME = "gemini-2.5-flash-preview-09-2025";
+
 export const GeminiService = {
+    // ... (previous methods)
+
+    /**
+     * Generates deck suggestions based on a commander, playstyle, and candidate list.
+     * Incorporates detailed Player Profiles, Strategy Guides, and Custom Helper Personas.
+     */
+    generateDeckSuggestions: async (apiKey, payload) => {
+        const {
+            deckName,
+            commander,
+            playerProfile,   // Detailed behavioral/psychological text
+            strategyGuide,   // The "Aetherius" style strategy guide text
+            helperPersona,   // User's custom helper (Name, Type, Personality)
+            targetRole,
+            candidates,
+            currentContext,
+            neededCount,
+            experienceLevel = "Advanced"
+        } = payload;
+
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey || ""}`;
+
+        // 1. Construct the System Persona with the custom Helper Tone
+        const helperName = helperPersona?.name || "The Oracle";
+        const helperType = helperPersona?.type || "AI";
+        const helperTone = helperPersona?.personality || "Professional and helpful";
+
+        const systemInstruction = `You are ${helperName}, a ${helperType}. 
+        Your personality is: ${helperTone}.
+
+        VOICE GUIDELINES:
+        - When writing the 'reason' for a card, strictly adhere to your personality.
+        - Address the user as an equal (or however your personality dictates).
+        - If you are snarky or high-minded, use that tone to explain why a card is mathematically or strategically superior to the "garbage" others play.
+
+        YOUR CORE MISSION:
+        - You specialize in "Psychographic Profiling"—matching a deck's mechanical soul to a player's specific psychological needs.
+        - Analyze the PLAYER PROFILE: ${playerProfile}
+        - Analyze the STRATEGY GUIDE: ${strategyGuide}
+        - Select EXACTLY ${neededCount} cards from the CANDIDATE LIST for the role of '${targetRole}'.
+        
+        CRITICAL SELECTION CRITERIA:
+        - SYNERGY OVER STAPLES: Prefer cards that enable the specific loops in the Strategy Guide.
+        - PLAYER SATISFACTION: Align card mechanics with the player's desire for "inescapable defeat" or "meticulous engineering."`;
+
+        // 2. Build the User Query
+        const userQuery = `
+            DECK: ${deckName}
+            COMMANDER: ${commander}
+            
+            [PLAYER PSYCHOGRAPHIC PROFILE]
+            ${playerProfile}
+            
+            [GUIDING STRATEGY & ASSUMED ABILITIES]
+            ${strategyGuide}
+            
+            [CURRENT DECK CONTEXT]
+            ${currentContext?.length > 0 ? currentContext.join(', ') : 'No cards added yet.'}
+            
+            [CATEGORY TO FILL]
+            I need exactly ${neededCount} cards for the '${targetRole}' slot.
+            
+            [CANDIDATE POOL]
+            ${candidates.map(c => `ID: ${c.firestoreId} | Name: ${c.name} | Type: ${c.type_line}`).join('\n')}
+            
+            OUTPUT REQUIREMENTS:
+            Return a JSON object with 'suggestions'. 
+            In the 'reason' field, speak as ${helperName} (${helperTone}). Explain why the card is a perfect choice for the user's style, perhaps mocking the inadequacy of alternative cards.
+        `;
+
+        // 3. Define Structured Output Schema
+        const generationConfig = {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: "OBJECT",
+                properties: {
+                    suggestions: {
+                        type: "ARRAY",
+                        items: {
+                            type: "OBJECT",
+                            properties: {
+                                firestoreId: { type: "STRING" },
+                                rating: { type: "NUMBER" },
+                                reason: { type: "STRING", description: "Justification written in the voice of the custom helper persona." }
+                            },
+                            required: ["firestoreId", "rating", "reason"]
+                        }
+                    }
+                }
+            }
+        };
+
+        const body = {
+            contents: [{ parts: [{ text: userQuery }] }],
+            systemInstruction: { parts: [{ text: systemInstruction }] },
+            generationConfig
+        };
+
+        // 4. Execution with Exponential Backoff
+        let attempt = 0;
+        const maxAttempts = 5;
+        const delays = [1000, 2000, 4000, 8000, 16000];
+
+        while (attempt < maxAttempts) {
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                const textResponse = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                if (!textResponse) throw new Error("The Oracle returned an empty vision.");
+
+                return JSON.parse(textResponse);
+
+            } catch (error) {
+                attempt++;
+                if (attempt === maxAttempts) {
+                    throw new Error(`The Oracle (${helperName}) is currently silent. Details: ${error.message}`);
+                }
+                await new Promise(resolve => setTimeout(resolve, delays[attempt - 1]));
+            }
+        }
+    },
     async sendMessage(apiKey, history, message, context = '', helper = null) {
         if (!apiKey) throw new Error("API Key is missing. Please add it in Settings.");
 
@@ -567,7 +701,7 @@ ${context}
     async generateDeckSuggestions(apiKey, payloadData, helper = null) {
         if (!apiKey) throw new Error("API Key is missing.");
 
-        const { playstyle, targetRole } = payloadData;
+        const { playstyle, targetRole, deckRequirements } = payloadData;
         const helperName = helper?.name || 'Expert MTG Deck Builder';
         const helperPersonality = helper?.personality ? `Adopt the persona of ${helperName}: ${helper.personality}` : '';
 
@@ -581,14 +715,17 @@ ${context}
 
         const systemMessage = `
             You are ${helperName}. ${helperPersonality}
-            Analyze candidates for a ${targetRole || 'general'} role in the deck.
+            Analyze the provided candidates to build a well-balanced deck.
             ${playstyleContext}
             
             **Mana Curve Priorities (Bell Curve):**
             Focus on CMC 1-2 for high volume, 3-4 for moderate, 5+ for finishers.
-            
-            **Basic Land Split Logic:**
-            If targetRole is 'Lands', and you cannot fill the required count with provided candidates, suggest a 'Basic Land Split' at the END of the suggestions array.
+
+            **Multi-Role Fulfillment:**
+            You will be given a list of "Requirements" (Target Counts per Role).
+            Select the best cards from the candidates to fill these specific roles.
+            Ensure you meet the target counts for each role as best as possible.
+            Assign a specific "role" string to each suggestion matching the Requirement key.
         `;
 
         const PREFERRED_MODELS = [
@@ -609,7 +746,7 @@ ${context}
 
         const contents = [{
             role: 'user',
-            parts: [{ text: `Task: ${payloadData.instructions}\n\nCandidates: ${JSON.stringify(payloadData.candidates)}\n\nIMPORTANT: You MUST respond with a VALID JSON object containing a "suggestions" array. Each suggestion needs "rating" (1-10) and "reason" (string).` }]
+            parts: [{ text: `Task: ${payloadData.instructions}\n\nRequirements: ${JSON.stringify(deckRequirements || {})}\n\nCandidates: ${JSON.stringify(payloadData.candidates)}\n\nIMPORTANT: You MUST respond with a VALID JSON object containing a "suggestions" array. Each suggestion needs "rating" (1-10), "reason", and "role".` }]
         }];
 
         let failureSummary = [];
@@ -638,9 +775,10 @@ ${context}
                                                 "count": { "type": "NUMBER" },
                                                 "rating": { "type": "NUMBER" },
                                                 "reason": { "type": "STRING" },
+                                                "role": { "type": "STRING" },
                                                 "isBasicLand": { "type": "BOOLEAN" }
                                             },
-                                            required: ["rating", "reason"]
+                                            required: ["rating", "reason", "role"]
                                         }
                                     }
                                 },
@@ -824,5 +962,143 @@ ${context}
             console.error("AI Release Notes Error:", error);
             throw new Error("Failed to generate release notes.");
         }
+    },
+
+    /**
+     * Grades a completed deck based on mathematical efficiency and psychographic alignment.
+     * Returns a score out of 5 and a detailed breakdown in the Helper's voice.
+     */
+    gradeDeck: async (apiKey, payload) => {
+        const {
+            deckName,
+            commander,
+            cards,           // Full list of cards in the final deck
+            playerProfile,
+            strategyGuide,
+            helperPersona
+        } = payload;
+
+        const MODEL_NAME = "gemini-2.0-flash-exp";
+        const helperName = helperPersona?.name || "The Oracle";
+
+        const systemInstruction = `You are a Magic: The Gathering usage analytics engine and professional deck consultant.
+        Your task is to classify a Commander deck into the "Commander Brackets" (1-5), calculate a precise "Power Level" (1.0 - 10.0), and provide deep surgical analysis.
+        
+        DEFINITIONS:
+        - **Bracket 1 (Exhibition)**: Ultra-casual. No Mass Land Denial (MLD), no extra turns, no 2-card infinite combos, few tutors. "Few game changers."
+        - **Bracket 2 (Core)**: Average current preconstructed deck. No MLD, no chaining extra turns, no 2-card infinite combos, few tutors.
+        - **Bracket 3 (Upgraded)**: Beyond the strength of an average precon. Late game 2-card infinite combos allowed, up to 3 "game changers".
+        - **Bracket 4 (Optimized)**: High power commander. No restrictions (other than the banned list). Highly efficient.
+        - **Bracket 5 (cEDH)**: Maximum power, very competitive and metagame focused mindset. No restrictions.
+
+        METRICS:
+        - **Efficiency** (0-10): Speed of mana curve and ramp.
+        - **Interaction** (0-10): Count and efficiency of removal/protection.
+        - **Win_Turn** (Attempted Win Turn): Average turn the deck threatens a win.
+        
+        DIAGNOSTICS:
+        - Provide a "Critique" (The overall state of the deck).
+        - Provide "Mechanical Improvements" (General strategic advice).
+        - Provide "Recommended Swaps" (Specific card-for-card replacements from the meta).
+        
+        OUTPUT: Return a JSON object with the calculated metrics and diagnostics.`;
+
+        const userQuery = `
+            Analyze this deck: "${deckName}"
+            Commander: ${commander}
+            
+            [DECK LIST]
+            ${cards.map(c => `${c.countInDeck || 1}x ${c.name} (${c.type_line})`).join('\n')}
+            
+            Return JSON only.
+        `;
+
+        const generationConfig = {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: "OBJECT",
+                properties: {
+                    powerLevel: { type: "NUMBER", description: "Precise Power Level float (1.0 to 10.0). e.g. 6.13" },
+                    commanderBracket: { type: "INTEGER", description: "Bracket ID: 1, 2, 3, 4, or 5" },
+                    metrics: {
+                        type: "OBJECT",
+                        properties: {
+                            efficiency: { type: "NUMBER", description: "0-10 score" },
+                            interaction: { type: "NUMBER", description: "0-10 score" },
+                            winTurn: { type: "NUMBER", description: "Estimated average win turn" }
+                        }
+                    },
+                    bracketJustification: { type: "STRING", description: "Short explanation of why it falls in this bracket." },
+                    critique: { type: "STRING", description: "Deep analysis of the deck's current state." },
+                    mechanicalImprovements: { type: "ARRAY", items: { type: "STRING" }, description: "List of general strategic improvements." },
+                    recommendedSwaps: {
+                        type: "ARRAY",
+                        items: {
+                            type: "OBJECT",
+                            properties: {
+                                remove: { type: "STRING", description: "Card to remove" },
+                                add: { type: "STRING", description: "Card to add" },
+                                reason: { type: "STRING", description: "Why this swap is better" }
+                            },
+                            required: ["remove", "add", "reason"]
+                        }
+                    },
+                    pros: { type: "ARRAY", items: { type: "STRING" } },
+                    cons: { type: "ARRAY", items: { type: "STRING" } }
+                },
+                required: ["powerLevel", "commanderBracket", "metrics", "bracketJustification", "critique", "mechanicalImprovements", "recommendedSwaps"]
+            }
+        };
+
+        const body = {
+            contents: [{ parts: [{ text: userQuery }] }],
+            systemInstruction: { parts: [{ text: systemInstruction }] },
+            generationConfig
+        };
+
+        // Execution with standard backoff & Multi-Model Fallback
+        let attempt = 0;
+        let currentModel = "gemini-3-flash-preview";
+
+        while (attempt < 4) {
+            try {
+                const currentEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey || ""}`;
+
+                const response = await fetch(currentEndpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+
+                if (response.status === 429) {
+                    console.warn(`Deck Doctor: Rate Limited (429) on ${currentModel}. Switching to backup...`);
+
+                    if (currentModel === "gemini-3-flash-preview") {
+                        currentModel = "gemini-2.0-flash-exp";
+                    } else if (currentModel === "gemini-2.0-flash-exp") {
+                        currentModel = "gemini-1.5-flash";
+                    } else {
+                        throw new Error("All models exhausted");
+                    }
+
+                    await new Promise(r => setTimeout(r, 1000));
+                    continue;
+                }
+
+                if (!response.ok) throw new Error(`API Error: ${response.status}`);
+
+                const result = await response.json();
+                const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (text) return JSON.parse(text);
+
+                throw new Error("Empty response from AI");
+
+            } catch (error) {
+                console.warn(`Deck Grade Attempt ${attempt + 1} failed:`, error);
+                attempt++;
+                await new Promise(r => setTimeout(r, 1000 * attempt));
+            }
+        }
+        throw new Error("Failed to Grade Deck. The Oracle is currently overwhelmed.");
     }
 };
