@@ -18,226 +18,173 @@ const FeaturesSection = () => {
     const [activeFeature, setActiveFeature] = useState(null);
 
     return (
-        <section id="features" className="py-20 bg-gray-900 relative">
+        <section id="features" className="py-32 bg-transparent relative">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="text-center mb-20 animate-fade-in-up">
-                    <span className="text-indigo-400 font-bold tracking-widest uppercase text-sm mb-2 block">Why Choose The Forge?</span>
-                    <h2 className="text-3xl md:text-5xl font-black text-white mb-6">
-                        More Than Just A Deck Builder
+                <div className="text-center mb-24 animate-fade-in-up">
+                    <span className="text-indigo-400 font-bold tracking-widest uppercase text-sm mb-2 block">The Forge Advantage</span>
+                    <h2 className="text-4xl md:text-6xl font-black text-white mb-6">
+                        AI-First Strategy.<br />Professional Results.
                     </h2>
-                    <p className="text-gray-400 max-w-2xl mx-auto text-lg">
-                        Experience the next generation of Magic: The Gathering tools. Powered by AI, designed for every player.
+                    <p className="text-gray-400 max-w-2xl mx-auto text-xl">
+                        Experience the first Magic: The Gathering ecosystem built around Actionable Intelligence.
                     </p>
                 </div>
 
-                {/* 1. Advanced Collection Tracking */}
-                <div className="flex flex-col md:flex-row items-center gap-12 mb-24">
-                    <div className="flex-1 space-y-6 animate-fade-in-left">
-                        <div className="w-16 h-16 bg-blue-500/20 rounded-2xl flex items-center justify-center mb-4 text-blue-400">
-                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                {/* 1. The AI Deck Doctor (New First Feature) */}
+                <div className="flex flex-col md:flex-row items-center gap-16 mb-32">
+                    <div className="flex-1 space-y-8 animate-fade-in-left">
+                        <div className="w-20 h-20 bg-orange-500/20 rounded-3xl flex items-center justify-center mb-4 text-orange-400 ring-1 ring-orange-500/20">
+                            <span className="text-4xl">🩺</span>
                         </div>
-                        <h3 className="text-3xl font-bold text-white">Advanced Collection Tracking</h3>
-                        <p className="text-gray-400 text-lg leading-relaxed">
-                            Track every card you own, from foils to promos. Filter by set, rarity, color identity, and price. Manage your "Wishlist" separate from your main binder.
+                        <h3 className="text-4xl font-black text-white leading-tight">The AI Deck Doctor</h3>
+                        <p className="text-gray-400 text-xl leading-relaxed">
+                            Stop guessing your deck's power level. Our surgical analysis engine provides a precise <span className="text-white">1-5 Bracket Rating</span>, a granular 10-point power score, and card-for-card "Surgical Swaps" to optimize your curve.
                         </p>
-                        <ul className="space-y-3 text-gray-300">
-                            <li className="flex items-center gap-2">
-                                <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                                Real-time TCGPlayer Pricing
-                            </li>
-                            <li className="flex items-center gap-2">
-                                <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                                CSV Export & Import
-                            </li>
-                        </ul>
-                    </div>
-                    <div className="flex-1 rounded-2xl overflow-hidden shadow-2xl border border-gray-800 animate-fade-in-right">
-                        <div className="aspect-video bg-gray-800 relative flex items-center justify-center">
-                            <img
-                                src="/images/features/collection-dashboard.jpg"
-                                alt="Collection Dashboard showing card grid"
-                                className="w-full h-full object-cover rounded-2xl opacity-90 hover:opacity-100 transition-opacity"
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                {/* 2. Connect & Organize */}
-                <div className="flex flex-col md:flex-row-reverse items-center gap-12 mb-24">
-                    <div className="flex-1 space-y-6 animate-fade-in-right">
-                        <div className="w-16 h-16 bg-indigo-500/20 rounded-2xl flex items-center justify-center mb-4 text-indigo-400">
-                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                        </div>
-                        <h3 className="text-3xl font-bold text-white">Connect & Organize</h3>
-                        <p className="text-gray-400 text-lg leading-relaxed">
-                            Go beyond solo collection. Link accounts with your playgroup ("Pods") to browse friends' trades instantly. Share your builds with the world via dynamic QR Codes.
-                        </p>
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <button
-                                    onClick={() => setActiveFeature('smart')}
-                                    className="bg-gray-800/50 p-4 rounded-xl border border-white/5 text-left hover:bg-gray-800 hover:border-indigo-500/30 transition-all cursor-pointer group relative overflow-hidden"
-                                >
-                                    <h4 className="text-white font-bold mb-1 flex items-center gap-2 group-hover:text-indigo-400 transition-colors">
-                                        <span className="text-xl">✨</span> Smart Binders
-                                    </h4>
-                                    <p className="text-[10px] text-gray-400 group-hover:text-gray-300 transition-colors leading-tight">AI automatically sorts cards into binders based on your rules.</p>
-                                    <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0 text-indigo-500">
-                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-                                    </div>
-                                </button>
-                                <button
-                                    onClick={() => setActiveFeature('pods')}
-                                    className="bg-gray-800/50 p-4 rounded-xl border border-white/5 text-left hover:bg-gray-800 hover:border-purple-500/30 transition-all cursor-pointer group relative overflow-hidden"
-                                >
-                                    <h4 className="text-white font-bold mb-1 flex items-center gap-2 group-hover:text-purple-400 transition-colors">
-                                        <span className="text-xl">🤝</span> Pods
-                                    </h4>
-                                    <p className="text-[10px] text-gray-400 group-hover:text-gray-300 transition-colors leading-tight">Link with friends for real-time trading.</p>
-                                    <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0 text-purple-500">
-                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-                                    </div>
-                                </button>
-                                <button
-                                    onClick={() => setActiveFeature('qr')}
-                                    className="bg-gray-800/50 p-4 rounded-xl border border-white/5 text-left hover:bg-gray-800 hover:border-blue-500/30 transition-all cursor-pointer group relative overflow-hidden"
-                                >
-                                    <h4 className="text-white font-bold mb-1 flex items-center gap-2 group-hover:text-blue-400 transition-colors">
-                                        <span className="text-xl">📱</span> QR Share
-                                    </h4>
-                                    <p className="text-[10px] text-gray-400 group-hover:text-gray-300 transition-colors leading-tight">Showcase deck lists instantly.</p>
-                                    <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0 text-blue-500">
-                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-                                    </div>
-                                </button>
-                                <button
-                                    onClick={() => setActiveFeature('audit')}
-                                    className="bg-gray-800/50 p-4 rounded-xl border border-white/5 text-left hover:bg-gray-800 hover:border-green-500/30 transition-all cursor-pointer group relative overflow-hidden"
-                                >
-                                    <h4 className="text-white font-bold mb-1 flex items-center gap-2 group-hover:text-green-400 transition-colors">
-                                        <span className="text-xl">🛡️</span> Audits
-                                    </h4>
-                                    <p className="text-[10px] text-gray-400 group-hover:text-gray-300 transition-colors leading-tight">Reconcile physical cards with records.</p>
-                                    <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0 text-green-500">
-                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-                                    </div>
-                                </button>
+                        <div className="grid grid-cols-2 gap-6">
+                            <div className="p-4 bg-gray-800/30 rounded-2xl border border-white/5">
+                                <div className="text-orange-400 font-bold text-sm uppercase tracking-widest mb-1">Brackets</div>
+                                <div className="text-white text-lg font-bold">1-5 Scale</div>
+                            </div>
+                            <div className="p-4 bg-gray-800/30 rounded-2xl border border-white/5">
+                                <div className="text-green-400 font-bold text-sm uppercase tracking-widest mb-1">Precision</div>
+                                <div className="text-white text-lg font-bold">0.01 PL Step</div>
                             </div>
                         </div>
                     </div>
-                    <div className="flex-1 rounded-2xl overflow-hidden shadow-2xl border border-gray-800 animate-fade-in-left">
-                        <div className="aspect-video bg-gray-800 relative flex items-center justify-center p-8">
-                            <div className="grid grid-cols-2 gap-4 w-full h-full opacity-80">
-                                <div className="bg-indigo-900/30 rounded-xl border border-indigo-500/20 p-4 flex flex-col items-center justify-center">
-                                    <div className="text-4xl mb-2">✨</div>
-                                    <div className="text-xs font-bold text-indigo-300 uppercase">Smart Binder</div>
+                    <div className="flex-1 rounded-[2.5rem] overflow-hidden shadow-[0_0_50px_-12px_rgba(249,115,22,0.3)] border border-orange-500/20 group animate-fade-in-right">
+                        <div className="aspect-video bg-gray-950 relative flex items-center justify-center p-4">
+                            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-transparent"></div>
+                            {/* Visual representation of the bracket UI from the modal */}
+                            <div className="w-full h-full bg-gray-900 rounded-3xl border border-white/5 p-8 flex flex-col justify-between">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <div className="text-gray-500 text-[10px] font-black uppercase tracking-widest">Calculated Power</div>
+                                        <div className="text-5xl font-black text-white">7.42</div>
+                                    </div>
+                                    <div className="px-3 py-1 rounded-full bg-orange-500/20 text-orange-400 text-[10px] font-black border border-orange-500/30 uppercase tracking-widest">Optimized</div>
                                 </div>
-                                <div className="bg-purple-900/30 rounded-xl border border-purple-500/20 p-4 flex flex-col items-center justify-center">
-                                    <div className="text-4xl mb-2">🤝</div>
-                                    <div className="text-xs font-bold text-purple-300 uppercase">Pod Trade</div>
-                                </div>
-                                <div className="bg-blue-900/30 rounded-xl border border-blue-500/20 p-4 flex flex-col items-center justify-center">
-                                    <div className="text-4xl mb-2">📱</div>
-                                    <div className="text-xs font-bold text-blue-300 uppercase">QR Share</div>
-                                </div>
-                                <div className="bg-green-900/30 rounded-xl border border-green-500/20 p-4 flex flex-col items-center justify-center">
-                                    <div className="text-4xl mb-2">🛡️</div>
-                                    <div className="text-xs font-bold text-green-300 uppercase">Audit The Forge</div>
+                                <div className="space-y-4">
+                                    <div className="h-2 w-full bg-gray-800 rounded-full overflow-hidden">
+                                        <div className="h-full w-[74%] bg-gradient-to-r from-orange-500 to-amber-400"></div>
+                                    </div>
+                                    <p className="text-[10px] text-gray-500 italic">"Highly efficient win-conditions detected. Vulnerable to early interaction."</p>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* 3. AI-Powered Strategy */}
-                <div className="flex flex-col md:flex-row items-center gap-12 mb-24">
-                    <div className="flex-1 space-y-6 animate-fade-in-left">
-                        <div className="w-16 h-16 bg-purple-500/20 rounded-2xl flex items-center justify-center mb-4 text-purple-400">
-                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                {/* 2. AI-Powered Strategy (Moved up) */}
+                <div className="flex flex-col md:flex-row-reverse items-center gap-16 mb-32">
+                    <div className="flex-1 space-y-8 animate-fade-in-right">
+                        <div className="w-20 h-20 bg-indigo-500/20 rounded-3xl flex items-center justify-center mb-4 text-indigo-400 ring-1 ring-indigo-500/20">
+                            <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                         </div>
-                        <h3 className="text-3xl font-bold text-white">AI-Powered Strategy</h3>
-                        <p className="text-gray-400 text-lg leading-relaxed">
-                            Don't just build lists—build strategies. Our Gemini-integrated AI analyzes your commander and suggests synergies, mana curves, and win conditions tailored to your playstyle.
+                        <h3 className="text-4xl font-black text-white leading-tight">AI Strategy Analyst</h3>
+                        <p className="text-gray-400 text-xl leading-relaxed">
+                            Don't just build lists—forge legends. Our Gemini-integrated AI acts as a dedicated coach, analyzing synergies and suggesting win conditions tailored to your playstyle.
                         </p>
-                        <ul className="space-y-3 text-gray-300">
-                            <li className="flex items-center gap-2">
-                                <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                        <ul className="space-y-4 text-gray-300">
+                            <li className="flex items-center gap-3">
+                                <div className="w-6 h-6 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 text-xs">✓</div>
                                 Automated Theme Suggestions
                             </li>
-                            <li className="flex items-center gap-2">
-                                <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                            <li className="flex items-center gap-3">
+                                <div className="w-6 h-6 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 text-xs">✓</div>
                                 Intelligent Land Base Generation
                             </li>
                         </ul>
                     </div>
-                    <div className="flex-1 rounded-2xl overflow-hidden shadow-2xl border border-gray-800 group animate-fade-in-right">
+                    <div className="flex-1 rounded-[2.5rem] overflow-hidden shadow-2xl border border-indigo-500/20 animate-fade-in-left">
                         <div className="aspect-video bg-gray-800 relative flex items-center justify-center">
                             <img
                                 src="/images/features/ai-strategy-modal.png"
                                 alt="AI Strategy Modal showing detailed deck analysis"
-                                className="w-full h-full object-cover rounded-2xl opacity-90 group-hover:opacity-100 transition-opacity"
+                                className="w-full h-full object-cover opacity-90"
                             />
                         </div>
                     </div>
                 </div>
 
-                {/* 4. Custom AI Personas */}
-                <div className="flex flex-col md:flex-row-reverse items-center gap-12 mb-24">
-                    <div className="flex-1 space-y-6 animate-fade-in-right">
-                        <div className="w-16 h-16 bg-pink-500/20 rounded-2xl flex items-center justify-center mb-4 text-pink-400">
-                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                {/* 3. Custom AI Personas (Shared with Strategist) */}
+                <div className="flex flex-col md:flex-row items-center gap-16 mb-32">
+                    <div className="flex-1 space-y-8 animate-fade-in-left">
+                        <div className="w-20 h-20 bg-pink-500/20 rounded-3xl flex items-center justify-center mb-4 text-pink-400 ring-1 ring-pink-500/20">
+                            <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         </div>
-                        <h3 className="text-3xl font-bold text-white">Custom AI Personas</h3>
-                        <p className="text-gray-400 text-lg leading-relaxed">
-                            Forge your own assistant. Define their personality, tone, and expertise. Whether you need a ruthless "Deity" to optimize your curve or a chaotic "Goblin" to suggest fun jank, your AI companion adapts to <em>your</em> goals.
+                        <h3 className="text-4xl font-black text-white leading-tight">Custom AI Personas</h3>
+                        <p className="text-gray-400 text-xl leading-relaxed">
+                            Define your assistant's tone and expertise. Whether you need a ruthless "Deity" to optimize your curve or a chaotic "Goblin" to suggest fun jank, your AI companion adapts to <em>your</em> soul.
                         </p>
                     </div>
-                    <div className="flex-1 rounded-2xl overflow-hidden shadow-2xl border border-gray-800 animate-fade-in-left">
+                    <div className="flex-1 rounded-[2.5rem] overflow-hidden shadow-2xl border border-pink-500/20 animate-fade-in-right">
                         <div className="aspect-video bg-gray-800 relative flex items-center justify-center">
                             <img
                                 src="/images/features/custom-ai-persona.png"
                                 alt="Custom AI Persona creation interface"
-                                className="w-full h-full object-cover rounded-2xl opacity-90 hover:opacity-100 transition-opacity"
+                                className="w-full h-full object-cover opacity-90"
                             />
                         </div>
                     </div>
                 </div>
 
-                {/* 5. Format Flexible Design */}
-                <div className="flex flex-col md:flex-row items-center gap-12">
-                    <div className="flex-1 space-y-6 animate-fade-in-left">
-                        <div className="w-16 h-16 bg-orange-500/20 rounded-2xl flex items-center justify-center mb-4 text-orange-400">
-                            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                {/* 4. Collaborative Pods (Previously Connect & Organize) */}
+                <div className="flex flex-col md:flex-row-reverse items-center gap-16 mb-32">
+                    <div className="flex-1 space-y-8 animate-fade-in-right">
+                        <div className="w-20 h-20 bg-purple-500/20 rounded-3xl flex items-center justify-center mb-4 text-purple-400 ring-1 ring-purple-500/20">
+                            <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
                         </div>
-                        <h3 className="text-3xl font-bold text-white">Format Flexible Design</h3>
-                        <p className="text-gray-400 text-lg leading-relaxed">
-                            Built mainly for Commander, but ready for everything else. Full support for <strong>Standard</strong>, <strong>Modern</strong>, and <strong>Pioneer</strong> is built into the core.
+                        <h3 className="text-4xl font-black text-white leading-tight">Rule Your "Pod"</h3>
+                        <p className="text-gray-400 text-xl leading-relaxed">
+                            Magic is a social game. Link accounts with your playgroup to browse friends' collections, manage shared trades, and coordinate group power levels instantly.
                         </p>
-                        <ul className="space-y-3 text-gray-300">
-                            <li className="flex items-center gap-2">
-                                <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                                Commander Partners & Backgrounds
-                            </li>
-                            <li className="flex items-center gap-2">
-                                <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                                Sideboard & Companion Support
-                            </li>
-                            <li className="flex items-center gap-2">
-                                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                Future Format Updates Planned
-                            </li>
-                        </ul>
+                        <div className="flex flex-wrap gap-4">
+                            <button onClick={() => setActiveFeature('pods')} className="px-6 py-2 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-400 text-sm font-bold hover:bg-purple-500/20 transition-all">Explore Pods</button>
+                            <button onClick={() => setActiveFeature('qr')} className="px-6 py-2 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400 text-sm font-bold hover:bg-blue-500/20 transition-all">Quick Share</button>
+                        </div>
                     </div>
-                    <div className="flex-1 rounded-2xl overflow-hidden shadow-2xl border border-gray-800 animate-fade-in-right">
-                        <div className="aspect-video bg-gray-800 relative flex items-center justify-center">
-                            <img
-                                src="/images/features/commander-centric-design.png"
-                                alt="My Decks view showing commanders"
-                                className="w-full h-full object-cover rounded-2xl opacity-90 hover:opacity-100 transition-opacity"
-                            />
+                    <div className="flex-1 rounded-[2.5rem] overflow-hidden shadow-2xl border border-purple-500/20 bg-gray-950 p-12">
+                        <div className="grid grid-cols-2 gap-6 w-full h-full opacity-80">
+                            <div className="bg-indigo-900/30 rounded-2xl border border-indigo-500/20 p-6 flex flex-col items-center justify-center">
+                                <div className="text-5xl mb-3">✨</div>
+                                <div className="text-xs font-bold text-indigo-300 uppercase tracking-widest">Smart Binder</div>
+                            </div>
+                            <div className="bg-purple-900/30 rounded-2xl border border-purple-500/20 p-6 flex flex-col items-center justify-center">
+                                <div className="text-5xl mb-3">🤝</div>
+                                <div className="text-xs font-bold text-purple-300 uppercase tracking-widest">Pod Trade</div>
+                            </div>
+                            <div className="bg-blue-900/30 rounded-2xl border border-blue-500/20 p-6 flex flex-col items-center justify-center">
+                                <div className="text-5xl mb-3">📱</div>
+                                <div className="text-xs font-bold text-blue-300 uppercase tracking-widest">QR Share</div>
+                            </div>
+                            <div className="bg-green-900/30 rounded-2xl border border-green-500/20 p-6 flex flex-col items-center justify-center">
+                                <div className="text-5xl mb-3">🛡️</div>
+                                <div className="text-xs font-bold text-green-300 uppercase tracking-widest">Audits</div>
+                            </div>
                         </div>
                     </div>
                 </div>
+
+                {/* 5. Foundation (Collection Tracking) */}
+                <div className="flex flex-col md:flex-row items-center gap-16">
+                    <div className="flex-1 space-y-8 animate-fade-in-left">
+                        <div className="w-16 h-16 bg-blue-500/20 rounded-2xl flex items-center justify-center mb-4 text-blue-400">
+                            <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                        </div>
+                        <h3 className="text-3xl font-bold text-white leading-tight">The Professional Foundation</h3>
+                        <p className="text-gray-400 text-lg leading-relaxed">
+                            Underneath the AI intelligence is a robust engine for cataloging your digital life. Fast scanning, accurate pricing, and comprehensive management for any format.
+                        </p>
+                    </div>
+                    <div className="flex-1 rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/5 bg-gray-800/20 group">
+                        <img
+                            src="/images/features/collection-dashboard.jpg"
+                            alt="Collection Dashboard"
+                            className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity"
+                        />
+                    </div>
+                </div>
+
 
             </div>
 
