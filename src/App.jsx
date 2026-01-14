@@ -26,6 +26,8 @@ import AuditHub from './components/Audit/AuditHub';
 import Lobby from './pages/LiveSession/Lobby';
 import GameRoom from './pages/LiveSession/GameRoom';
 import SocialPage from './pages/SocialPage';
+import TournamentPage from './pages/TournamentPage';
+import TournamentJoinPage from './pages/TournamentJoinPage';
 import ChatWidget from './components/ChatWidget';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -76,6 +78,9 @@ function App() {
                                     <Route path="/play/lobby" element={<Lobby />} />
                                     <Route path="/play/room/:id" element={<GameRoom />} />
                                     <Route path="/social" element={<SocialPage />} />
+                                    <Route path="/tournaments" element={<TournamentPage />} />
+                                    <Route path="/tournaments/:id" element={<TournamentPage />} />
+                                    <Route path="/tournaments/:id/join" element={<TournamentJoinPage />} />
                                 </Routes>
                             </div>
                         </AuthGuard>

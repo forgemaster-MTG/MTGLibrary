@@ -38,6 +38,7 @@ import matchesApi from './api/matches.js';
 import friendsApi from './api/friends.js';
 import socialApi from './api/social.js';
 import matchStatsApi from './api/match_stats.js';
+import tournamentsApi from './api/tournaments.js';
 
 const require = createRequire(import.meta.url);
 
@@ -195,6 +196,7 @@ app.use('/api/matches', matchesApi);
 app.use('/api/friends', friendsApi);
 app.use('/api/social', socialApi);
 app.use('/api/stats', matchStatsApi);
+app.use('/api/tournaments', tournamentsApi);
 
 // Health endpoint
 app.get('/api/health', (req, res) => {

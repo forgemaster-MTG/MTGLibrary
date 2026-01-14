@@ -1280,6 +1280,13 @@ const DeckDetailsPage = () => {
                                     <span className="text-lg">📊</span>
                                     Full Deck Stats
                                 </button>
+                                <button
+                                    onClick={() => navigate('/tournaments')}
+                                    className="w-full py-4 bg-yellow-600/10 hover:bg-yellow-600/20 text-yellow-500 rounded-xl border border-yellow-500/20 hover:border-yellow-500/40 transition-all font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3"
+                                >
+                                    <span className="text-lg">🏆</span>
+                                    Tournament Mode
+                                </button>
                             </div>
                         </div>
 

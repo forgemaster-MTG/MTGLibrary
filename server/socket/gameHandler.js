@@ -57,7 +57,28 @@ export const setupGameHandler = (io, socket) => {
     // --- Player Events ---
 
     socket.on('join-game', ({ pin, name, userId, deckId }, callback) => {
-        const roomId = getRoomByPin(pin);
+        let roomId = getRoomByPin(pin);
+
+        // LAZY CREATE: If pin starts with "pair-" and room doesn't exist, create it on the fly.
+        // This supports tournament "Join Game" links where pin = pairingId
+        if (!roomId && pin && pin.startsWith('pair-')) {
+            roomId = pin; // Use the pairing ID as the room ID
+            if (!games.has(roomId)) {
+                // Auto-create room
+                games.set(roomId, {
+                    pin,
+                    hostId: null, // No explicit host for auto-created rooms initially
+                    players: new Map(),
+                    turnOrder: [],
+                    activePlayerIndex: 0,
+                    turnCount: 0,
+                    firstPlayerIndex: 0,
+                    startTime: Date.now(),
+                    logs: []
+                });
+                console.log(`[Game] Lazy-created tournament room ${roomId}`);
+            }
+        }
 
         if (!roomId) {
             return callback({ success: false, error: 'Invalid PIN' });

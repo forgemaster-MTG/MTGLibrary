@@ -1,22 +1,48 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Users, Activity, Trophy } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { Users, Activity, Trophy, Swords } from 'lucide-react';
 import PageHeader from '../components/common/PageHeader';
 import FriendList from '../components/Social/FriendList';
 import SocialFeed from '../components/Social/SocialFeed';
 import Leaderboard from '../components/Social/Leaderboard';
+import TournamentGrid from '../components/Tournaments/TournamentGrid';
+import TournamentCreateModal from '../components/Tournaments/TournamentCreateModal';
 import { api } from '../services/api';
 
 const SocialPage = () => {
     const { user, userProfile, refreshUserProfile } = useAuth();
-    const [activeTab, setActiveTab] = useState('feed');
+    const [searchParams, setSearchParams] = useSearchParams();
+    const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'feed');
     const [lfgStatus, setLfgStatus] = useState(false);
+    const [tournaments, setTournaments] = useState([]);
+    const [loadingTournaments, setLoadingTournaments] = useState(false);
+    const [showCreateModal, setShowCreateModal] = useState(false);
 
     useEffect(() => {
         if (userProfile?.lfg_status !== undefined) {
             setLfgStatus(userProfile.lfg_status);
         }
     }, [userProfile]);
+
+    useEffect(() => {
+        if (activeTab === 'tournaments') {
+            fetchTournaments();
+        }
+        setSearchParams({ tab: activeTab }, { replace: true });
+    }, [activeTab, setSearchParams]);
+
+    const fetchTournaments = async () => {
+        try {
+            setLoadingTournaments(true);
+            const data = await api.get('/api/tournaments');
+            setTournaments(data || []);
+        } catch (err) {
+            console.error('Failed to fetch tournaments', err);
+        } finally {
+            setLoadingTournaments(false);
+        }
+    };
 
     const handleLfgChange = async () => {
         const newStatus = !lfgStatus;
@@ -36,6 +62,7 @@ const SocialPage = () => {
         { id: 'feed', label: 'Activity Feed', icon: Activity },
         { id: 'friends', label: 'Friends', icon: Users },
         { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
+        { id: 'tournaments', label: 'Tournaments', icon: Swords },
     ];
 
     return (
@@ -94,8 +121,34 @@ const SocialPage = () => {
                     {activeTab === 'feed' && <SocialFeed />}
                     {activeTab === 'friends' && <FriendList />}
                     {activeTab === 'leaderboard' && <Leaderboard />}
+                    {activeTab === 'tournaments' && (
+                        loadingTournaments ? (
+                            <div className="text-center py-10 text-gray-500">Loading Tournaments...</div>
+                        ) : (
+                            <div className="space-y-6">
+                                <div className="flex justify-end">
+                                    <button
+                                        onClick={() => setShowCreateModal(true)}
+                                        className="flex items-center gap-2 px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-black font-bold rounded-lg text-sm transition-colors"
+                                    >
+                                        <Swords className="w-4 h-4" />
+                                        Create Tournament
+                                    </button>
+                                </div>
+                                <TournamentGrid
+                                    tournaments={tournaments}
+                                    emptyMessage="No active tournaments found based on filters."
+                                />
+                            </div>
+                        )
+                    )}
                 </div>
             </div>
+
+            <TournamentCreateModal
+                isOpen={showCreateModal}
+                onClose={() => setShowCreateModal(false)}
+            />
         </div>
     );
 };
