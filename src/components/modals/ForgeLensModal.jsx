@@ -127,6 +127,12 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
         const socket = io();
         socket.emit('join-pairing', sessionId);
 
+        socket.on('peer-connected', () => {
+            console.log("Peer connected!");
+            setIsRemoteConnected(true);
+            addToast("Remote device connected!", "success");
+        });
+
         socket.on('remote-card', (card) => {
             console.log("Card received from remote:", card.name);
             // Remote cards already have finish set by the mobile UI, but we can override if desired

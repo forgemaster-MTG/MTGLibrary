@@ -247,6 +247,7 @@ io.on('connection', (socket) => {
 
   socket.on('join-pairing', (sessionId) => {
     socket.join(`pair-${sessionId}`);
+    socket.to(`pair-${sessionId}`).emit('peer-connected');
     console.log(`Socket ${socket.id} joined pairing room: pair-${sessionId}`);
   });
 
