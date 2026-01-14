@@ -2,31 +2,29 @@
  * @param { import("knex").Knex } knex
  * @returns { Promise<void> }
  */
-export function up(knex) {
+exports.up = function (knex) {
     return knex.schema
         .createTable('audit_sessions', function (table) {
             table.increments('id').primary();
-            table.integer('user_id').references('id').inTable('users').onDelete('CASCADE');
-            table.enu('type', ['collection', 'binder', 'deck', 'set']).notNullable();
-            table.string('target_id').nullable(); // String to support UUIDs or Set Codes
-            table.enu('status', ['active', 'completed', 'applied', 'expired', 'cancelled']).defaultTo('active');
+            table.integer('user_id'); // Simplify for now, usually FK to users
+            table.text('type').notNullable().checkIn(['collection', 'binder', 'deck', 'set']);
+            table.string('target_id', 255); // binder_id, deck_id, set_code
+            table.text('status').defaultTo('active').checkIn(['active', 'completed', 'applied', 'expired', 'cancelled']);
             table.timestamp('expires_at').notNullable();
             table.timestamp('created_at').defaultTo(knex.fn.now());
             table.timestamp('updated_at').defaultTo(knex.fn.now());
         })
         .createTable('audit_items', function (table) {
             table.increments('id').primary();
-            table.integer('session_id').references('id').inTable('audit_sessions').onDelete('CASCADE');
-            table.string('name').notNullable();
-            table.string('set_code').nullable();
-            table.string('collector_number').nullable();
-            table.string('finish').defaultTo('nonfoil'); // Added finish
-            table.integer('expected_quantity').defaultTo(0);
-            table.integer('actual_quantity').defaultTo(0);
-            table.boolean('is_verified').defaultTo(false);
-
-            // Index for faster lookups during audit
-
+            table.integer('audit_id').references('id').inTable('audit_sessions').onDelete('CASCADE');
+            table.string('card_id', 255); // Scryfall ID
+            table.string('name', 255);
+            table.string('set_code', 10);
+            table.string('collector_number', 50);
+            table.integer('expected_qty').defaultTo(0);
+            table.integer('scanned_qty').defaultTo(0);
+            table.timestamp('last_scanned_at');
+            // 'status' derived: missing, matched, extra
         });
 };
 
@@ -34,8 +32,8 @@ export function up(knex) {
  * @param { import("knex").Knex } knex
  * @returns { Promise<void> }
  */
-export function down(knex) {
+exports.down = function (knex) {
     return knex.schema
-        .dropTableIfExists('audit_items')
-        .dropTableIfExists('audit_sessions');
+        .dropTable('audit_items')
+        .dropTable('audit_sessions');
 };

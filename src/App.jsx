@@ -23,6 +23,9 @@ import RemoteLensPage from './pages/RemoteLensPage';
 import AIStrategyPage from './pages/AIStrategyPage';
 import AuditWizard from './components/Audit/AuditWizard';
 import AuditHub from './components/Audit/AuditHub';
+import Lobby from './pages/LiveSession/Lobby';
+import GameRoom from './pages/LiveSession/GameRoom';
+import SocialPage from './pages/SocialPage';
 import ChatWidget from './components/ChatWidget';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -70,6 +73,9 @@ function App() {
                                     <Route path="/audit/:auditId/wizard" element={<AuditWizard />} />
                                     <Route path="/remote/:sessionId" element={<RemoteLensPage />} />
                                     <Route path="/strategy" element={<AIStrategyPage />} />
+                                    <Route path="/play/lobby" element={<Lobby />} />
+                                    <Route path="/play/room/:id" element={<GameRoom />} />
+                                    <Route path="/social" element={<SocialPage />} />
                                 </Routes>
                             </div>
                         </AuthGuard>

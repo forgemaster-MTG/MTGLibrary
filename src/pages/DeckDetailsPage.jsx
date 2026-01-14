@@ -17,6 +17,7 @@ import DeckStrategyModal from '../components/modals/DeckStrategyModal';
 import ShareModal from '../components/modals/ShareModal';
 import DeckDoctorModal from '../components/modals/DeckDoctorModal';
 import DeckAI from '../components/DeckAI';
+import TokenModal from '../components/modals/TokenModal';
 import CardGridItem from '../components/common/CardGridItem';
 import StartAuditButton from '../components/Audit/StartAuditButton';
 import ForgeLensModal from '../components/modals/ForgeLensModal';
@@ -136,6 +137,7 @@ const DeckDetailsPage = () => {
     const [isStatsModalOpen, setIsStatsModalOpen] = useState(false);
     const [isDoctorOpen, setIsDoctorOpen] = useState(false);
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+    const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
     const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
     const [isToolsMenuLocked, setIsToolsMenuLocked] = useState(false);
     const toolsMenuRef = useRef(null);
@@ -843,6 +845,14 @@ const DeckDetailsPage = () => {
                                                         <svg className="w-5 h-5 text-blue-400 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                                                         <span className="text-[10px] font-bold text-gray-300">Search</span>
                                                     </button>
+
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); setIsTokenModalOpen(true); setIsToolsMenuOpen(false); }}
+                                                        className="flex flex-col items-center justify-center p-3 bg-white/5 hover:bg-indigo-500/20 rounded-xl border border-white/5 transition-all group group"
+                                                    >
+                                                        <svg className="w-5 h-5 text-indigo-400 group-hover:scale-110 transition-transform mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14v6m-3-3h6M6 10h2a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2zm10 0h2a2 2 0 002-2V6a2 2 0 00-2-2h-2a2 2 0 00-2 2v2a2 2 0 002 2zM6 20h2a2 2 0 002-2v-2a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2z" /></svg>
+                                                        <span className="text-[10px] font-bold text-gray-300">View Tokens</span>
+                                                    </button>
                                                 </div>
                                             </div>
 
@@ -1424,6 +1434,12 @@ const DeckDetailsPage = () => {
                             addToast("Failed to add scanned cards.", "error");
                         }
                     }}
+                />
+
+                <TokenModal
+                    isOpen={isTokenModalOpen}
+                    onClose={() => setIsTokenModalOpen(false)}
+                    deckCards={deckCards}
                 />
             </div>
         </div>

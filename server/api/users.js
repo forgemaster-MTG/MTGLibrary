@@ -73,6 +73,10 @@ router.put('/:id', authMiddleware, async (req, res) => {
     }
 
     if (data !== undefined) updateData.data = data;
+    if (req.body.lfg_status !== undefined) {
+      updateData.lfg_status = req.body.lfg_status;
+      updateData.lfg_last_updated = knex.fn.now();
+    }
 
     const result = await knex('users')
       .where({ id: userId })

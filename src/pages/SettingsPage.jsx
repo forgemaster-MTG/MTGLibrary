@@ -10,6 +10,7 @@ import DeleteConfirmationModal from '../components/modals/DeleteConfirmationModa
 import CommunitySettingsTab from '../components/community/CommunitySettingsTab';
 import AdminPanel from '../components/Settings/AdminPanel';
 import Membership from '../components/Settings/Membership';
+import MatchHistoryTab from '../components/Settings/MatchHistoryTab';
 
 const SettingsPage = () => {
     const { user, userProfile, refreshUserProfile, resetPassword, sendVerification, updateProfileFields } = useAuth();
@@ -191,7 +192,7 @@ const SettingsPage = () => {
 
             {/* Tabs */}
             <div className="flex border-b border-gray-700 overflow-x-auto">
-                {['account', 'membership', 'general', 'community', 'ai', 'display', 'data', ...((user?.uid === 'Kyrlwz6G6NWICCEPYbXtFfyLzWI3' || userProfile?.settings?.isAdmin) ? ['admin'] : [])].map((t) => (
+                {['account', 'history', 'membership', 'general', 'community', 'ai', 'display', 'data', ...((user?.uid === 'Kyrlwz6G6NWICCEPYbXtFfyLzWI3' || userProfile?.settings?.isAdmin) ? ['admin'] : [])].map((t) => (
                     <button
                         key={t}
                         onClick={() => navigate(`/settings/${t}`)}
@@ -297,6 +298,10 @@ const SettingsPage = () => {
                             </div>
                         </section>
                     </div>
+                )}
+
+                {activeTab === 'history' && (
+                    <MatchHistoryTab />
                 )}
 
                 {activeTab === 'general' && (

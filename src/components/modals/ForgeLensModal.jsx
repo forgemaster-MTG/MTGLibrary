@@ -133,16 +133,30 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
             addToast("Remote device connected!", "success");
         });
 
-        socket.on('remote-card', (card) => {
-            console.log("Card received from remote:", card.name);
-            // Remote cards already have finish set by the mobile UI, but we can override if desired
-            // For now, we respect what remote says.
-            setScannedCards(prev => [...prev, card]);
-            setLastDetection({ success: true, name: card.name });
+        socket.on('remote-card', async (card) => {
+            console.log("Card received from remote:", card.name, card);
+
+            // Debounce: Prevent exact same card from scanning multiple times in 2 seconds
+            const now = Date.now();
+            if (lastDetection &&
+                lastDetection.name === card.name &&
+                (now - (lastDetection.timestamp || 0) < 2000)) {
+                console.log("Debounced duplicate remote scan");
+                return;
+            }
+
             setIsRemoteConnected(true);
 
-            // Auto-clear success message
-            setTimeout(() => setLastDetection(null), 2000);
+            // Fix: Don't add directly! Resolve it first to get full data (image, prices, etc.)
+            // The remote app sends { name, collector_number, set_code (maybe) }
+            await resolveCard({
+                name: card.name,
+                set: card.set || card.set_code,
+                cn: card.collector_number || card.subtext, // Sometimes passed as subtext
+                raw_footer: "Remote Scan"
+            });
+
+            // Note: resolveCard handles setLastDetection and addCardToHistory
         });
 
         return () => socket.disconnect();
@@ -237,7 +251,8 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
         setLastDetection({
             success: true,
             name: data.name,
-            price: price
+            price: price,
+            timestamp: Date.now()
         });
     }, [tierConfig.features.batchScan, defaultFinish]);
 

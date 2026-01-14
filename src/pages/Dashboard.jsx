@@ -15,6 +15,7 @@ import TipsWidget from '../components/dashboard/TipsWidget';
 import OrganizationWidget from '../components/dashboard/OrganizationWidget';
 import ReleasesWidget from '../components/dashboard/ReleasesWidget';
 import AuditDashboardWidget from '../components/Audit/AuditDashboardWidget';
+import SocialStatsWidget from '../components/dashboard/SocialStatsWidget';
 
 import DonationModal from '../components/modals/DonationModal';
 import BinderGuideModal from '../components/modals/BinderGuideModal';
@@ -425,6 +426,7 @@ const Dashboard = () => {
 
                     {/* Right Column: Key Stats / Profile / Reports */}
                     <div className="space-y-6 flex flex-col h-full">
+                        <SocialStatsWidget />
                         <AuditDashboardWidget />
 
                         {/* Tips Widget */}
