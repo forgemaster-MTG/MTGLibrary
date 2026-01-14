@@ -718,10 +718,10 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
                                                                 className="bg-gray-800 border border-white/10 rounded-lg px-2 py-1 text-xs text-white outline-none focus:ring-1 focus:ring-indigo-500 truncate"
                                                             >
                                                                 {card.variants?.map(v => (
-                                                                    <option key={v.id} value={v.id}>{v.set.toUpperCase()} #{v.collector_number} ({v.set_name})</option>
+                                                                    <option key={v.id} value={v.id}>{(v.set || '').toUpperCase()} #{v.collector_number} ({v.set_name})</option>
                                                                 ))}
                                                                 {!card.variants?.length && (
-                                                                    <option value={card.scryfall_id}>{card.set_code.toUpperCase()} #{card.collector_number}</option>
+                                                                    <option value={card.scryfall_id}>{(card.set_code || '').toUpperCase()} #{card.collector_number}</option>
                                                                 )}
                                                             </select>
                                                             <span className="text-[9px] text-gray-600 mt-1 uppercase tracking-tighter">Tap to change version</span>
