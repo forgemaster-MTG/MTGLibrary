@@ -137,7 +137,9 @@ const DeckDetailsPage = () => {
     const [isDoctorOpen, setIsDoctorOpen] = useState(false);
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
     const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
+    const [isToolsMenuLocked, setIsToolsMenuLocked] = useState(false);
     const toolsMenuRef = useRef(null);
+    const toolsMenuTimeoutRef = useRef(null);
 
     const [showStats, setShowStats] = useState(true);
     // Initialize from settings or default to 'grid'
@@ -146,6 +148,7 @@ const DeckDetailsPage = () => {
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (toolsMenuRef.current && !toolsMenuRef.current.contains(event.target)) {
+                setIsToolsMenuLocked(false);
                 setIsToolsMenuOpen(false);
             }
         };
@@ -749,7 +752,7 @@ const DeckDetailsPage = () => {
                         </div>
 
                         {/* Right: Actions */}
-                        <div className="flex items-center gap-2 md:gap-3 bg-gray-950/40 p-1.5 rounded-2xl border border-white/5 backdrop-blur-md relative self-end lg:self-auto" ref={toolsMenuRef}>
+                        <div className="flex items-center gap-2 md:gap-3 bg-gray-950/40 p-1.5 rounded-2xl border border-white/5 backdrop-blur-md relative self-end lg:self-auto">
                             <button
                                 onClick={() => setIsStrategyModalOpen(true)}
                                 className="bg-indigo-600 hover:bg-indigo-500 text-white font-black py-2.5 px-4 md:px-6 rounded-xl shadow-lg shadow-indigo-900/40 transition-all flex items-center gap-2 uppercase tracking-widest text-[10px] md:text-xs shrink-0"
@@ -768,37 +771,51 @@ const DeckDetailsPage = () => {
                                 </button>
                             )}
 
-                            {/* Mobile/Desktop Tools Toggle */}
-                            <div className="relative">
+
+
+                            {/* Grouped Action Menu */}
+                            <div
+                                ref={toolsMenuRef}
+                                className="relative"
+                                onMouseEnter={() => {
+                                    if (toolsMenuTimeoutRef.current) {
+                                        clearTimeout(toolsMenuTimeoutRef.current);
+                                        toolsMenuTimeoutRef.current = null;
+                                    }
+                                    setIsToolsMenuOpen(true);
+                                }}
+                                onMouseLeave={() => {
+                                    if (!isToolsMenuLocked) {
+                                        toolsMenuTimeoutRef.current = setTimeout(() => {
+                                            setIsToolsMenuOpen(false);
+                                        }, 400); // 400ms delay for easier navigation
+                                    }
+                                }}
+                            >
                                 <button
-                                    onClick={() => setIsToolsMenuOpen(!isToolsMenuOpen)}
-                                    className={`group relative flex items-center justify-center w-12 h-11 md:w-auto md:px-5 transition-all rounded-xl border ${isToolsMenuOpen ? 'bg-indigo-600 border-indigo-400 text-white' : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700 hover:text-white'} shadow-md`}
-                                    title="Deck Tools & Management"
+                                    onClick={() => {
+                                        const newLocked = !isToolsMenuLocked;
+                                        setIsToolsMenuLocked(newLocked);
+                                        setIsToolsMenuOpen(true);
+                                    }}
+                                    className={`flex items-center gap-3 px-6 py-3 rounded-2xl border transition-all duration-300 shadow-xl ${isToolsMenuLocked
+                                        ? 'bg-indigo-600 border-indigo-500 text-white'
+                                        : 'bg-indigo-600/10 border-indigo-500/20 text-indigo-300 hover:text-white hover:border-indigo-500/50 hover:bg-indigo-600/20'
+                                        }`}
                                 >
-                                    {/* Desktop: Action Cluster Icon Set */}
-                                    <div className="hidden md:flex items-center -space-x-2 mr-3 opacity-70 group-hover:opacity-100 transition-opacity">
-                                        <div className="w-6 h-6 rounded-full bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center backdrop-blur-sm">
+                                    <div className="flex -space-x-1.5 items-center">
+                                        <div className="w-5 h-5 rounded-full bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center backdrop-blur-sm">
+                                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                                        </div>
+                                        <div className="w-5 h-5 rounded-full bg-purple-500/20 border border-purple-500/40 flex items-center justify-center backdrop-blur-sm">
+                                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" /></svg>
+                                        </div>
+                                        <div className="w-5 h-5 rounded-full bg-blue-500/20 border border-blue-500/40 flex items-center justify-center backdrop-blur-sm">
                                             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg>
                                         </div>
-                                        <div className="w-6 h-6 rounded-full bg-purple-500/20 border border-purple-500/40 flex items-center justify-center backdrop-blur-sm">
-                                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                                        </div>
-                                        <div className="w-6 h-6 rounded-full bg-blue-500/20 border border-blue-500/40 flex items-center justify-center backdrop-blur-sm">
-                                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                        </div>
                                     </div>
-
-                                    <span className="text-[10px] md:text-xs font-black uppercase tracking-widest">
-                                        {isToolsMenuOpen ? 'Close' : 'Tools'}
-                                    </span>
-
-                                    {/* Mobile Indicator Ring */}
-                                    {!isToolsMenuOpen && (
-                                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-indigo-500 rounded-full border-2 border-gray-900 md:hidden animate-pulse" />
-                                    )}
+                                    <span className="text-xs font-black uppercase tracking-widest">{isToolsMenuLocked ? 'Close' : 'Tools'}</span>
                                 </button>
-
-                                {/* Grouped Action Menu */}
                                 {isToolsMenuOpen && (
                                     <div className="absolute right-0 top-full mt-3 w-72 md:w-80 bg-gray-950/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden z-[60] animate-in fade-in zoom-in-95 duration-200 origin-top-right">
                                         <div className="p-4 space-y-6">
@@ -809,10 +826,11 @@ const DeckDetailsPage = () => {
                                                     {canEdit && (
                                                         <button
                                                             onClick={(e) => { e.stopPropagation(); setIsForgeLensOpen(true); setIsToolsMenuOpen(false); }}
-                                                            className="flex flex-col items-center gap-2 p-3 bg-white/5 hover:bg-indigo-500/20 rounded-xl border border-white/5 transition-all group"
+                                                            className="flex flex-col items-center justify-center p-3 bg-white/5 hover:bg-indigo-500/20 rounded-xl border border-white/5 transition-all group lg:min-h-[64px] group"
+                                                            title="Forge Lens: Scan & Add"
                                                         >
-                                                            <svg className="w-5 h-5 text-indigo-400 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                                                            <span className="text-[10px] font-bold text-gray-300">Scan</span>
+                                                            <svg className="w-5 h-5 text-indigo-400 group-hover:scale-110 transition-transform mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg>
+                                                            <span className="text-[10px] font-bold text-gray-300">Forge Lens</span>
                                                         </button>
                                                     )}
 
@@ -843,30 +861,32 @@ const DeckDetailsPage = () => {
                                                             setIsDoctorOpen(true);
                                                             setIsToolsMenuOpen(false);
                                                         }}
-                                                        className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all group ${getTierConfig(userProfile?.subscription_tier).features.deckDoctor
+                                                        className={`flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border transition-all group ${getTierConfig(userProfile?.subscription_tier).features.deckDoctor
                                                             ? 'bg-indigo-500/10 hover:bg-indigo-500/30 border-indigo-500/20'
                                                             : 'bg-gray-900 border-gray-800 opacity-40 cursor-not-allowed'
                                                             }`}
                                                     >
-                                                        <span className="text-xl group-hover:scale-110 transition-transform">🩺</span>
-                                                        <span className="text-[10px] font-bold text-indigo-300">Doctor</span>
+                                                        <svg className="w-8 h-8 text-indigo-400 group-hover:scale-110 transition-transform bg-indigo-500/20 p-1.5 rounded-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                                                        <span className="text-[10px] font-bold text-indigo-300 uppercase tracking-wider">Deck Doctor</span>
                                                     </button>
 
-                                                    {canEdit && (
-                                                        getTierConfig(userProfile?.subscription_tier).features.deckAudit ? (
-                                                            <div onClick={() => setIsToolsMenuOpen(false)} className="h-full">
-                                                                <StartAuditButton type="deck" targetId={deckId} label="Audit" className="w-full h-full flex flex-col items-center gap-2 p-3 bg-purple-500/10 hover:bg-purple-500/30 border border-purple-500/20 rounded-xl transition-all font-bold text-[10px] text-purple-300" />
-                                                            </div>
-                                                        ) : (
-                                                            <button
-                                                                onClick={(e) => { e.stopPropagation(); addToast('Deck Audits are available on Magician tier and above.', 'info'); }}
-                                                                className="flex flex-col items-center gap-2 p-3 bg-gray-900 border border-gray-800 rounded-xl opacity-40 cursor-not-allowed"
-                                                            >
-                                                                <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                                                <span className="text-[10px] font-bold text-gray-500">Audit</span>
-                                                            </button>
+                                                    {
+                                                        canEdit && (
+                                                            getTierConfig(userProfile?.subscription_tier).features.deckAudit ? (
+                                                                <div onClick={() => setIsToolsMenuOpen(false)} className="h-full">
+                                                                    <StartAuditButton type="deck" targetId={deckId} label="Audit" className="w-full h-full flex flex-col items-center gap-2 p-3 bg-purple-500/10 hover:bg-purple-500/30 border border-purple-500/20 rounded-xl transition-all font-bold text-[10px] text-purple-300" />
+                                                                </div>
+                                                            ) : (
+                                                                <button
+                                                                    onClick={(e) => { e.stopPropagation(); addToast('Deck Audits are available on Magician tier and above.', 'info'); }}
+                                                                    className="flex flex-col items-center gap-2 p-3 bg-gray-900 border border-gray-800 rounded-xl opacity-40 cursor-not-allowed"
+                                                                >
+                                                                    <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                                    <span className="text-[10px] font-bold text-gray-500">Audit</span>
+                                                                </button>
+                                                            )
                                                         )
-                                                    )}
+                                                    }
                                                 </div>
                                             </div>
 
@@ -1315,6 +1335,10 @@ const DeckDetailsPage = () => {
                     isOpen={isSearchOpen}
                     onClose={() => setIsSearchOpen(false)}
                     onAddCard={handleAddToDeck}
+                    onOpenForgeLens={() => {
+                        setIsSearchOpen(false);
+                        setIsForgeLensOpen(true);
+                    }}
                 />
 
                 {/* Confirmation Modal */}
@@ -1368,9 +1392,10 @@ const DeckDetailsPage = () => {
                 <ForgeLensModal
                     isOpen={isForgeLensOpen}
                     onClose={() => setIsForgeLensOpen(false)}
-                    onFinish={async (scannedBatch) => {
+                    onFinish={async (scannedBatch, options = {}) => {
                         if (!scannedBatch.length) return;
                         try {
+                            const { targetDeckId, additionMode } = options;
                             const payload = scannedBatch.map(item => ({
                                 name: item.name,
                                 scryfall_id: item.scryfall_id,
@@ -1384,9 +1409,16 @@ const DeckDetailsPage = () => {
                                 tags: []
                             }));
 
-                            await deckService.batchAddCardsToDeck(currentUser.uid, deckId, payload);
-                            addToast(`Successfully added ${scannedBatch.length} cards to deck!`, 'success');
-                            refreshDeck();
+                            const apiMode = additionMode === 'transfer' ? 'transfer_to_deck' : 'merge';
+                            // Use the targetDeckId from options if provided, otherwise fallback to current deckId
+                            const finalDeckId = targetDeckId || deckId;
+
+                            await deckService.batchAddCardsToDeck(currentUser.uid, finalDeckId, payload, apiMode);
+
+                            const destination = targetDeckId ? (targetDeckId === deckId ? 'this deck' : 'another deck') : 'your collection';
+                            addToast(`Successfully ${additionMode === 'transfer' ? 'moved' : 'added'} ${scannedBatch.length} cards to ${destination}!`, 'success');
+
+                            if (finalDeckId === deckId) refreshDeck();
                         } catch (err) {
                             console.error("Forge Lens Add Failed", err);
                             addToast("Failed to add scanned cards.", "error");

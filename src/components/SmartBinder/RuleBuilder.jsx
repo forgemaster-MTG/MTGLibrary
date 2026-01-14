@@ -42,7 +42,8 @@ const FIELDS = [
     }
 ];
 
-const RuleBuilder = ({ rules = [], onChange }) => {
+const RuleBuilder = ({ rules: propRules = [], onChange }) => {
+    const rules = Array.isArray(propRules) ? propRules : [];
     const [showRaw, setShowRaw] = useState(false);
 
     const addRule = () => {

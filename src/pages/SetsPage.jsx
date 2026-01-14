@@ -168,11 +168,19 @@ const SetsPage = () => {
                                 </div>
                                 <input
                                     type="text"
-                                    className="block w-full pl-9 pr-4 py-2 bg-gray-900/50 border border-white/5 rounded-lg text-xs text-gray-300 placeholder-gray-600 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all outline-none"
+                                    className="block w-full pl-9 pr-10 py-2 bg-gray-900/50 border border-white/5 rounded-lg text-xs text-gray-300 placeholder-gray-600 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all outline-none"
                                     placeholder="Search sets..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
+                                {searchTerm && (
+                                    <button
+                                        onClick={() => setSearchTerm('')}
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors p-1"
+                                    >
+                                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                    </button>
+                                )}
                             </div>
 
                             <div className="relative flex-grow max-w-sm">

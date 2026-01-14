@@ -380,6 +380,7 @@ router.post('/batch', batchLimitCheck, async (req, res) => {
                 const collectorNumber = c.collector_number || '0';
                 const finish = c.finish || 'nonfoil';
                 const isWishlist = c.is_wishlist || false;
+                const incomingCount = c.count || 1;
 
                 // Validate FKs
                 let deckId = null;
@@ -391,6 +392,40 @@ router.post('/batch', batchLimitCheck, async (req, res) => {
                 }
 
                 const binderId = (c.binder_id && validBinderIds.has(c.binder_id)) ? c.binder_id : null;
+
+                // --- 1. TRANSFER LOGIC ---
+                // If mode is transfer_to_deck, we first try to find the card in the binder and "take" it.
+                if (mode === 'transfer_to_deck' && deckId) {
+                    const binderCards = await trx('user_cards')
+                        .where({
+                            user_id: userId,
+                            scryfall_id: scryfallId,
+                            set_code: setCode,
+                            collector_number: collectorNumber,
+                            finish: finish,
+                            is_wishlist: false, // Don't transfer from wishlist
+                            deck_id: null
+                        })
+                        .orderBy('count', 'desc'); // Take from largest stacks first
+
+                    let remainingToTransfer = incomingCount;
+                    for (const bc of binderCards) {
+                        if (remainingToTransfer <= 0) break;
+                        const take = Math.min(bc.count, remainingToTransfer);
+                        if (bc.count <= take) {
+                            await trx('user_cards').where({ id: bc.id }).del();
+                        } else {
+                            await trx('user_cards').where({ id: bc.id }).update({ count: bc.count - take });
+                        }
+                        remainingToTransfer -= take;
+                    }
+
+                    // If we couldn't find enough in the binder, and fallback is NOT allowed, we might skip.
+                    // But for this feature, if we didn't find it, we just add it anyway as "new" acquisition
+                    // unless a strict flag is passed.
+                }
+
+                // --- 2. MERGE/INSERT LOGIC ---
 
                 // Check for existing card with same attributes (Binder merge only)
                 let existing = null;
@@ -411,7 +446,7 @@ router.post('/batch', batchLimitCheck, async (req, res) => {
 
                 if (existing) {
                     // Update existing card - increment count
-                    const newCount = (existing.count || 1) + (c.count || 1);
+                    const newCount = (existing.count || 1) + incomingCount;
 
                     // Merge tags
                     const existingTags = typeof existing.tags === 'string' ? JSON.parse(existing.tags || '[]') : (existing.tags || []);
@@ -440,7 +475,7 @@ router.post('/batch', batchLimitCheck, async (req, res) => {
                         collector_number: collectorNumber,
                         finish: finish,
                         image_uri: cardService.resolveImage(cardData) || c.image_uri || null,
-                        count: c.count || 1,
+                        count: incomingCount,
                         data: cardData,
                         deck_id: deckId,
                         binder_id: binderId,

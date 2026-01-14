@@ -437,9 +437,17 @@ const CreateDeckPage = () => {
                                 placeholder={format === 'Commander' ? "Search legends..." : "Search cards..."}
                                 value={commanderSearch}
                                 onChange={(e) => setCommanderSearch(e.target.value)}
-                                className="bg-gray-800/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 outline-none w-64 backdrop-blur-md"
+                                className="bg-gray-800/50 border border-white/10 rounded-xl px-4 py-3 pl-10 pr-10 text-white placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 outline-none w-64 backdrop-blur-md"
                             />
-                            <svg className="w-5 h-5 text-gray-400 absolute right-3 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                            <svg className="w-5 h-5 text-gray-400 absolute left-3 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                            {commanderSearch && (
+                                <button
+                                    onClick={() => setCommanderSearch('')}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors p-1"
+                                >
+                                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -588,8 +596,17 @@ const CreateDeckPage = () => {
                                 placeholder="Search partners..."
                                 value={partnerSearch}
                                 onChange={(e) => setPartnerSearch(e.target.value)}
-                                className="bg-gray-800/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 outline-none w-64 backdrop-blur-md"
+                                className="bg-gray-800/50 border border-white/10 rounded-xl px-4 py-3 pl-10 pr-10 text-white placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 outline-none w-64 backdrop-blur-md"
                             />
+                            <svg className="w-5 h-5 text-gray-400 absolute left-3 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                            {partnerSearch && (
+                                <button
+                                    onClick={() => setPartnerSearch('')}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors p-1"
+                                >
+                                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                </button>
+                            )}
                         </div>
                         <button
                             onClick={() => { setSelectedPartner(null); setStep(STEPS.AI_STRATEGY); }}

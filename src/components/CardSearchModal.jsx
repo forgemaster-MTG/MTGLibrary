@@ -60,7 +60,7 @@ const OperatorSelect = ({ value, onChange }) => {
     );
 };
 
-const CardSearchModal = ({ isOpen, onClose, onAddCard }) => {
+const CardSearchModal = ({ isOpen, onClose, onAddCard, onOpenForgeLens }) => {
     // Basic Search
     const [query, setQuery] = useState('');
     const [isTyping, setIsTyping] = useState(false);
@@ -274,52 +274,80 @@ const CardSearchModal = ({ isOpen, onClose, onAddCard }) => {
     };
 
     return createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-fade-in">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-fade-in group">
             {/* Backdrop */}
-            <div className="absolute inset-0 bg-black/80 backdrop-blur-md transition-opacity" onClick={onClose}></div>
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-md transition-opacity" onClick={onClose}></div>
 
-            {/* Modal Container */}
-            <div className="relative bg-gray-900 border border-white/10 rounded-3xl shadow-2xl w-full max-w-7xl max-h-[90vh] flex flex-col overflow-hidden ring-1 ring-white/5">
+            {/* Modal Container - Glassy Look */}
+            <div className="relative bg-gray-900/40 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-2xl w-full max-w-7xl max-h-[90vh] flex flex-col overflow-hidden ring-1 ring-white/5">
 
-                {/* Header */}
-                <div className="p-6 border-b border-white/5 flex justify-between items-center bg-gray-950/50 flex-shrink-0">
+                {/* Header Compact */}
+                <div className="px-6 py-5 border-b border-white/5 flex justify-between items-center bg-white/5 flex-shrink-0">
                     <div>
-                        <h2 className="text-2xl font-black text-white flex items-center gap-3">
-                            <span className="text-indigo-400">Card Library</span>
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 uppercase tracking-wider border border-indigo-500/30">
+                        <h2 className="text-xl font-black text-white flex items-center gap-3">
+                            <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Card Library</span>
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/10 text-indigo-300 uppercase tracking-wider border border-indigo-500/20 shadow-[0_0_10px_rgba(99,102,241,0.2)]">
                                 Database
                             </span>
                         </h2>
-                        <p className="text-sm text-gray-500 mt-1">Search the entire Scryfall database to grow your collection.</p>
                     </div>
-                    <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-white/5 rounded-xl">
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                    </button>
+
+                    <div className="flex items-center gap-4">
+                        {/* Collection Selector Moved to Header */}
+                        {writableCollections.length > 0 && (
+                            <div className="flex items-center gap-2 bg-black/20 rounded-lg p-1 border border-white/5">
+                                <span className="text-[10px] font-bold text-gray-500 uppercase px-2">Target:</span>
+                                <select
+                                    value={targetUserId || ''}
+                                    onChange={(e) => setTargetUserId(e.target.value || null)}
+                                    className="bg-transparent text-xs text-white focus:outline-none font-bold cursor-pointer hover:text-indigo-300 transition-colors"
+                                >
+                                    <option value="" className="bg-gray-900">My Collection</option>
+                                    {writableCollections.map(c => (
+                                        <option key={c.owner_id} value={c.owner_id} className="bg-gray-900">
+                                            {c.owner_username}'s Collection ({c.permission_level})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
+                        <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-xl">
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                    </div>
                 </div>
 
-                {/* Collection Selector */}
-                {writableCollections.length > 0 && (
-                    <div className="px-6 pb-2 bg-gray-950/50 border-b border-white/5 flex items-center gap-2">
-                        <span className="text-xs font-bold text-gray-500 uppercase">Target:</span>
-                        <select
-                            value={targetUserId || ''}
-                            onChange={(e) => setTargetUserId(e.target.value || null)}
-                            className="bg-gray-900 border border-white/10 rounded-lg px-2 py-1 text-xs text-white focus:border-indigo-500 outline-none"
-                        >
-                            <option value="">My Collection</option>
-                            {writableCollections.map(c => (
-                                <option key={c.owner_id} value={c.owner_id}>
-                                    {c.owner_username}'s Collection ({c.permission_level})
-                                </option>
-                            ))}
-                        </select>
+                {/* Forge Lens Promo Bar - Sleek & Glassy */}
+                {onOpenForgeLens && (
+                    <div className="relative overflow-hidden group">
+                        <div className="absolute inset-0 bg-gradient-to-r from-indigo-600/20 via-purple-600/20 to-indigo-600/20 opacity-50 blur-xl group-hover:opacity-75 transition-opacity"></div>
+                        <div className="relative px-6 py-2 border-b border-white/5 flex items-center justify-between bg-white/5 backdrop-blur-sm">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-300 shadow-[0_0_15px_rgba(99,102,241,0.3)]">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs font-bold text-white">Have the physical card?</span>
+                                    <span className="hidden sm:inline-block h-1 w-1 rounded-full bg-gray-600"></span>
+                                    <span className="text-[10px] text-gray-400 uppercase tracking-wider hidden sm:block">Scan instantly with Forge Lens AI</span>
+                                </div>
+                            </div>
+                            <button
+                                onClick={onOpenForgeLens}
+                                className="px-5 py-1.5 bg-indigo-500/20 hover:bg-indigo-500/30 hover:text-white text-indigo-300 border border-indigo-500/30 rounded-lg font-bold text-[10px] uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(99,102,241,0.1)] hover:shadow-[0_0_20px_rgba(99,102,241,0.3)] flex items-center gap-2"
+                            >
+                                <span>Launch Scanner</span>
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                            </button>
+                        </div>
                     </div>
                 )}
 
                 {/* Scrollable Body Contents */}
-                <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
+                <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar bg-black/20">
                     {/* Search & Filters */}
-                    <div className="p-6 bg-gray-900 space-y-4 relative z-[60] border-b border-white/5">
+                    <div className="p-6 space-y-4 relative z-[60]">
                         <form onSubmit={handleSearch} className="relative flex flex-col gap-4">
                             <div className="flex flex-col md:flex-row gap-4">
                                 <div className="relative flex-1 group">
@@ -327,7 +355,7 @@ const CardSearchModal = ({ isOpen, onClose, onAddCard }) => {
                                         ref={inputRef}
                                         type="text"
                                         placeholder="Search cards..."
-                                        className="w-full bg-gray-950 text-white border border-white/10 rounded-2xl py-4 px-6 pl-14 text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all placeholder-gray-600 shadow-inner"
+                                        className="w-full bg-white/5 text-white border border-white/10 rounded-xl py-4 px-6 pl-14 pr-12 text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all placeholder-gray-500 backdrop-blur-sm"
                                         value={query}
                                         onChange={(e) => {
                                             setQuery(e.target.value);
@@ -337,6 +365,20 @@ const CardSearchModal = ({ isOpen, onClose, onAddCard }) => {
                                         onFocus={() => query.length >= 2 && setShowSuggestions(true)}
                                     />
                                     <svg className="absolute left-5 top-5 w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+
+                                    {query && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setQuery('');
+                                                setSuggestions([]);
+                                                inputRef.current?.focus();
+                                            }}
+                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"
+                                        >
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                        </button>
+                                    )}
 
                                     {/* Autocomplete Dropdown */}
                                     {showSuggestions && suggestions.length > 0 && (

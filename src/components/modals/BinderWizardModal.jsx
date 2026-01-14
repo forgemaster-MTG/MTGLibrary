@@ -13,7 +13,7 @@ const STEPS = {
     REVIEW: 3 // Consolidated CARDS into REVIEW/Preview
 };
 
-const EMOJIS = [
+const EMOJIS = [...new Set([
     // Objects & Symbols
     '📁', '📂', '💾', '📦', '🏷️', '💎', '💍', '🏆', '🥇', '🎨', '🔮', '📜', '⚔️', '🛡️', '🔥', '💧', '💀', '🌲', '☀️', '🤝',
     '🃏', '🎲', '🧩', '🧿', '✨', '🌟', '🌈', '🌑', '🌕', '🪐', '☄️', '🧨', '🧧', '🎁', '🎈', '🎏', '🏮', '🎐', '🧸', '🪄',
@@ -46,7 +46,7 @@ const EMOJIS = [
     '🆓', '0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟', '🔢', '#️⃣', '*️⃣', '⏏️', '▶️', '⏸️',
     '⏯️', '⏹️', '⏺️', '⏭️', '⏮️', '⏩', '⏪', '⏫', '⏬', '◀️', '🔼', '🔽', '➡️', '⬅️', '⬆️', '⬇️', '↗️', '↘️', '↙️', '↖️',
     '↕️', '↔️', '↪️', '↩️', '⤴️', '⤵️', '🔀', '🔁', '🔂', '🔄', '🔃', '🎵', '🎶', '➕', '➖', '➗', '✖️', '♾️', '💲', '💱'
-];
+])];
 
 const BinderWizardModal = ({ isOpen, onClose, selectedCards = [], editingBinder = null }) => {
     const { addToast } = useToast();
@@ -77,7 +77,14 @@ const BinderWizardModal = ({ isOpen, onClose, selectedCards = [], editingBinder 
                 setIconType(editingBinder.icon_type || 'emoji');
                 setIconValue(editingBinder.icon_value || '📁');
                 setColor(editingBinder.color_preference || 'blue');
-                setRules(editingBinder.rules ? (typeof editingBinder.rules === 'string' ? JSON.parse(editingBinder.rules) : editingBinder.rules) : []);
+                let initialRules = [];
+                try {
+                    const parsed = editingBinder.rules ? (typeof editingBinder.rules === 'string' ? JSON.parse(editingBinder.rules) : editingBinder.rules) : [];
+                    initialRules = Array.isArray(parsed) ? parsed : [];
+                } catch (e) {
+                    console.error("Failed to parse binder rules", e);
+                }
+                setRules(initialRules);
                 setIsSmartBinder(!!editingBinder.rules);
                 setCardsToAdd([]);
             } else {

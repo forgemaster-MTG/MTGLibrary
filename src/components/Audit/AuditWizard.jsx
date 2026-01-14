@@ -345,8 +345,10 @@ export default function AuditWizard() {
             <ForgeLensModal
                 isOpen={isForgeLensOpen}
                 onClose={() => setIsForgeLensOpen(false)}
-                onFinish={async (scannedBatch) => {
+                onFinish={async (scannedBatch, options = {}) => {
                     if (!scannedBatch.length) return;
+                    const { targetDeckId, additionMode } = options;
+
                     const ownedBatch = scannedBatch.filter(c => !c.is_wishlist);
                     const wishlistBatch = scannedBatch.filter(c => c.is_wishlist);
 
@@ -372,7 +374,7 @@ export default function AuditWizard() {
                     }
 
                     let matchCount = 0;
-                    let failCount = 0;
+                    const bonusCards = [];
 
                     const newItems = [...items];
                     for (const scanned of ownedBatch) {
@@ -399,16 +401,39 @@ export default function AuditWizard() {
                                 console.error("Failed to update audit item", e);
                             }
                         } else {
-                            failCount++;
+                            bonusCards.push(scanned);
+                        }
+                    }
+
+                    // Handle Bonus Cards (cards scanned but not in this audit section)
+                    if (bonusCards.length > 0) {
+                        try {
+                            const payload = bonusCards.map(item => ({
+                                name: item.name,
+                                scryfall_id: item.scryfall_id,
+                                set_code: item.set_code,
+                                collector_number: item.collector_number,
+                                image_uri: item.data.image_uris?.normal || item.data.card_faces?.[0]?.image_uris?.normal,
+                                count: item.quantity,
+                                data: item.data,
+                                finish: item.finish || 'nonfoil',
+                                deck_id: targetDeckId || (deckId && deckId !== 'null' ? deckId : null),
+                                tags: []
+                            }));
+
+                            const apiMode = additionMode === 'transfer' ? 'transfer_to_deck' : 'merge';
+                            await api.batchAddToCollection(payload, apiMode);
+
+                            const dest = targetDeckId ? 'deck' : (deckId ? 'this deck' : 'collection');
+                            addToast(`Added ${bonusCards.length} bonus cards to ${dest}!`, 'info');
+                        } catch (err) {
+                            console.error("Bonus card addition failed", err);
                         }
                     }
 
                     setItems(newItems);
                     if (matchCount > 0) {
                         addToast(`Verified ${matchCount} cards!`, 'success');
-                    }
-                    if (failCount > 0) {
-                        addToast(`${failCount} scanned cards were not in this section.`, 'warning');
                     }
                 }}
             />

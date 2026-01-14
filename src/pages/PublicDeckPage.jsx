@@ -429,9 +429,10 @@ const PublicDeckPage = () => {
                                 <div className="flex gap-2">
                                     <button
                                         onClick={() => setIsDoctorOpen(true)}
-                                        className="text-[10px] font-bold text-white uppercase tracking-wider bg-indigo-600 px-2 py-1 rounded hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-500/20 flex items-center gap-1"
+                                        className="text-[10px] font-black text-white uppercase tracking-[0.2em] bg-indigo-600 flex flex-col items-center gap-2 p-3 rounded-2xl hover:bg-indigo-500 transition-all shadow-xl shadow-indigo-900/40 group overflow-hidden"
                                     >
-                                        <span>🩺</span> Doctor
+                                        <svg className="w-8 h-8 text-white group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                                        <span className="text-[8px]">Deck Doctor</span>
                                     </button>
                                     <button
                                         onClick={() => setIsStatsModalOpen(true)}
@@ -485,7 +486,7 @@ const PublicDeckPage = () => {
                 cards={deckCards}
                 isOwner={false} // Public view is never owner in this context (or handled by clone logic)
             />
-        </div>
+        </div >
     );
 };
 

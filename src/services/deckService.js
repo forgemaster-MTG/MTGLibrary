@@ -19,12 +19,12 @@ export const deckService = {
         });
     },
 
-    async batchAddCardsToDeck(userId, deckId, cards) {
+    async batchAddCardsToDeck(userId, deckId, cards, mode = 'merge') {
         const payload = cards.map(c => ({
             ...c,
             deck_id: deckId
         }));
-        return api.batchAddToCollection(payload, 'merge');
+        return api.batchAddToCollection(payload, mode);
     },
 
     /**

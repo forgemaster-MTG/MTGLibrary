@@ -25,7 +25,7 @@ const FeaturesSection = () => {
                 <div className="flex flex-col md:flex-row items-center gap-16 mb-40">
                     <div className="flex-1 space-y-8 animate-fade-in-left">
                         <div className="w-20 h-20 bg-orange-500/20 rounded-3xl flex items-center justify-center mb-4 text-orange-400 ring-1 ring-orange-500/20">
-                            <span className="text-4xl">🩺</span>
+                            <img src="/icons/deck_doctor.png" alt="AI Deck Doctor" className="w-24 h-24 object-contain transition-all duration-500 group-hover:scale-110 group-hover:drop-shadow-[0_0_30px_rgba(99,102,241,0.6)]" />
                         </div>
                         <h3 className="text-4xl font-black text-white leading-tight">The AI Deck Doctor</h3>
                         <p className="text-gray-400 text-xl leading-relaxed">
@@ -67,7 +67,7 @@ const FeaturesSection = () => {
                 <div className="flex flex-col md:flex-row-reverse items-center gap-16 mb-40">
                     <div className="flex-1 space-y-8 animate-fade-in-right">
                         <div className="w-20 h-20 bg-indigo-500/20 rounded-3xl flex items-center justify-center mb-4 text-indigo-400 ring-1 ring-indigo-500/20 shadow-[0_0_30px_rgba(79,70,229,0.2)]">
-                            <span className="text-4xl">🧠</span>
+                            <img src="/icons/the_neural_architect.png" alt="Neural Architect" className="w-24 h-24 object-contain transition-all duration-500 group-hover:scale-110 group-hover:drop-shadow-[0_0_30px_rgba(99,102,241,0.6)]" />
                         </div>
                         <h3 className="text-4xl font-black text-white leading-tight">The Neural Architect</h3>
                         <p className="text-gray-400 text-xl leading-relaxed">
@@ -124,7 +124,7 @@ const FeaturesSection = () => {
                 <div className="flex flex-col md:flex-row items-center gap-16 mb-40">
                     <div className="flex-1 space-y-8 animate-fade-in-left">
                         <div className="w-20 h-20 bg-blue-500/20 rounded-3xl flex items-center justify-center mb-4 text-blue-400 ring-1 ring-blue-500/20">
-                            <span className="text-4xl text-blue-400">📊</span>
+                            <img src="/icons/ai_strategy_analyst.png" alt="AI Strategy Analyst" className="w-24 h-24 object-contain transition-all duration-500 group-hover:scale-110 group-hover:drop-shadow-[0_0_30px_rgba(99,102,241,0.6)]" />
                         </div>
                         <h3 className="text-4xl font-black text-white leading-tight">AI Strategy Analyst</h3>
                         <p className="text-gray-400 text-xl leading-relaxed">
@@ -144,7 +144,7 @@ const FeaturesSection = () => {
                 <div className="flex flex-col md:flex-row-reverse items-center gap-16 mb-40">
                     <div className="flex-1 space-y-8 animate-fade-in-right">
                         <div className="w-20 h-20 bg-purple-500/20 rounded-3xl flex items-center justify-center mb-4 text-purple-400 ring-1 ring-purple-500/20">
-                            <span className="text-4xl">🤝</span>
+                            <img src="/icons/social_pods.png" alt="Social Pods" className="w-24 h-24 object-contain transition-all duration-500 group-hover:scale-110 group-hover:drop-shadow-[0_0_30px_rgba(99,102,241,0.6)]" />
                         </div>
                         <h3 className="text-4xl font-black text-white leading-tight">Rule Your "Pod"</h3>
                         <p className="text-gray-400 text-xl leading-relaxed">
@@ -180,8 +180,8 @@ const FeaturesSection = () => {
                 {/* 5. Foundation (Collection Tracking) */}
                 <div className="flex flex-col md:flex-row items-center gap-16">
                     <div className="flex-1 space-y-8 animate-fade-in-left">
-                        <div className="w-16 h-16 bg-gray-500/20 rounded-2xl flex items-center justify-center mb-4 text-gray-400 ring-1 ring-white/10">
-                            <span className="text-4xl">🏛️</span>
+                        <div className="w-20 h-20 flex items-center justify-center mb-4 group cursor-pointer transition-transform hover:scale-110 duration-500">
+                            <img src="/icons/the_professional_foundation.png" alt="The Professional Foundation" className="w-20 h-20 object-contain transition-all duration-500 group-hover:drop-shadow-[0_0_30px_rgba(99,102,241,0.6)]" />
                         </div>
                         <h3 className="text-3xl font-black text-white leading-tight uppercase tracking-tight">The Professional Foundation</h3>
                         <p className="text-gray-400 text-lg leading-relaxed">

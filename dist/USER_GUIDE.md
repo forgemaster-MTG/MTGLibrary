@@ -2,6 +2,9 @@
 
 Welcome to **MTG Forge**! This guide will walk you through the recommended workflow to get the most out of the application, from setting up AI features to building powerful decks with Gemini-powered suggestions.
 
+> [!IMPORTANT]
+> **New to The Forge?** Check out our [AI Strategic Companion Guide](/strategy) for a deep dive into the Actionable Intelligence features that give you the professional edge.
+
 ---
 
 ## 1. Getting Started: AI Setup (Gemini Key)

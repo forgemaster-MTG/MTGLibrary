@@ -6,12 +6,18 @@ import PlaystyleWizardModal from './modals/PlaystyleWizardModal';
 import PlaystyleProfileModal from './modals/PlaystyleProfileModal';
 import BadgeSelectionModal from './modals/BadgeSelectionModal';
 import { TIERS, TIER_CONFIG } from '../config/tiers';
+import { useToast } from '../contexts/ToastContext';
+import ForgeLensModal from './modals/ForgeLensModal';
+import { api } from '../services/api';
 
 const Navbar = () => {
     const location = useLocation();
     const { currentUser, userProfile, logout, updateSettings, refreshUserProfile, uploadProfilePicture } = useAuth();
+
+    const { addToast } = useToast();
     const isLanding = location.pathname === '/';
     const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const [isForgeLensOpen, setIsForgeLensOpen] = useState(false);
     const [isPlaystyleWizardOpen, setIsPlaystyleWizardOpen] = useState(false);
     const [isPlaystyleProfileOpen, setIsPlaystyleProfileOpen] = useState(false);
     const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
@@ -323,7 +329,44 @@ const Navbar = () => {
 
             </nav>
 
-            <CardSearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+            <CardSearchModal
+                isOpen={isSearchOpen}
+                onClose={() => setIsSearchOpen(false)}
+                onOpenForgeLens={() => {
+                    setIsSearchOpen(false);
+                    setIsForgeLensOpen(true);
+                }}
+            />
+
+            <ForgeLensModal
+                isOpen={isForgeLensOpen}
+                onClose={() => setIsForgeLensOpen(false)}
+                onFinish={async (scannedBatch, options = {}) => {
+                    if (!scannedBatch || scannedBatch.length === 0) return;
+
+                    const apiMode = options.targetDeckId ? `deck:${options.targetDeckId}` : 'collection';
+                    const payload = scannedBatch.map(c => ({
+                        scryfall_id: c.scryfall_id,
+                        name: c.name,
+                        set_code: c.set_code,
+                        collector_number: c.collector_number,
+                        finish: c.finish,
+                        quantity: c.quantity,
+                        is_foil: c.finish === 'foil'
+                    }));
+
+                    try {
+                        console.log("[Navbar] Adding batch via Forge Lens:", payload, apiMode);
+                        await api.batchAddToCollection(payload, apiMode);
+
+                        addToast(`Successfully added ${scannedBatch.length} cards via Forge Lens!`, 'success');
+                        setIsForgeLensOpen(false);
+                    } catch (error) {
+                        console.error("Batch add failed", error);
+                        addToast(`Failed to add cards: ${error.message}`, 'error');
+                    }
+                }}
+            />
 
             <PlaystyleWizardModal
                 isOpen={isPlaystyleWizardOpen}

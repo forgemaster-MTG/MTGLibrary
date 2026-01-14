@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useCollection } from '../hooks/useCollection';
 import { useDecks } from '../hooks/useDecks';
@@ -99,6 +99,10 @@ const CollectionPage = () => {
     const [isGuideOpen, setIsGuideOpen] = useState(false);
     const [isOrganizationWizardOpen, setIsOrganizationWizardOpen] = useState(false);
     const [isForgeLensOpen, setIsForgeLensOpen] = useState(false);
+    const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
+    const [isToolsMenuLocked, setIsToolsMenuLocked] = useState(false);
+    const toolsMenuRef = useRef(null);
+    const toolsMenuTimeoutRef = useRef(null);
     const [editingBinder, setEditingBinder] = useState(null);
 
     // Filter State (Persisted)
@@ -148,6 +152,18 @@ const CollectionPage = () => {
     React.useEffect(() => {
         setCurrentPage(1);
     }, [searchTerm, filters, sortBy, sortOrder]);
+
+    // Handle outside clicks for Tools menu
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (toolsMenuRef.current && !toolsMenuRef.current.contains(event.target)) {
+                setIsToolsMenuLocked(false);
+                setIsToolsMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     // Fetch binder cards when activeFolder changes to a binder
     useEffect(() => {
@@ -579,7 +595,7 @@ const CollectionPage = () => {
             <div className="relative z-10 max-w-[1600px] mx-auto px-4 md:px-6 py-8 space-y-8 animate-fade-in pb-24">
 
                 {/* Header Section */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 bg-gray-950/40 p-4 md:p-6 rounded-3xl backdrop-blur-md border border-white/5 shadow-xl">
+                <div className="relative z-50 flex flex-col md:flex-row justify-between items-start md:items-end gap-4 bg-gray-950/40 p-4 md:p-6 rounded-3xl backdrop-blur-md border border-white/5 shadow-xl">
                     <div>
                         <h1 className="text-2xl md:text-4xl font-black text-white tracking-tight mb-1 md:mb-2">
                             {isWishlistMode ? 'My Wishlist' : 'My Collection'}
@@ -617,79 +633,140 @@ const CollectionPage = () => {
                         />
 
                         {!isSharedView && (
-                            <div className="flex h-10 items-center gap-2">
-                                <div className="h-6 w-px bg-gray-700 mx-1 md:mx-2" />
-
-                                <button
-                                    onClick={() => {
-                                        const allowed = getTierConfig(userProfile?.subscription_tier).features.binders;
-                                        if (!allowed) {
-                                            addToast('Custom Binders are available on Wizard tier and above.', 'info');
-                                            return;
+                            <>
+                                {/* Grouped Action Menu */}
+                                <div
+                                    ref={toolsMenuRef}
+                                    className="relative"
+                                    onMouseEnter={() => {
+                                        if (toolsMenuTimeoutRef.current) {
+                                            clearTimeout(toolsMenuTimeoutRef.current);
+                                            toolsMenuTimeoutRef.current = null;
                                         }
-                                        setIsWizardOpen(true);
+                                        setIsToolsMenuOpen(true);
                                     }}
-                                    className={`flex p-2.5 md:px-4 md:py-3 rounded-xl transition-all border items-center justify-center gap-2 group ${getTierConfig(userProfile?.subscription_tier).features.binders
-                                        ? 'bg-gray-800 hover:bg-gray-700 text-indigo-400 hover:text-white border-gray-700 hover:border-indigo-500/50 cursor-pointer'
-                                        : 'bg-gray-800/50 text-gray-600 border-gray-700 cursor-not-allowed opacity-60'
-                                        }`}
-                                    title={getTierConfig(userProfile?.subscription_tier).features.binders ? "Create New Binder" : "Requires Wizard Tier"}
-                                >
-                                    <svg className="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                    <span className="text-[10px] font-bold uppercase tracking-widest hidden lg:inline-block">New Binder</span>
-                                </button>
-
-                                <button
-                                    onClick={() => {
-                                        const allowed = getTierConfig(userProfile?.subscription_tier).features.collectionAudit;
-                                        if (!allowed) {
-                                            addToast('Collection Organization tools are available on Wizard tier.', 'info');
-                                            return;
+                                    onMouseLeave={() => {
+                                        if (!isToolsMenuLocked) {
+                                            toolsMenuTimeoutRef.current = setTimeout(() => {
+                                                setIsToolsMenuOpen(false);
+                                            }, 400); // 400ms delay for easier navigation
                                         }
-                                        setIsOrganizationWizardOpen(true);
                                     }}
-                                    className={`hidden md:flex p-2.5 md:px-3 md:py-3 rounded-xl transition-all border items-center justify-center shadow-lg ${getTierConfig(userProfile?.subscription_tier).features.collectionAudit
-                                        ? 'bg-gray-900 hover:bg-gray-800 text-gray-400 hover:text-white border-gray-800 hover:border-gray-700 cursor-pointer'
-                                        : 'bg-gray-900/50 text-gray-600 border-gray-800 cursor-not-allowed opacity-50'
-                                        }`}
-                                    title={getTierConfig(userProfile?.subscription_tier).features.collectionAudit ? "Organize Collection" : "Requires Wizard Tier"}
                                 >
-                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" /></svg>
-                                </button>
+                                    <button
+                                        onClick={() => {
+                                            const newLocked = !isToolsMenuLocked;
+                                            setIsToolsMenuLocked(newLocked);
+                                            setIsToolsMenuOpen(true);
+                                        }}
+                                        className={`flex items-center gap-3 px-6 py-3 rounded-2xl border transition-all duration-300 shadow-xl ${isToolsMenuLocked
+                                            ? 'bg-indigo-600 border-indigo-500 text-white'
+                                            : 'bg-gray-900 border-white/10 text-gray-400 hover:text-white hover:border-indigo-500/50 hover:bg-gray-800'
+                                            }`}
+                                    >
+                                        <div className="flex -space-x-1.5 items-center">
+                                            <div className="w-5 h-5 rounded-full bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center backdrop-blur-sm">
+                                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                                            </div>
+                                            <div className="w-5 h-5 rounded-full bg-purple-500/20 border border-purple-500/40 flex items-center justify-center backdrop-blur-sm">
+                                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" /></svg>
+                                            </div>
+                                            <div className="w-5 h-5 rounded-full bg-blue-500/20 border border-blue-500/40 flex items-center justify-center backdrop-blur-sm">
+                                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg>
+                                            </div>
+                                        </div>
+                                        <span className="text-xs font-black uppercase tracking-widest">{isToolsMenuLocked ? 'Close' : 'Tools'}</span>
+                                    </button>
 
-                                <button
-                                    onClick={() => setIsGuideOpen(true)}
-                                    className="hidden md:flex bg-gray-900 hover:bg-indigo-900/30 text-gray-500 hover:text-indigo-400 p-2.5 md:px-3 md:py-3 rounded-xl transition-all border border-gray-800 hover:border-indigo-500/30 items-center justify-center shadow-lg"
-                                    title="Binder Guide"
-                                >
-                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                </button>
+                                    {isToolsMenuOpen && (
+                                        <div className="absolute right-0 top-full mt-3 w-72 md:w-80 bg-gray-950/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden z-[100] animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+                                            <div className="p-4 space-y-6">
+                                                {/* Section: Adding */}
+                                                <div className="space-y-2">
+                                                    <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] px-2">Adding Cards</h3>
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        <button
+                                                            onClick={() => { setIsAddCardOpen(true); setIsToolsMenuOpen(false); }}
+                                                            className="flex flex-col items-center gap-2 p-3 bg-white/5 hover:bg-indigo-500/20 rounded-xl border border-white/5 transition-all group"
+                                                        >
+                                                            <svg className="w-5 h-5 text-indigo-400 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                                                            <span className="text-[10px] font-bold text-gray-300">Manual Add</span>
+                                                        </button>
 
-                                <button
-                                    onClick={() => setIsBulkImportOpen(true)}
-                                    className="flex text-gray-400 hover:text-white font-bold p-2.5 md:px-4 md:py-3 rounded-xl hover:bg-gray-800 transition-all items-center gap-2 text-xs uppercase tracking-widest"
-                                    title="Bulk Paste"
-                                >
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
-                                </button>
+                                                        <button
+                                                            onClick={() => { setIsForgeLensOpen(true); setIsToolsMenuOpen(false); }}
+                                                            className="flex flex-col items-center gap-2 p-3 bg-white/5 hover:bg-indigo-500/20 rounded-xl border border-white/5 transition-all group lg:min-h-[64px]"
+                                                        >
+                                                            <svg className="w-5 h-5 text-indigo-400 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg>
+                                                            <span className="text-[10px] font-bold text-gray-300">Forge Lens</span>
+                                                        </button>
 
-                                <button
-                                    onClick={() => setIsAddCardOpen(true)}
-                                    className="flex bg-indigo-600 hover:bg-indigo-500 text-white font-bold p-2.5 md:px-6 md:py-3 rounded-xl shadow-lg shadow-indigo-900/40 transition-all items-center gap-2 uppercase tracking-widest text-xs whitespace-nowrap"
-                                >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                                    <span className="hidden md:inline-block">Add Cards</span>
-                                </button>
+                                                        <button
+                                                            onClick={() => { setIsBulkImportOpen(true); setIsToolsMenuOpen(false); }}
+                                                            className="flex flex-col items-center gap-2 p-3 bg-white/5 hover:bg-gray-800 rounded-xl border border-white/5 transition-all group col-span-2"
+                                                        >
+                                                            <svg className="w-5 h-5 text-gray-400 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                                                            <span className="text-[10px] font-bold text-gray-300">Bulk Paste / Import</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
 
-                                <button
-                                    onClick={() => setIsForgeLensOpen(true)}
-                                    className="flex bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 font-bold p-2.5 md:px-6 md:py-3 rounded-xl border border-indigo-500/20 transition-all items-center gap-2 uppercase tracking-widest text-xs whitespace-nowrap"
-                                    title="Scan Cards with Camera"
-                                >
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                                    <span className="hidden md:inline-block italic">Forge Lens</span>
-                                </button>
-                            </div>
+                                                {/* Section: Management */}
+                                                <div className="space-y-2">
+                                                    <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] px-2">Management</h3>
+                                                    <div className="bg-white/5 rounded-xl border border-white/5 divide-y divide-white/5 overflow-hidden">
+                                                        <button
+                                                            onClick={() => {
+                                                                const allowed = getTierConfig(userProfile?.subscription_tier).features.binders;
+                                                                if (!allowed) {
+                                                                    addToast('Custom Binders are available on Wizard tier and above.', 'info');
+                                                                    return;
+                                                                }
+                                                                setIsWizardOpen(true);
+                                                                setIsToolsMenuOpen(false);
+                                                            }}
+                                                            className={`w-full text-left px-4 py-3 text-xs flex items-center justify-between transition-colors group ${getTierConfig(userProfile?.subscription_tier).features.binders ? 'hover:bg-indigo-500/10' : 'opacity-40 cursor-not-allowed'}`}
+                                                        >
+                                                            <div className="flex items-center gap-3">
+                                                                <svg className="w-4 h-4 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                                <span className="font-bold text-gray-300">New Binder</span>
+                                                            </div>
+                                                            {!getTierConfig(userProfile?.subscription_tier).features.binders && <span className="text-[8px] bg-indigo-500/20 text-indigo-400 px-1.5 py-0.5 rounded leading-none">WIZARD</span>}
+                                                        </button>
+
+                                                        <button
+                                                            onClick={() => {
+                                                                const allowed = getTierConfig(userProfile?.subscription_tier).features.collectionAudit;
+                                                                if (!allowed) {
+                                                                    addToast('Collection Organization tools are available on Wizard tier.', 'info');
+                                                                    return;
+                                                                }
+                                                                setIsOrganizationWizardOpen(true);
+                                                                setIsToolsMenuOpen(false);
+                                                            }}
+                                                            className={`w-full text-left px-4 py-3 text-xs flex items-center justify-between transition-colors group ${getTierConfig(userProfile?.subscription_tier).features.collectionAudit ? 'hover:bg-purple-500/10' : 'opacity-40 cursor-not-allowed'}`}
+                                                        >
+                                                            <div className="flex items-center gap-3">
+                                                                <svg className="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" /></svg>
+                                                                <span className="font-bold text-gray-300">Organize Collection</span>
+                                                            </div>
+                                                            {!getTierConfig(userProfile?.subscription_tier).features.collectionAudit && <span className="text-[8px] bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded leading-none">WIZARD</span>}
+                                                        </button>
+
+                                                        <button
+                                                            onClick={() => { setIsGuideOpen(true); setIsToolsMenuOpen(false); }}
+                                                            className="w-full text-left px-4 py-3 text-xs flex items-center gap-3 hover:bg-gray-800 transition-colors"
+                                                        >
+                                                            <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                            <span className="font-bold text-gray-300">Binder Guide</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </>
                         )}
                     </div>
                 </div>
@@ -721,9 +798,17 @@ const CollectionPage = () => {
                                     placeholder="Search cards..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full bg-gray-900/50 border border-gray-700 text-white px-4 py-2.5 md:py-3 pl-10 md:pl-12 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder-gray-500 font-medium text-sm h-10 md:h-12"
+                                    className="w-full bg-gray-900/50 border border-gray-700 text-white px-4 py-2.5 md:py-3 pl-10 md:pl-12 pr-10 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder-gray-500 font-medium text-sm h-10 md:h-12"
                                 />
                                 <svg className="w-4 h-4 md:w-5 md:h-5 text-gray-400 absolute left-3 md:left-4 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                {searchTerm && (
+                                    <button
+                                        onClick={() => setSearchTerm('')}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors p-1"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                    </button>
+                                )}
                             </div>
 
                             <select
@@ -1079,6 +1164,10 @@ w - 8 h - 8 rounded - full border flex items - center justify - center transitio
                 isOpen={isAddCardOpen}
                 onClose={() => setIsAddCardOpen(false)}
                 onAddCard={() => refresh()}
+                onOpenForgeLens={() => {
+                    setIsAddCardOpen(false);
+                    setIsForgeLensOpen(true);
+                }}
             />
             <BulkCollectionImportModal
                 isOpen={isBulkImportOpen}
@@ -1091,9 +1180,10 @@ w - 8 h - 8 rounded - full border flex items - center justify - center transitio
             <ForgeLensModal
                 isOpen={isForgeLensOpen}
                 onClose={() => setIsForgeLensOpen(false)}
-                onFinish={async (scannedBatch) => {
+                onFinish={async (scannedBatch, options = {}) => {
                     if (!scannedBatch.length) return;
                     try {
+                        const { targetDeckId, additionMode } = options;
                         const payload = scannedBatch.map(item => ({
                             name: item.name,
                             scryfall_id: item.scryfall_id,
@@ -1103,11 +1193,16 @@ w - 8 h - 8 rounded - full border flex items - center justify - center transitio
                             count: item.quantity,
                             data: item.data,
                             is_wishlist: item.is_wishlist,
+                            finish: item.finish || 'nonfoil',
+                            deck_id: targetDeckId || null,
                             tags: [] // Pass as array, backend handles stringification
                         }));
 
-                        await api.batchAddToCollection(payload);
-                        addToast(`Successfully added ${scannedBatch.length} cards to collection!`, 'success');
+                        const apiMode = additionMode === 'transfer' ? 'transfer_to_deck' : 'merge';
+                        await api.batchAddToCollection(payload, apiMode);
+
+                        const destination = targetDeckId ? 'deck' : 'collection';
+                        addToast(`Successfully ${additionMode === 'transfer' ? 'moved' : 'added'} ${scannedBatch.length} cards to ${destination}!`, 'success');
                         refresh();
                     } catch (err) {
                         console.error("Forge Lens Add Failed", err);

@@ -46,7 +46,7 @@ const ConsoleBridge = () => {
 
 const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
     const { addToast } = useToast();
-    const { userProfile } = useAuth();
+    const { userProfile, currentUser } = useAuth();
     const tierConfig = getTierConfig(userProfile?.subscription_tier);
 
     // UI State
@@ -69,6 +69,20 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
     const [isRemoteMode, setIsRemoteMode] = useState(false);
     const [sessionId] = useState(() => Math.random().toString(36).substr(2, 9));
     const [isRemoteConnected, setIsRemoteConnected] = useState(false);
+
+    // Addition Settings
+    const [defaultFinish, setDefaultFinish] = useState('nonfoil');
+    const [targetDeckId, setTargetDeckId] = useState(null);
+    const [additionMode, setAdditionMode] = useState('new'); // new | transfer
+    const [userDecks, setUserDecks] = useState([]);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+    // Fetch Decks
+    useEffect(() => {
+        if (isOpen && currentUser) {
+            api.get('/api/decks').then(setUserDecks).catch(console.error);
+        }
+    }, [isOpen, currentUser]);
 
     // Debugging
     const [isDebugMode, setIsDebugMode] = useState(false);
@@ -115,6 +129,8 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
 
         socket.on('remote-card', (card) => {
             console.log("Card received from remote:", card.name);
+            // Remote cards already have finish set by the mobile UI, but we can override if desired
+            // For now, we respect what remote says.
             setScannedCards(prev => [...prev, card]);
             setLastDetection({ success: true, name: card.name });
             setIsRemoteConnected(true);
@@ -197,7 +213,7 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
             set_code: data.set || data.setcode,
             collector_number: data.collector_number || data.number,
             image: data.image_uri || data.image_uris?.small || data.card_faces?.[0]?.image_uris?.small,
-            finish: 'nonfoil',
+            finish: defaultFinish,
             quantity: 1,
             data: data,
             variants: variants,
@@ -208,7 +224,7 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
         // Feature Gate: If batchScan is disabled, only keep the latest card
         setScannedCards(prev => tierConfig.features.batchScan ? [...prev, newCard] : [newCard]);
         setLastDetection({ success: true, name: data.name });
-    }, [tierConfig.features.batchScan]);
+    }, [tierConfig.features.batchScan, defaultFinish]);
 
     const processRegions = async (image) => {
         const canvas = canvasRef.current;
@@ -435,7 +451,13 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
     };
 
     const handleConfirmAll = () => {
-        if (onFinish) onFinish(scannedCards);
+        if (onFinish) {
+            onFinish(scannedCards, {
+                targetDeckId,
+                additionMode,
+                defaultFinish
+            });
+        }
         onClose();
     };
 
@@ -444,6 +466,10 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
     return createPortal(
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/95 backdrop-blur-md p-0 md:p-4 animate-fade-in">
             <div className="bg-gray-900 w-full h-full md:max-w-5xl md:max-h-[85vh] md:rounded-3xl shadow-2xl flex flex-col border border-white/10 overflow-hidden relative">
+                {/* Branded Background Watermark */}
+                <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none opacity-[0.05] saturate-[1.2] brightness-125">
+                    <img src="/icons/forge_lense.png" alt="" className="w-[60%] h-[60%] object-contain" />
+                </div>
 
                 {/* Close Button */}
                 <button
@@ -455,10 +481,7 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
 
                 {/* Header */}
                 <div className="px-4 py-4 md:px-10 md:py-8 border-b border-white/5 flex flex-col md:flex-row justify-between items-center bg-white/5 shrink-0 relative z-10 gap-4 md:gap-0">
-                    <div className="flex items-center gap-6 w-full md:w-auto">
-                        <div className="w-14 h-14 bg-indigo-500/20 rounded-2xl flex items-center justify-center border border-indigo-500/30 shadow-inner backdrop-blur-sm shrink-0">
-                            <Camera className="w-8 h-8 text-indigo-400" />
-                        </div>
+                    <div className="flex items-center gap-4 w-full md:w-auto">
                         <div>
                             <h2 className="text-lg font-black text-white tracking-tight italic uppercase">Forge Lens</h2>
                             <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest leading-none">AI Card Scanner</p>
@@ -517,12 +540,11 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
 
                 {/* Content */}
                 <div className="flex-1 overflow-hidden relative">
-
                     {/* Mode: SCANNING */}
                     {view === 'scanning' && (
                         <div className="h-full flex flex-col items-center justify-center p-6 relative">
-                            {/* Desktop Warning */}
-                            {isDesktop && (
+                            {/* Desktop Warning (Only in Local Mode) */}
+                            {isDesktop && !isRemoteMode && (
                                 <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20 w-fit">
                                     <div className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-500 px-4 py-2 rounded-2xl flex items-center gap-2 text-xs shadow-xl backdrop-blur-md animate-pulse">
                                         <AlertCircle className="w-4 h-4" />
@@ -531,139 +553,120 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
                                 </div>
                             )}
 
-                            <div className="relative w-full max-w-sm aspect-[3/4] rounded-3xl overflow-hidden border-2 border-dashed border-white/20 shadow-2xl bg-black group transition-all">
-                                {/* Camera Feed */}
-                                <Webcam
-                                    ref={webcamRef}
-                                    audio={false}
-                                    screenshotFormat="image/webp"
-                                    videoConstraints={{
-                                        width: 1280,
-                                        height: 720,
-                                        facingMode: "environment"
-                                    }}
-                                    className="w-full h-full object-cover grayscale brightness-110 contrast-125"
-                                />
-
-                                {/* Overlays */}
-                                <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center">
-                                    {/* Region Guides */}
-                                    <div className="w-[85%] h-[90%] border-2 border-white/10 rounded-2xl relative">
-                                        {/* Corner Brackets */}
-                                        <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-indigo-500 rounded-tl-xl" />
-                                        <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-indigo-500 rounded-tr-xl" />
-                                        <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-indigo-500 rounded-bl-xl" />
-                                        <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-indigo-500 rounded-br-xl" />
-
-                                        {/* Status Text Bar */}
-                                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-3/4 text-center">
-                                            {!isWorkerReady ? (
-                                                <div className="bg-black/80 text-white text-[10px] px-3 py-1 rounded-full border border-white/10 flex items-center gap-2">
-                                                    <RefreshCw className="w-3 h-3 animate-spin" /> Wake up AI engine...
-                                                </div>
-                                            ) : isProcessing ? (
-                                                <div className="bg-indigo-600 text-white text-[10px] px-4 py-1.5 rounded-full shadow-lg animate-pulse uppercase font-black">
-                                                    Analyzing Image...
-                                                </div>
-                                            ) : lastDetection?.success ? (
-                                                <div className="bg-green-600 text-white text-[10px] px-4 py-1.5 rounded-full shadow-lg uppercase font-black flex items-center gap-2">
-                                                    <Check className="w-3 h-3" /> Found: {lastDetection.name}
-                                                </div>
-                                            ) : lastDetection?.error ? (
-                                                <div className="bg-red-600 text-white text-[10px] px-4 py-1.5 rounded-full shadow-lg uppercase font-black">
-                                                    {lastDetection.error}
-                                                </div>
-                                            ) : (
-                                                <p className="text-white/60 text-[10px] px-3 py-1 bg-black/40 rounded-full backdrop-blur-sm">Align Set Code & Number</p>
-                                            )}
+                            {!isRemoteMode ? (
+                                <div className="relative w-full max-w-sm aspect-[3/4] rounded-3xl overflow-hidden border-2 border-dashed border-white/20 shadow-2xl bg-black group transition-all">
+                                    <Webcam
+                                        ref={webcamRef}
+                                        audio={false}
+                                        screenshotFormat="image/webp"
+                                        videoConstraints={{ width: 1280, height: 720, facingMode: "environment" }}
+                                        className="w-full h-full object-cover grayscale brightness-110 contrast-125"
+                                    />
+                                    <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center">
+                                        <div className="w-[80%] h-[30%] border-2 border-white/10 rounded-2xl relative">
+                                            <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-indigo-500 rounded-tl-xl" />
+                                            <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-indigo-500 rounded-tr-xl" />
+                                            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-indigo-500 rounded-bl-xl" />
+                                            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-indigo-500 rounded-br-xl" />
+                                            <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 w-[120%] text-center">
+                                                {!isWorkerReady ? (
+                                                    <div className="bg-black/80 text-white text-[10px] px-3 py-1 rounded-full border border-white/10 flex items-center gap-2">
+                                                        <RefreshCw className="w-3 h-3 animate-spin" /> Wake up AI engine...
+                                                    </div>
+                                                ) : isProcessing ? (
+                                                    <div className="bg-indigo-600 text-white text-[10px] px-4 py-1.5 rounded-full shadow-lg animate-pulse uppercase font-black">
+                                                        Analyzing Image...
+                                                    </div>
+                                                ) : lastDetection?.success ? (
+                                                    <div className="bg-green-600 text-white text-[10px] px-4 py-1.5 rounded-full shadow-lg uppercase font-black flex items-center gap-2">
+                                                        <Check className="w-3 h-3" /> Found: {lastDetection.name}
+                                                    </div>
+                                                ) : lastDetection?.error ? (
+                                                    <div className="bg-red-600 text-white text-[10px] px-4 py-1.5 rounded-full shadow-lg uppercase font-black">
+                                                        {lastDetection.error}
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-white/60 text-[10px] px-3 py-1 bg-black/40 rounded-full backdrop-blur-sm">Align Set Code & Number</p>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            ) : (
+                                <div className="flex flex-col items-center gap-6 animate-in fade-in zoom-in duration-500 bg-black/40 p-12 rounded-[3rem] border border-white/5 backdrop-blur-xl shadow-2xl">
+                                    <div className="bg-white p-6 rounded-[2rem] shadow-[0_0_50px_rgba(255,255,255,0.1)] ring-8 ring-white/5">
+                                        <QRCode
+                                            value={`${window.location.origin}/remote/${sessionId}`}
+                                            size={220}
+                                            level="H"
+                                        />
+                                    </div>
+                                    <div className="text-center max-w-xs">
+                                        <h3 className="text-xl font-black text-white mb-2 italic uppercase">Remote Scan Mode</h3>
+                                        <p className="text-[10px] text-gray-500 uppercase tracking-[0.2em] leading-relaxed">
+                                            Scan this QR on your phone to link your camera. Direct sync is active.
+                                        </p>
+                                    </div>
+                                    <div className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-[10px] font-black uppercase border transition-all duration-500 ${isRemoteConnected ? 'bg-green-500/10 text-green-400 border-green-500/30 shadow-[0_0_20px_rgba(34,197,94,0.1)]' : 'bg-orange-500/10 text-orange-400 border-orange-500/30'}`}>
+                                        <div className={`w-2 h-2 rounded-full ${isRemoteConnected ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,1)]' : 'bg-orange-500 border border-orange-300 animate-pulse'}`} />
+                                        {isRemoteConnected ? 'Remote Link Established' : 'Waiting for Remote Link...'}
+                                    </div>
+                                </div>
+                            )}
 
-                            {/* Controls */}
                             <div className="mt-8 flex items-center gap-6">
-                                {isRemoteMode ? (
-                                    <div className="flex flex-col items-center gap-6 animate-fade-in">
-                                        <div className="bg-white p-4 rounded-3xl shadow-2xl">
-                                            <QRCode
-                                                value={`${window.location.origin}/remote/${sessionId}`}
-                                                size={180}
-                                                level="H"
-                                            />
-                                        </div>
-                                        <div className="text-center max-w-xs">
-                                            <h3 className="text-white font-bold mb-1">Scan this QR on your phone</h3>
-                                            <p className="text-[10px] text-gray-500 uppercase tracking-widest leading-relaxed">
-                                                Your phone will act as a remote scanner and push cards directly to this desk.
-                                            </p>
-                                        </div>
-                                        {isRemoteConnected && (
-                                            <div className="flex items-center gap-2 bg-green-500/10 text-green-400 px-4 py-2 rounded-full text-[10px] font-black uppercase border border-green-500/30 animate-bounce">
-                                                <Smartphone className="w-4 h-4" />
-                                                Phone Linked!
-                                            </div>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <button
-                                        onClick={captureAndProcess}
-                                        disabled={isProcessing || !isWorkerReady}
-                                        className="w-20 h-20 bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-full flex items-center justify-center shadow-2xl shadow-indigo-500/30 transition-all active:scale-90 relative group ring-4 ring-white/5"
-                                    >
-                                        {isProcessing ? <RefreshCw className="w-8 h-8 animate-spin" /> : <Camera className="w-8 h-8" />}
-                                        <span className="absolute -bottom-10 whitespace-nowrap text-[10px] font-black uppercase tracking-widest text-gray-500 group-hover:text-indigo-400 transition-colors">Capture Card</span>
-                                    </button>
-                                )}
-
-                                {isDebugMode && debugPreviews.footer && (
-                                    <div className="flex flex-col gap-2 p-3 bg-black/40 rounded-2xl border border-orange-500/20 max-w-[200px]">
-                                        <div className="text-[10px] font-black uppercase text-orange-400 tracking-widest flex items-center gap-2">
-                                            <AlertCircle className="w-3 h-3" />
-                                            ROI Crops
-                                        </div>
-                                        <div className="flex flex-col gap-2">
-                                            {/* Name Preview Removed in Precision Mode */}
-                                            <div className="relative group">
-                                                <img src={debugPreviews.footer} className="h-8 w-full object-contain bg-white rounded border border-white/10" alt="Footer" />
-                                                <div className="absolute top-0 right-0 bg-black/60 text-white text-[8px] px-1 rounded-bl">Footer</div>
-                                            </div>
-                                        </div>
-                                        {/* Raw Text Output for Debugging */}
-                                        {lastDetection?.error && (
-                                            <div className="mt-2 pt-2 border-t border-white/10">
-                                                <p className="text-[8px] text-gray-400 font-mono break-all leading-tight">
-                                                    RAW: {lastDetection.raw || '---'}
-                                                </p>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
                                 {!isRemoteMode && (
-                                    <button
-                                        onClick={() => fileInputRef.current?.click()}
-                                        disabled={isProcessing || !isWorkerReady}
-                                        className="w-14 h-14 bg-gray-800 hover:bg-gray-700 disabled:text-gray-600 text-gray-400 rounded-2xl flex items-center justify-center border border-white/5 transition-all active:scale-90 relative group"
-                                        title="Upload Image"
-                                    >
-                                        <Upload className="w-6 h-6" />
-                                        <span className="absolute -bottom-10 whitespace-nowrap text-[10px] font-black uppercase tracking-widest text-gray-600 group-hover:text-indigo-400 transition-colors">Upload File</span>
-                                    </button>
+                                    <>
+                                        <button
+                                            onClick={captureAndProcess}
+                                            disabled={isProcessing || !isWorkerReady}
+                                            className="w-20 h-20 bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-full flex items-center justify-center shadow-2xl shadow-indigo-500/30 transition-all active:scale-90 relative group ring-4 ring-white/5"
+                                        >
+                                            {isProcessing ? <RefreshCw className="w-8 h-8 animate-spin" /> : <Camera className="w-8 h-8" />}
+                                            <span className="absolute -bottom-10 whitespace-nowrap text-[10px] font-black uppercase tracking-widest text-gray-500 group-hover:text-indigo-400 transition-colors">Capture Card</span>
+                                        </button>
+
+                                        {isDebugMode && debugPreviews.footer && (
+                                            <div className="flex flex-col gap-2 p-3 bg-black/40 rounded-2xl border border-orange-500/20 max-w-[200px]">
+                                                <div className="text-[10px] font-black uppercase text-orange-400 tracking-widest flex items-center gap-2">
+                                                    <AlertCircle className="w-3 h-3" /> ROI Crops
+                                                </div>
+                                                <div className="relative group">
+                                                    <img src={debugPreviews.footer} className="h-8 w-full object-contain bg-white rounded border border-white/10" alt="Footer" />
+                                                    <div className="absolute top-0 right-0 bg-black/60 text-white text-[8px] px-1 rounded-bl">Footer</div>
+                                                </div>
+                                                {lastDetection?.error && (
+                                                    <div className="mt-2 pt-2 border-t border-white/10">
+                                                        <p className="text-[8px] text-gray-400 font-mono break-all leading-tight">RAW: {lastDetection.raw || '---'}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        <button
+                                            onClick={() => fileInputRef.current?.click()}
+                                            disabled={isProcessing || !isWorkerReady}
+                                            className="w-14 h-14 bg-gray-800 hover:bg-gray-700 disabled:text-gray-600 text-gray-400 rounded-2xl flex items-center justify-center border border-white/5 transition-all active:scale-90 relative group"
+                                            title="Upload Image"
+                                        >
+                                            <Upload className="w-6 h-6" />
+                                            <span className="absolute -bottom-10 whitespace-nowrap text-[10px] font-black uppercase tracking-widest text-gray-600 group-hover:text-indigo-400 transition-colors">Upload File</span>
+                                        </button>
+
+                                        <button
+                                            onClick={() => setDefaultFinish(defaultFinish === 'foil' ? 'nonfoil' : 'foil')}
+                                            className={`w-14 h-14 rounded-2xl flex flex-col items-center justify-center border transition-all active:scale-95 group relative ${defaultFinish === 'foil' ? 'bg-yellow-500/10 border-yellow-500/50 text-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.2)]' : 'bg-gray-800 border-white/5 text-gray-500 hover:text-gray-300'}`}
+                                        >
+                                            <span className={`text-xl transition-transform ${defaultFinish === 'foil' ? 'scale-110' : 'scale-90 grayscale'}`}>✨</span>
+                                            <span className="absolute -bottom-10 whitespace-nowrap text-[10px] font-black uppercase tracking-widest group-hover:text-indigo-400 transition-colors">
+                                                {defaultFinish === 'foil' ? 'Foil' : 'Normal'}
+                                            </span>
+                                        </button>
+                                    </>
                                 )}
+                                <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="image/*" className="hidden" />
+                                {isDebugMode && <ConsoleBridge />}
                             </div>
-
-                            {/* Hidden File Input */}
-                            <input
-                                type="file"
-                                ref={fileInputRef}
-                                onChange={handleFileUpload}
-                                accept="image/*"
-                                className="hidden"
-                            />
-
-                            {/* On-Screen Debug Console */}
-                            {isDebugMode && <ConsoleBridge />}
                         </div>
                     )}
 
@@ -677,12 +680,7 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
                                     </div>
                                     <h3 className="text-xl font-bold text-white mb-2">No Cards Scanned</h3>
                                     <p className="text-gray-500 text-sm max-w-xs">Return to the scan view and aim your camera at a card to get started.</p>
-                                    <button
-                                        onClick={() => setView('scanning')}
-                                        className="mt-6 px-6 py-2 bg-indigo-600 text-white rounded-xl font-bold"
-                                    >
-                                        Go Back to Scan
-                                    </button>
+                                    <button onClick={() => setView('scanning')} className="mt-6 px-6 py-2 bg-indigo-600 text-white rounded-xl font-bold">Go Back to Scan</button>
                                 </div>
                             ) : (
                                 <div className="flex-1 overflow-y-auto custom-scrollbar p-0 md:p-6">
@@ -714,9 +712,7 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
                                                                 className="bg-gray-800 border border-white/10 rounded-lg px-2 py-1 text-xs text-white outline-none focus:ring-1 focus:ring-indigo-500 truncate"
                                                             >
                                                                 {card.variants?.map(v => (
-                                                                    <option key={v.id} value={v.id}>
-                                                                        {v.set.toUpperCase()} #{v.collector_number} ({v.set_name})
-                                                                    </option>
+                                                                    <option key={v.id} value={v.id}>{v.set.toUpperCase()} #{v.collector_number} ({v.set_name})</option>
                                                                 ))}
                                                                 {!card.variants?.length && (
                                                                     <option value={card.scryfall_id}>{card.set_code.toUpperCase()} #{card.collector_number}</option>
@@ -735,19 +731,9 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
                                                     </td>
                                                     <td className="px-4 md:px-6 py-4">
                                                         <div className="flex items-center gap-2">
-                                                            <button
-                                                                onClick={() => updateCard(card.id, { quantity: Math.max(1, card.quantity - 1) })}
-                                                                className="w-6 h-6 rounded bg-gray-800 flex items-center justify-center text-gray-400 hover:text-white"
-                                                            >
-                                                                -
-                                                            </button>
+                                                            <button onClick={() => updateCard(card.id, { quantity: Math.max(1, card.quantity - 1) })} className="w-6 h-6 rounded bg-gray-800 flex items-center justify-center text-gray-400 hover:text-white">-</button>
                                                             <span className="text-sm font-bold text-white w-4 text-center">{card.quantity}</span>
-                                                            <button
-                                                                onClick={() => updateCard(card.id, { quantity: card.quantity + 1 })}
-                                                                className="w-6 h-6 rounded bg-gray-800 flex items-center justify-center text-gray-400 hover:text-white"
-                                                            >
-                                                                +
-                                                            </button>
+                                                            <button onClick={() => updateCard(card.id, { quantity: card.quantity + 1 })} className="w-6 h-6 rounded bg-gray-800 flex items-center justify-center text-gray-400 hover:text-white">+</button>
                                                         </div>
                                                     </td>
                                                     <td className="px-4 md:px-6 py-4 text-right">
@@ -755,16 +741,10 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
                                                             <button
                                                                 onClick={() => updateCard(card.id, { is_wishlist: !card.is_wishlist })}
                                                                 className={`p-1.5 rounded-lg transition-all ${card.is_wishlist ? 'bg-red-500/10 text-red-500' : 'bg-gray-800/50 text-gray-500 hover:text-red-400'}`}
-                                                                title={card.is_wishlist ? "Remove from Wishlist" : "Add to Wishlist"}
                                                             >
                                                                 <Heart className={`w-4 h-4 ${card.is_wishlist ? 'fill-current' : ''}`} />
                                                             </button>
-                                                            <button
-                                                                onClick={() => removeCard(card.id)}
-                                                                className="p-1.5 text-gray-600 hover:text-red-500 transition-colors"
-                                                            >
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </button>
+                                                            <button onClick={() => removeCard(card.id)} className="p-1.5 text-gray-600 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -778,19 +758,32 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
                 </div>
 
                 {/* Footer */}
-                <div className="p-6 border-t border-white/5 bg-gray-900/80 flex justify-between items-center">
-                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em]">
-                        {scannedCards.length} Cards in Batch
-                    </p>
-
+                <div className="p-6 border-t border-white/5 bg-gray-900/80 flex justify-between items-center relative z-10">
+                    <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em] whitespace-nowrap">
+                            {scannedCards.length} Cards in Batch
+                        </p>
+                        <div className="h-4 w-px bg-white/10 hidden md:block" />
+                        <div className="flex flex-wrap items-center gap-3">
+                            <div className="flex items-center gap-2 bg-gray-800/50 p-1 rounded-lg border border-white/5">
+                                <button onClick={() => setAdditionMode('new')} className={`px-3 py-1 rounded-md text-[10px] font-black uppercase transition-all ${additionMode === 'new' ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:text-gray-300'}`}>New</button>
+                                <button onClick={() => setAdditionMode('transfer')} className={`px-3 py-1 rounded-md text-[10px] font-black uppercase transition-all ${additionMode === 'transfer' ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:text-gray-300'}`}>Transfer</button>
+                            </div>
+                            <select
+                                value={targetDeckId || ''}
+                                onChange={(e) => setTargetDeckId(e.target.value || null)}
+                                className="bg-gray-800 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:ring-1 focus:ring-indigo-500 max-w-[150px] md:max-w-[200px]"
+                            >
+                                <option value="">No Deck (Binder)</option>
+                                <optgroup label="My Decks">
+                                    {userDecks.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                                </optgroup>
+                            </select>
+                        </div>
+                    </div>
                     <div className="flex gap-2">
                         {scannedCards.length > 0 && view === 'scanning' && (
-                            <button
-                                onClick={() => setView('review')}
-                                className="px-6 py-2 text-gray-400 hover:text-white font-bold text-xs"
-                            >
-                                Review All
-                            </button>
+                            <button onClick={() => setView('review')} className="px-6 py-2 text-gray-400 hover:text-white font-bold text-xs">Review All</button>
                         )}
                         <button
                             onClick={handleConfirmAll}

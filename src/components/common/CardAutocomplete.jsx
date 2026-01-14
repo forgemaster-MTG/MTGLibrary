@@ -61,12 +61,21 @@ const CardAutocomplete = ({ value, onChange, onSelect, placeholder = "Find card 
             </div>
             <input
                 type="text"
-                className="block w-full pl-10 pr-4 py-2 bg-gray-900/50 border border-indigo-500/20 rounded-xl text-gray-300 placeholder-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none text-sm"
+                className="block w-full pl-10 pr-10 py-2 bg-gray-900/50 border border-indigo-500/20 rounded-xl text-gray-300 placeholder-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none text-sm"
                 placeholder={placeholder}
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 onFocus={() => value.length >= 2 && setShowSuggestions(true)}
             />
+
+            {value && (
+                <button
+                    onClick={() => onChange('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors p-1"
+                >
+                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            )}
 
             {showSuggestions && suggestions.length > 0 && (
                 <div className="absolute z-50 w-full mt-2 bg-gray-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-fade-in">

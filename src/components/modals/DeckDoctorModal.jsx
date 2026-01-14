@@ -168,10 +168,10 @@ const DeckDoctorModal = ({ isOpen, onClose, deck, cards, isOwner }) => {
             <div className="bg-gray-900 w-full max-w-4xl rounded-3xl border border-white/10 shadow-2xl p-8 relative flex flex-col max-h-[90vh]">
 
                 {/* Header */}
-                <div className="flex justify-between items-start mb-8">
+                <div className="flex justify-between items-start mb-8 relative z-10">
                     <div>
-                        <h2 className="text-3xl font-black text-white italic uppercase flex items-center gap-3">
-                            <span className="text-4xl">⚡</span> Deck Power Analysis
+                        <h2 className="text-3xl font-black text-white italic uppercase">
+                            Deck Power Analysis
                         </h2>
                         <p className="text-gray-400 text-sm mt-1">Evaluated by {helperName}</p>
                     </div>
@@ -180,8 +180,13 @@ const DeckDoctorModal = ({ isOpen, onClose, deck, cards, isOwner }) => {
                     </button>
                 </div>
 
+                {/* Branded Background Icon */}
+                <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none opacity-[0.12] saturate-[1.5] brightness-125">
+                    <img src="/icons/deck_doctor.png" alt="" className="w-[80%] h-[80%] object-contain" />
+                </div>
+
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar space-y-12">
+                <div className="flex-1 overflow-y-auto custom-scrollbar space-y-12 relative z-10">
 
                     {!report && !loading && (
                         <div className="text-center py-20">
