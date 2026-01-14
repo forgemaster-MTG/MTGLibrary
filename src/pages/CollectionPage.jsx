@@ -1189,7 +1189,7 @@ w - 8 h - 8 rounded - full border flex items - center justify - center transitio
                             scryfall_id: item.scryfall_id,
                             set_code: item.set_code,
                             collector_number: item.collector_number,
-                            image_uri: item.data.image_uris?.normal || item.data.card_faces?.[0]?.image_uris?.normal,
+                            image_uri: item.data.image_uri || item.image || item.data.image_uris?.normal || item.data.card_faces?.[0]?.image_uris?.normal,
                             count: item.quantity,
                             data: item.data,
                             is_wishlist: item.is_wishlist,

@@ -229,7 +229,16 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
 
         // Feature Gate: If batchScan is disabled, only keep the latest card
         setScannedCards(prev => tierConfig.features.batchScan ? [...prev, newCard] : [newCard]);
-        setLastDetection({ success: true, name: data.name });
+
+        const price = defaultFinish === 'foil'
+            ? (data.prices?.usd_foil || '0.00')
+            : (data.prices?.usd || '0.00');
+
+        setLastDetection({
+            success: true,
+            name: data.name,
+            price: price
+        });
     }, [tierConfig.features.batchScan, defaultFinish]);
 
     const processRegions = async (image) => {
@@ -584,8 +593,13 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
                                                         Analyzing Image...
                                                     </div>
                                                 ) : lastDetection?.success ? (
-                                                    <div className="bg-green-600 text-white text-[10px] px-4 py-1.5 rounded-full shadow-lg uppercase font-black flex items-center gap-2">
-                                                        <Check className="w-3 h-3" /> Found: {lastDetection.name}
+                                                    <div className="bg-green-600 text-white text-[10px] px-4 py-1.5 rounded-full shadow-lg uppercase font-black flex flex-col items-center leading-tight text-center">
+                                                        <div className="flex items-center gap-2">
+                                                            <Check className="w-3 h-3" /> Found: {lastDetection.name}
+                                                        </div>
+                                                        <div className="text-[8px] opacity-90 mt-0.5">
+                                                            (Collection value +${lastDetection.price})
+                                                        </div>
                                                     </div>
                                                 ) : lastDetection?.error ? (
                                                     <div className="bg-red-600 text-white text-[10px] px-4 py-1.5 rounded-full shadow-lg uppercase font-black">
@@ -694,6 +708,7 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
                                         <thead className="hidden md:table-header-group">
                                             <tr className="text-[10px] uppercase font-bold tracking-[0.2em] text-gray-500">
                                                 <th className="px-6 py-2">Card Detail</th>
+                                                <th className="px-6 py-2">Price</th>
                                                 <th className="px-6 py-2">Set / #</th>
                                                 <th className="px-6 py-2">Finish</th>
                                                 <th className="px-6 py-2">Qty</th>
@@ -708,6 +723,13 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
                                                         <div>
                                                             <div className="text-sm font-bold text-white leading-tight">{card.name}</div>
                                                             <div className="text-[10px] text-gray-500 mt-0.5">{card.set_name}</div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="hidden md:table-cell px-6 py-4">
+                                                        <div className="text-sm font-bold text-green-400">
+                                                            ${card.finish === 'foil'
+                                                                ? (card.data?.prices?.usd_foil || '0.00')
+                                                                : (card.data?.prices?.usd || '0.00')}
                                                         </div>
                                                     </td>
                                                     <td className="hidden md:table-cell px-6 py-4">
