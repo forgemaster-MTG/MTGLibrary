@@ -41,6 +41,7 @@ const ConsoleBridge = () => {
 };
 
 const RemoteLensPage = () => {
+    const { sessionId } = useParams();
     const [status, setStatus] = useState('connecting'); // connecting | ready | error
     const [socket, setSocket] = useState(null);
     const [scannedHistory, setScannedHistory] = useState([]);
