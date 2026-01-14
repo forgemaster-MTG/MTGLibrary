@@ -1,4 +1,5 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
+
 import ScrollToTop from './components/ScrollToTop';
 import Navbar from './components/Navbar';
 import LandingPage from './pages/LandingPage';
@@ -75,6 +76,7 @@ function App() {
                                     <Route path="/audit/:auditId/wizard" element={<AuditWizard />} />
                                     <Route path="/remote/:sessionId" element={<RemoteLensPage />} />
                                     <Route path="/strategy" element={<AIStrategyPage />} />
+                                    <Route path="/play" element={<Navigate to="/play/lobby" replace />} />
                                     <Route path="/play/lobby" element={<Lobby />} />
                                     <Route path="/play/room/:id" element={<GameRoom />} />
                                     <Route path="/social" element={<SocialPage />} />

@@ -1,8 +1,10 @@
 import React, { useRef, useState } from 'react';
+import CalculatorModal from './CalculatorModal';
 
 const LifeCounter = ({ life, onChange, isSelf = false, label }) => {
     // Simple +/- buttons.
     // Future: Add long-press logic for +/- 10
+    const [isCalcOpen, setIsCalcOpen] = useState(false);
 
     return (
         <div className={`flex flex-col items-center justify-center ${isSelf ? 'h-full' : 'h-32'} w-full relative group`}>
@@ -24,9 +26,12 @@ const LifeCounter = ({ life, onChange, isSelf = false, label }) => {
 
                 {/* Life Display (Centered absolute to overlay buttons seam) */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <span className={`${isSelf ? 'text-8xl md:text-9xl' : 'text-5xl'} font-black text-white tabular-nums drop-shadow-xl tracking-tighter`}>
+                    <button
+                        onClick={() => isSelf && setIsCalcOpen(true)}
+                        className={`pointer-events-auto ${isSelf ? 'text-8xl md:text-9xl hover:scale-105 active:scale-95 cursor-pointer' : 'text-5xl'} font-black text-white tabular-nums drop-shadow-xl tracking-tighter transition-transform`}
+                    >
                         {life}
-                    </span>
+                    </button>
                 </div>
 
                 {/* Plus Button */}
@@ -40,6 +45,16 @@ const LifeCounter = ({ life, onChange, isSelf = false, label }) => {
 
             {/* Visual divider */}
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[1px] h-1/2 bg-white/5 pointer-events-none"></div>
+
+            {/* Calculator Modal */}
+            {isSelf && (
+                <CalculatorModal
+                    isOpen={isCalcOpen}
+                    onClose={() => setIsCalcOpen(false)}
+                    currentValue={life}
+                    onApply={(change) => onChange(change)}
+                />
+            )}
         </div>
     );
 };

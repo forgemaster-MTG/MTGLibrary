@@ -240,6 +240,31 @@ export const setupGameHandler = (io, socket) => {
         broadcastGameState(roomId);
     });
 
+    socket.on('add-log-note', ({ roomId, note, emoji }) => {
+        const game = games.get(roomId);
+        if (!game) return;
+
+        game.logs.push({
+            timestamp: Date.now(),
+            type: 'note',
+            playerId: socket.id,
+            note: note,
+            emoji: emoji || '📝',
+            turn: game.turnCount || 0
+        });
+
+        // Optional: Broadcast explicitly if we want real-time chat bubbles later
+        // For now, state update is enough if logs were part of state (they aren't fully, but we could add them)
+        // Actually, log isn't in 'game-state-update' payload currently. 
+        // But for "Table Talk" to be useful, maybe we should emit a specific event or include recent logs?
+        // Let's just keep it simple: it saves to history. 
+        // If we want it visible now, we might need to emit it.
+        io.to(roomId).emit('game-log-entry', {
+            roomId,
+            entry: game.logs[game.logs.length - 1]
+        });
+    });
+
     socket.on('end-game', ({ roomId }) => {
         const game = games.get(roomId);
         if (!game) return;

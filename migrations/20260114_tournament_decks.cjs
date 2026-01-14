@@ -1,7 +1,7 @@
 
 exports.up = function (knex) {
     return knex.schema.table('tournament_participants', function (table) {
-        table.uuid('deck_id').references('id').inTable('decks').onDelete('SET NULL');
+        table.uuid('deck_id').references('id').inTable('user_decks').onDelete('SET NULL');
         table.jsonb('deck_snapshot').nullable().comment('Snapshot of the deck at the time of joining');
     });
 };

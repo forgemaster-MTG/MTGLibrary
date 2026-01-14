@@ -902,8 +902,22 @@ const DeckDetailsPage = () => {
 
                                             <div className="space-y-2">
                                                 <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] px-2">Tabletop Tools</h3>
-                                                <div className="px-2 py-3 bg-white/5 rounded-xl border border-white/5 border-dashed">
-                                                    <p className="text-[9px] text-gray-500 font-bold uppercase tracking-wider text-center italic">Future Tabletop expansion area</p>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); navigate('/play'); setIsToolsMenuOpen(false); }}
+                                                        className="flex flex-col items-center justify-center p-3 bg-white/5 hover:bg-green-500/20 rounded-xl border border-green-500/10 hover:border-green-500/30 transition-all group lg:min-h-[64px]"
+                                                    >
+                                                        <span className="text-xl mb-1 group-hover:scale-110 transition-transform">🎲</span>
+                                                        <span className="text-[10px] font-bold text-green-300 uppercase tracking-wider">Play Tabletop</span>
+                                                    </button>
+
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); navigate('/tournaments'); setIsToolsMenuOpen(false); }}
+                                                        className="flex flex-col items-center justify-center p-3 bg-white/5 hover:bg-orange-500/20 rounded-xl border border-orange-500/10 hover:border-orange-500/30 transition-all group lg:min-h-[64px]"
+                                                    >
+                                                        <span className="text-xl mb-1 group-hover:scale-110 transition-transform">🏆</span>
+                                                        <span className="text-[10px] font-bold text-orange-300 uppercase tracking-wider">Tournaments</span>
+                                                    </button>
                                                 </div>
                                             </div>
 

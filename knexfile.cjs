@@ -54,7 +54,8 @@ module.exports = {
     },
     migrations: {
       directory: './migrations',
-      tableName: 'knex_migrations'
+      tableName: 'knex_migrations',
+      loadExtensions: ['.js', '.cjs']
     }
   }
 };

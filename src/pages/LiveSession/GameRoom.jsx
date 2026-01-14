@@ -2,11 +2,12 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import io from 'socket.io-client';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
 import { api } from '../../services/api';
 import LifeCounter from '../../components/LiveSession/LifeCounter';
 import ResourcesModal from '../../components/LiveSession/ResourcesModal';
 import GameSummaryModal from '../../components/LiveSession/GameSummaryModal';
-import { Skull, Zap, TrendingUp, DollarSign, Shield, Flag, Play, SkipForward } from 'lucide-react';
+import { Skull, Zap, TrendingUp, DollarSign, Shield, Flag, Play, SkipForward, MessageSquare } from 'lucide-react';
 
 // Singleton socket for the session
 let socket;
@@ -15,6 +16,9 @@ const GameRoom = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const { userProfile } = useAuth();
+    const { addToast } = useToast();
+
+    // State
     const [gameState, setGameState] = useState(null);
     const [finalGameState, setFinalGameState] = useState(null);
     const [myPlayerId, setMyPlayerId] = useState(null);
@@ -26,14 +30,18 @@ const GameRoom = () => {
     const pin = location.state?.pin;
     const isHost = location.state?.isHost;
 
-    // Refs for mutable state in callbacks/effects
+    // Deck Selection State
     const [selectedDeckId, setSelectedDeckId] = useState(null);
     const [myDecks, setMyDecks] = useState([]);
     const [hasSelectedDeck, setHasSelectedDeck] = useState(false);
     const [joinError, setJoinError] = useState(null);
 
-    // Refs for mutable state in callbacks/effects
+    // Refs
     const roomIdRef = useRef(null);
+
+    // Undo State
+    const [lastAction, setLastAction] = useState(null);
+    const undoTimeoutRef = useRef(null);
 
     // Helper to render opponent counters
     const renderOpponentCounters = (opp) => {
@@ -87,7 +95,6 @@ const GameRoom = () => {
                 .then(data => setMyDecks(Array.isArray(data) ? data : (data.decks || [])))
                 .catch(err => {
                     console.error('Failed to load decks:', err);
-                    // Add a generic deck option if fetch fails
                     setMyDecks([]);
                 });
         }
@@ -95,7 +102,6 @@ const GameRoom = () => {
 
     // Initialization Effect
     useEffect(() => {
-        // Wait for deck selection before connecting
         if (!hasSelectedDeck) return;
 
         // Initialize socket
@@ -130,7 +136,7 @@ const GameRoom = () => {
                     setMyPlayerId(response.playerId);
                 } else {
                     setJoinError(response.error || 'Failed to join game');
-                    setHasSelectedDeck(false); // Go back to deck selection
+                    setHasSelectedDeck(false);
                 }
             });
         };
@@ -148,7 +154,7 @@ const GameRoom = () => {
 
         const onGameOver = ({ finalState }) => {
             console.log('Game Over!', finalState);
-            setFinalGameState(finalState); // Store for modal
+            setFinalGameState(finalState);
             setIsGameSummaryOpen(true);
         };
 
@@ -157,32 +163,73 @@ const GameRoom = () => {
             setJoinError('Connection error. Retrying...');
         };
 
+        const onLogEntry = ({ entry }) => {
+            if (entry.type === 'note') {
+                addToast(`${entry.emoji} ${entry.note}`, 'info', 4000);
+            }
+        };
+
         socket.on('connect', onConnect);
         socket.on('game-state-update', onGameStateUpdate);
         socket.on('game-over', onGameOver);
         socket.on('connect_error', onConnectError);
+        socket.on('game-log-entry', onLogEntry);
 
-        // If already connected, trigger setup immediately
         if (socket.connected) {
             onConnect();
         }
 
-        // Cleanup
         return () => {
             socket.off('connect', onConnect);
             socket.off('game-state-update', onGameStateUpdate);
             socket.off('game-over', onGameOver);
             socket.off('connect_error', onConnectError);
+            socket.off('game-log-entry', onLogEntry);
             if (socket) socket.disconnect();
-            socket = null; // Clear singleton
+            socket = null;
         };
-    }, [pin, isHost, userProfile, navigate, hasSelectedDeck, selectedDeckId]);
+    }, [pin, isHost, userProfile, navigate, hasSelectedDeck, selectedDeckId, addToast]);
+
+    // Helpers for Undo
+    const registerAction = (action) => {
+        if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current);
+        setLastAction(action);
+        undoTimeoutRef.current = setTimeout(() => {
+            setLastAction(null);
+        }, 5000);
+    };
+
+    const handleUndo = () => {
+        if (!lastAction) return;
+
+        // Optimistic Revert & Socket Emit
+        if (lastAction.type === 'LIFE') {
+            const revertChange = -lastAction.change;
+            setGameState(prev => {
+                const newPlayers = prev.players.map(p =>
+                    p.id === myPlayerId ? { ...p, life: p.life + revertChange } : p
+                );
+                return { ...prev, players: newPlayers };
+            });
+            socket.emit('update-life', { roomId: roomIdRef.current, change: revertChange });
+        } else if (lastAction.type === 'COUNTER') {
+            const revertChange = -lastAction.change;
+            socket.emit('update-counters', { roomId: roomIdRef.current, type: lastAction.counterType, change: revertChange });
+        } else if (lastAction.type === 'CMDR_DMG') {
+            const revertChange = -lastAction.change;
+            socket.emit('update-commander-damage', { roomId: roomIdRef.current, targetId: lastAction.targetId, change: revertChange });
+        }
+
+        setLastAction(null);
+        if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current);
+    };
 
     // Handlers
     const handleLifeChange = (change) => {
         if (!socket || !gameState || !myPlayerId || !roomIdRef.current) return;
 
-        // Optimistic Update
+        registerAction({ type: 'LIFE', change });
+
         setGameState(prev => {
             const newPlayers = prev.players.map(p =>
                 p.id === myPlayerId ? { ...p, life: p.life + change } : p
@@ -199,6 +246,9 @@ const GameRoom = () => {
     const handleCounterChange = (type, value) => {
         const myPlayer = gameState.players.find(p => p.id === myPlayerId);
         const change = value - (myPlayer.counters[type] || 0);
+
+        registerAction({ type: 'COUNTER', counterType: type, change });
+
         socket.emit('update-counters', { roomId: roomIdRef.current, type, change });
     };
 
@@ -206,6 +256,9 @@ const GameRoom = () => {
         const myPlayer = gameState.players.find(p => p.id === myPlayerId);
         const current = myPlayer.commanderDamage[targetId] || 0;
         const change = value - current;
+
+        registerAction({ type: 'CMDR_DMG', targetId, change });
+
         socket.emit('update-commander-damage', { roomId: roomIdRef.current, targetId, change });
     };
 
@@ -217,7 +270,6 @@ const GameRoom = () => {
     };
 
     const handleSaveGame = async (payload) => {
-        // Here we call the API to save the match
         try {
             const data = await api.post('/api/matches', payload);
             if (data.success) {
@@ -243,6 +295,15 @@ const GameRoom = () => {
         socket.emit('pass-turn', { roomId: roomIdRef.current });
     };
 
+    const handleAddNote = () => {
+        if (!socket || !roomIdRef.current) return;
+        const note = window.prompt("Add a note to the game log (e.g. 'Board Wipe', 'Infinite Combo'):");
+        if (note && note.trim()) {
+            socket.emit('add-log-note', { roomId: roomIdRef.current, note: note.trim() });
+        }
+    };
+
+    // Render Loading/Error Views
     if (error) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-gray-950 text-red-400 font-bold p-4 text-center">
@@ -279,7 +340,6 @@ const GameRoom = () => {
         );
     }
 
-    // New Deck Selection Screen
     if (!hasSelectedDeck) {
         return (
             <div className="flex flex-col items-center justify-center min-h-screen bg-gray-950 p-4 animate-fade-in">
@@ -308,7 +368,7 @@ const GameRoom = () => {
                             onClick={() => {
                                 if (selectedDeckId) {
                                     setHasSelectedDeck(true);
-                                    setIsLoading(true); // Show loading while connecting
+                                    setIsLoading(true);
                                 }
                             }}
                             disabled={!selectedDeckId}
@@ -354,8 +414,6 @@ const GameRoom = () => {
                     <div key={opp.id} className={`relative flex flex-col items-center justify-center bg-gray-900 p-2 border group transition-colors duration-500 ${gameState.activePlayerId === opp.id ? 'border-indigo-500 shadow-[inset_0_0_20px_rgba(79,70,229,0.2)]' : 'border-black/20'}`}>
                         <span className="text-gray-500 text-[10px] font-bold uppercase tracking-widest absolute top-2 w-full text-center truncate px-2">{opp.name}</span>
                         <span className="text-4xl font-black text-white/90 mb-2">{opp.life}</span>
-
-                        {/* Opponent Resources */}
                         {renderOpponentCounters(opp)}
                     </div>
                 )) : (
@@ -376,7 +434,14 @@ const GameRoom = () => {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    {/* End Game Button (Host Only) */}
+                    <button
+                        onClick={handleAddNote}
+                        className="p-2 text-gray-500 hover:text-white transition-colors"
+                        title="Add Log Note"
+                    >
+                        <MessageSquare className="w-4 h-4" />
+                    </button>
+
                     {isHost && (
                         <button
                             onClick={handleEndGame}
@@ -402,7 +467,6 @@ const GameRoom = () => {
                     onChange={handleLifeChange}
                 />
 
-                {/* Resources Button */}
                 <button
                     onClick={() => setIsResourcesOpen(true)}
                     className="absolute top-6 right-6 w-10 h-10 bg-gray-800 hover:bg-gray-700 rounded-full flex items-center justify-center border border-white/10 shadow-lg z-20 transition-colors"
@@ -410,6 +474,28 @@ const GameRoom = () => {
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white"><path d="M12 2v20" /><path d="M2 12h20" /><path d="m4.93 4.93 14.14 14.14" /><path d="m19.07 4.93-14.14 14.14" /></svg>
                 </button>
             </div>
+
+            {/* Undo Toast */}
+            {lastAction && (
+                <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-[60] animate-fade-in-up">
+                    <button
+                        onClick={handleUndo}
+                        className="bg-gray-800/90 text-white px-6 py-3 rounded-full shadow-2xl border border-white/10 flex items-center gap-3 hover:bg-gray-700 transition-colors backdrop-blur-md"
+                    >
+                        <svg className="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
+                        <div className="flex flex-col items-start leading-none">
+                            <span className="text-xs font-bold uppercase text-gray-400">Undo</span>
+                            <span className="font-bold text-sm">
+                                {lastAction.type === 'LIFE' && `Life ${lastAction.change > 0 ? '+' : ''}${lastAction.change}`}
+                                {lastAction.type === 'COUNTER' && `${lastAction.counterType} ${lastAction.change > 0 ? '+' : ''}${lastAction.change}`}
+                                {lastAction.type === 'CMDR_DMG' && `Cmd Dmg ${lastAction.change > 0 ? '+' : ''}${lastAction.change}`}
+                            </span>
+                        </div>
+                        <div className="w-px h-6 bg-white/10 mx-1"></div>
+                        <span className="text-xs font-mono text-gray-500">5s</span>
+                    </button>
+                </div>
+            )}
 
             <ResourcesModal
                 isOpen={isResourcesOpen}
