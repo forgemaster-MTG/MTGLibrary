@@ -403,9 +403,13 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
             return;
         }
 
-        console.log(`[ForgeLens] Attempting Name search: "${name}"`);
+        console.log(`[ForgeLens] Attempting Name search: "${name}" (Set: ${set}, CN: ${cn})`);
         try {
-            const resp = await api.post('/api/cards/search', { query: name });
+            const resp = await api.post('/api/cards/search', {
+                query: name,
+                set: set,
+                cn: cn
+            });
             const localCards = resp.data || [];
 
             if (localCards.length > 0) {
@@ -478,6 +482,29 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
             }
             return c;
         }));
+    };
+
+    const handleAddAndContinue = () => {
+        if (onFinish) {
+            onFinish(scannedCards, {
+                targetDeckId,
+                additionMode,
+                defaultFinish
+            });
+            // Show feedback using the detection overlay
+            setLastDetection({
+                success: true,
+                name: `Batch Added! (${scannedCards.length} cards)`,
+                price: '0.00' // Placeholder to avoid crash if used
+            });
+
+            // Reset state for next batch
+            setScannedCards([]);
+            setView('scanning');
+
+            // Clear message after longer delay
+            setTimeout(() => setLastDetection(null), 3000);
+        }
     };
 
     const handleConfirmAll = () => {
@@ -829,6 +856,13 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
                             <button onClick={() => setView('review')} className="px-6 py-2 text-gray-400 hover:text-white font-bold text-xs">Review All</button>
                         )}
                         <button
+                            onClick={handleAddAndContinue}
+                            disabled={scannedCards.length === 0}
+                            className={`px-4 py-3 rounded-2xl font-bold text-xs transition-all flex items-center gap-2 ${scannedCards.length > 0 ? 'bg-indigo-600/20 text-indigo-300 hover:bg-indigo-600/30' : 'bg-gray-800 text-gray-600 cursor-not-allowed'}`}
+                        >
+                            <RefreshCw className="w-4 h-4" /> Add & Continue
+                        </button>
+                        <button
                             onClick={handleConfirmAll}
                             disabled={scannedCards.length === 0}
                             className={`px-10 py-3 rounded-2xl font-black text-sm transition-all shadow-xl active:scale-95 flex items-center gap-2 ${scannedCards.length > 0 ? 'bg-indigo-600 text-white shadow-indigo-900/40' : 'bg-gray-800 text-gray-600 cursor-not-allowed'}`}
@@ -841,7 +875,7 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
                 {/* Hidden Canvas for Cropping */}
                 <canvas ref={canvasRef} style={{ display: 'none' }} />
             </div>
-        </div>,
+        </div >,
         document.body
     );
 };

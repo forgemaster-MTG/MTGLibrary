@@ -462,7 +462,8 @@ router.post('/batch', batchLimitCheck, async (req, res) => {
                             tags: JSON.stringify(mergedTags),
                             data: c.data || existing.data,
                             price_bought: c.price_bought !== undefined ? c.price_bought : existing.price_bought,
-                            binder_id: binderId || existing.binder_id
+                            binder_id: binderId || existing.binder_id,
+                            image_uri: c.image_uri || cardService.resolveImage(c.data || existing.data) || existing.image_uri
                         });
 
                     updated++;
