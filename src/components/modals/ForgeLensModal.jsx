@@ -484,26 +484,63 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
         }));
     };
 
-    const handleAddAndContinue = () => {
-        if (onFinish) {
-            onFinish(scannedCards, {
-                targetDeckId,
-                additionMode,
-                defaultFinish
+    const handleAddAndContinue = async () => {
+        try {
+            console.log("[ForgeLens] Add & Continue - Constructing Payload...");
+
+            // 1. Construct Payload (Replicating CollectionPage logic to avoid parent re-render)
+            const payload = scannedCards.map(item => {
+                // Resolution Strategy for Image:
+                // 1. Scryfall Normal (Best)
+                // 2. Scryfall Small (Fallback)
+                // 3. Item Image (Small fallback from scan)
+                const resolvedImage = item.data?.image_uris?.normal ||
+                    item.data?.card_faces?.[0]?.image_uris?.normal ||
+                    item.image ||
+                    null;
+
+                console.log(`[ForgeLens] Card: ${item.name}, Image: ${resolvedImage}`);
+
+                return {
+                    name: item.name,
+                    scryfall_id: item.scryfall_id,
+                    set_code: item.set_code,
+                    collector_number: item.collector_number,
+                    image_uri: resolvedImage,
+                    count: item.quantity,
+                    data: item.data,
+                    is_wishlist: item.is_wishlist,
+                    finish: item.finish || 'nonfoil',
+                    deck_id: targetDeckId || null,
+                    tags: []
+                };
             });
-            // Show feedback using the detection overlay
+
+            // 2. Determine Mode
+            const apiMode = additionMode === 'transfer' ? 'transfer_to_deck' : 'merge';
+
+            // 3. Call API Directly (Bypasses parent refresh() which disconnects socket)
+            console.log("[ForgeLens] Sending Batch:", payload.length, "cards", apiMode);
+            await api.batchAddToCollection(payload, apiMode);
+
+            // 4. Feedback & Reset
+            addToast(`Successfully added ${scannedCards.length} cards!`, 'success');
+
             setLastDetection({
                 success: true,
                 name: `Batch Added! (${scannedCards.length} cards)`,
-                price: '0.00' // Placeholder to avoid crash if used
+                price: scannedCards.reduce((acc, c) => acc + (parseFloat(c.data?.prices?.usd || 0)), 0).toFixed(2)
             });
 
-            // Reset state for next batch
             setScannedCards([]);
             setView('scanning');
 
-            // Clear message after longer delay
             setTimeout(() => setLastDetection(null), 3000);
+
+        } catch (err) {
+            console.error("[ForgeLens] Add & Continue Failed", err);
+            addToast("Failed to add cards. Check console.", "error");
+            setLastDetection({ error: "Batch Add Failed" });
         }
     };
 
