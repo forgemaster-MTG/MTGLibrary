@@ -16,7 +16,7 @@ import AddFromCollectionModal from '../components/modals/AddFromCollectionModal'
 import DeckAdvancedStats from '../components/DeckAdvancedStats';
 import DeckStatsModal from '../components/modals/DeckStatsModal';
 import DeckStrategyModal from '../components/modals/DeckStrategyModal';
-import ShareModal from '../components/social/ShareModal';
+import ShareModal from '../components/Social/ShareModal';
 import DeckDoctorModal from '../components/modals/DeckDoctorModal';
 import DeckAI from '../components/DeckAI';
 import TokenModal from '../components/modals/TokenModal';
