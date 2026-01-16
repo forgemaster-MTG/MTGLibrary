@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDecks } from '../hooks/useDecks';
 import { useAuth } from '../contexts/AuthContext';
-import { deckService } from '../services/DeckService';
+import { deckService } from '../services/deckService';
 import { useToast } from '../contexts/ToastContext';
 import DeckRow from '../components/decks/DeckRow';
 import { TIER_CONFIG } from '../config/tiers';
