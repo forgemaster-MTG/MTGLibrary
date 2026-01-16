@@ -105,4 +105,5 @@ node_modules/
 # DB Data
 postgres_data_*
 
-/serviceAccountKey.json
+serviceAccountKey.json
+mtglibrary-70b46-firebase-adminsdk-fbsvc-febf529fa8.json
