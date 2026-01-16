@@ -558,26 +558,38 @@ export function useGameState() {
     const untapAll = useCallback(() => dispatch({ type: 'UNTAP_ALL' }), []);
     const shuffleLibrary = useCallback(() => dispatch({ type: 'SHUFFLE_LIBRARY' }), []);
     const setLife = useCallback((amount) => dispatch({ type: 'SET_LIFE', payload: amount }), []);
+    const undo = useCallback(() => dispatch({ type: 'UNDO' }), []);
+    const mulligan = useCallback(() => dispatch({ type: 'MULLIGAN' }), []);
+    const restartGame = useCallback(() => dispatch({ type: 'RESTART_GAME' }), []);
+    const nextPhase = useCallback(() => dispatch({ type: 'NEXT_PHASE' }), []);
+    const addMana = useCallback((color) => dispatch({ type: 'ADD_MANA', payload: { color } }), []);
+    const spendMana = useCallback((color) => dispatch({ type: 'SPEND_MANA', payload: { color } }), []);
+    const addCounter = useCallback((cardId, zone, counterType, amount) => dispatch({ type: 'ADD_COUNTER', payload: { cardId, zone, counterType, amount } }), []);
+    const removeCounter = useCallback((cardId, zone, counterType, amount) => dispatch({ type: 'REMOVE_COUNTER', payload: { cardId, zone, counterType, amount } }), []);
+    const createToken = useCallback((tokenData) => dispatch({ type: 'CREATE_TOKEN', payload: { tokenData } }), []);
 
-    return {
-        state,
-        actions: {
-            loadDeck,
-            drawCard,
-            moveCard,
-            tapCard,
-            untapAll,
-            shuffleLibrary,
-            setLife,
-            undo: () => dispatch({ type: 'UNDO' }),
-            mulligan: () => dispatch({ type: 'MULLIGAN' }),
-            restartGame: () => dispatch({ type: 'RESTART_GAME' }),
-            nextPhase: () => dispatch({ type: 'NEXT_PHASE' }),
-            addMana: (color) => dispatch({ type: 'ADD_MANA', payload: { color } }),
-            spendMana: (color) => dispatch({ type: 'SPEND_MANA', payload: { color } }),
-            addCounter: (cardId, zone, counterType, amount) => dispatch({ type: 'ADD_COUNTER', payload: { cardId, zone, counterType, amount } }),
-            removeCounter: (cardId, zone, counterType, amount) => dispatch({ type: 'REMOVE_COUNTER', payload: { cardId, zone, counterType, amount } }),
-            createToken: (tokenData) => dispatch({ type: 'CREATE_TOKEN', payload: { tokenData } })
-        }
-    };
+    const actions = useMemo(() => ({
+        loadDeck,
+        drawCard,
+        moveCard,
+        tapCard,
+        untapAll,
+        shuffleLibrary,
+        setLife,
+        undo,
+        mulligan,
+        restartGame,
+        nextPhase,
+        addMana,
+        spendMana,
+        addCounter,
+        removeCounter,
+        createToken
+    }), [
+        loadDeck, drawCard, moveCard, tapCard, untapAll, shuffleLibrary, setLife,
+        undo, mulligan, restartGame, nextPhase, addMana, spendMana, addCounter,
+        removeCounter, createToken
+    ]);
+
+    return { state, actions };
 }

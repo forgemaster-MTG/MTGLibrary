@@ -121,6 +121,8 @@ function SolitaireContent() {
         }
     }, [actions]);
 
+    const handleCardClick = useCallback((card) => actions.tapCard(card.instanceId, card.zoneId), [actions]);
+
     return (
         <div className="h-screen bg-gray-950 flex flex-col overflow-hidden">
             {/* Header / Game Controls */}
@@ -214,7 +216,7 @@ function SolitaireContent() {
                     >
                         <Playmat
                             state={state}
-                            onCardClick={useCallback((card) => actions.tapCard(card.instanceId, card.zoneId), [actions])}
+                            onCardClick={handleCardClick}
                         />
 
                         {createPortal(
