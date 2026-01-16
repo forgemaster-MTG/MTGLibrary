@@ -72,7 +72,7 @@ router.get('/', async (req, res) => {
         let mixedMode = false;
 
         // Check request specific user or 'all'
-        if (req.query.userId && req.query.userId !== req.user.id) {
+        if (req.query.userId && String(req.query.userId) !== String(req.user.id)) {
 
             if (req.query.userId === 'all') {
                 mixedMode = true;
@@ -86,18 +86,31 @@ router.get('/', async (req, res) => {
                 targetUserIds = [req.user.id, ...friendIds];
             } else {
                 // Specific friend
-                targetUserIds = [req.query.userId];
+                const targetUserId = req.query.userId;
+                targetUserIds = [targetUserId];
 
-                // Verify Global Permission
+                // 1. Check Explicit Permission
                 const perm = await knex('collection_permissions')
                     .where({
-                        owner_id: req.query.userId,
+                        owner_id: targetUserId,
                         grantee_id: req.user.id
                     })
-                    .whereNull('target_deck_id') // Global permission
+                    .whereNull('target_deck_id')
                     .first();
 
-                if (!perm) {
+                // 2. Check Public Status
+                const targetUser = await knex('users').where('id', targetUserId).first();
+                const isPublic = targetUser && targetUser.is_public_library;
+
+                // 3. Check Friendship
+                const isFriend = await knex('user_relationships')
+                    .where(b => b.where('requester_id', req.user.id).andWhere('addressee_id', targetUserId))
+                    .orWhere(b => b.where('requester_id', targetUserId).andWhere('addressee_id', req.user.id))
+                    .andWhere('status', 'accepted')
+                    .first();
+
+                // Allow if any condition matches
+                if (!perm && !isPublic && !isFriend) {
                     return res.status(403).json({ error: 'Access denied to this collection' });
                 }
             }

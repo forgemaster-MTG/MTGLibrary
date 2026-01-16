@@ -113,8 +113,12 @@ const CardDetailsModal = () => {
     const handleDelete = async () => {
         if (window.confirm(`Are you sure you want to delete ${selectedCard.name} from your collection?`)) {
             try {
-                await removeCard(selectedCard.id || selectedCard.firestoreId);
-                addToast('Card deleted', 'success');
+                if (selectedCard.onDelete) {
+                    await selectedCard.onDelete(selectedCard.id || selectedCard.firestoreId, selectedCard.name);
+                } else {
+                    await removeCard(selectedCard.id || selectedCard.firestoreId);
+                    addToast('Card deleted', 'success');
+                }
                 closeCardModal();
             } catch (err) {
                 console.error(err);

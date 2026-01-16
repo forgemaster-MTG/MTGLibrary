@@ -8,6 +8,7 @@ import PricingPage from './pages/PricingPage';
 import LoginPage from './pages/LoginPage';
 import CollectionPage from './pages/CollectionPage';
 import DecksPage from './pages/DecksPage';
+import BindersPage from './pages/BindersPage';
 import CreateDeckPage from './pages/CreateDeckPage';
 import DeckDetailsPage from './pages/DeckDetailsPage';
 import SetsPage from './pages/SetsPage';
@@ -27,8 +28,11 @@ import AuditHub from './components/Audit/AuditHub';
 import Lobby from './pages/LiveSession/Lobby';
 import GameRoom from './pages/LiveSession/GameRoom';
 import SocialPage from './pages/SocialPage';
+import TradeDashboard from './pages/TradeDashboard';
+import ProfilePage from './pages/ProfilePage';
 import TournamentPage from './pages/TournamentPage';
 import TournamentJoinPage from './pages/TournamentJoinPage';
+import SolitairePage from './pages/SolitairePage';
 import ChatWidget from './components/ChatWidget';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -59,6 +63,7 @@ function App() {
                                     <Route path="/collection" element={<CollectionPage />} />
                                     <Route path="/pricing" element={<PricingPage />} />
                                     <Route path="/decks" element={<DecksPage />} />
+                                    <Route path="/binders" element={<BindersPage />} />
                                     <Route path="/precons" element={<PreconPage />} />
                                     <Route path="/precons/type/:type" element={<PreconPage />} />
                                     <Route path="/precons/set/:set" element={<PreconPage />} />
@@ -80,9 +85,12 @@ function App() {
                                     <Route path="/play/lobby" element={<Lobby />} />
                                     <Route path="/play/room/:id" element={<GameRoom />} />
                                     <Route path="/social" element={<SocialPage />} />
+                                    <Route path="/profile/:id" element={<ProfilePage />} />
+                                    <Route path="/armory" element={<TradeDashboard />} />
                                     <Route path="/tournaments" element={<TournamentPage />} />
                                     <Route path="/tournaments/:id" element={<TournamentPage />} />
                                     <Route path="/tournaments/:id/join" element={<TournamentJoinPage />} />
+                                    <Route path="/solitaire/:deckId" element={<SolitairePage />} />
                                 </Routes>
                             </div>
                         </AuthGuard>

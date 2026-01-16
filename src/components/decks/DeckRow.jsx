@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import DeckCard from './DeckCard';
 import { Link } from 'react-router-dom';
 
-const DeckRow = ({ title, decks, loading, error, isOwner = false }) => {
+const DeckRow = memo(function DeckRow({ title, decks, loading, error, isOwner = false }) {
     const [expanded, setExpanded] = useState(false);
 
     // Show 4 cards by default, or all if expanded
@@ -76,6 +76,6 @@ const DeckRow = ({ title, decks, loading, error, isOwner = false }) => {
             )}
         </div>
     );
-};
+});
 
 export default DeckRow;

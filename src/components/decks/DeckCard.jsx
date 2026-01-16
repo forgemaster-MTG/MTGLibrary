@@ -1,9 +1,10 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { memo } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { getArtCrop, getDeckColors } from '../../utils/deckUtils';
 import { getIdentity } from '../../utils/identityRegistry';
 
-const DeckCard = ({ deck }) => {
+const DeckCard = memo(function DeckCard({ deck }) {
+    const navigate = useNavigate();
     const deckColors = getDeckColors(deck);
     const identity = getIdentity(deckColors);
     const cardCount = parseInt(deck.card_count || 0);
@@ -11,7 +12,7 @@ const DeckCard = ({ deck }) => {
     const partnerImage = getArtCrop(deck.commander_partner);
 
     return (
-        <Link to={`/decks/${deck.id}`} className="group relative flex flex-col h-[420px] rounded-3xl transition-all duration-300 hover:-translate-y-2">
+        <div onClick={() => navigate(`/decks/${deck.id}`)} className="group relative flex flex-col h-[420px] rounded-3xl transition-all duration-300 hover:-translate-y-2 cursor-pointer">
             {/* Glass Container */}
             <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-md rounded-3xl border border-white/5 shadow-2xl group-hover:border-indigo-500/50 group-hover:shadow-indigo-500/20 transition-all overflow-hidden flex flex-col">
 
@@ -55,7 +56,7 @@ const DeckCard = ({ deck }) => {
                     )}
 
                     {/* Badges (Mockup, Precon) */}
-                    <div className="absolute top-3 left-3 flex flex-col gap-1">
+                    <div className="absolute top-3 left-3 flex flex-col gap-1 z-10">
                         {deck.tags && deck.tags.includes('Precon') && (
                             <div className="px-2 py-1 bg-teal-500/20 text-teal-400 border border-teal-500/30 backdrop-blur-md rounded text-[10px] font-black uppercase tracking-widest shadow-lg text-center">
                                 Precon
@@ -67,7 +68,20 @@ const DeckCard = ({ deck }) => {
                             </div>
                         )}
                     </div>
+
+                    {/* Quick Play Action (Hover Only) */}
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20 pointer-events-none group-hover:pointer-events-auto">
+                        <Link
+                            to={`/solitaire/${deck.id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300 bg-amber-600/90 hover:bg-amber-500 text-white p-4 rounded-full shadow-2xl backdrop-blur-sm border 2 border-white/20 flex flex-col items-center gap-1"
+                            title="Play Solitaire"
+                        >
+                            <svg className="w-8 h-8 ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                        </Link>
+                    </div>
                 </div>
+
 
                 {/* Content Area */}
                 <div className="h-[40%] p-5 flex flex-col justify-between relative grow">
@@ -133,8 +147,8 @@ const DeckCard = ({ deck }) => {
                     </div>
                 </div>
             </div>
-        </Link>
+        </div>
     );
-};
+});
 
 export default DeckCard;

@@ -118,33 +118,46 @@ router.get('/', async (req, res) => {
     if (req.query.userId && req.query.userId != req.user.id) {
       const targetUserId = req.query.userId;
 
-      // Verify Global Permission
-      const perm = await knex('collection_permissions')
-        .where({
-          owner_id: targetUserId,
-          grantee_id: req.user.id
-        })
-        .whereNull('target_deck_id') // Global permission
-        .first();
+      // 4a. Check for Public Access first
+      const targetUser = await knex('users').where({ id: targetUserId }).first();
+      let isPublicAccess = targetUser?.is_public_library === true;
 
-      if (!perm) {
+      // 4b. If not public, check for Global Permission
+      let perm = null;
+      if (!isPublicAccess) {
+        perm = await knex('collection_permissions')
+          .where({
+            owner_id: targetUserId,
+            grantee_id: req.user.id
+          })
+          .whereNull('target_deck_id') // Global permission
+          .first();
+      }
+
+      if (!isPublicAccess && !perm) {
         return res.status(403).json({ error: 'Access denied to these decks' });
       }
 
       // Return Owner's Decks (Read-only view mostly)
-      const rows = await knex('user_decks')
+      const query = knex('user_decks')
         .select([
           'user_decks.*',
           knex.raw(`
-              (SELECT COALESCE(SUM(count), 0) FROM user_cards WHERE deck_id = user_decks.id) +
-              (CASE WHEN commander IS NOT NULL THEN 1 ELSE 0 END) +
-              (CASE WHEN commander_partner IS NOT NULL THEN 1 ELSE 0 END)
-              as card_count
-            `)
+                (SELECT COALESCE(SUM(count), 0) FROM user_cards WHERE deck_id = user_decks.id) +
+                (CASE WHEN commander IS NOT NULL THEN 1 ELSE 0 END) +
+                (CASE WHEN commander_partner IS NOT NULL THEN 1 ELSE 0 END)
+                as card_count
+              `)
         ])
         .where({ user_id: targetUserId })
         .orderBy('updated_at', 'desc');
 
+      // If ONLY relying on public access (not specific permission), only show public decks
+      if (isPublicAccess && !perm) {
+        query.where({ is_public: true });
+      }
+
+      const rows = await query;
       return res.json(rows);
     }
 

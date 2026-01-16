@@ -59,14 +59,19 @@ router.get('/relationships', authMiddleware, async (req, res) => {
 router.post('/relationships/request', authMiddleware, async (req, res) => {
     try {
         const requesterId = req.user.id;
-        const { targetEmail, type = 'pod' } = req.body;
+        const { targetEmail, targetId, type = 'pod' } = req.body;
 
-        if (!targetEmail) return res.status(400).json({ error: 'Target email is required' });
+        if (!targetEmail && !targetId) return res.status(400).json({ error: 'Target email or ID is required' });
 
-        // Find user by email
-        const targetUser = await knex('users').where('email', targetEmail).first();
+        let targetUser = null;
 
-        if (!targetUser) {
+        if (targetId) {
+            targetUser = await knex('users').where('id', targetId).first();
+        } else if (targetEmail) {
+            targetUser = await knex('users').where('email', targetEmail).first();
+        }
+
+        if (!targetUser && targetEmail) {
             // Check if already invited
             const existingInvite = await knex('pending_external_invitations')
                 .where({ inviter_id: requesterId, invitee_email: targetEmail })

@@ -2,9 +2,11 @@ import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useDeck } from '../hooks/useDeck';
 import { useDecks } from '../hooks/useDecks';
+import useUndo from '../hooks/useUndo';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useCollection } from '../hooks/useCollection';
+import { useMarketData } from '../hooks/useMarketData';
 import { deckService } from '../services/deckService';
 import { getTierConfig } from '../config/tiers';
 import CardSearchModal from '../components/CardSearchModal';
@@ -14,13 +16,14 @@ import AddFromCollectionModal from '../components/modals/AddFromCollectionModal'
 import DeckAdvancedStats from '../components/DeckAdvancedStats';
 import DeckStatsModal from '../components/modals/DeckStatsModal';
 import DeckStrategyModal from '../components/modals/DeckStrategyModal';
-import ShareModal from '../components/modals/ShareModal';
+import ShareModal from '../components/social/ShareModal';
 import DeckDoctorModal from '../components/modals/DeckDoctorModal';
 import DeckAI from '../components/DeckAI';
 import TokenModal from '../components/modals/TokenModal';
 import CardGridItem from '../components/common/CardGridItem';
 import StartAuditButton from '../components/Audit/StartAuditButton';
 import ForgeLensModal from '../components/modals/ForgeLensModal';
+import PrintSettingsModal from '../components/printing/PrintSettingsModal';
 
 const MTG_IDENTITY_REGISTRY = [
     { badge: "White", colors: ["W"], theme: "Absolute Order", flavor_text: "A single spark of light can banish a world of shadows." },
@@ -102,23 +105,28 @@ const DeckDetailsPage = () => {
         const action = deck.is_mockup ? 'delete' : 'remove'; // Delete from DB for mockups, remove to binder for decks
         const count = selectedCardIds.size;
 
-        if (!window.confirm(`Are you sure you want to ${action === 'delete' ? 'delete' : 'remove'} ${count} cards?`)) return;
+        if (!window.confirm(`Are you sure you want to ${action === 'delete' ? 'delete' : 'remove'} ${count} cards ? `)) return;
 
         try {
-            await deckService.batchRemoveCards(currentUser.uid, deckId, Array.from(selectedCardIds), action);
+            const idsToRemove = Array.from(selectedCardIds);
+
+            // Optimistic Update
+            const newCards = deckCards.filter(c => !idsToRemove.includes(c.id)); // Note: c.id matches logic in toggleSelection
+            recordAction(`Removed ${count} cards`, newCards);
+            setCards(newCards);
+
+            await deckService.batchRemoveCards(currentUser.uid, deckId, idsToRemove, action);
             addToast(`Successfully removed ${count} cards`, 'success');
+
             setIsManageMode(false);
             setSelectedCardIds(new Set());
-            // Ideally refetch deck or optimistic update. 
-            // Trigger refresh via some method if available, or just reload page?
-            // Existing `useDeck` hook poll? Or force update.
-            // Let's assume the mutation triggers re-render if we update local state?
-            // We need to invalidate query or update local list.
-            // For now, reload window is safest or refetch.
-            window.location.reload();
+            // No full reload needed if optimistic update works
+            // But checking consistency is good
+            refreshDeck(true);
         } catch (err) {
             console.error(err);
             addToast('Failed to remove cards', 'error');
+            refreshDeck();
         }
     };
     const [flippedCards, setFlippedCards] = useState({}); // { [id]: boolean }
@@ -137,7 +145,9 @@ const DeckDetailsPage = () => {
     const [isStatsModalOpen, setIsStatsModalOpen] = useState(false);
     const [isDoctorOpen, setIsDoctorOpen] = useState(false);
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+
     const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
+    const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
     const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
     const [isToolsMenuLocked, setIsToolsMenuLocked] = useState(false);
     const toolsMenuRef = useRef(null);
@@ -146,6 +156,7 @@ const DeckDetailsPage = () => {
     const [showStats, setShowStats] = useState(true);
     // Initialize from settings or default to 'grid'
     const [viewMode, setViewModeState] = useState(userProfile?.settings?.deckViewMode || 'grid');
+    const [activeTab, setActiveTab] = useState('overview');
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -164,8 +175,82 @@ const DeckDetailsPage = () => {
     };
 
     const { deck, cards: deckCards, loading: deckLoading, error: deckError, refresh: refreshDeck } = useDeck(deckId);
+    // Market Data
+    const { value: marketValue, tcgPlayerLink } = useMarketData(deckCards);
     const { decks } = useDecks();
     const { cards: collection } = useCollection();
+
+    // Undo/Redo Integration
+    const handleUndoRedoStateChange = (restoredCards) => {
+        setCards(currentCards => {
+            // Diffing Logic: currentCards vs restoredCards
+            // We need to transform current backend state (currentCards) to match history state (restoredCards)
+
+            // 1. Find cards to remove (Present in current, missing in restored)
+            // WE USE MANAGED ID (row id) for stable identity
+            const restoredIds = new Set(restoredCards.map(c => c.managedId));
+            const cardsToRemove = currentCards.filter(c => !restoredIds.has(c.managedId));
+
+            // 2. Find cards to add (Present in restored, missing in current)
+            const currentIds = new Set(currentCards.map(c => c.managedId));
+            const cardsToAdd = restoredCards.filter(c => !currentIds.has(c.managedId));
+
+            // 3. Find quantity updates
+            const cardsToUpdate = restoredCards.filter(r => {
+                const current = currentCards.find(c => c.managedId === r.managedId);
+                return current && current.countInDeck !== r.countInDeck;
+            });
+
+            // Execute Sync Actions (Fire and forget, or toast on error)
+            const syncBackend = async () => {
+                try {
+                    // Removals
+                    if (cardsToRemove.length > 0) {
+                        for (const c of cardsToRemove) {
+                            await deckService.removeCardFromDeck(currentUser.uid, deckId, c.managedId);
+                        }
+                    }
+
+                    // Additions (Complex: managedId changes on re-add usually)
+                    // If we just re-add the card, the DB creates a NEW managedId.
+                    // This breaks future diffs if we don't update local state with new ID.
+                    // THIS IS A CRITICAL ISSUE with Undo/Redo on DB rows relative to snapshots.
+                    // Snapshots store OLD managedIds.
+                    // If I restore a snapshot with ID=100, but ID=100 was deleted, I can't "restore" ID=100.
+                    // I must create a NEW card.
+                    if (cardsToAdd.length > 0) {
+                        for (const c of cardsToAdd) {
+                            await deckService.addCardToDeck(currentUser.uid, deckId, c);
+                        }
+                        // We really should re-fetch here because IDs changed.
+                        refreshDeck(true);
+                    }
+
+                    // Updates
+                    if (cardsToUpdate.length > 0) {
+                        for (const c of cardsToUpdate) {
+                            await deckService.updateCardQuantity(currentUser.uid, deckId, c.managedId, c.countInDeck);
+                        }
+                    }
+
+                } catch (err) {
+                    console.error("Undo Sync Failed", err);
+                    addToast('Sync error. Refreshing...', 'error');
+                    refreshDeck();
+                }
+            };
+
+            syncBackend();
+
+            return restoredCards;
+        });
+    };
+
+    const { undo, redo, recordAction, canUndo, canRedo } = useUndo(deckCards, handleUndoRedoStateChange);
+
+    // Keyboard Shortcuts for Undo/Redo are handled by useUndo hook globally if mounted.
+    // However, useUndo attaches listener to window. 
+    // This is fine for DeckDetailsPage.
 
     // Permissions
     const permissionLevel = deck?.permissionLevel || 'viewer';
@@ -249,6 +334,8 @@ const DeckDetailsPage = () => {
         if (deck?.commander_partner && !deckCards.some(c => c.scryfall_id === (deck.commander_partner.id || deck.commander_partner.scryfall_id) || (c.oracle_id && c.oracle_id === deck.commander_partner.oracle_id))) owned++;
         return owned;
     }, [deckCards, deck]);
+
+    const isBinder = deck?.format === 'binder';
 
     const totalValue = useMemo(() => {
         if (!deckCards) return 0;
@@ -343,7 +430,7 @@ const DeckDetailsPage = () => {
 
         const link = document.createElement("a");
         link.href = url;
-        link.download = `${deck.name.replace(/[^a-z0-9]/yi, '_')}_backup.json`;
+        link.download = `${deck.name.replace(/[^a-z0-9]/yi, '_')} _backup.json`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -371,10 +458,10 @@ const DeckDetailsPage = () => {
 
         // Add commander(s)
         if (deck.commander) {
-            decklistLines.push(`1 ${deck.commander.name}`);
+            decklistLines.push(`1 ${deck.commander.name} `);
         }
         if (deck.commander_partner) {
-            decklistLines.push(`1 ${deck.commander_partner.name}`);
+            decklistLines.push(`1 ${deck.commander_partner.name} `);
         }
 
         // Add all other cards
@@ -382,7 +469,7 @@ const DeckDetailsPage = () => {
             const count = card.countInDeck || 1;
             const name = card.name || card.data?.name || '';
             if (name) {
-                decklistLines.push(`${count} ${name}`);
+                decklistLines.push(`${count} ${name} `);
             }
         });
 
@@ -425,11 +512,23 @@ const DeckDetailsPage = () => {
 
     const handleAddToDeck = async (card) => {
         try {
+            // Optimistic Update
+            // Note: managedId is missing until refresh. We use a temp placeholder.
+            const newCard = { ...card, countInDeck: 1, managedId: `temp-${Date.now()}` };
+            const newCards = [...deckCards, newCard];
+
+            // Record History
+            recordAction(`Added ${card.name}`, newCards);
+            setCards(newCards);
+
             await deckService.addCardToDeck(currentUser.uid, deckId, card);
             addToast(`Added ${card.name} to deck`, 'success');
+            // Silent refresh to get real managedId (important for subsequent deletes)
+            refreshDeck(true);
         } catch (err) {
             console.error(err);
             addToast('Failed to add card to deck', 'error');
+            refreshDeck(); // Revert on error
         }
     };
 
@@ -440,11 +539,18 @@ const DeckDetailsPage = () => {
             message: `Are you sure you want to remove ${cardName} from this deck?`,
             onConfirm: async () => {
                 try {
+                    // Optimistic Update
+                    const newCards = deckCards.filter(c => c.managedId !== cardId && c.id !== cardId); // Check both for robustness
+
+                    recordAction(`Removed ${cardName}`, newCards);
+                    setCards(newCards);
+
                     await deckService.removeCardFromDeck(currentUser.uid, deckId, cardId); // cardId is managedId
                     addToast(`Removed ${cardName} from deck`, 'success');
                 } catch (err) {
                     console.error(err);
                     addToast('Failed to remove card', 'error');
+                    refreshDeck(); // Revert on error
                 }
             }
         });
@@ -506,13 +612,8 @@ const DeckDetailsPage = () => {
 
                 await deckService.updateDeck(currentUser.uid, deckId, updateField);
 
-                // Optimistically update local deck state logic would be ideal here, 
-                // but window reload is safer or let props update if using real-time (not currently).
-                // For now, we manually mutate the local card object in memory to show the flip instantly
-                // Note: This mutates the 'deck' prop object which is generally bad practice but works for immediate feedback 
-                // until useDeck re-fetches.
-                if (index === 0) deck.commander = fullCardData;
-                else deck.commander_partner = fullCardData;
+                // Re-fetch to get clean state
+                refreshDeck(true);
 
                 addToast('Commander data updated.', 'success');
             } catch (err) {
@@ -755,6 +856,25 @@ const DeckDetailsPage = () => {
 
                         {/* Right: Actions */}
                         <div className="flex items-center gap-2 md:gap-3 bg-gray-950/40 p-1.5 rounded-2xl border border-white/5 backdrop-blur-md relative self-end lg:self-auto">
+                            <div className="flex gap-1 mr-2 border-r border-white/10 pr-3">
+                                <button
+                                    onClick={undo}
+                                    disabled={!canUndo}
+                                    className={`p-2 rounded-lg transition-colors ${canUndo ? 'bg-gray-800 hover:bg-gray-700 text-white' : 'bg-gray-900/50 text-gray-600 cursor-not-allowed'}`}
+                                    title="Undo (Ctrl+Z)"
+                                >
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
+                                </button>
+                                <button
+                                    onClick={redo}
+                                    disabled={!canRedo}
+                                    className={`p-2 rounded-lg transition-colors ${canRedo ? 'bg-gray-800 hover:bg-gray-700 text-white' : 'bg-gray-900/50 text-gray-600 cursor-not-allowed'}`}
+                                    title="Redo (Ctrl+Y)"
+                                >
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6" /></svg>
+                                </button>
+                            </div>
+
                             <button
                                 onClick={() => setIsStrategyModalOpen(true)}
                                 className="bg-indigo-600 hover:bg-indigo-500 text-white font-black py-2.5 px-4 md:px-6 rounded-xl shadow-lg shadow-indigo-900/40 transition-all flex items-center gap-2 uppercase tracking-widest text-[10px] md:text-xs shrink-0"
@@ -901,14 +1021,30 @@ const DeckDetailsPage = () => {
                                             </div>
 
                                             <div className="space-y-2">
-                                                <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] px-2">Tabletop Tools</h3>
+                                                <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] px-2">Tabletop & Print</h3>
                                                 <div className="grid grid-cols-2 gap-2">
+                                                    <Link
+                                                        to={`/solitaire/${deckId}`}
+                                                        className="flex flex-col items-center justify-center p-3 bg-white/5 hover:bg-amber-500/20 rounded-xl border border-amber-500/10 hover:border-amber-500/30 transition-all group lg:min-h-[64px]"
+                                                    >
+                                                        <span className="text-xl mb-1 group-hover:scale-110 transition-transform">🃏</span>
+                                                        <span className="text-[10px] font-bold text-amber-300 uppercase tracking-wider">Playtest</span>
+                                                    </Link>
+
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); setIsPrintModalOpen(true); setIsToolsMenuOpen(false); }}
+                                                        className="flex flex-col items-center justify-center p-3 bg-white/5 hover:bg-gray-500/20 rounded-xl border border-gray-500/10 hover:border-gray-500/30 transition-all group lg:min-h-[64px]"
+                                                    >
+                                                        <span className="text-xl mb-1 group-hover:scale-110 transition-transform">🖨️</span>
+                                                        <span className="text-[10px] font-bold text-gray-300 uppercase tracking-wider">Print</span>
+                                                    </button>
+
                                                     <button
                                                         onClick={(e) => { e.stopPropagation(); navigate('/play'); setIsToolsMenuOpen(false); }}
                                                         className="flex flex-col items-center justify-center p-3 bg-white/5 hover:bg-green-500/20 rounded-xl border border-green-500/10 hover:border-green-500/30 transition-all group lg:min-h-[64px]"
                                                     >
                                                         <span className="text-xl mb-1 group-hover:scale-110 transition-transform">🎲</span>
-                                                        <span className="text-[10px] font-bold text-green-300 uppercase tracking-wider">Play Tabletop</span>
+                                                        <span className="text-[10px] font-bold text-green-300 uppercase tracking-wider">Life Counter</span>
                                                     </button>
 
                                                     <button
@@ -921,7 +1057,48 @@ const DeckDetailsPage = () => {
                                                 </div>
                                             </div>
 
-                                            {/* Section: Management */}
+                                            {activeTab === 'market' && (
+                                                <div className="space-y-8 animate-fade-in">
+                                                    {/* Value Summary */}
+                                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                                        <div className="bg-gray-900/50 p-4 rounded-2xl border border-white/5">
+                                                            <div className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Total Value</div>
+                                                            <div className="text-3xl font-mono font-bold text-amber-500">
+                                                                ${marketValue?.total?.toFixed(2) || '0.00'}
+                                                            </div>
+                                                        </div>
+                                                        <div className="bg-gray-900/50 p-4 rounded-2xl border border-white/5">
+                                                            <div className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Avg Card Price</div>
+                                                            <div className="text-xl font-mono font-bold text-gray-300">
+                                                                ${marketValue?.average?.toFixed(2) || '0.00'}
+                                                            </div>
+                                                        </div>
+                                                        <div className="bg-gray-900/50 p-4 rounded-2xl border border-white/5">
+                                                            <div className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Most Expensive</div>
+                                                            <div className="text-sm font-bold text-white truncate">{marketValue?.maxCard?.name || '-'}</div>
+                                                            <div className="text-lg font-mono text-indigo-400">${marketValue?.max?.toFixed(2) || '0.00'}</div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Charts */}
+                                                    <DeckValueChart cards={deckCards} />
+
+                                                    {/* Conversion Actions */}
+                                                    <div className="flex justify-center pt-8">
+                                                        <a
+                                                            href={tcgPlayerLink}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="group relative inline-flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-black uppercase tracking-widest rounded-xl shadow-lg shadow-green-900/50 hover:shadow-green-500/30 transition-all transform hover:-translate-y-1"
+                                                        >
+                                                            <span className="relative z-10 flex items-center gap-2">
+                                                                Buy Deck on TCGPlayer
+                                                                <svg className="w-5 h-5 opacity-70 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                                                            </span>
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            )}
                                             <div className="space-y-2">
                                                 <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] px-2">Management</h3>
                                                 <div className="bg-white/5 rounded-xl border border-white/5 divide-y divide-white/5">
@@ -1193,8 +1370,8 @@ const DeckDetailsPage = () => {
                     {/* Right: Sidebar (Fixed Width) */}
                     <div className="w-full lg:w-80 space-y-6 shrink-0 order-1 lg:order-2">
 
-                        {/* Commander Mini View */}
-                        {deck.commander && (
+                        {/* Commander Mini View - Hide for Binders */}
+                        {!isBinder && deck.commander && (
                             <div className="bg-gray-950/40 backdrop-blur-3xl rounded-3xl shadow-2xl overflow-hidden border border-white/10 relative group">
                                 <div className="p-4 bg-white/5 border-b border-white/5 flex justify-between items-center">
                                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">
@@ -1214,7 +1391,7 @@ const DeckDetailsPage = () => {
                                     {/* Partner (Render Behind) */}
                                     {deck.commander_partner && (
                                         <div
-                                            className={`transition-all duration-500 ease-out transform absolute top-4 
+                                            className={`transition-all duration-500 ease-out transform absolute top-4
                                             ${activeCommanderIndex === 0 ? 'scale-90 opacity-60 translate-x-4 -rotate-3 z-0 blur-[1px] hover:blur-0' : 'scale-100 opacity-100 z-10 translate-x-0 rotate-0'}
                                             cursor-pointer`}
                                             onClick={(e) => handleFlip(e, deck.commander_partner, 1)}
@@ -1239,7 +1416,7 @@ const DeckDetailsPage = () => {
 
                                     {/* Primary Commander */}
                                     <div
-                                        className={`transition-all duration-500 ease-out transform relative 
+                                        className={`transition-all duration-500 ease-out transform relative
                                         ${deck.commander_partner && activeCommanderIndex === 1 ? 'scale-90 opacity-60 -translate-x-4 rotate-3 z-0 blur-[1px] hover:blur-0 cursor-pointer' : 'scale-100 opacity-100 z-10'}
                                         `}
                                         onClick={(e) => handleFlip(e, deck.commander, 0)}
@@ -1264,45 +1441,47 @@ const DeckDetailsPage = () => {
                             </div>
                         )}
 
-                        {/* AI Tools */}
-                        <div className="bg-gray-950/40 backdrop-blur-3xl rounded-3xl shadow-2xl p-6 border border-white/10 relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
-                                <span className="text-8xl">🤖</span>
+                        {/* AI Tools - Hide for Binders */}
+                        {!isBinder && (
+                            <div className="bg-gray-950/40 backdrop-blur-3xl rounded-3xl shadow-2xl p-6 border border-white/10 relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                                    <span className="text-8xl">🤖</span>
+                                </div>
+                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
+                                    {helperName} Tools
+                                </h3>
+                                <div className="space-y-3 relative z-10">
+                                    <button
+                                        onClick={() => {
+                                            if (deck.format?.toLowerCase() === 'standard') {
+                                                addToast("Standard AI Deck Tech coming soon! Please verify on Discord to prioritize.", 'info', 0); // 0 = persistent
+                                            } else {
+                                                navigate(`/decks/${deckId}/build`);
+                                            }
+                                        }}
+                                        className="w-full py-4 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-300 rounded-xl border border-indigo-500/20 hover:border-indigo-500/40 transition-all font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3 group/btn"
+                                    >
+                                        <span className="text-lg group-hover/btn:scale-110 transition-transform">✨</span>
+                                        {helperName}'s Deck Builder
+                                    </button>
+                                    <button
+                                        onClick={() => setIsStatsModalOpen(true)}
+                                        className="w-full py-4 bg-indigo-900/10 hover:bg-indigo-900/20 text-indigo-400 rounded-xl border border-indigo-500/10 hover:border-indigo-500/30 transition-all font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3"
+                                    >
+                                        <span className="text-lg">📊</span>
+                                        Full Deck Stats
+                                    </button>
+                                    <button
+                                        onClick={() => navigate('/tournaments')}
+                                        className="w-full py-4 bg-yellow-600/10 hover:bg-yellow-600/20 text-yellow-500 rounded-xl border border-yellow-500/20 hover:border-yellow-500/40 transition-all font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3"
+                                    >
+                                        <span className="text-lg">🏆</span>
+                                        Tournament Mode
+                                    </button>
+                                </div>
                             </div>
-                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
-                                {helperName} Tools
-                            </h3>
-                            <div className="space-y-3 relative z-10">
-                                <button
-                                    onClick={() => {
-                                        if (deck.format?.toLowerCase() === 'standard') {
-                                            addToast("Standard AI Deck Tech coming soon! Please verify on Discord to prioritize.", 'info', 0); // 0 = persistent
-                                        } else {
-                                            navigate(`/decks/${deckId}/build`);
-                                        }
-                                    }}
-                                    className="w-full py-4 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-300 rounded-xl border border-indigo-500/20 hover:border-indigo-500/40 transition-all font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3 group/btn"
-                                >
-                                    <span className="text-lg group-hover/btn:scale-110 transition-transform">✨</span>
-                                    {helperName}'s Deck Builder
-                                </button>
-                                <button
-                                    onClick={() => setIsStatsModalOpen(true)}
-                                    className="w-full py-4 bg-indigo-900/10 hover:bg-indigo-900/20 text-indigo-400 rounded-xl border border-indigo-500/10 hover:border-indigo-500/30 transition-all font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3"
-                                >
-                                    <span className="text-lg">📊</span>
-                                    Full Deck Stats
-                                </button>
-                                <button
-                                    onClick={() => navigate('/tournaments')}
-                                    className="w-full py-4 bg-yellow-600/10 hover:bg-yellow-600/20 text-yellow-500 rounded-xl border border-yellow-500/20 hover:border-yellow-500/40 transition-all font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3"
-                                >
-                                    <span className="text-lg">🏆</span>
-                                    Tournament Mode
-                                </button>
-                            </div>
-                        </div>
+                        )}
 
                         {/* External Sites */}
                         <div className="bg-gray-950/40 backdrop-blur-3xl rounded-3xl shadow-2xl overflow-hidden border border-white/10 relative group">
@@ -1344,12 +1523,17 @@ const DeckDetailsPage = () => {
                 {/* Mobile FAB / Action Bar if needed */}
 
                 {/* Share Modal */}
-                < ShareModal
+                <ShareModal
                     isOpen={isShareModalOpen}
                     onClose={() => setIsShareModalOpen(false)}
                     deck={deck}
-                    onUpdateDeck={(updated) => Object.assign(deck, updated)}
+                    onUpdateDeck={(updates) => {
+                        // Optimistically update sharing state if needed
+                        if (updates.is_public !== undefined) deck.is_public = updates.is_public;
+                        if (updates.shareSlug !== undefined) deck.shareSlug = updates.shareSlug;
+                    }}
                 />
+
 
                 {/* Doctor Modal */}
                 <DeckDoctorModal
@@ -1461,6 +1645,13 @@ const DeckDetailsPage = () => {
                     isOpen={isTokenModalOpen}
                     onClose={() => setIsTokenModalOpen(false)}
                     deckCards={deckCards}
+                />
+
+                <PrintSettingsModal
+                    isOpen={isPrintModalOpen}
+                    onClose={() => setIsPrintModalOpen(false)}
+                    cards={deckCards}
+                    deckName={deck?.name || 'Proxy Deck'}
                 />
             </div>
         </div>

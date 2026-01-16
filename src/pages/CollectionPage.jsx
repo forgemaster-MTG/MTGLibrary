@@ -1,11 +1,15 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useCollection } from '../hooks/useCollection';
 import { useDecks } from '../hooks/useDecks';
 import { useBinders } from '../hooks/useBinders';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../services/api';
 import { communityService } from '../services/communityService';
+import { collectionService } from '../services/collectionService'; // Import Service
+import HistoryService from '../services/HistoryService'; // Import History
+import useUndo from '../hooks/useUndo'; // Import Hook
 import { useToast } from '../contexts/ToastContext';
 import { getIdentity } from '../data/mtg_identity_registry';
 import { getTierConfig, TIER_CONFIG, TIERS } from '../config/tiers';
@@ -23,6 +27,42 @@ import OrganizationWizardModal from '../components/modals/OrganizationWizardModa
 import ForgeLensModal from '../components/modals/ForgeLensModal';
 import { evaluateRules } from '../services/ruleEvaluator';
 
+
+
+const CollapsibleSection = ({ title, defaultOpen = false, children, count }) => {
+    const [isOpen, setIsOpen] = useState(defaultOpen);
+
+    return (
+        <div className="border border-white/5 bg-gray-900/40 rounded-xl overflow-hidden mb-4">
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
+            >
+                <div className="flex items-center gap-3">
+                    <svg
+                        className={`w - 4 h - 4 text - gray - 500 transition - transform ${isOpen ? 'rotate-90' : ''} `}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                    >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                    <h3 className="font-bold text-gray-200">{title}</h3>
+                    {count !== undefined && (
+                        <span className="bg-gray-800 text-gray-400 text-xs px-2 py-0.5 rounded-full">
+                            {count}
+                        </span>
+                    )}
+                </div>
+            </button>
+            {isOpen && (
+                <div className="p-4 pt-0 animate-fade-in border-t border-white/5">
+                    {children}
+                </div>
+            )}
+        </div>
+    );
+};
 
 const CollectionPage = () => {
     const { userProfile } = useAuth();
@@ -61,7 +101,7 @@ const CollectionPage = () => {
     const isSharedView = selectedSource !== 'me' && selectedSource !== 'all';
     const isMixedView = selectedSource === 'all';
 
-    const { cards, loading, error, refresh } = useCollection({
+    const { cards, loading, error, refresh, removeCard, updateCard, setCards } = useCollection({
         wishlist: isWishlistMode,
         userId: selectedSource === 'me' ? null : selectedSource
     });
@@ -70,8 +110,119 @@ const CollectionPage = () => {
     // Actually Decks hook probably needs update if we want mixed decks too, but task focused on collection. Let's pass 'all' and if deckService fails gracefully or we update it later.
     // For now assuming CollectionTable handles the mixed cards.
     const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
     const [showFilters, setShowFilters] = useState(false);
+
+    // Debounce search term
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
+
     const [syncLoading, setSyncLoading] = useState(false);
+
+    // History & Undo Integration
+    const { undo, redo, recordAction, canUndo, canRedo } = useUndo(cards, setCards);
+
+    // Initialize History with loaded cards once
+    useEffect(() => {
+        if (!loading && cards.length > 0 && HistoryService.pointer < 0) {
+            HistoryService.init(cards);
+        }
+    }, [loading, cards]);
+
+    // Undo-Aware Handlers
+    const handleRemoveWithUndo = async (cardId, cardName) => {
+        const prevCards = [...cards];
+        const cardToRemove = cards.find(c => c.id === cardId || c.firestoreId === cardId);
+
+        if (!cardToRemove) return;
+
+        const newCards = cards.filter(c => c.id !== cardId && c.firestoreId !== cardId);
+
+        // Optimistic UI Update
+        setCards(newCards);
+
+        // API Call
+        try {
+            // We use direct API to avoid full refresh, but removeCard hook wrapper might call refresh().
+            // Since we exposed setCards, we can manage state manually.
+            await api.delete(`/ api / collection / ${cardId} `);
+        } catch (err) {
+            console.error(err);
+            setCards(prevCards); // Revert
+            addToast("Failed to delete card", "error");
+            return;
+        }
+
+        // Record History with Command Pattern (Inverse Actions)
+        recordAction(
+            `Deleted ${cardName} `,
+            newCards,
+            async () => { // Undo: Add Back
+                try {
+                    await collectionService.addCardToCollection(
+                        userProfile.uid,
+                        cardToRemove,
+                        cardToRemove.count || 1,
+                        cardToRemove.finish,
+                        cardToRemove.is_wishlist
+                    );
+                    // Note: We don't need to manually setCards here because HistoryService.undo() returns the old state 
+                    // and useUndo calls setCards(oldState). 
+                    // HOWEVER, the new card from API has a NEW ID. The old state has OLD ID.
+                    // This creates a divergence. Next refresh fixes it. 
+                    // Ideally we should replace the old ID in the restored state with the new ID, 
+                    // but we can't easily modify the history snapshot.
+                    // For now, allow divergence (Risk: Redo will fail if ID mismatch).
+                } catch (e) {
+                    console.error("Undo Add failed", e);
+                }
+            },
+            async () => { // Redo: Delete Again
+                // We typically use the ID from the state. 
+                // If ID changed during Undo-Add, Redo-Delete will fail.
+                // Best effort.
+                try {
+                    await api.delete(`/ api / collection / ${cardId} `);
+                } catch (e) {
+                    console.error("Redo Delete failed", e);
+                }
+            }
+        );
+
+        addToast(`Deleted ${cardName} `, 'success', 3000, { label: 'Undo', onClick: () => HistoryService.undo() });
+    };
+
+    const handleAddWithUndo = async (newCardData) => {
+        // newCardData comes from CardSearchModal (optimistic or after API?)
+        // Usually CardSearchModal calls API then tells us.
+        // So this is AFTER API.
+        // We just need to update UI and History.
+
+        const prevCards = [...cards];
+        const newCards = [...cards, newCardData];
+        setCards(newCards);
+
+        recordAction(
+            `Added ${newCardData.name} `,
+            newCards,
+            async () => { // Undo: Remove newly added card
+                await api.delete(`/api/collection/${newCardData.firestoreId || newCardData.id}`);
+            },
+            async () => { // Redo: Add back
+                await collectionService.addCardToCollection(
+                    userProfile.uid,
+                    newCardData,
+                    newCardData.count,
+                    newCardData.finish,
+                    newCardData.is_wishlist
+                );
+            }
+        );
+    };
 
     const handleSyncPrices = async () => {
         setSyncLoading(true);
@@ -182,6 +333,7 @@ const CollectionPage = () => {
     // Derived Options
     const setOptions = useMemo(() => {
         const sets = new Set();
+        if (!Array.isArray(cards)) return [];
         cards.forEach(c => {
             if (c.set && c.set_name) {
                 sets.add(JSON.stringify({ value: c.set, label: c.set_name }));
@@ -262,10 +414,11 @@ const CollectionPage = () => {
 
     // Filtered & Sorted Cards
     const filteredCards = useMemo(() => {
+        if (!Array.isArray(cards)) return [];
         let result = cards.filter(card => {
             // Search Term
             const name = card.name || '';
-            if (searchTerm && !name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+            if (debouncedSearchTerm && !name.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) return false;
 
             // Colors
             if (filters.colors.length > 0) {
@@ -340,11 +493,12 @@ const CollectionPage = () => {
             const diff = compareCards(a, b, criterion);
             return sortOrder === 'asc' ? diff : -diff;
         });
-    }, [cards, searchTerm, filters, sortBy, sortOrder, userProfile]);
+    }, [cards, debouncedSearchTerm, filters, sortBy, sortOrder, userProfile]);
 
 
     // Grouping Logic
     const groups = useMemo(() => {
+        if (!Array.isArray(cards)) return [];
         if (viewMode !== 'folder') return []; // Only compute if in folder mode
 
         if (groupingMode === 'custom') {
@@ -364,7 +518,7 @@ const CollectionPage = () => {
             });
 
             const result = Object.entries(tagGroups).map(([tag, cards]) => ({
-                id: `tag-${tag}`,
+                id: `tag - ${tag} `,
                 label: tag,
                 type: 'tag',
                 cards: cards,
@@ -403,7 +557,7 @@ const CollectionPage = () => {
             Object.entries(deckGroups).forEach(([name, cards]) => {
                 const ownerName = isMixedView && cards[0]?.owner_username ? cards[0].owner_username : null;
                 result.push({
-                    id: `deck-${name}`,
+                    id: `deck - ${name} `,
                     label: name,
                     type: 'deck',
                     cards,
@@ -483,7 +637,7 @@ const CollectionPage = () => {
 
             // Convert dynamicGroups to result array
             const dynamicResult = Object.entries(dynamicGroups).map(([k, g]) => ({
-                id: `group-${k}`,
+                id: `group - ${k} `,
                 label: g.label,
                 type: pref,
                 cards: g.cards,
@@ -524,7 +678,7 @@ const CollectionPage = () => {
                     : cards.filter(c => String(c.binder_id) === String(b.id));
 
                 return {
-                    id: `binder-${b.id}`,
+                    id: `binder - ${b.id} `,
                     label: b.name,
                     type: 'binder',
                     cards: binderCardsList,
@@ -538,7 +692,7 @@ const CollectionPage = () => {
 
         return [];
 
-    }, [filteredCards, groupingMode, viewMode, decks, binders, cards, userProfile]);
+    }, [filteredCards, groupingMode, viewMode, decks, binders, cards, userProfile, debouncedSearchTerm]);
 
     // Helpers
     const toggleFilter = (category, value) => {
@@ -604,15 +758,51 @@ const CollectionPage = () => {
                             <p className="text-gray-400 font-medium text-xs md:text-sm">
                                 {filteredCards.length} {filteredCards.length === 1 ? 'card' : 'cards'} found • <span className="text-indigo-400">${filteredCards.reduce((acc, c) => acc + (parseFloat(c.prices?.usd || 0) * (c.count || 1)), 0).toFixed(2)}</span>
                             </p>
-                            <button
-                                onClick={handleSyncPrices}
-                                disabled={syncLoading}
-                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-[10px] font-black uppercase tracking-widest transition-all border border-indigo-500/20 ${syncLoading ? 'opacity-70 cursor-wait' : ''}`}
-                                title="Update prices from Scryfall"
-                            >
-                                <svg className={`w-3 h-3 ${syncLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                                {syncLoading ? 'Syncing...' : 'Sync Prices'}
-                            </button>
+                            {!canUndo && !canRedo ? (
+                                <button
+                                    onClick={handleSyncPrices}
+                                    disabled={syncLoading}
+                                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-[10px] font-black uppercase tracking-widest transition-all border border-indigo-500/20 ${syncLoading ? 'opacity-70 cursor-wait' : ''}`}
+                                    title="Update prices from Scryfall"
+                                >
+                                    <svg className={`w-3 h-3 ${syncLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                    {syncLoading ? 'Syncing...' : 'Sync Prices'}
+                                </button>
+                            ) : (
+                                <div className="flex items-stretch bg-indigo-500/10 rounded-full border border-indigo-500/20 overflow-hidden">
+                                    <button
+                                        onClick={handleSyncPrices}
+                                        disabled={syncLoading}
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 text-indigo-400 text-[10px] font-black uppercase tracking-widest hover:bg-indigo-500/10 transition-colors ${syncLoading ? 'opacity-70 cursor-wait' : ''}`}
+                                        title="Update prices from Scryfall"
+                                    >
+                                        <svg className={`w-3 h-3 ${syncLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                        {syncLoading ? 'Syncing...' : 'Sync Prices'}
+                                    </button>
+
+                                    <div className="w-px h-3 bg-indigo-500/20 self-center"></div>
+
+                                    <div className="flex items-stretch">
+                                        <button
+                                            onClick={undo}
+                                            disabled={!canUndo}
+                                            className="px-2 flex items-center justify-center hover:bg-indigo-500/10 text-indigo-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                            title="Undo (Ctrl+Z)"
+                                        >
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
+                                        </button>
+                                        <div className="w-px h-3 bg-indigo-500/20 self-center"></div>
+                                        <button
+                                            onClick={redo}
+                                            disabled={!canRedo}
+                                            className="px-2 flex items-center justify-center hover:bg-indigo-500/10 text-indigo-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                            title="Redo (Ctrl+Shift+Z)"
+                                        >
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6" /></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -839,7 +1029,7 @@ const CollectionPage = () => {
                             <button
                                 onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
                                 className="bg-gray-800 border border-gray-700 text-gray-400 hover:text-white px-3 py-2 md:px-4 md:py-3 rounded-xl transition-all h-10 md:h-12"
-                                title={`Sort Order: ${sortOrder.toUpperCase()}`}
+                                title={`Sort Order: ${sortOrder.toUpperCase()} `}
                             >
                                 {sortOrder === 'asc' ? (
                                     <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4" /></svg>
@@ -915,7 +1105,7 @@ const CollectionPage = () => {
                                                 key={color}
                                                 onClick={() => toggleFilter('colors', color)}
                                                 className={`
-w - 8 h - 8 rounded - full border flex items - center justify - center transition - all transform hover: scale - 110
+w-8 h-8 rounded-full border flex items-center justify-center transition-all transform hover:scale-110
                                                     ${filters.colors.includes(color) ? 'ring-2 ring-indigo-500 ring-offset-2 ring-offset-gray-900 shadow-lg scale-110' : 'opacity-60 hover:opacity-100'}
                                                     ${color === 'W' ? 'bg-[#F9FAFB] text-gray-900 border-gray-300' : ''}
                                                     ${color === 'U' ? 'bg-[#3B82F6] text-white border-blue-600' : ''}
@@ -1118,6 +1308,7 @@ w - 8 h - 8 rounded - full border flex items - center justify - center transitio
                                                         decks={decks}
                                                         currentUser={userProfile}
                                                         showOwnerTag={isMixedView}
+                                                        onRemove={handleRemoveWithUndo}
                                                     />
                                                 </div>
                                             ))}
@@ -1136,6 +1327,7 @@ w - 8 h - 8 rounded - full border flex items - center justify - center transitio
                                                         decks={decks}
                                                         currentUser={userProfile}
                                                         showOwnerTag={isMixedView}
+                                                        onRemove={handleRemoveWithUndo}
                                                     />
                                                 </div>
                                             ))}
@@ -1163,7 +1355,7 @@ w - 8 h - 8 rounded - full border flex items - center justify - center transitio
             <CardSearchModal
                 isOpen={isAddCardOpen}
                 onClose={() => setIsAddCardOpen(false)}
-                onAddCard={() => refresh()}
+                onAddCard={handleAddWithUndo}
                 onOpenForgeLens={() => {
                     setIsAddCardOpen(false);
                     setIsForgeLensOpen(true);

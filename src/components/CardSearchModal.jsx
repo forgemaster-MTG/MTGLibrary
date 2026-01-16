@@ -207,9 +207,24 @@ const CardSearchModal = ({ isOpen, onClose, onAddCard, onOpenForgeLens }) => {
                 if (existing) {
                     await collectionService.updateCard(existing.id, { count: existing.count + 1 });
                     addToast(`Added ${finish} ${card.name}`, 'success');
+                    // For update, we might want to notify properly too, but "Undo Add" acts on New Card.
+                    // "Undo Update" is harder. 
+                    // Let's focus on New Card for now, or assume existing update is just refresh.
                 } else {
-                    await collectionService.addCardToCollection(currentUser.uid, card, 1, finish, false, targetUserId);
+                    const res = await collectionService.addCardToCollection(currentUser.uid, card, 1, finish, false, targetUserId);
                     addToast(`Added new ${finish} ${card.name}`, 'success');
+
+                    if (onAddCard && res && res.id) {
+                        const addedCard = {
+                            ...card,
+                            firestoreId: res.id,
+                            id: card.id, // Scryfall ID
+                            finish: finish,
+                            count: 1,
+                            is_wishlist: false
+                        };
+                        onAddCard(addedCard);
+                    }
                 }
             } else {
                 if (existing) {

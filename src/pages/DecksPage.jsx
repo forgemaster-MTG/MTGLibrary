@@ -6,6 +6,7 @@ import { useToast } from '../contexts/ToastContext';
 import { communityService } from '../services/communityService';
 import DeckRow from '../components/decks/DeckRow';
 import SharedDeckRow from '../components/decks/SharedDeckRow';
+import MarketTicker from '../components/dashboard/MarketTicker';
 import { TIER_CONFIG } from '../config/tiers';
 
 const DecksPage = () => {
@@ -61,6 +62,11 @@ const DecksPage = () => {
                         <span className="text-xl leading-none font-light">+</span>
                         Create New Deck
                     </Link>
+                </div>
+
+                {/* Market Ticker */}
+                <div className="mb-8">
+                    <MarketTicker />
                 </div>
 
                 {/* My Decks Row */}

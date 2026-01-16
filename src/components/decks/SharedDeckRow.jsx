@@ -2,7 +2,7 @@ import React from 'react';
 import { useDecks } from '../../hooks/useDecks';
 import DeckRow from './DeckRow';
 
-const SharedDeckRow = ({ friend }) => {
+const SharedDeckRow = React.memo(({ friend }) => {
     // Fetch decks for this specific friend ID
     const { decks, loading, error } = useDecks(friend.owner_id);
     const ownerName = friend.owner?.username || friend.owner_username || 'Unknown Friend';
@@ -19,6 +19,6 @@ const SharedDeckRow = ({ friend }) => {
             isOwner={false}
         />
     );
-};
+});
 
 export default SharedDeckRow;

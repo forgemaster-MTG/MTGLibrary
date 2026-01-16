@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import StateHistoryModal from './modals/StateHistoryModal';
 import { useAuth } from '../contexts/AuthContext';
 import CardSearchModal from './CardSearchModal';
 import PlaystyleWizardModal from './modals/PlaystyleWizardModal';
@@ -23,6 +24,7 @@ const Navbar = () => {
     const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+    const [isHistoryOpen, setIsHistoryOpen] = useState(false);
     const fileInputRef = React.useRef(null);
 
     // Close user menu when clicking outside
@@ -185,6 +187,7 @@ const Navbar = () => {
                                         <Link to="/collection" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Collection</Link>
                                         <Link to="/wishlist" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Wishlist</Link>
                                         <Link to="/decks" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Decks</Link>
+                                        <Link to="/binders" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Binders</Link>
                                         <Link to="/social" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Social</Link>
                                         <Link to="/precons" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Precons</Link>
                                         <Link to="/sets" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Sets</Link>
@@ -309,6 +312,18 @@ const Navbar = () => {
                                                 <button
                                                     onClick={() => {
                                                         setIsUserMenuOpen(false);
+                                                        setIsHistoryOpen(true);
+                                                    }}
+                                                    className="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white flex items-center gap-2"
+                                                >
+                                                    <span className="text-cyan-400">↺</span> History
+                                                </button>
+
+                                                <div className="border-t border-gray-700 my-1"></div>
+
+                                                <button
+                                                    onClick={() => {
+                                                        setIsUserMenuOpen(false);
                                                         handleLogout();
                                                     }}
                                                     className="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-gray-700 hover:text-red-300"
@@ -398,6 +413,11 @@ const Navbar = () => {
                 }}
             />
 
+            <StateHistoryModal
+                isOpen={isHistoryOpen}
+                onClose={() => setIsHistoryOpen(false)}
+            />
+
             {/* Mobile Bottom Tab Bar */}
             {!isLanding && (
                 <div className="md:hidden fixed bottom-0 left-0 w-full bg-gray-900 border-t border-gray-800 z-50 pb-safe">
@@ -437,6 +457,11 @@ const Navbar = () => {
                     </div>
                 </div>
             )}
+
+            <StateHistoryModal
+                isOpen={isHistoryOpen}
+                onClose={() => setIsHistoryOpen(false)}
+            />
         </>
     );
 };

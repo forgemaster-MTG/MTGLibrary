@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { useCardModal } from '../../contexts/CardModalContext';
 
-const CardGridItem = ({ card, availableFoils, onRemove, showQuantity = true, onClick, decks = [], ownerName, currentUser, showOwnerTag = false, hideDeckTag = false, hideOwnerTag = false, selectMode = false, isSelected = false, onToggleSelect }) => {
+const CardGridItem = memo(function CardGridItem({ card, availableFoils, onRemove, showQuantity = true, onClick, decks = [], ownerName, currentUser, showOwnerTag = false, hideDeckTag = false, hideOwnerTag = false, selectMode = false, isSelected = false, onToggleSelect }) {
     const [isFlipped, setIsFlipped] = useState(false);
     const { openCardModal } = useCardModal();
 
@@ -201,6 +201,6 @@ const CardGridItem = ({ card, availableFoils, onRemove, showQuantity = true, onC
             </div>
         </div>
     );
-};
+});
 
 export default CardGridItem;

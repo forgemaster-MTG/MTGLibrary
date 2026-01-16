@@ -48,6 +48,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     if (username !== undefined) updateData.username = username;
     if (first_name !== undefined) updateData.first_name = first_name;
     if (last_name !== undefined) updateData.last_name = last_name;
+    if (req.body.is_public_library !== undefined) updateData.is_public_library = req.body.is_public_library;
 
     // Only Admin can update settings directly here (which includes permissions)
     // Or self can update generic settings if we allow it, but let's be safe.
@@ -174,6 +175,68 @@ router.put('/:id/permissions', authMiddleware, async (req, res) => {
     res.status(500).json({ error: 'db error' });
   }
 });
+
+// Public/Friend Profile View
+router.get('/public/:id', authMiddleware, async (req, res) => {
+  try {
+    const targetId = parseInt(req.params.id, 10);
+    const requesterId = req.user.id;
+
+    // 1. Fetch Basic Info
+    const user = await knex('users')
+      .where('id', targetId)
+      // .select('id', 'username', 'is_public_library', 'data', 'created_at') // Limit fields for privacy
+      .first();
+
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // 2. Check Permissions (Public or Friend)
+    const isPublic = user.is_public_library;
+    let relationship = null;
+
+    if (requesterId !== targetId) {
+      const rel = await knex('user_relationships')
+        .where(b => b.where('requester_id', requesterId).andWhere('addressee_id', targetId))
+        .orWhere(b => b.where('requester_id', targetId).andWhere('addressee_id', requesterId))
+        .first();
+
+      if (rel) {
+        relationship = {
+          id: rel.id,
+          status: rel.status,
+          type: rel.type,
+          direction: rel.requester_id === requesterId ? 'outgoing' : 'incoming'
+        };
+      }
+    } else {
+      relationship = { status: 'accepted', isSelf: true };
+    }
+
+    if (!isPublic && (!relationship || relationship.status !== 'accepted')) {
+      return res.status(403).json({ error: 'Profile is private' });
+    }
+
+    // 3. Return Safe Profile Data
+    // Hide email, sensitive settings, etc.
+    const safeProfile = {
+      id: user.id,
+      username: user.username,
+      is_public_library: user.is_public_library,
+      avatar: user.data?.avatar || null,
+      bio: user.data?.bio || null,
+      joined_at: user.created_at,
+      relationship: relationship
+    };
+
+    res.json(safeProfile);
+  } catch (err) {
+    console.error('[users] public profile error', err);
+    res.status(500).json({ error: 'db error' });
+  }
+});
+
+// Note: Placed ABOVE the delete endpoint to avoid route conflicts if any 
+// (though delete is specific verb)
 
 // Bulk Data Deletion (Protected, Danger Zone)
 router.delete('/me/data', authMiddleware, async (req, res) => {

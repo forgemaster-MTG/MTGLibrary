@@ -7,6 +7,7 @@ export function up(knex) {
         t.string('username').unique().nullable();
         t.string('first_name').nullable();
         t.string('last_name').nullable();
+        t.boolean('is_public_library').defaultTo(false);
     });
 }
 

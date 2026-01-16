@@ -70,5 +70,5 @@ export function useCollection(options = {}) {
         }
     };
 
-    return { cards, loading, error, refresh, removeCard, updateCard };
+    return { cards, loading, error, refresh, removeCard, updateCard, setCards };
 }

@@ -10,9 +10,9 @@ export function useToast() {
 export function ToastProvider({ children }) {
     const [toasts, setToasts] = useState([]);
 
-    const addToast = useCallback((message, type = 'info', duration = 3000) => {
+    const addToast = useCallback((message, type = 'info', duration = 3000, action = null) => {
         const id = Date.now();
-        setToasts(prev => [...prev, { id, message, type }]);
+        setToasts(prev => [...prev, { id, message, type, action }]);
 
         // Auto remove only if duration is positive
         if (duration > 0) {
@@ -45,6 +45,18 @@ export function ToastProvider({ children }) {
                             onClick={() => removeToast(toast.id)}
                         >
                             {toast.message}
+                            {toast.action && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        toast.action.onClick?.();
+                                        removeToast(toast.id);
+                                    }}
+                                    className="ml-3 px-2 py-0.5 bg-white/20 hover:bg-white/30 rounded text-xs font-bold uppercase tracking-wider transition-colors border border-white/10"
+                                >
+                                    {toast.action.label || 'Action'}
+                                </button>
+                            )}
                         </div>
                     ))}
                 </div>,

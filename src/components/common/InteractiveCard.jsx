@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { useCardModal } from '../../contexts/CardModalContext';
 
-const InteractiveCard = ({ card, normalCount = 0, foilCount = 0, wishlistCount = 0, onUpdateCount, onUpdateWishlistCount, ownerName, currentUser, showOwnerTag = false }) => {
+const InteractiveCard = memo(function InteractiveCard({ card, normalCount = 0, foilCount = 0, wishlistCount = 0, onUpdateCount, onUpdateWishlistCount, ownerName, currentUser, showOwnerTag = false }) {
     const { openCardModal } = useCardModal();
     const [isFlipped, setIsFlipped] = useState(false);
 
@@ -194,6 +194,6 @@ const InteractiveCard = ({ card, normalCount = 0, foilCount = 0, wishlistCount =
             </div>
         </div>
     );
-};
+});
 
 export default InteractiveCard;

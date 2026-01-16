@@ -6,7 +6,10 @@ import { useToast } from '../contexts/ToastContext';
 import { GeminiService } from '../services/gemini';
 import { MTG_IDENTITY_REGISTRY, getIdentity } from '../utils/identityRegistry';
 import { getTierConfig } from '../config/tiers';
+
 import CommanderSearchModal from '../components/modals/CommanderSearchModal';
+import ImportDeckModal from '../components/modals/ImportDeckModal';
+import { DeckImportService } from '../services/DeckImportService';
 
 const STEPS = {
     BASICS: 1,
@@ -45,7 +48,12 @@ const CreateDeckPage = () => {
 
     // Precons
     const [preconTypes, setPreconTypes] = useState([]);
+
     const [preconTypesLoading, setPreconTypesLoading] = useState(true);
+
+    // Import Flow
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+    const [importing, setImporting] = useState(false);
 
     useEffect(() => {
         fetchPreconTypes();
@@ -241,6 +249,64 @@ const CreateDeckPage = () => {
             addToast('Failed to create deck', 'error');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleImportDeck = async (parsedData) => {
+        setImporting(true);
+        setIsImportModalOpen(false);
+        const toastId = addToast('Resolving cards with Oracle...', 'info', 10000);
+
+        try {
+            // 1. Resolve Cards
+            const allCards = [...parsedData.mainboard, ...parsedData.sideboard];
+            const resolved = await DeckImportService.resolveCards(allCards);
+
+            if (resolved.length === 0) {
+                addToast('No valid cards found to import.', 'error');
+                setImporting(false);
+                return;
+            }
+
+            // 2. Prepare Payload
+            const payload = {
+                deck: {
+                    name: "Imported Deck", // TODO: Detect name from file?
+                    format: 'Commander', // Default
+                    commander: null // Auto-detection logic could go here
+                },
+                cards: resolved.map(c => ({
+                    scryfall_id: c.scryfall_id,
+                    name: c.name,
+                    set_code: c.set_code,
+                    collector_number: c.collector_number,
+                    finish: c.isFoil ? 'foil' : 'nonfoil',
+                    count: c.quantity || 1,
+                    data: c.data,
+                    // Map mainboard/sideboard logic if needed, but 'import' endpoint puts all in deck
+                    // We might need to handle sideboard tagging if backend supported it.
+                    // For now, everything goes to deck.
+                })),
+                options: {
+                    // The backend logic: if checkCollection=true, it links to EXISTING cards.
+                    // If checkCollection=false, it creates NEW 'wishlist' copies (if addToCollecton=true).
+                    // Let's assume we want to MATCH first, then wishlist.
+                    checkCollection: true,
+                    addToCollection: true
+                }
+            };
+
+            // 3. Send to Backend
+            const res = await api.post('/api/decks/import', payload);
+
+            addToast(`Deck imported! ${res.missingCards?.length ? `(${res.missingCards.length} missing)` : ''}`, 'success');
+            navigate(`/decks/${res.deckId}`);
+
+        } catch (err) {
+            console.error(err);
+            addToast('Import Failed', 'error');
+        } finally {
+            setImporting(false);
         }
     };
 
@@ -859,11 +925,46 @@ const CreateDeckPage = () => {
                                 <div className="space-y-6">
                                     <div className="flex items-center gap-4">
                                         <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-                                        <h2 className="text-xl font-black text-white uppercase tracking-[0.3em]">Standard</h2>
+                                        <h2 className="text-xl font-black text-white uppercase tracking-[0.3em]">Quick Actions</h2>
                                         <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
                                     </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 max-w-2xl mx-auto w-full">
+                                        {/* Import Deck */}
+                                        <div
+                                            onClick={() => setIsImportModalOpen(true)}
+                                            className="group cursor-pointer bg-gray-800/40 hover:bg-blue-900/20 border border-white/10 hover:border-blue-500/50 rounded-3xl p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 flex items-center gap-4 relative overflow-hidden"
+                                        >
+                                            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            <div className="w-16 h-16 bg-blue-500/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-500 border border-white/5 group-hover:border-blue-500/30 flex-shrink-0">
+                                                <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                                            </div>
+                                            <div className="relative z-10 text-left">
+                                                <h3 className="text-xl font-black text-white mb-1 group-hover:text-blue-300 transition-colors">Import Deck</h3>
+                                                <p className="text-xs text-gray-400 leading-relaxed">Paste from Arena, Moxfield, or text file.</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Future Feature? */}
+                                        <div className="group opacity-50 cursor-not-allowed bg-gray-800/20 border border-white/5 rounded-3xl p-6 flex items-center gap-4 relative">
+                                            <div className="w-16 h-16 bg-gray-700/20 rounded-2xl flex items-center justify-center border border-white/5 flex-shrink-0">
+                                                <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                                            </div>
+                                            <div className="relative z-10 text-left">
+                                                <h3 className="text-xl font-black text-gray-500 mb-1">Scan Deck</h3>
+                                                <p className="text-xs text-gray-600 leading-relaxed">Coming soon to Mobile Companion.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* STANDARD SECTION */}
+                                <div className="space-y-6">
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                                        <h2 className="text-xl font-black text-white uppercase tracking-[0.3em]">Standard</h2>
+                                        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                                    </div>                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         {/* Standard Collection */}
                                         <div
                                             onClick={() => { setIsMockup(false); setFormat('Standard'); handleBasicsSubmit('Standard', false) }}
@@ -947,6 +1048,20 @@ const CreateDeckPage = () => {
                 onClose={() => setIsSearchOpen(false)}
                 onAdd={() => fetchCommanders()}
             />
+
+            <ImportDeckModal
+                isOpen={isImportModalOpen}
+                onClose={() => setIsImportModalOpen(false)}
+                onImport={handleImportDeck}
+            />
+
+            {importing && (
+                <div className="fixed inset-0 z-[60] bg-black/80 flex flex-col items-center justify-center backdrop-blur-sm">
+                    <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-indigo-500 mb-4"></div>
+                    <div className="text-white font-bold text-xl">Importing Deck...</div>
+                    <div className="text-gray-400 text-sm mt-2">Checking collection for matches</div>
+                </div>
+            )}
         </div>
     );
 };

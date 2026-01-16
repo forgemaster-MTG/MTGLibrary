@@ -6,8 +6,10 @@ export const communityService = {
         return api.get('/api/community/relationships');
     },
 
-    sendRequest: async (targetEmail, type = 'pod') => {
-        return api.post('/api/community/relationships/request', { targetEmail, type });
+    sendRequest: async (target, type = 'pod') => {
+        // target can be email string OR object { targetEmail, targetId }
+        const payload = typeof target === 'string' ? { targetEmail: target, type } : { ...target, type };
+        return api.post('/api/community/relationships/request', payload);
     },
 
     respondToRequest: async (id, status) => {

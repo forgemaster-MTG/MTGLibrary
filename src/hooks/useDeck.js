@@ -43,5 +43,5 @@ export function useDeck(deckId) {
         refresh();
     }, [currentUser, deckId]);
 
-    return { deck, cards, loading, error, refresh };
+    return { deck, cards, setDeck, setCards, loading, error, refresh };
 }

@@ -87,4 +87,20 @@ node_modules/
 
 # dataconnect generated files
 .dataconnect
-mtg_library_backup_2026-01-12 (1).json
+
+# Backups and Data
+*.json
+!package.json
+!package-lock.json
+!firebase.json
+!serviceAccountKey.json
+!DeckList.json
+*.xlsx
+*.pdf
+*.txt
+!USER_GUIDE.md
+!README.md
+!tasklist.txt
+
+# DB Data
+postgres_data_*

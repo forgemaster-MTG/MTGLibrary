@@ -60,6 +60,10 @@ export const deckService = {
         return api.post('/api/decks/import', { deck, cards, options });
     },
 
+    async createDeck(userId, data) {
+        return api.post('/api/decks', data);
+    },
+
     async updateDeck(userId, deckId, data) {
         return api.put(`/api/decks/${deckId}`, data);
     },
