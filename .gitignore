@@ -104,3 +104,5 @@ node_modules/
 
 # DB Data
 postgres_data_*
+
+/serviceAccountKey.json
