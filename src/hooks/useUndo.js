@@ -35,7 +35,7 @@ const useUndo = (initialState, onStateChange) => {
             initialState.length > 0;
 
         if (isHistoryEmpty || isPlaceholderOnly) {
-            HistoryService.init(initialState);
+            HistoryService.init(initialState, true);
         }
     }, [initialState]);
 

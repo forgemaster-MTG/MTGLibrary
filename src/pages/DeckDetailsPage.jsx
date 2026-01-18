@@ -235,7 +235,7 @@ const DeckDetailsPage = () => {
     const { cards: collection } = useCollection();
 
     // Undo/Redo Integration
-    const handleUndoRedoStateChange = (restoredCards) => {
+    const handleUndoRedoStateChange = React.useCallback((restoredCards) => {
         setCards(currentCards => {
             // Diffing Logic: currentCards vs restoredCards
             // We need to transform current backend state (currentCards) to match history state (restoredCards)
@@ -258,6 +258,11 @@ const DeckDetailsPage = () => {
                 const current = currentCards.find(c => c.managedId === r.managedId);
                 return current && current.countInDeck !== r.countInDeck;
             });
+
+            // Early return if no changes needed
+            if (cardsToRemove.length === 0 && cardsToAdd.length === 0 && cardsToUpdate.length === 0) {
+                return currentCards;
+            }
 
             // Execute Sync Actions (Fire and forget, or toast on error)
             const syncBackend = async () => {
@@ -302,7 +307,7 @@ const DeckDetailsPage = () => {
 
             return restoredCards;
         });
-    };
+    }, [currentUser, deckId, addToast, refreshDeck]);
 
     const { undo, redo, recordAction, canUndo, canRedo } = useUndo(deckCards, handleUndoRedoStateChange);
 

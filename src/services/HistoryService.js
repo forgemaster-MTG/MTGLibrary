@@ -21,14 +21,14 @@ class HistoryService {
      * Initializes the history with an initial state.
      * Clears any existing history.
      */
-    init(initialState) {
+    init(initialState, silent = false) {
         this.timeline = [{
             state: this._clone(initialState),
             action: 'Initial State',
             timestamp: Date.now()
         }];
         this.pointer = 0;
-        this._notify();
+        if (!silent) this._notify();
     }
 
     /**

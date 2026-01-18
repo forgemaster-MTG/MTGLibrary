@@ -1,16 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext'; // Import Auth
 import StartAuditModal from './StartAuditModal';
 import AuditGuideModal from '../modals/AuditGuideModal';
 
 export default function AuditHub() {
     const { id: routeId } = useParams();
+    const { userProfile } = useAuth(); // Get Profile
     const [session, setSession] = useState(null);
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const navigate = useNavigate();
+
+    // Determine Grouping Strategy
+    const hierarchy = userProfile?.settings?.organization?.sortHierarchy || ['set'];
+    const topLevelGroup = hierarchy[0] || 'set';
 
     const [strictModal, setStrictModal] = useState({
         isOpen: false,
@@ -34,11 +40,14 @@ export default function AuditHub() {
                 if (activeId) {
                     // We need to fetch specific session details if we want to support viewing history later
                     // But for now, let's assume active.
-                    // Let's use the stats endpoint to get data
-                    const s = await api.get(`/api/audit/${activeId}/stats`);
+                    // Let's use the stats endpoint to get data, passing groupBy
+                    const s = await api.get(`/api/audit/${activeId}/stats?groupBy=${topLevelGroup}`);
                     setStats(s);
                     // We also need session info for metadata
                     // Re-using active endpoint for session details for now as it returns the object
+                    // Assuming getActiveAudit returns the *current* active one. 
+                    // If viewing history, we might need specific endpoint? 
+                    // For now, assume Active.
                     const sessParams = await api.getActiveAudit();
                     setSession(sessParams);
                 }
@@ -50,7 +59,7 @@ export default function AuditHub() {
             }
         };
         fetchSession();
-    }, [routeId]);
+    }, [routeId, topLevelGroup]);
 
     const openStrictModal = (type, onConfirm) => {
         setStrictModal({ isOpen: true, type, onConfirm });
@@ -198,6 +207,7 @@ export default function AuditHub() {
                             {stats.decks.map(deck => (
                                 <button
                                     key={deck.id}
+                                    // Decks are always decks. No dynamic grouping within decks at this level.
                                     onClick={() => navigate(`/audit/${session.id}/wizard?deckId=${deck.id}`)}
                                     className={`relative group p-6 rounded-xl border transition-all hover:-translate-y-1 hover:shadow-xl bg-gradient-to-br ${getGradient(deck.verified, deck.total, deck.reviewed)} overflow-hidden`}
                                 >
@@ -228,14 +238,14 @@ export default function AuditHub() {
                 <div>
                     <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
                         <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" /></svg>
-                        Collection (Loose Cards)
+                        Collection (Grouped by {topLevelGroup === 'set' ? 'Set Release' : topLevelGroup === 'type' ? 'Card Type' : topLevelGroup === 'rarity' ? 'Rarity' : topLevelGroup}) // Label
                     </h3>
-                    {/* FIXED: Removed loose text glitch by cleaning up absolute positioning and overflow */}
                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
                         {stats.collection.groups.map(group => (
                             <button
                                 key={group.name}
-                                onClick={() => navigate(`/audit/${session.id}/wizard?group=${group.name}`)}
+                                // Navigate with group value AND type
+                                onClick={() => navigate(`/audit/${session.id}/wizard?group=${encodeURIComponent(group.name)}&groupType=${topLevelGroup}`)}
                                 className={`relative p-4 rounded-xl border text-left transition-all hover:brightness-110 bg-gradient-to-br ${getGradient(group.verified, group.total, group.reviewed)} overflow-hidden group isolate`}
                             >
                                 <div className="text-3xl font-black text-white/5 absolute -bottom-1 -right-1 select-none pointer-events-none transition-colors z-0 whitespace-nowrap transform rotate-0 origin-bottom-right">

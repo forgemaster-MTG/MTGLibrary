@@ -129,7 +129,7 @@ const CollectionPage = () => {
     // Initialize History with loaded cards once
     useEffect(() => {
         if (!loading && cards.length > 0 && HistoryService.pointer < 0) {
-            HistoryService.init(cards);
+            HistoryService.init(cards, true);
         }
     }, [loading, cards]);
 
