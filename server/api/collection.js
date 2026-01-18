@@ -175,7 +175,7 @@ router.get('/', async (req, res) => {
 router.post('/', dynamicLimitCheck, async (req, res) => {
     try {
         // Body should contain scryfall_id, and other cache data
-        const { scryfall_id, name, set_code, collector_number, finish, count, data, deck_id, targetUserId } = req.body;
+        const { scryfall_id, name, set_code, collector_number, finish, count, data, deck_id, targetUserId, board } = req.body;
 
         if (!scryfall_id || !name) return res.status(400).json({ error: 'Missing required card fields' });
 
@@ -205,15 +205,14 @@ router.post('/', dynamicLimitCheck, async (req, res) => {
             set_code: set_code || '???',
             collector_number: collector_number || '0',
             finish: finish || 'nonfoil',
-            finish: finish || 'nonfoil',
             image_uri: req.body.image_uri || cardService.resolveImage(data) || null,
-            count: count || 1,
             count: count || 1,
             data: data || null,
             deck_id: deck_id || null,
             is_wishlist: req.body.is_wishlist || false,
             tags: JSON.stringify(req.body.tags || []),
-            price_bought: req.body.price_bought || null
+            price_bought: req.body.price_bought || null,
+            board: board || 'mainboard'
         };
 
         const [row] = await knex('user_cards').insert(insert).returning('*');
@@ -240,6 +239,7 @@ router.put('/:id', async (req, res) => {
         if (req.body.is_wishlist !== undefined) update.is_wishlist = req.body.is_wishlist;
         if (price_bought !== undefined) update.price_bought = price_bought;
         if (tags !== undefined) update.tags = JSON.stringify(tags);
+        if (req.body.board !== undefined) update.board = req.body.board;
 
         if (Object.keys(update).length === 0) return res.json(existing);
 

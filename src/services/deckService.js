@@ -15,7 +15,8 @@ export const deckService = {
             finish: card.finish || 'nonfoil',
             data: card, // Pass full data for cache
             deck_id: deckId,
-            count: 1
+            count: 1,
+            board: card.board // Pass board state
         });
     },
 
@@ -44,6 +45,10 @@ export const deckService = {
             return this.removeCardFromDeck(userId, deckId, cardId); // or delete?
         }
         return api.put(`/api/collection/${cardId}`, { count: newCount });
+    },
+
+    async moveCardToBoard(userId, deckId, cardId, board) {
+        return api.put(`/api/collection/${cardId}`, { board });
     },
 
     /**
