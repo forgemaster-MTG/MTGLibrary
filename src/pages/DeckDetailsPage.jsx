@@ -21,6 +21,8 @@ import DeckDoctorModal from '../components/modals/DeckDoctorModal';
 import DeckAI from '../components/DeckAI';
 import TokenModal from '../components/modals/TokenModal';
 import CardGridItem from '../components/common/CardGridItem';
+import { api } from '../services/api';
+import StartAuditModal from '../components/Audit/StartAuditModal';
 import StartAuditButton from '../components/Audit/StartAuditButton';
 import ForgeLensModal from '../components/modals/ForgeLensModal';
 import PrintSettingsModal from '../components/printing/PrintSettingsModal';
@@ -145,6 +147,55 @@ const DeckDetailsPage = () => {
     const [isStatsModalOpen, setIsStatsModalOpen] = useState(false);
     const [isDoctorOpen, setIsDoctorOpen] = useState(false);
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+
+    // Audit State
+    const [auditState, setAuditState] = useState({ isOpen: false, loading: false, activeSession: null });
+
+    const handleAuditClick = async (e) => {
+        if (e) e.stopPropagation(); // prevent closing menu immediately if we want? Actually we DO want to close menu, but AFTER starting async?
+        // No, we want menu to close. But we want Modal to open.
+        // Since modal is now in Page, it persists.
+        setIsToolsMenuOpen(false);
+
+        setAuditState(prev => ({ ...prev, loading: true }));
+        try {
+            const active = await api.getActiveAudit();
+            if (active) {
+                const isTypeMatch = active.type === 'deck';
+                const isTargetMatch = !deckId || String(active.target_id) === String(deckId);
+
+                if (isTypeMatch && isTargetMatch) {
+                    navigate(`/audit/${active.id}`);
+                    setAuditState(prev => ({ ...prev, loading: false }));
+                    return;
+                }
+                // Mismatch, show modal with active session info
+                setAuditState({ isOpen: true, loading: false, activeSession: active });
+                return;
+            }
+            // No active session, open modal
+            setAuditState({ isOpen: true, loading: false, activeSession: null });
+        } catch (err) {
+            console.error(err);
+            setAuditState({ isOpen: true, loading: false, activeSession: null });
+        }
+    };
+
+    const handleAuditConfirm = async () => {
+        setAuditState(prev => ({ ...prev, loading: true }));
+        try {
+            if (auditState.activeSession) {
+                await api.cancelAudit(auditState.activeSession.id);
+            }
+            const session = await api.startAudit({ type: 'deck', targetId: deckId });
+            navigate(`/audit/${session.id}`);
+            setAuditState({ isOpen: false, loading: false, activeSession: null });
+        } catch (err) {
+            console.error(err);
+            addToast('Failed to start audit: ' + err.message, 'error');
+            setAuditState(prev => ({ ...prev, loading: false }));
+        }
+    };
 
     const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
     const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
@@ -1003,9 +1054,13 @@ const DeckDetailsPage = () => {
                                                     {
                                                         canEdit && (
                                                             getTierConfig(userProfile?.subscription_tier).features.deckAudit ? (
-                                                                <div onClick={() => setIsToolsMenuOpen(false)} className="h-full">
-                                                                    <StartAuditButton type="deck" targetId={deckId} label="Audit" className="w-full h-full flex flex-col items-center gap-2 p-3 bg-purple-500/10 hover:bg-purple-500/30 border border-purple-500/20 rounded-xl transition-all font-bold text-[10px] text-purple-300" />
-                                                                </div>
+                                                                <button
+                                                                    onClick={handleAuditClick}
+                                                                    className="w-full h-full flex flex-col items-center gap-2 p-3 bg-purple-500/10 hover:bg-purple-500/30 border border-purple-500/20 rounded-xl transition-all mr-2"
+                                                                >
+                                                                    <svg className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
+                                                                    <span className="font-bold text-[10px] text-purple-300">Audit</span>
+                                                                </button>
                                                             ) : (
                                                                 <button
                                                                     onClick={(e) => { e.stopPropagation(); addToast('Deck Audits are available on Magician tier and above.', 'info'); }}
@@ -1645,6 +1700,16 @@ const DeckDetailsPage = () => {
                     isOpen={isTokenModalOpen}
                     onClose={() => setIsTokenModalOpen(false)}
                     deckCards={deckCards}
+                />
+
+                <StartAuditModal
+                    isOpen={auditState.isOpen}
+                    onClose={() => setAuditState(prev => ({ ...prev, isOpen: false }))}
+                    onConfirm={handleAuditConfirm}
+                    type="deck"
+                    targetId={deckId}
+                    loading={auditState.loading}
+                    activeSession={auditState.activeSession}
                 />
 
                 <PrintSettingsModal
