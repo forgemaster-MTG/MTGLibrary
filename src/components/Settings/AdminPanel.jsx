@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { DEFAULT_PRESETS } from '../../constants/dashboardPresets';
 import { api } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { GeminiService } from '../../services/gemini';
@@ -38,7 +39,7 @@ const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, confirmText 
 };
 
 const AdminPanel = () => {
-    const { userProfile } = useAuth();
+    const { userProfile, refreshUserProfile } = useAuth();
     const [activeSection, setActiveSection] = useState('sync'); // 'sync', 'permissions', 'epics', 'release', 'referrals'
 
     // Sync State
@@ -498,7 +499,173 @@ const AdminPanel = () => {
                 >
                     Referrals
                 </button>
+                <button
+                    onClick={() => setActiveSection('presets')}
+                    className={`px-4 py-2 border-b-2 font-medium transition-colors whitespace-nowrap ${activeSection === 'presets' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-gray-400 hover:text-white'}`}
+                >
+                    Dashboard Presets
+                </button>
             </div>
+
+            {activeSection === 'presets' && (
+                <div className="space-y-6 animate-fade-in">
+                    <h2 className="text-xl font-semibold text-white">Dashboard Presets Manager</h2>
+                    <p className="text-gray-400 text-sm">Manage layouts saved in your admin account. These can act as system presets.</p>
+
+                    <div className="bg-gray-900/50 border border-gray-700 rounded-xl p-6">
+                        <h3 className="text-lg font-medium text-white mb-4">Saved Layouts</h3>
+                        <div className="space-y-4">
+                            <div className="grid gap-3">
+                                {(() => {
+                                    const saved = userProfile?.settings?.saved_layouts || {};
+                                    // Merge keys: set of all keys from DEFAULT_PRESETS and saved
+                                    const allKeys = Array.from(new Set([...Object.keys(DEFAULT_PRESETS), ...Object.keys(saved)]));
+
+                                    return allKeys.map(name => {
+                                        const isDefault = !!DEFAULT_PRESETS[name];
+                                        const isSaved = !!saved[name];
+                                        const isOverridden = isDefault && isSaved;
+
+                                        const data = isSaved ? saved[name] : DEFAULT_PRESETS[name];
+
+                                        return (
+                                            <div key={name} className={`flex items-center justify-between p-3 rounded-lg border ${isOverridden ? 'bg-indigo-900/20 border-indigo-500/50' : 'bg-gray-800 border-gray-700'}`}>
+                                                <div className="min-w-0 flex-1 mr-4">
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <div className="font-bold text-white text-sm break-all">{name}</div>
+                                                        {isDefault && !isSaved && <span className="text-[10px] bg-gray-700 text-gray-300 px-1 rounded">SYSTEM</span>}
+                                                        {isOverridden && <span className="text-[10px] bg-indigo-500 text-white px-1 rounded">OVERRIDE</span>}
+                                                        {!isDefault && <span className="text-[10px] bg-green-900 text-green-300 px-1 rounded">CUSTOM</span>}
+                                                    </div>
+                                                    <div className="text-xs text-gray-500 font-mono">
+                                                        {data.layout?.grid?.length || 0} widgets • {(JSON.stringify(data).length / 1024).toFixed(1)} KB
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    {/* NEW EDIT BUTTON */}
+                                                    <button
+                                                        onClick={() => {
+                                                            // Convert internal format to export format
+                                                            const exportData = { l: data.layout, s: data.widgetSizes || {} };
+                                                            const jsonString = JSON.stringify(exportData, null, 2);
+                                                            const textArea = document.getElementById('admin-import-code');
+                                                            const nameInput = document.getElementById('admin-import-name');
+                                                            if (textArea && nameInput) {
+                                                                textArea.value = jsonString;
+                                                                nameInput.value = name;
+                                                                document.getElementById('admin-import-section')?.scrollIntoView({ behavior: 'smooth' });
+                                                            }
+                                                        }}
+                                                        className="p-2 text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
+                                                        title="Edit JSON"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                                    </button>
+
+                                                    <button
+                                                        onClick={() => {
+                                                            navigator.clipboard.writeText(btoa(JSON.stringify(data)));
+                                                            alert('Layout code copied!');
+                                                        }}
+                                                        className="p-2 text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors"
+                                                        title="Copy Code"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-12a2 2 0 01-2-2V6a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+                                                    </button>
+                                                    {isSaved && (
+                                                        <button
+                                                            onClick={async () => {
+                                                                if (window.confirm(isDefault ? `Revert "${name}" to system default?` : `Delete layout "${name}"?`)) {
+                                                                    const newSaved = { ...userProfile.settings.saved_layouts };
+                                                                    delete newSaved[name];
+                                                                    await api.updateUser(userProfile.id, { settings: { ...userProfile.settings, saved_layouts: newSaved } });
+                                                                    refreshUserProfile();
+                                                                }
+                                                            }}
+                                                            className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                                            title={isDefault ? "Revert to Default" : "Delete"}
+                                                        >
+                                                            {isDefault ? (
+                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                                            ) : (
+                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                            )}
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    });
+                                })()}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="admin-import-section" className="bg-gray-900/50 border border-gray-700 rounded-xl p-6">
+                        <h3 className="text-lg font-medium text-white mb-4">Add / Edit Preset</h3>
+                        <div className="flex flex-col gap-4">
+                            <div className="w-full">
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Preset Name</label>
+                                <input id="admin-import-name" type="text" className="w-full bg-gray-800 border border-gray-600 rounded-lg px-4 py-2 text-white text-sm" placeholder="e.g. Default" />
+                            </div>
+                            <div className="flex-1">
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Layout Configuration (JSON or Base64)</label>
+                                <textarea
+                                    id="admin-import-code"
+                                    className="w-full bg-gray-950 border border-gray-700 rounded-lg px-4 py-3 text-green-400 font-mono text-xs focus:ring-2 focus:ring-indigo-500 h-64"
+                                    placeholder='Paste Base64 code or raw JSON object like { "l": {...}, "s": {...} }'
+                                ></textarea>
+                            </div>
+                        </div>
+                        <div className="mt-4 text-right">
+                            <button
+                                onClick={async () => {
+                                    const codeInput = document.getElementById('admin-import-code').value.trim();
+                                    const name = document.getElementById('admin-import-name').value.trim();
+                                    if (!codeInput || !name) return alert('Please enter code/json and name');
+
+                                    try {
+                                        let data;
+                                        // Try parsing as JSON first
+                                        try {
+                                            data = JSON.parse(codeInput);
+                                        } catch (e) {
+                                            // If not JSON, try Base64
+                                            try {
+                                                data = JSON.parse(atob(codeInput));
+                                            } catch (e2) {
+                                                throw new Error('Invalid format: Must be valid JSON or Base64 string');
+                                            }
+                                        }
+
+                                        if (!data.l && !data.layout) throw new Error('Invalid data structure (missing layout)');
+
+                                        // Normalize: Layout might be in 'l' (export format) or 'layout' (internal format)
+                                        const layout = data.l || data.layout;
+                                        const sizes = data.s || data.widgetSizes || {};
+
+                                        const newSaved = {
+                                            ...(userProfile.settings.saved_layouts || {}),
+                                            [name]: { layout: layout, widgetSizes: sizes }
+                                        };
+
+                                        await api.updateUser(userProfile.id, { settings: { ...userProfile.settings, saved_layouts: newSaved } });
+                                        refreshUserProfile();
+                                        alert('Saved successfully!');
+                                        document.getElementById('admin-import-code').value = '';
+                                        document.getElementById('admin-import-name').value = '';
+                                    } catch (e) {
+                                        alert('Error: ' + e.message);
+                                    }
+                                }}
+                                className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded-lg font-bold"
+                            >
+                                Save Preset
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {activeSection === 'sync' && (
                 <div className="space-y-6">

@@ -40,12 +40,12 @@ const IdentityWidget = ({ data, size }) => {
                         </div>
                         <div className="flex -space-x-2">
                             {stats.topColor.pips?.map((pip, i) => (
-                                <div key={i} className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black ring-2 ring-gray-950 shadow-lg transform group-hover:scale-110 transition-transform border border-white/10" style={{
-                                    backgroundColor: pip === 'W' ? '#fef08a' : pip === 'U' ? '#60a5fa' : pip === 'B' ? '#1f2937' : pip === 'R' ? '#ef4444' : pip === 'G' ? '#22c55e' : '#6b7280',
-                                    color: pip === 'B' ? '#f3f4f6' : '#111827'
-                                }}>
-                                    {pip}
-                                </div>
+                                <img
+                                    key={i}
+                                    src={`https://svgs.scryfall.io/card-symbols/${pip}.svg`}
+                                    alt={pip}
+                                    className="w-6 h-6 rounded-full shadow-lg transform group-hover:scale-110 transition-transform"
+                                />
                             ))}
                         </div>
                     </div>
@@ -55,12 +55,12 @@ const IdentityWidget = ({ data, size }) => {
                         <div className={`flex flex-col`}>
                             <div className={`flex gap-1.5 mb-3`}>
                                 {stats.topColor.pips?.map((pip, i) => (
-                                    <div key={i} className={`w-7 h-7 text-xs rounded-full flex items-center justify-center font-black ring-2 ring-white/10 shadow-lg transform group-hover:scale-110 transition-transform border-2 border-white/10`} style={{
-                                        backgroundColor: pip === 'W' ? '#fef08a' : pip === 'U' ? '#60a5fa' : pip === 'B' ? '#1f2937' : pip === 'R' ? '#ef4444' : pip === 'G' ? '#22c55e' : '#6b7280',
-                                        color: pip === 'B' ? '#f3f4f6' : '#111827'
-                                    }}>
-                                        {pip}
-                                    </div>
+                                    <img
+                                        key={i}
+                                        src={`https://svgs.scryfall.io/card-symbols/${pip}.svg`}
+                                        alt={pip}
+                                        className="w-7 h-7 shadow-lg transform group-hover:scale-110 transition-transform"
+                                    />
                                 ))}
                             </div>
                         </div>

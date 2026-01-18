@@ -642,6 +642,8 @@ const SettingsPage = () => {
                     )
                 }
 
+                {/* Dashboard Tab Removed - Moved to Admin */}
+
                 {
                     activeTab === 'admin' && (user?.uid === 'Kyrlwz6G6NWICCEPYbXtFfyLzWI3' || userProfile?.settings?.isAdmin) && (
                         <AdminPanel />

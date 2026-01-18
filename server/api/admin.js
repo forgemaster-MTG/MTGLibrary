@@ -264,9 +264,9 @@ router.post('/precons/upload', upload.single('file'), async (req, res) => {
                 set_code: setCode,
                 type: deckPayload.type || 'Commander',
                 card_count: cardCount,
-                colors: colors,
+                colors: JSON.stringify(colors),
                 commander_name: commanderName,
-                data: deckPayload, // Store original full data
+                data: JSON.stringify(deckPayload), // Store original full data
                 created_at: new Date(),
                 updated_at: new Date()
             }).onConflict('firestore_id').merge();
@@ -283,9 +283,8 @@ router.post('/precons/upload', upload.single('file'), async (req, res) => {
                 // Batch insert?
                 const rows = allCards.map(c => ({
                     precon_id: preconId,
-                    scryfall_id: c.identifiers?.scryfallId || c.uuid, // Fallback to uuid if scryfallId missing, though join checks scryfallId
-                    count: c.count || 1, // field is 'count' in DB? check schema or precons.js. 'quantity' in precons.js select
-                    // wait, precons.js select uses `pc.quantity`. The `processCards` pushed object has `count`.
+                    scryfall_id: c.identifiers?.scryfallId || c.uuid || null, // Ensure explicitly null if missing
+                    // quantity is the correct column name
                     quantity: c.count || 1,
                     zone: c.zone,
                     card_name: c.name,

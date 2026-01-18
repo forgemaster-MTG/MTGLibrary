@@ -125,7 +125,7 @@ const ReleasesWidget = ({ size }) => {
                         {/* Latest Summary & Stats */}
                         <div className="min-w-[180px] flex flex-col justify-center">
                             <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Newest Version</span>
-                            <div className="text-4xl font-black text-white mb-2">{releases[0].version}</div>
+                            <div className="text-2xl lg:text-3xl font-black text-white mb-2 break-all leading-tight">{releases[0].version}</div>
                             <div className="text-[10px] text-gray-400 font-mono mb-4">{format(new Date(releases[0].released_at), 'MMMM yyyy')}</div>
                             <div className="flex flex-col gap-2">
                                 <div className="flex items-center gap-2 group/stat">
@@ -177,16 +177,23 @@ const ReleasesWidget = ({ size }) => {
                         </div>
                     </div>
                 ) : (
-                    <div className="space-y-2">
-                        {releases.slice(0, isSmall ? 1 : 2).map((release) => (
-                            <div key={release.id} onClick={() => setSelectedRelease(release)} className="bg-gray-950/30 border border-white/5 rounded-xl p-3 flex items-center justify-between group cursor-pointer hover:bg-white/5 transition-all">
-                                <div>
-                                    <div className="font-black text-white text-sm">{release.version}</div>
-                                    <div className="text-[9px] text-gray-500 font-mono uppercase mt-0.5">{format(new Date(release.released_at), 'MMM d')}</div>
-                                </div>
-                                <svg className="w-4 h-4 text-gray-600 group-hover:text-green-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                    <div className="space-y-2 h-full">
+                        {releases.length === 0 ? (
+                            <div className="h-full flex flex-col items-center justify-center text-center opacity-50 pb-4">
+                                <svg className="w-8 h-8 text-gray-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                                <div className="text-[10px] font-black uppercase text-gray-500 tracking-widest">No Updates Found</div>
                             </div>
-                        ))}
+                        ) : (
+                            releases.slice(0, isSmall ? 1 : 2).map((release) => (
+                                <div key={release.id} onClick={() => setSelectedRelease(release)} className="bg-gray-950/30 border border-white/5 rounded-xl p-3 flex items-center justify-between group cursor-pointer hover:bg-white/5 transition-all">
+                                    <div>
+                                        <div className="font-black text-white text-sm">{release.version}</div>
+                                        <div className="text-[9px] text-gray-500 font-mono uppercase mt-0.5">{format(new Date(release.released_at), 'MMM d')}</div>
+                                    </div>
+                                    <svg className="w-4 h-4 text-gray-600 group-hover:text-green-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                                </div>
+                            ))
+                        )}
                     </div>
                 )}
             </div>

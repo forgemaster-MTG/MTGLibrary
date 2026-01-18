@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
     DndContext,
     closestCorners,
@@ -36,6 +36,8 @@ import RecentDecksWidget from '../components/dashboard/RecentDecksWidget';
 import IdentityWidget from '../components/dashboard/IdentityWidget';
 import QuickActionsWidget from '../components/dashboard/QuickActionsWidget';
 import WidgetSidebar from '../components/dashboard/WidgetSidebar';
+import DeleteConfirmationModal from '../components/modals/DeleteConfirmationModal';
+import { LayoutImportModal, LayoutShareModal, LayoutSaveModal } from '../components/modals/DashboardLayoutModals';
 
 // Modals
 import IssueTrackerModal from '../components/modals/IssueTrackerModal';
@@ -49,83 +51,9 @@ import SingleActionWidget from '../components/dashboard/SingleActionWidget';
 import WIDGETS from '../components/dashboard/WidgetRegistry';
 
 
-const DEFAULT_WIDGET_SIZES = {
-    'stats_value': 'xs',
-    'stats_total': 'xs',
-    'stats_decks': 'xs',
-    'audit': 'xs',
-    'action_browse': 'xs',
-    'action_wishlist': 'xs',
-    'identity': 'small',
-    'quick_actions': 'small',
-    'community': 'medium',
-    'action_new_deck': 'xs',
-    'action_add_cards': 'xs',
-    'action_tournaments': 'xs',
-    'system_status': 'small',
-    'subscription': 'small',
-    'social_stats': 'small',
-    'trade_matches': 'small',
-    'tips': 'small',
-    'guides': 'small',
-    'recent_decks': 'large',
-    'releases': 'large'
-};
+import { DEFAULT_PRESETS, DEFAULT_WIDGET_SIZES, DEFAULT_LAYOUT } from '../constants/dashboardPresets';
 
-// Simplified: All widgets in ONE grid zone for free-form placement
-const DEFAULT_LAYOUT = {
-    grid: [
-        'stats_value', 'stats_total', 'stats_decks', 'audit', 'quick_actions', 'identity',
-        'recent_decks', 'releases', 'community',
-        'action_new_deck', 'action_add_cards', 'action_browse', 'action_wishlist', 'action_tournaments',
-        'system_status', 'subscription', 'social_stats', 'trade_matches', 'tips', 'guides'
-    ]
-};
-
-const PRESETS = {
-    'Default': {
-        layout: DEFAULT_LAYOUT,
-        sizes: DEFAULT_WIDGET_SIZES
-    },
-    'Decks Focused': {
-        layout: {
-            grid: [
-                'action_new_deck', 'action_add_cards', 'action_tournaments', 'stats_decks', 'quick_actions', 'identity',
-                'recent_decks', 'community', 'releases',
-                'stats_value', 'stats_total', 'audit', 'action_browse', 'action_wishlist',
-                'system_status', 'subscription', 'social_stats', 'tips', 'guides'
-            ]
-        },
-        sizes: {
-            ...DEFAULT_WIDGET_SIZES,
-            'action_new_deck': 'small',
-            'action_add_cards': 'small',
-            'action_tournaments': 'small',
-            'recent_decks': 'xlarge',
-            'community': 'large'
-        }
-    },
-    'Collector': {
-        layout: {
-            grid: [
-                'stats_value', 'stats_total', 'audit', 'action_browse', 'action_wishlist', 'identity',
-                'recent_decks', 'releases', 'community',
-                'action_new_deck', 'action_add_cards', 'action_tournaments', 'stats_decks', 'quick_actions',
-                'system_status', 'subscription', 'social_stats', 'tips', 'guides'
-            ]
-        },
-        sizes: {
-            ...DEFAULT_WIDGET_SIZES,
-            'stats_value': 'small',
-            'stats_total': 'small',
-            'audit': 'medium',
-            'action_browse': 'small',
-            'action_wishlist': 'small',
-            'recent_decks': 'medium',
-            'releases': 'xlarge'
-        }
-    }
-};
+const PRESETS = DEFAULT_PRESETS;
 
 // --- Sortable Widget Wrapper ---
 const SortableWidget = ({ id, widgetKey, editMode, data, actions, containerId, size, onResize, onRemove }) => {
@@ -137,10 +65,10 @@ const SortableWidget = ({ id, widgetKey, editMode, data, actions, containerId, s
     // Grid Spans (Top Zone) - Now with Row Spans for Dense Packing
     const gridSpans = {
         xs: 'col-span-2 row-span-1', // 2 cols, 1 row (dense)
-        small: 'col-span-4 row-span-2', // 4 cols, 2 rows
-        medium: 'col-span-4 row-span-4', // 4 cols, 4 rows
-        large: 'col-span-6 row-span-6', // 6 cols, 6 rows
-        xlarge: 'col-span-8 row-span-6' // 8 cols, 6 rows
+        small: 'col-span-4 row-span-3', // 4 cols, 3 rows (Increased from 2)
+        medium: 'col-span-4 row-span-5', // 4 cols, 5 rows (Increased from 4)
+        large: 'col-span-6 row-span-8', // 6 cols, 8 rows (Increased from 6)
+        xlarge: 'col-span-8 row-span-8' // 8 cols, 8 rows (Increased from 6)
     };
 
     // Width mappings for non-grid containers (Main/Sidebar)
@@ -342,6 +270,13 @@ const Dashboard = () => {
     const [widgetSizes, setWidgetSizes] = useState({}); // { id: 'small' | 'medium' | 'large' }
     const [activeId, setActiveId] = useState(null);
     const [savedLayouts, setSavedLayouts] = useState({});
+    const [isLayoutMenuOpen, setIsLayoutMenuOpen] = useState(false);
+    const [importModalOpen, setImportModalOpen] = useState(false);
+    const [saveModalOpen, setSaveModalOpen] = useState(false);
+    const [shareModalData, setShareModalData] = useState({ isOpen: false, code: '', name: '' });
+    const [deleteModalData, setDeleteModalData] = useState({ isOpen: false, name: '' });
+    const loadLayoutBtnRef = useRef(null);
+    const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
 
     // Migration helper: Convert old zone-based layout to new unified grid
     const migrateLayout = (oldLayout) => {
@@ -412,61 +347,91 @@ const Dashboard = () => {
         }
     };
 
-    const handleSaveAs = async () => {
-        const name = window.prompt("Name this layout:");
+
+    const handleSaveAs = () => setSaveModalOpen(true);
+
+    const onSaveNewLayout = async (name) => {
         if (!name) return;
-
-        const newSaved = {
-            ...savedLayouts,
-            [name]: { layout, widgetSizes }
+        const newLayouts = {
+            ...(savedLayouts || {}),
+            [name]: { layout: layout, widgetSizes: widgetSizes }
         };
-
-        setSavedLayouts(newSaved);
-
-        try {
-            await updateSettings({
-                saved_layouts: newSaved
-            });
-            addToast(`Layout "${name}" saved!`, 'success');
-        } catch (e) {
-            addToast('Failed to save layout', 'error');
-        }
+        await saveSavedLayouts(newLayouts);
+        addToast(`Layout "${name}" saved!`, 'success');
     };
 
     const handleLoadLayout = (nameOrPreset) => {
-        if (PRESETS[nameOrPreset]) {
-            const { layout: presetLayout, sizes } = PRESETS[nameOrPreset];
-            setLayout(migrateLayout(presetLayout));
-            if (sizes) setWidgetSizes(sizes);
-            addToast(`Loaded preset: ${nameOrPreset}`, 'success');
-        } else if (savedLayouts[nameOrPreset]) {
+        if (savedLayouts && savedLayouts[nameOrPreset]) {
             const savedLayout = savedLayouts[nameOrPreset].layout;
             setLayout(migrateLayout(savedLayout));
             setWidgetSizes(savedLayouts[nameOrPreset].widgetSizes || {});
             addToast(`Loaded layout: ${nameOrPreset}`, 'success');
+        } else if (PRESETS[nameOrPreset]) {
+            const { layout: presetLayout, sizes } = PRESETS[nameOrPreset];
+            setLayout(migrateLayout(presetLayout));
+            if (sizes) setWidgetSizes(sizes);
+            addToast(`Loaded preset: ${nameOrPreset}`, 'success');
         }
     };
 
     const handleShare = () => {
-        const code = btoa(JSON.stringify({ l: layout, s: widgetSizes }));
-        navigator.clipboard.writeText(code);
-        addToast('Layout code copied to clipboard!', 'success');
+        const data = { l: layout, s: widgetSizes };
+        const code = btoa(JSON.stringify(data));
+        setShareModalData({ isOpen: true, code, name: 'Current Layout' });
     };
 
-    const handleImport = () => {
-        const code = window.prompt("Paste layout code:");
-        if (!code) return;
+    const handleImport = () => setImportModalOpen(true);
+
+    const onImportLayout = async (name, code, loadAfterImport) => {
         try {
             const data = JSON.parse(atob(code));
-            if (data.l) { // Just check for layout
+            if (!data.l) throw new Error("Invalid layout data");
+
+            const newLayouts = {
+                ...(savedLayouts || {}),
+                [name]: { layout: data.l, widgetSizes: data.s || {} }
+            };
+            await saveSavedLayouts(newLayouts);
+
+            if (loadAfterImport) {
                 setLayout(data.l);
-                setWidgetSizes(data.s || {}); // Use empty if no sizes
-                addToast('Layout imported successfully!', 'success');
+                setWidgetSizes(data.s || {});
+                addToast(`Layout "${name}" imported and loaded!`, 'success');
             } else {
-                addToast('Invalid layout code', 'error');
+                addToast(`Layout "${name}" imported successfully!`, 'success');
             }
+            setImportModalOpen(false);
         } catch (e) {
+            console.error(e);
             addToast('Invalid layout code', 'error');
+        }
+    };
+
+    const handleDeleteLayout = (key) => setDeleteModalData({ isOpen: true, name: key });
+
+    const confirmDeleteLayout = async () => {
+        const key = deleteModalData.name;
+        if (!key) return;
+
+        const newLayouts = { ...savedLayouts };
+        delete newLayouts[key];
+        await saveSavedLayouts(newLayouts);
+        addToast('Layout deleted', 'success');
+        setDeleteModalData({ isOpen: false, name: '' });
+    };
+
+    const handleOverwriteLayout = async (name) => {
+        if (!window.confirm(`Overwrite "${name}" with current layout?`)) return;
+        const newSaved = {
+            ...savedLayouts,
+            [name]: { layout, widgetSizes }
+        };
+        setSavedLayouts(newSaved);
+        try {
+            await updateSettings({ saved_layouts: newSaved });
+            addToast('Layout updated', 'success');
+        } catch (e) {
+            addToast('Failed to update layout', 'error');
         }
     };
 
@@ -606,6 +571,16 @@ const Dashboard = () => {
         }
     };
 
+    const saveSavedLayouts = async (newLayouts) => {
+        setSavedLayouts(newLayouts);
+        try {
+            await updateSettings({ saved_layouts: newLayouts });
+        } catch (e) {
+            console.error("Failed to save saved_layouts", e);
+            addToast('Failed to sync layouts', 'error');
+        }
+    };
+
     // Toggle Edit
     const toggleEditMode = () => {
         if (editMode) {
@@ -613,7 +588,7 @@ const Dashboard = () => {
             saveLayout(layout);
             setIsSidebarOpen(false);
         } else {
-            setIsSidebarOpen(true);
+            // Do not auto open sidebar
         }
         setEditMode(!editMode);
     };
@@ -633,13 +608,13 @@ const Dashboard = () => {
     }), [handleSyncPrices]);
 
     return (
-        <div className="relative min-h-screen">
+        <div className="relative min-h-screen" >
             {/* Background */}
-            <div className="fixed inset-0 z-0 bg-cover bg-center transition-all duration-1000" style={{ backgroundImage: 'url(/MTG-Forge_Logo_Background.png)' }}>
+            < div className="fixed inset-0 z-0 bg-cover bg-center transition-all duration-1000" style={{ backgroundImage: 'url(/MTG-Forge_Logo_Background.png)' }} >
                 <div className="absolute inset-0 bg-gray-950/80 backdrop-blur-sm" />
-            </div>
+            </div >
 
-            <div className="relative z-10 max-w-7xl mx-auto px-6 py-12 space-y-8 animate-fade-in">
+            <div className="relative z-10 max-w-7xl mx-auto px-6 py-12 space-y-8 animate-fade-in w-full">
                 {/* Feedback Banner */}
                 <div className="bg-indigo-500/10 border border-indigo-500/30 rounded-xl p-4 flex items-start gap-3 backdrop-blur-md">
                     <span className="text-xl">💡</span>
@@ -652,43 +627,85 @@ const Dashboard = () => {
                 </div>
 
                 {/* Header & Edit Toggle */}
-                <div className={`flex flex-col md:flex-row gap-4 ${editMode ? 'justify-center items-center' : 'justify-between items-end'}`}>
+                <div className={`relative z-50 flex flex-col md:flex-row gap-4 ${editMode ? 'justify-center items-center' : 'justify-between items-end'}`}>
                     <div className={`text-center md:text-left ${editMode ? 'opacity-50 scale-90 transition-all' : ''}`}>
                         <h1 className="text-4xl font-black text-white tracking-tight mb-2">Dashboard</h1>
                         <p className="text-gray-400">Welcome back, <span className="text-indigo-400 font-bold">{currentUser ? (currentUser.displayName || currentUser.email) : 'Guest'}</span>.</p>
                     </div>
                     <div className="flex items-center gap-3 bg-gray-900/50 p-2 rounded-xl backdrop-blur-md border border-white/5">
+                        <div className="relative">
+                            <button onClick={() => setIsLayoutMenuOpen(!isLayoutMenuOpen)} className="bg-gray-800 text-white text-xs rounded-lg border border-gray-700 px-3 py-1.5 hover:bg-gray-700 transition-colors flex items-center gap-2">
+                                <span>Load Layout...</span>
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                            </button>
+
+                            {isLayoutMenuOpen && (
+                                <>
+                                    <div className="fixed inset-0 z-40 cursor-default" onClick={() => setIsLayoutMenuOpen(false)} />
+                                    <div className="absolute top-full right-0 mt-2 w-72 bg-gray-900 border border-indigo-500/30 rounded-xl shadow-2xl z-[100] overflow-hidden flex flex-col animate-fade-in-down">
+                                        <div className="p-2 border-b border-white/5 bg-gray-950/50">
+                                            <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-2 py-1">Presets</div>
+                                            {Object.keys(PRESETS).map(key => (
+                                                <button key={key} onClick={() => { handleLoadLayout(key); setIsLayoutMenuOpen(false); }} className="w-full text-left px-2 py-1.5 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg transition-colors">
+                                                    {key}
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        <div className="p-2 flex-grow overflow-y-auto max-h-[300px] bg-gray-900">
+                                            <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-2 py-1 flex justify-between items-center">
+                                                <span>My Layouts</span>
+                                            </div>
+                                            {Object.keys(savedLayouts).length === 0 ? (
+                                                <div className="px-2 py-2 text-xs text-gray-600 italic">No saved layouts</div>
+                                            ) : (
+                                                Object.keys(savedLayouts).map(key => (
+                                                    <div key={key} className="flex items-center gap-1 group/item rounded-lg hover:bg-white/5 p-1 mb-0.5">
+                                                        <button onClick={() => { handleLoadLayout(key); setIsLayoutMenuOpen(false); }} className="flex-grow text-left px-1 text-sm text-gray-300 group-hover/item:text-white truncate transition-colors font-medium">
+                                                            {key}
+                                                        </button>
+                                                        <button onClick={() => handleOverwriteLayout(key)} className="p-1.5 text-gray-600 hover:text-green-400 opacity-0 group-hover/item:opacity-100 transition-all rounded hover:bg-white/5" title="Overwrite with current">
+                                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
+                                                        </button>
+                                                        <button onClick={() => handleDeleteLayout(key)} className="p-1.5 text-gray-600 hover:text-red-400 opacity-0 group-hover/item:opacity-100 transition-all rounded hover:bg-white/5" title="Delete">
+                                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                        </button>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+
+                                        <div className="p-2 border-t border-white/5 bg-gray-950/50 grid grid-cols-3 gap-2">
+                                            <button onClick={() => { handleImport(); setIsLayoutMenuOpen(false); }} className="p-2 rounded-lg bg-indigo-500/5 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 flex flex-col items-center gap-1 text-[10px] font-bold transition-all border border-indigo-500/10" title="Import">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                                                Import
+                                            </button>
+                                            <button onClick={() => { handleSaveAs(); setIsLayoutMenuOpen(false); }} className="p-2 rounded-lg bg-indigo-500/5 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 flex flex-col items-center gap-1 text-[10px] font-bold transition-all border border-indigo-500/10" title="Save As">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                                                Save New
+                                            </button>
+                                            <button onClick={() => { handleShare(); setIsLayoutMenuOpen(false); }} className="p-2 rounded-lg bg-indigo-500/5 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 flex flex-col items-center gap-1 text-[10px] font-bold transition-all border border-indigo-500/10" title="Share (Copy Code)">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                                                Share
+                                            </button>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                        <div className="h-4 w-px bg-white/10 mx-1" />
                         {editMode && (
                             <div className="flex items-center gap-2 mr-2 border-r border-white/10 pr-4">
-                                <div className="flex gap-1 mr-2">
-                                    <button onClick={handleSaveAs} className="p-1.5 hover:bg-white/10 rounded text-gray-400 hover:text-white" title="Save Layout As...">
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
-                                    </button>
-                                    <button onClick={handleShare} className="p-1.5 hover:bg-white/10 rounded text-gray-400 hover:text-white" title="Share Layout (Copy)">
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
-                                    </button>
-                                    <button onClick={handleImport} className="p-1.5 hover:bg-white/10 rounded text-gray-400 hover:text-white" title="Import Layout">
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-                                    </button>
-                                    <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-1.5 hover:bg-indigo-600/20 rounded text-indigo-400 hover:text-indigo-300 border border-indigo-500/30" title="Forge Library">
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
-                                    </button>
-                                </div>
-                                <select
-                                    className="bg-gray-800 text-white text-xs rounded-lg border border-gray-700 p-1.5 focus:ring-2 focus:ring-indigo-500 outline-none max-w-[120px]"
-                                    onChange={(e) => handleLoadLayout(e.target.value)}
-                                    defaultValue=""
+                                <button
+                                    onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                                    className={`p-1.5 rounded border transition-all ${editMode && !isSidebarOpen
+                                        ? 'bg-indigo-600/20 text-indigo-400 border-indigo-500/50 animate-bounce shadow-lg shadow-indigo-500/20'
+                                        : 'hover:bg-indigo-600/20 text-indigo-400 hover:text-indigo-300 border-indigo-500/30'
+                                        }`}
+                                    title="Forge Library"
                                 >
-                                    <option value="" disabled>Load Layout...</option>
-                                    <optgroup label="Presets">
-                                        {Object.keys(PRESETS).map(key => <option key={key} value={key}>{key}</option>)}
-                                    </optgroup>
-                                    {Object.keys(savedLayouts).length > 0 && (
-                                        <optgroup label="My Layouts">
-                                            {Object.keys(savedLayouts).map(key => <option key={`saved_${key}`} value={key}>{key}</option>)}
-                                        </optgroup>
-                                    )}
-                                </select>
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                                </button>
                             </div>
                         )}
                         <span className={`text-xs font-bold uppercase tracking-wider ${editMode ? 'text-indigo-400' : 'text-gray-500'}`}>{editMode ? 'Done' : 'Customize'}</span>
@@ -727,31 +744,47 @@ const Dashboard = () => {
 
                     {/* Unified Grid - All Widgets */}
                     <SortableContext items={layout.grid || []} strategy={rectSortingStrategy} id="grid">
-                        <div className={`grid grid-cols-12 auto-rows-[50px] gap-3 relative min-h-[600px] ${editMode ? 'dashboard-grid-visual' : ''}`}>
-                            {/* Column Markers (Edit Mode Only) */}
+                        <div className="relative w-full min-h-[600px]">
+                            {/* Visual Grid & Column Markers (Edit Mode Only) */}
                             {editMode && (
-                                <div className="absolute -top-6 left-0 right-0 grid grid-cols-12 gap-3 pointer-events-none z-0">
+                                <div className="absolute inset-0 grid grid-cols-12 gap-3 pointer-events-none z-0 select-none">
                                     {Array.from({ length: 12 }).map((_, i) => (
-                                        <div key={i} className="text-center text-[9px] font-black text-indigo-500/50 uppercase tracking-wider">
-                                            Col {i + 1}
+                                        <div key={i} className="h-full border-x border-dashed border-indigo-500/10 bg-indigo-500/5 flex items-start justify-center pt-2 -mt-6">
+                                            <span className="text-[9px] font-black text-indigo-400/50 uppercase tracking-wider">Col {i + 1}</span>
                                         </div>
                                     ))}
+                                    {/* Horizontal Lines (Optional/Simple) - can leave out to reduce noise, or use repeat linear-gradient just for rows if needed */}
                                 </div>
                             )}
-                            {(layout.grid || []).map(id => (
-                                <SortableWidget
-                                    key={id}
-                                    id={id}
-                                    widgetKey={id}
-                                    editMode={editMode}
-                                    data={dashboardData}
-                                    actions={dashboardActions}
-                                    containerId="grid"
-                                    size={widgetSizes[id] || 'small'}
-                                    onResize={handleResize}
-                                    onRemove={handleRemoveWidget}
-                                />
-                            ))}
+
+                            {/* Actual Widget Grid */}
+                            <div
+                                className="grid grid-cols-12 auto-rows-[50px] gap-3 relative z-10 w-full"
+                                style={{
+                                    width: '100%',
+                                    minWidth: '100%',
+                                    minHeight: '600px',
+                                    gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
+                                    gridAutoRows: '75px',
+                                    gap: '12px',
+                                    boxSizing: 'border-box'
+                                }}
+                            >
+                                {layout.grid.map((widgetId) => (
+                                    <SortableWidget
+                                        key={widgetId}
+                                        id={widgetId}
+                                        widgetKey={widgetId}
+                                        containerId="grid"
+                                        editMode={editMode}
+                                        data={dashboardData}
+                                        actions={dashboardActions}
+                                        onRemove={handleRemoveWidget}
+                                        onResize={handleResize}
+                                        size={widgetSizes[widgetId] || 'medium'}
+                                    />
+                                ))}
+                            </div>
                         </div>
                     </SortableContext>
 
@@ -815,7 +848,32 @@ const Dashboard = () => {
                 isOpen={showAuditGuide}
                 onClose={() => setShowAuditGuide(false)}
             />
-        </div>
+            {/* Layout Modals */}
+            <LayoutImportModal
+                isOpen={importModalOpen}
+                onClose={() => setImportModalOpen(false)}
+                onImport={onImportLayout}
+            />
+            <LayoutSaveModal
+                isOpen={saveModalOpen}
+                onClose={() => setSaveModalOpen(false)}
+                onSave={onSaveNewLayout}
+            />
+            <LayoutShareModal
+                isOpen={shareModalData.isOpen}
+                onClose={() => setShareModalData({ ...shareModalData, isOpen: false })}
+                layoutCode={shareModalData.code}
+                layoutName={shareModalData.name}
+            />
+            <DeleteConfirmationModal
+                isOpen={deleteModalData.isOpen}
+                onClose={() => setDeleteModalData({ isOpen: false, name: '' })}
+                onConfirm={confirmDeleteLayout}
+                title="Delete Layout"
+                message={`Are you sure you want to delete the layout "${deleteModalData.name}"? This cannot be undone.`}
+                targetName={deleteModalData.name}
+            />
+        </div >
     );
 };
 

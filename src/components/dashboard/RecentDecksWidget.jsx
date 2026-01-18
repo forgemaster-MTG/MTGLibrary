@@ -1,5 +1,89 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+
+const DeckItem = ({ deck, navigate }) => {
+    const [mainFlipped, setMainFlipped] = useState(false);
+    const [partnerFlipped, setPartnerFlipped] = useState(false);
+
+    const getArtCrop = (card, flipped) => {
+        if (!card) return null;
+        if (flipped && card.card_faces?.length > 1 && card.card_faces[1].image_uris?.art_crop) {
+            return card.card_faces[1].image_uris.art_crop;
+        }
+        if (card.image_uris?.art_crop) return card.image_uris.art_crop;
+        if (card.card_faces?.[0]?.image_uris?.art_crop) return card.card_faces[0].image_uris.art_crop;
+        return null;
+    };
+
+    const hasFaces = (card) => card?.card_faces?.length > 1;
+
+    const mainImage = getArtCrop(deck.commander, mainFlipped);
+    const partnerImage = getArtCrop(deck.commander_partner, partnerFlipped);
+
+    return (
+        <div
+            onClick={() => navigate(`/decks/${deck.id}`)}
+            className={`group relative rounded-xl overflow-hidden cursor-pointer shadow-lg hover:shadow-indigo-500/30 transition-all hover:-translate-y-1 border border-white/5 bg-gray-900 h-full min-h-[140px]`}
+        >
+            <div className="absolute inset-0 bg-gray-950">
+                {deck.commander_partner ? (
+                    <div className="w-full h-full flex">
+                        <div className="w-1/2 h-full relative border-r border-black/50 group/main">
+                            <img src={mainImage || 'https://placehold.co/400x600?text=?'} alt="" className="w-full h-full object-cover opacity-90 group-hover:scale-110 transition-transform duration-700" />
+                            {hasFaces(deck.commander) && (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); setMainFlipped(!mainFlipped); }}
+                                    className="absolute top-1 right-1 p-1 bg-black/50 rounded-full text-white/70 hover:text-white hover:bg-black/80 transition-colors z-20"
+                                >
+                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                </button>
+                            )}
+                        </div>
+                        <div className="w-1/2 h-full relative group/partner">
+                            <img src={partnerImage || 'https://placehold.co/400x600?text=?'} alt="" className="w-full h-full object-cover opacity-90 group-hover:scale-110 transition-transform duration-700" />
+                            {hasFaces(deck.commander_partner) && (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); setPartnerFlipped(!partnerFlipped); }}
+                                    className="absolute top-1 right-1 p-1 bg-black/50 rounded-full text-white/70 hover:text-white hover:bg-black/80 transition-colors z-20"
+                                >
+                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                ) : (
+                    <div className="w-full h-full relative">
+                        <img src={mainImage || 'https://placehold.co/400x600?text=?'} alt="" className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:scale-110 transition-transform duration-700" />
+                        {hasFaces(deck.commander) && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); setMainFlipped(!mainFlipped); }}
+                                className="absolute top-2 right-2 p-1.5 bg-black/50 rounded-full text-white/70 hover:text-white hover:bg-black/80 transition-colors z-20"
+                            >
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                            </button>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/20 to-transparent opacity-90 pointer-events-none" />
+            <div className="absolute inset-0 p-3 flex flex-col justify-end pointer-events-none">
+                <h3 className="text-sm font-bold text-white leading-tight mb-0.5 group-hover:text-indigo-400 transition-colors line-clamp-1">{deck.name}</h3>
+                <div className="flex gap-0.5">
+                    {(() => {
+                        const mainColors = deck?.commander?.color_identity || [];
+                        const partnerColors = deck?.commander_partner?.color_identity || [];
+                        const allColors = [...new Set([...mainColors, ...partnerColors])];
+                        if (allColors.length === 0) allColors.push('C');
+                        return allColors.map(c => (
+                            <img key={c} src={`https://svgs.scryfall.io/card-symbols/${c}.svg`} alt={c} className="w-2.5 h-2.5" />
+                        ));
+                    })()}
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const RecentDecksWidget = ({ data, size }) => {
     const { decks, decksLoading } = data;
@@ -61,56 +145,9 @@ const RecentDecksWidget = ({ data, size }) => {
                     <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-xs">Loading...</div>
                 ) : recentDecks.length > 0 ? (
                     <div className={`grid ${gridClass} gap-3 md:gap-4 h-full`}>
-                        {recentDecks.map(deck => {
-                            const getArtCrop = (card) => {
-                                if (!card) return null;
-                                if (card.image_uris?.art_crop) return card.image_uris.art_crop;
-                                if (card.card_faces?.[0]?.image_uris?.art_crop) return card.card_faces[0].image_uris.art_crop;
-                                return null;
-                            };
-
-                            const mainImage = getArtCrop(deck.commander);
-                            const partnerImage = getArtCrop(deck.commander_partner);
-
-                            return (
-                                <div
-                                    key={deck.id}
-                                    onClick={() => navigate(`/decks/${deck.id}`)}
-                                    className={`group relative rounded-xl overflow-hidden cursor-pointer shadow-lg hover:shadow-indigo-500/30 transition-all hover:-translate-y-1 border border-white/5 bg-gray-900 h-full min-h-[140px]`}
-                                >
-                                    <div className="absolute inset-0 bg-gray-950">
-                                        {deck.commander_partner ? (
-                                            <div className="w-full h-full flex">
-                                                <div className="w-1/2 h-full relative border-r border-black/50">
-                                                    <img src={mainImage || 'https://placehold.co/400x600?text=?'} alt="" className="w-full h-full object-cover opacity-90 group-hover:scale-110 transition-transform duration-700" />
-                                                </div>
-                                                <div className="w-1/2 h-full relative">
-                                                    <img src={partnerImage || 'https://placehold.co/400x600?text=?'} alt="" className="w-full h-full object-cover opacity-90 group-hover:scale-110 transition-transform duration-700" />
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <img src={mainImage || 'https://placehold.co/400x600?text=?'} alt="" className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:scale-110 transition-transform duration-700" />
-                                        )}
-                                    </div>
-
-                                    <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/20 to-transparent opacity-90" />
-                                    <div className="absolute inset-0 p-3 flex flex-col justify-end">
-                                        <h3 className="text-sm font-bold text-white leading-tight mb-0.5 group-hover:text-indigo-400 transition-colors line-clamp-1">{deck.name}</h3>
-                                        <div className="flex gap-0.5">
-                                            {(() => {
-                                                const mainColors = deck?.commander?.color_identity || [];
-                                                const partnerColors = deck?.commander_partner?.color_identity || [];
-                                                const allColors = [...new Set([...mainColors, ...partnerColors])];
-                                                if (allColors.length === 0) allColors.push('C');
-                                                return allColors.map(c => (
-                                                    <img key={c} src={`https://svgs.scryfall.io/card-symbols/${c}.svg`} alt={c} className="w-2.5 h-2.5" />
-                                                ));
-                                            })()}
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
+                        {recentDecks.map(deck => (
+                            <DeckItem key={deck.id} deck={deck} navigate={navigate} />
+                        ))}
 
                         {isXL && (
                             <div

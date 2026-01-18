@@ -44,6 +44,32 @@ export const MTG_IDENTITY_REGISTRY = [
     { badge: "WUBRG", colors: ["W", "U", "B", "R", "G"], flavor: "All five colors in perfect harmony." }
 ];
 
+// Helper to map colors to styling
+const getStyle = (badge, colors) => {
+    if (!colors || colors.length === 0) return { bg: 'bg-gray-500', color: 'text-gray-400' };
+
+    // Mono
+    if (colors.length === 1) {
+        switch (colors[0]) {
+            case 'W': return { bg: 'bg-yellow-400', color: 'text-yellow-200' };
+            case 'U': return { bg: 'bg-blue-500', color: 'text-blue-400' };
+            case 'B': return { bg: 'bg-gray-800', color: 'text-gray-400' };
+            case 'R': return { bg: 'bg-red-500', color: 'text-red-400' };
+            case 'G': return { bg: 'bg-green-500', color: 'text-green-400' };
+            case 'C': return { bg: 'bg-gray-400', color: 'text-gray-300' };
+        }
+    }
+
+    // Guilds
+    if (colors.length === 2) {
+        // Simple mapping based on badge names if desired, or just generic gold
+        return { bg: 'bg-amber-600', color: 'text-amber-400' }; // Gold for multicolor
+    }
+
+    // 3+ Colors
+    return { bg: 'bg-indigo-500', color: 'text-indigo-400' };
+};
+
 export const getIdentity = (colors) => {
     // Sanitize
     const c = colors || [];
@@ -56,5 +82,13 @@ export const getIdentity = (colors) => {
         return entry.colors.every(col => c.includes(col));
     });
 
-    return match || { badge: "Commander", colors: c, flavor: "A unique combination of powers." };
+    const base = match || { badge: "Commander", colors: c, flavor: "A unique combination of powers." };
+    const styles = getStyle(base.badge, base.colors);
+
+    return {
+        ...base,
+        pips: base.colors, // Widget expects 'pips'
+        bg: styles.bg,
+        color: styles.color
+    };
 };

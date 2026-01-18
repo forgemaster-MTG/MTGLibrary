@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 
 const DashboardKPI = ({ title, value, icon, color, to, children, size }) => {
@@ -122,6 +122,51 @@ export const UniqueDecksWidget = ({ data, size }) => {
     return <DashboardKPI to="/decks" title="Unique Decks" value={stats.uniqueDecks} icon="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" color="purple" size={size} />;
 };
 
+const FlippableAsset = ({ card }) => {
+    const [isFlipped, setIsFlipped] = useState(false);
+    const hasFaces = card.card_faces?.length > 1;
+
+    const currentImage = useMemo(() => {
+        if (!hasFaces) {
+            return card.image_uris?.normal || card.image_uris?.art_crop;
+        }
+        if (isFlipped && card.card_faces[1].image_uris) {
+            return card.card_faces[1].image_uris.normal || card.card_faces[1].image_uris.art_crop;
+        }
+        return card.card_faces[0].image_uris?.normal || card.card_faces[0].image_uris?.art_crop || card.image_uris?.normal;
+    }, [card, isFlipped, hasFaces]);
+
+    return (
+        <div
+            className="group/card flex flex-col cursor-pointer"
+            onClick={() => hasFaces && setIsFlipped(!isFlipped)}
+        >
+            <div className="aspect-[2.5/3.5] rounded-lg overflow-hidden border border-white/10 mb-2 relative bg-gray-900 shadow-lg group-hover/card:shadow-indigo-500/20 transition-all">
+                {currentImage ? (
+                    <img src={currentImage} alt={card.name} className="w-full h-full object-cover group-hover/card:scale-110 transition-transform duration-500" />
+                ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-600 bg-gray-800">
+                        <span className="text-[10px]">No Image</span>
+                    </div>
+                )}
+
+                {hasFaces && (
+                    <div className="absolute top-1 right-1 p-1 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 text-white/70">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                    </div>
+                )}
+
+                <div className="absolute bottom-0 inset-x-0 bg-gray-950/90 py-1 px-2 text-center border-t border-white/10 backdrop-blur-sm">
+                    <span className="text-xs font-mono font-bold text-green-400 block">${card.prices?.usd}</span>
+                </div>
+            </div>
+            <div className="text-[10px] font-bold text-gray-400 line-clamp-1 text-center group-hover/card:text-white transition-colors">{card.name}</div>
+        </div>
+    );
+};
+
 export const CollectionValueWidget = ({ data, actions, size }) => {
     const { stats, syncLoading, collection } = data;
     const { handleSyncPrices } = actions;
@@ -185,25 +230,17 @@ export const CollectionValueWidget = ({ data, actions, size }) => {
                     </div>
                 )}
 
-                {/* XL Tier: Horizontal Cards Scroll */}
+                {/* XL Tier: Grid View of Top Assets */}
                 {size === 'xlarge' && collection && (
-                    <div className="absolute inset-y-0 right-0 w-[75%] border-l border-white/5 bg-gray-950/20 px-6 flex flex-col justify-center">
-                        <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4">Highest Collection Assets</div>
-                        <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none">
+                    <div className="absolute inset-y-0 right-0 w-[75%] border-l border-white/5 bg-gray-950/20 px-6 py-4 flex flex-col">
+                        <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4 flex-shrink-0">Highest Collection Assets</div>
+                        <div className="grid grid-cols-4 gap-4 overflow-y-auto pr-2 custom-scrollbar">
                             {collection
                                 .filter(c => parseFloat(c.prices?.usd) > 0)
                                 .sort((a, b) => parseFloat(b.prices?.usd) - parseFloat(a.prices?.usd))
-                                .slice(0, 6)
+                                .slice(0, 12)
                                 .map((card, i) => (
-                                    <div key={i} className="flex-shrink-0 w-28 group/card">
-                                        <div className="aspect-[3/4] rounded-lg overflow-hidden border border-white/10 mb-2 relative">
-                                            <img src={card.image_uris?.normal || card.image_uris?.art_crop} alt={card.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                                            <div className="absolute bottom-0 inset-x-0 bg-gray-950/80 p-1 text-center">
-                                                <span className="text-[10px] font-mono text-green-400">${card.prices?.usd}</span>
-                                            </div>
-                                        </div>
-                                        <div className="text-[9px] font-bold text-gray-400 line-clamp-1 text-center">{card.name}</div>
-                                    </div>
+                                    <FlippableAsset key={i} card={card} />
                                 ))}
                         </div>
                     </div>
