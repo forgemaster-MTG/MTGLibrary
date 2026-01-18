@@ -136,6 +136,12 @@ const FlippableAsset = ({ card }) => {
         return card.card_faces[0].image_uris?.normal || card.card_faces[0].image_uris?.art_crop || card.image_uris?.normal;
     }, [card, isFlipped, hasFaces]);
 
+    const displayPrice = (() => {
+        const isFoil = (card.finish === 'foil') || card.is_foil || card.val_foil;
+        const raw = isFoil ? (card.prices?.usd_foil || card.prices?.usd) : card.prices?.usd;
+        return raw ? parseFloat(raw).toFixed(2) : '0.00';
+    })();
+
     return (
         <div
             className="group/card flex flex-col cursor-pointer"
@@ -159,7 +165,7 @@ const FlippableAsset = ({ card }) => {
                 )}
 
                 <div className="absolute bottom-0 inset-x-0 bg-gray-950/90 py-1 px-2 text-center border-t border-white/10 backdrop-blur-sm">
-                    <span className="text-xs font-mono font-bold text-green-400 block">${card.prices?.usd}</span>
+                    <span className="text-xs font-mono font-bold text-green-400 block">${displayPrice}</span>
                 </div>
             </div>
             <div className="text-[10px] font-bold text-gray-400 line-clamp-1 text-center group-hover/card:text-white transition-colors">{card.name}</div>
@@ -176,8 +182,14 @@ export const CollectionValueWidget = ({ data, actions, size }) => {
     const isMedium = size === 'medium';
     const isLargePlus = size === 'large' || size === 'xlarge';
 
+    const getPrice = (c) => {
+        const isFoil = (c.finish === 'foil') || c.is_foil || c.val_foil;
+        const raw = isFoil ? (c.prices?.usd_foil || c.prices?.usd) : c.prices?.usd;
+        return parseFloat(raw || 0);
+    };
+
     // Find top mover (placeholder logic)
-    const topMover = collection ? [...collection].sort((a, b) => (parseFloat(b.prices?.usd) || 0) - (parseFloat(a.prices?.usd) || 0))[0] : null;
+    const topMover = collection ? [...collection].sort((a, b) => getPrice(b) - getPrice(a))[0] : null;
 
     return (
         <div className="h-full relative overflow-hidden rounded-2xl">
@@ -212,14 +224,14 @@ export const CollectionValueWidget = ({ data, actions, size }) => {
                         <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 text-right">Top Value Cards</div>
                         <div className="space-y-1.5">
                             {collection
-                                .filter(c => parseFloat(c.prices?.usd) > 0)
-                                .sort((a, b) => parseFloat(b.prices?.usd) - parseFloat(a.prices?.usd))
+                                .filter(c => getPrice(c) > 0)
+                                .sort((a, b) => getPrice(b) - getPrice(a))
                                 .slice(0, 5)
                                 .map((card, i) => (
                                     <div key={i} className="flex items-center gap-2 text-right justify-end group/card">
                                         <div className="flex flex-col">
                                             <span className="text-xs text-gray-300 group-hover/card:text-white truncate flex-grow min-w-0">{card.name}</span>
-                                            <span className="text-[10px] text-green-400 font-mono">${card.prices?.usd}</span>
+                                            <span className="text-[10px] text-green-400 font-mono">${getPrice(card).toFixed(2)}</span>
                                         </div>
                                         {card.image_uris?.art_crop && (
                                             <img src={card.image_uris.art_crop} alt={card.name} className="w-8 h-6 object-cover rounded border border-white/10" />
@@ -236,8 +248,8 @@ export const CollectionValueWidget = ({ data, actions, size }) => {
                         <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4 flex-shrink-0">Highest Collection Assets</div>
                         <div className="grid grid-cols-4 gap-4 overflow-y-auto pr-2 custom-scrollbar">
                             {collection
-                                .filter(c => parseFloat(c.prices?.usd) > 0)
-                                .sort((a, b) => parseFloat(b.prices?.usd) - parseFloat(a.prices?.usd))
+                                .filter(c => getPrice(c) > 0)
+                                .sort((a, b) => getPrice(b) - getPrice(a))
                                 .slice(0, 12)
                                 .map((card, i) => (
                                     <FlippableAsset key={i} card={card} />

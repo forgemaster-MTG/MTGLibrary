@@ -459,7 +459,9 @@ const Dashboard = () => {
         });
 
         const value = collection.reduce((acc, card) => {
-            const price = parseFloat(card.prices?.usd || 0);
+            const isFoil = (card.finish === 'foil') || card.is_foil || card.val_foil;
+            const priceRaw = isFoil ? (card.prices?.usd_foil || card.prices?.usd) : card.prices?.usd;
+            const price = parseFloat(priceRaw || 0);
             return acc + (price * (card.count || 1));
         }, 0);
 
