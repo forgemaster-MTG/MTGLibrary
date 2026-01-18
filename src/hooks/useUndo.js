@@ -20,11 +20,24 @@ const useUndo = (initialState, onStateChange) => {
     });
 
     // Initialize history only once on mount
+    // Initialize history only once on mount, OR update if initial state loads late (async)
     useEffect(() => {
-        if (initialState) {
+        // Only init if we have valid state
+        if (!initialState) return;
+
+        // Check if we need to initialize (Empty history) or Re-initialize (Upgrade from empty placeholder)
+        const currentLog = HistoryService.getLog();
+        const isHistoryEmpty = currentLog.length === 0;
+        const isPlaceholderOnly = currentLog.length === 1 &&
+            Array.isArray(currentLog[0].state) &&
+            currentLog[0].state.length === 0 &&
+            Array.isArray(initialState) &&
+            initialState.length > 0;
+
+        if (isHistoryEmpty || isPlaceholderOnly) {
             HistoryService.init(initialState);
         }
-    }, []); // Empty dependency array - init once
+    }, [initialState]);
 
     // Subscribe to HistoryService updates
     useEffect(() => {

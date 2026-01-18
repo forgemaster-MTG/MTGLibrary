@@ -172,12 +172,34 @@ router.get('/', async (req, res) => {
         `)
       ])
       .where({ user_id: req.user.id })
+      .orderBy('sort_order', 'asc')
       .orderBy('updated_at', 'desc')
       .limit(200);
 
     res.json(rows);
   } catch (err) {
     console.error('[decks] list error', err);
+    res.status(500).json({ error: 'db error' });
+  }
+});
+
+// Reorder decks
+router.put('/reorder', async (req, res) => {
+  try {
+    const { deckIds } = req.body;
+    if (!Array.isArray(deckIds)) return res.status(400).json({ error: 'deckIds array required' });
+
+    await knex.transaction(async (trx) => {
+      for (let i = 0; i < deckIds.length; i++) {
+        await trx('user_decks')
+          .where({ id: deckIds[i], user_id: req.user.id })
+          .update({ sort_order: i });
+      }
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[decks] reorder error', err);
     res.status(500).json({ error: 'db error' });
   }
 });
@@ -279,8 +301,9 @@ router.put('/:id', async (req, res) => {
     if (commander !== undefined) update.commander = commander;
     if (commanderPartner !== undefined) update.commander_partner = commanderPartner;
     if (req.body.isMockup !== undefined) update.is_mockup = req.body.isMockup;
-    if (req.body.isPublic !== undefined) update.is_public = req.body.isPublic;
     if (req.body.shareSlug !== undefined) update.share_slug = req.body.shareSlug;
+    if (req.body.notes !== undefined) update.notes = req.body.notes;
+    if (req.body.tags !== undefined) update.tags = JSON.stringify(req.body.tags);
     if (req.body.aiBlueprint !== undefined) update.ai_blueprint = req.body.aiBlueprint;
 
     // Remove 'Precon' tag if commander changes

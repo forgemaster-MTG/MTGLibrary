@@ -16,6 +16,28 @@ const DeckStrategyModal = ({ isOpen, onClose, deck, cards = [], onStrategyUpdate
     const [activeCommanderIndex, setActiveCommanderIndex] = React.useState(0);
     const [isFlipped, setIsFlipped] = React.useState(false);
 
+    // Notes State
+    const [notes, setNotes] = React.useState(deck.notes || '');
+    const [isSavingNotes, setIsSavingNotes] = React.useState(false);
+    const [isNotesExpanded, setIsNotesExpanded] = React.useState(!!(deck.notes && deck.notes.length > 0)); // Expanded by default if content exists
+
+    const handleNotesSave = async () => {
+        if (notes === (deck.notes || '')) return; // No change
+
+        setIsSavingNotes(true);
+        try {
+            await deckService.updateDeck(currentUser.uid, deck.id, { notes });
+            addToast("Notes saved", "success");
+            // Update local deck object reference if possible, or rely on parent reload
+            if (onStrategyUpdate) onStrategyUpdate();
+        } catch (error) {
+            console.error(error);
+            addToast("Failed to save notes", "error");
+        } finally {
+            setIsSavingNotes(false);
+        }
+    };
+
     // Reset state when valid
     React.useEffect(() => {
         if (isOpen) {
@@ -236,6 +258,37 @@ const DeckStrategyModal = ({ isOpen, onClose, deck, cards = [], onStrategyUpdate
 
                         {/* Main Text */}
                         <div className="space-y-10">
+                            {/* Notes Section */}
+                            <div className="bg-white/5 rounded-[2rem] p-8 border border-white/5 relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
+                                    <span className="text-9xl">📝</span>
+                                </div>
+
+                                <button
+                                    onClick={() => setIsNotesExpanded(!isNotesExpanded)}
+                                    className="w-full text-left focus:outline-none group/header"
+                                >
+                                    <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-6 flex items-center gap-3">
+                                        <span className={`w-8 h-px bg-gray-700 transition-colors group-hover/header:bg-indigo-500`}></span>
+                                        Deck Notes
+                                        <span className={`transform transition-transform duration-300 ${isNotesExpanded ? 'rotate-180' : ''}`}>
+                                            <svg className="w-4 h-4 text-gray-500 group-hover/header:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                        </span>
+                                        {isSavingNotes && <span className="text-indigo-400 animate-pulse ml-2 text-[9px]">Saving...</span>}
+                                    </h3>
+                                </button>
+
+                                {isNotesExpanded && (
+                                    <textarea
+                                        value={notes}
+                                        onChange={(e) => setNotes(e.target.value)}
+                                        onBlur={handleNotesSave}
+                                        placeholder="Add your own notes about card choices, combos, or future upgrade plans..."
+                                        className="w-full bg-transparent border-0 text-gray-300 placeholder-gray-600 focus:ring-0 resize-none h-32 leading-relaxed animate-fade-in origin-top"
+                                    />
+                                )}
+                            </div>
+
                             {/* Strategy Text */}
                             <div className="bg-white/5 rounded-[2rem] p-8 border border-white/5 relative overflow-hidden group">
                                 <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">

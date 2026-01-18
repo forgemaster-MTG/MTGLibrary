@@ -13,9 +13,10 @@ const isColorIdentityValid = (cardColors, commanderColors) => {
     return cardColors.every(c => commanderColorSet.has(c));
 };
 
-const AddFromCollectionModal = ({ isOpen, onClose, deck, deckCards = [] }) => {
+const AddFromCollectionModal = ({ isOpen, onClose, deck, deckCards = [], onCardAdded }) => {
     const { cards: collection, loading } = useCollection();
     const { currentUser } = useAuth();
+    const { addToast } = useToast();
     const { openCardModal } = useCardModal();
     const [searchTerm, setSearchTerm] = useState('');
     const [typeFilter, setTypeFilter] = useState('All');
@@ -80,7 +81,12 @@ const AddFromCollectionModal = ({ isOpen, onClose, deck, deckCards = [] }) => {
                 .filter(c => c.name === card.name)
                 .reduce((acc, c) => acc + (c.countInDeck || 1), 0);
 
+            // Commander/Singleton: Hide if already in deck (count >= 1)
+            // Standard: Limit is 4
             const limit = isStandard ? 4 : 1;
+
+            // User Request: "not show cards already in the deck when in commander view"
+            // If not standard (Commander) and count > 0, hide it.
             if (!isBasic && currentCount >= limit) return false;
 
             // 6. Search Filter
@@ -114,13 +120,16 @@ const AddFromCollectionModal = ({ isOpen, onClose, deck, deckCards = [] }) => {
         });
     }, [collection, deck, deckCards, searchTerm, typeFilter, filters, sortBy]);
 
-    const handleAddCard = async (card) => {
+    const handleAddCard = async (card, targetBoard = 'mainboard') => {
         try {
-            await deckService.addCardToDeck(currentUser.uid, deck.id, card);
-            addToast(`Added ${card.name} to deck`, 'success');
-            // Optimistic update handled by parent usually, but we might want to remove from availableCards visually?
-            // The hook useCollection might not update immediately if it's not subscribed to deck changes, 
-            // but useDeck in parent will update the deckCards list, which will trigger re-filtering here!
+            // Clone card with board property for the service
+            const cardWithBoard = { ...card, board: targetBoard };
+            await deckService.addCardToDeck(currentUser.uid, deck.id, cardWithBoard);
+
+            const boardLabel = targetBoard === 'mainboard' ? 'Mainboard' : targetBoard === 'sideboard' ? 'Sideboard' : 'Maybeboard';
+            addToast(`Added ${card.name} to ${boardLabel}`, 'success');
+
+            if (onCardAdded) onCardAdded();
         } catch (err) {
             console.error(err);
             addToast('Failed to add card', 'error');
@@ -133,24 +142,25 @@ const AddFromCollectionModal = ({ isOpen, onClose, deck, deckCards = [] }) => {
 
     return createPortal(
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
-            <div className="bg-gray-800 rounded-xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col border border-gray-700">
+            <div className="bg-gray-800 rounded-xl shadow-2xl w-full max-w-4xl h-[85vh] flex flex-col border border-gray-700">
 
                 {/* Header */}
-                <div className="p-4 border-b border-gray-700 flex justify-between items-center bg-gray-900/50 rounded-t-xl">
+                <div className="p-4 border-b border-gray-700 flex justify-between items-center bg-gray-900/50 rounded-t-xl shrink-0">
                     <div>
-                        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                        <h2 className="text-xl font-bold text-white flex items-center gap-3">
                             <span className="text-indigo-400">Add from Collection</span>
-                            <span className="text-sm font-normal text-gray-400">({availableCards.length} available)</span>
+                            <span className="text-sm font-normal text-gray-400 bg-gray-800 px-2 py-0.5 rounded-full border border-gray-700">
+                                {availableCards.length} Available
+                            </span>
                         </h2>
-                        <p className="text-xs text-gray-500 mt-1">Showing unassigned cards compatible with this deck.</p>
                     </div>
                     <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors bg-gray-800 hover:bg-gray-700 p-2 rounded-lg">
-                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
                 </div>
 
                 {/* Filters */}
-                <div className="p-4 bg-gray-800 border-b border-gray-700 space-y-4">
+                <div className="p-4 bg-gray-800 border-b border-gray-700 space-y-4 shrink-0">
                     {/* Search */}
                     <div className="relative">
                         <input
@@ -312,8 +322,8 @@ const AddFromCollectionModal = ({ isOpen, onClose, deck, deckCards = [] }) => {
                     )}
                 </div>
 
-                {/* Results - List View for density */}
-                <div className="flex-1 overflow-y-auto bg-gray-900/30 p-2 custom-scrollbar">
+                {/* Results - Rich List View */}
+                <div className="flex-1 overflow-y-auto bg-gray-950/50 p-4 custom-scrollbar">
                     {loading ? (
                         <div className="flex justify-center items-center h-full">
                             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
@@ -324,8 +334,8 @@ const AddFromCollectionModal = ({ isOpen, onClose, deck, deckCards = [] }) => {
                             <p>No cards found matching your criteria.</p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                            {availableCards.map(card => {
+                        <div className="space-y-3">
+                            {availableCards.map((card, idx) => {
                                 // Double-sided card handling for images
                                 const data = card.data || card;
                                 const img = data.image_uris?.art_crop ||
@@ -333,45 +343,79 @@ const AddFromCollectionModal = ({ isOpen, onClose, deck, deckCards = [] }) => {
                                     data.card_faces?.[0]?.image_uris?.art_crop ||
                                     data.card_faces?.[0]?.image_uris?.normal ||
                                     'https://placehold.co/100x100?text=No+Img';
+
+                                const price = parseFloat(card.prices?.[card.finish === 'foil' ? 'usd_foil' : 'usd'] || 0).toFixed(2);
+
                                 return (
                                     <div
-                                        key={card.firestoreId || card.id}
-                                        className="flex items-center gap-3 p-2 bg-gray-800/80 rounded-lg border border-gray-700/50 hover:bg-gray-700 hover:border-indigo-500/50 transition-all group cursor-pointer"
-                                        onClick={() => openCardModal(card)}
+                                        key={card.firestoreId || `${card.id}-${idx}`}
+                                        className="flex bg-gray-800/60 rounded-xl border border-gray-700/50 hover:bg-gray-800 hover:border-indigo-500/50 transition-all group overflow-hidden h-24 relative"
                                     >
-
-                                        {/* Image thumbnail */}
-                                        <div className="relative w-16 h-12 rounded overflow-hidden shrink-0 shadow-sm">
-                                            <img src={img} className="w-full h-full object-cover" alt={card.name} loading="lazy" />
+                                        {/* Left Art Slice */}
+                                        <div className="w-24 shrink-0 relative overflow-hidden cursor-pointer" onClick={() => openCardModal(card)}>
+                                            <div className="absolute inset-0 bg-gradient-to-r from-transparent to-gray-900/90 z-10" />
+                                            <img src={img} className="w-full h-full object-cover scale-150 transition-transform duration-700 group-hover:scale-125" alt={card.name} loading="lazy" />
                                             {card.finish === 'foil' && (
-                                                <div className="absolute top-0.5 right-0.5 text-yellow-500 bg-black/40 rounded-full p-0.5 leading-none" title="Foil">
-                                                    <span className="text-[10px]">★</span>
+                                                <div className="absolute top-1 left-1 z-20 text-yellow-500 bg-black/60 rounded-full p-1 leading-none shadow-sm border border-yellow-500/30" title="Foil">
+                                                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
                                                 </div>
                                             )}
                                         </div>
 
-                                        {/* Details */}
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-gray-500 text-xs font-mono font-bold bg-gray-900 px-1 rounded">{card.count || 1}x</span>
-                                                <h4 className="font-bold text-gray-200 text-sm truncate">{card.name}</h4>
+                                        {/* Content */}
+                                        <div className="flex-1 flex items-center justify-between px-4 py-2 min-w-0">
+                                            <div className="flex flex-col justify-center min-w-0 pr-4">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <h3 className="font-bold text-gray-100 text-base truncate cursor-pointer hover:text-indigo-400 transition-colors" onClick={() => openCardModal(card)}>
+                                                        {card.name}
+                                                    </h3>
+                                                    <span className="text-xs font-mono text-gray-500 bg-gray-900 px-1.5 py-0.5 rounded border border-gray-700 shrink-0">
+                                                        {card.mana_cost || ''}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-3 text-sm text-gray-400">
+                                                    <span className="truncate">{card.type_line}</span>
+                                                    <span className="w-1 h-1 bg-gray-600 rounded-full" />
+                                                    <span className="font-mono text-xs uppercase bg-gray-700/50 px-1.5 rounded text-gray-300 border border-gray-600/50">
+                                                        {card.set?.toUpperCase()}
+                                                    </span>
+                                                    {price > 0 && (
+                                                        <>
+                                                            <span className="w-1 h-1 bg-gray-600 rounded-full" />
+                                                            <span className="text-green-400/90 font-mono text-xs font-bold">${price}</span>
+                                                        </>
+                                                    )}
+                                                </div>
+                                                <div className="mt-1.5 flex items-center gap-2">
+                                                    <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider bg-gray-900/80 px-2 py-0.5 rounded-full">
+                                                        Stack: {card.count || 1}
+                                                    </span>
+                                                </div>
                                             </div>
-                                            <div className="flex items-center gap-2 text-xs text-gray-400">
-                                                <span className="truncate max-w-[120px]">{card.type_line}</span>
-                                                <span className="bg-gray-700 px-1 rounded text-[10px]">{card.set?.toUpperCase()}</span>
+
+                                            {/* Actions */}
+                                            <div className="flex items-center gap-2 shrink-0">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleAddCard(card, 'mainboard');
+                                                    }}
+                                                    className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg shadow-lg shadow-indigo-900/20 border border-indigo-500/50 transition-all active:scale-95 flex flex-col items-center min-w-[80px]"
+                                                >
+                                                    <span className="text-xs font-bold uppercase tracking-wider">Main</span>
+                                                </button>
+
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleAddCard(card, 'sideboard');
+                                                    }}
+                                                    className="bg-gray-700 hover:bg-gray-600 text-gray-200 hover:text-white px-4 py-2 rounded-lg shadow-lg border border-gray-600 transition-all active:scale-95 flex flex-col items-center min-w-[80px]"
+                                                >
+                                                    <span className="text-xs font-bold uppercase tracking-wider">Side</span>
+                                                </button>
                                             </div>
                                         </div>
-
-                                        {/* Action */}
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleAddCard(card);
-                                            }}
-                                            className="bg-indigo-600 hover:bg-indigo-500 text-white p-2 rounded-lg shadow-md transition-transform active:scale-95 shrink-0 flex items-center gap-1 text-xs font-bold"
-                                        >
-                                            Add
-                                        </button>
                                     </div>
                                 );
                             })}

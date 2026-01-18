@@ -75,7 +75,9 @@ async function request(method, endpoint, body = null, params = {}) {
     // Return null for 204 No Content
     if (response.status === 204) return null;
 
-    return response.json();
+    // Safely parse JSON
+    const text = await response.text();
+    return text ? JSON.parse(text) : {};
 }
 
 export const api = {

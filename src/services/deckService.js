@@ -58,6 +58,19 @@ export const deckService = {
         return api.put(`/api/decks/${deckId}`, { commander: card });
     },
 
+    async updateDeck(userId, deckId, updates) {
+        return api.put(`/api/decks/${deckId}`, updates);
+    },
+
+    async reorderDecks(userId, deckIds) {
+        return api.put('/api/decks/reorder', { deckIds });
+    },
+
+    async batchRemoveCards(userId, deckId, cardIds, action) {
+        // action 'delete' or 'remove'
+        return api.delete(`/api/decks/${deckId}/cards/batch`, { cardIds, action });
+    },
+
     /**
      * Imports a deck with options.
      */

@@ -100,7 +100,8 @@ const RecentDecksWidget = ({ data, size }) => {
         if (isXS || isSmall) return 1;
         if (isMedium) return 2;
         if (isLarge) return 3;
-        return 4; // X-Large
+        if (isXL) return 6; // X-Large: Request was specifically 6
+        return 6; // Default/Fallback to XL if larger
     }, [isXS, isSmall, isMedium, isLarge]);
 
     const recentDecks = useMemo(() => {
@@ -111,7 +112,7 @@ const RecentDecksWidget = ({ data, size }) => {
         if (isXS || isSmall) return 'grid-cols-1';
         if (isMedium) return 'grid-cols-2';
         if (isLarge) return 'grid-cols-3';
-        return 'grid-cols-2 lg:grid-cols-4';
+        return 'grid-cols-2 lg:grid-cols-4 xl:grid-cols-6';
     }, [isXS, isSmall, isMedium, isLarge]);
 
     if (isXS) {

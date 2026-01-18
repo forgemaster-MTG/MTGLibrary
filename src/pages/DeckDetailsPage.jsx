@@ -26,6 +26,7 @@ import StartAuditModal from '../components/Audit/StartAuditModal';
 import StartAuditButton from '../components/Audit/StartAuditButton';
 import ForgeLensModal from '../components/modals/ForgeLensModal';
 import PrintSettingsModal from '../components/printing/PrintSettingsModal';
+import DeckSettingsModal from '../components/modals/DeckSettingsModal';
 
 const MTG_IDENTITY_REGISTRY = [
     { badge: "White", colors: ["W"], theme: "Absolute Order", flavor_text: "A single spark of light can banish a world of shadows." },
@@ -146,6 +147,7 @@ const DeckDetailsPage = () => {
     const [isStrategyModalOpen, setIsStrategyModalOpen] = useState(false);
     const [isStatsModalOpen, setIsStatsModalOpen] = useState(false);
     const [isDoctorOpen, setIsDoctorOpen] = useState(false);
+    const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
     // Audit State
@@ -240,6 +242,10 @@ const DeckDetailsPage = () => {
 
             // 1. Find cards to remove (Present in current, missing in restored)
             // WE USE MANAGED ID (row id) for stable identity
+            if (!restoredCards || !Array.isArray(restoredCards)) {
+                console.warn('Undo state invalid', restoredCards);
+                return currentCards;
+            }
             const restoredIds = new Set(restoredCards.map(c => c.managedId));
             const cardsToRemove = currentCards.filter(c => !restoredIds.has(c.managedId));
 
@@ -891,8 +897,12 @@ const DeckDetailsPage = () => {
                                     <div className="flex flex-col gap-0.5 min-w-0">
                                         <div className="flex items-center gap-2 group max-w-full">
                                             <h2 className="text-xl md:text-3xl lg:text-4xl font-black text-white tracking-tighter uppercase truncate leading-tight flex-1" title={deck.name}>{deck.name}</h2>
-                                            {canEdit && (
-                                                <button onClick={handleStartEdit} className="p-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-white shrink-0">
+                                            {(canEdit || isOwner) && (
+                                                <button
+                                                    onClick={() => setIsSettingsModalOpen(true)}
+                                                    className="p-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-white shrink-0"
+                                                    title="Edit Deck Settings"
+                                                >
                                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                                                 </button>
                                             )}
@@ -901,6 +911,11 @@ const DeckDetailsPage = () => {
                                             <div className="text-[10px] md:text-[11px] text-indigo-300 font-black uppercase tracking-[0.15em] md:tracking-[0.2em] opacity-80 whitespace-nowrap">
                                                 {identityInfo.badge} — {identityInfo.theme}
                                             </div>
+                                            {(deck.tags || []).map(tag => (
+                                                <span key={tag} className="bg-gray-800/50 text-gray-400 text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded border border-white/5">
+                                                    {tag}
+                                                </span>
+                                            ))}
                                             {!isOwner && (
                                                 <span className={`text-[9px] md:text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border whitespace-nowrap ${canEdit ? 'bg-green-900/40 text-green-400 border-green-500/30' : 'bg-gray-800 text-gray-400 border-gray-700'}`}>
                                                     {permissionLevel} Access
@@ -1662,6 +1677,22 @@ const DeckDetailsPage = () => {
                             </div>
                         )}
 
+                        {/* Deck Settings Modal */}
+                        <DeckSettingsModal
+                            isOpen={isSettingsModalOpen}
+                            onClose={() => setIsSettingsModalOpen(false)}
+                            deck={deck}
+                            onUpdate={() => refreshDeck(false)}
+                        />
+
+                        {/* Audit Modal */}
+                        <StartAuditModal
+                            isOpen={auditState.isOpen}
+                            state={auditState}
+                            onClose={() => setAuditState({ isOpen: false, loading: false })}
+                            onConfirm={handleAuditConfirm}
+                        />
+
                         {/* External Sites */}
                         <div className="bg-gray-950/40 backdrop-blur-3xl rounded-3xl shadow-2xl overflow-hidden border border-white/10 relative group">
                             <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
@@ -1774,6 +1805,7 @@ const DeckDetailsPage = () => {
                     onClose={() => setIsAddCollectionOpen(false)}
                     deck={deck}
                     deckCards={deckCards}
+                    onCardAdded={() => refreshDeck(true)}
                 />
                 {/* Stats Modal */}
                 <DeckStatsModal
