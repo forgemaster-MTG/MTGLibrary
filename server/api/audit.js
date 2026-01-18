@@ -91,6 +91,7 @@ router.post('/start', authMiddleware, async (req, res) => {
                         'set_code',
                         'collector_number',
                         'finish',
+                        'deck_id',
                         'count as expected_quantity',
                         'count as actual_quantity' // Default to verified
                     )
@@ -104,6 +105,7 @@ router.post('/start', authMiddleware, async (req, res) => {
                         'set_code',
                         'collector_number',
                         'finish',
+                        'deck_id',
                         'count as expected_quantity',
                         'count as actual_quantity' // Default to verified
                     )
