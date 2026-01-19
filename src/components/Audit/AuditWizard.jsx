@@ -173,23 +173,70 @@ const AuditItemCard = React.memo(({ item, onUpdate, onViewDetails, onSwapFoil })
     );
 });
 
+const ScryfallSymbol = ({ symbol, size = 'w-12 h-12' }) => (
+    <img
+        src={`https://svgs.scryfall.io/card-symbols/${symbol.toUpperCase()}.svg`}
+        alt={symbol}
+        className={`${size} drop-shadow-md rounded-full bg-gray-900 border-2 border-white/10`}
+        onError={(e) => { e.target.style.display = 'none'; }}
+    />
+);
+
+const ManaPips = ({ items }) => (
+    <div className="flex -space-x-4 items-center justify-center p-2">
+        {items.split('').map((char, i) => (
+            <div key={i} className="z-10 transition-transform hover:scale-125 hover:z-20" title={char}>
+                <ScryfallSymbol symbol={char} />
+            </div>
+        ))}
+    </div>
+);
+
+const FolderCard = ({ name, count, onClick, type }) => {
+    const isMana = (type === 'color' || type === 'color_identity') && name !== 'Unknown';
+
+    return (
+        <div
+            onClick={onClick}
+            className="group relative flex flex-col aspect-[4/3] bg-gray-800 rounded-xl overflow-hidden border border-gray-700 hover:border-indigo-500/50 cursor-pointer transition-all hover:-translate-y-1 hover:shadow-xl"
+        >
+            <div className="flex-1 flex items-center justify-center bg-gray-900/50 group-hover:bg-gray-800 transition-colors">
+                {isMana ? (
+                    <ManaPips items={name} />
+                ) : (
+                    <svg className="w-16 h-16 text-gray-700 group-hover:text-indigo-500/50 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                    </svg>
+                )}
+            </div>
+            <div className="p-4 bg-gray-900 border-t border-gray-800">
+                <div className="text-white font-bold truncate text-lg">{name || 'Unknown'}</div>
+                <div className="text-xs text-gray-500 font-mono uppercase tracking-wider">{count} Items</div>
+            </div>
+        </div>
+    );
+};
+
 export default function AuditWizard() {
     const { userProfile } = useAuth();
     const { auditId } = useParams();
     // eslint-disable-next-line
     const [searchParams] = useSearchParams();
     const deckId = searchParams.get('deckId');
-    const group = searchParams.get('group');
+    const groupParam = searchParams.get('group');
 
     const { openCardModal } = useCardModal();
     const { addToast } = useToast();
     const [isForgeLensOpen, setIsForgeLensOpen] = useState(false);
     const [session, setSession] = useState(null);
-    const [items, setItems] = useState([]);
+    const [allItems, setAllItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [deckName, setDeckName] = useState(null);
 
-    // Pagination
+    // Navigation State
+    const [currentPath, setCurrentPath] = useState([]); // Array of { type: 'set', value: 'KND' }
+
+    // Pagination for LEAF nodes
     const [visibleCount, setVisibleCount] = useState(50);
     const loadMoreRef = useRef(null);
 
@@ -208,7 +255,7 @@ export default function AuditWizard() {
         );
         if (loadMoreRef.current) observer.observe(loadMoreRef.current);
         return () => observer.disconnect();
-    }, [items?.length]);
+    }, [visibleCount]); // Re-attach when count changes? Or better: just observe.
 
     useEffect(() => {
         fetchSession();
@@ -226,9 +273,11 @@ export default function AuditWizard() {
                 return;
             }
             setSession(active);
-            const auditItems = await api.getAuditItems(active.id, { deckId, group });
-            const hierarchy = userProfile?.settings?.organization?.sortHierarchy || ['name'];
-            setItems(sortAuditItems(auditItems, hierarchy));
+
+            // Get ALL items for this section (flat list)
+            // We will group them client-side based on user's hierarchy prefs
+            const auditItems = await api.getAuditItems(active.id, { deckId, group: groupParam });
+            setAllItems(auditItems);
         } catch (err) {
             console.error(err);
         } finally {
@@ -236,24 +285,161 @@ export default function AuditWizard() {
         }
     };
 
-    const sortAuditItems = (items, hierarchy) => {
-        return [...items].sort((a, b) => {
-            for (const criterion of hierarchy) {
+    // --- hierarchy Logic ---
+    const { groupHierarchy, leafSortOrder } = useMemo(() => {
+        const rawSettings = userProfile?.settings?.organization?.sortHierarchy;
+
+        // Strict adherence: If no settings, return empty (Flat view)
+        if (!rawSettings || rawSettings.length === 0) {
+            return { groupHierarchy: [], leafSortOrder: ['name'] };
+        }
+
+        const GROUPABLE_KEYS = new Set(['set', 'color', 'color_identity', 'type', 'rarity', 'artist', 'power', 'toughness']);
+
+        const groups = [];
+        const sorts = [];
+
+        // Split logic: Groups take precedence until we hit a non-groupable key
+        // User requested: "Group -> Sub-group ... rest sorting"
+        // This implies MAX 2 levels of grouping.
+        let groupCount = 0;
+
+        for (const key of rawSettings) {
+            // Strict cap: max 2 groups
+            if (groupCount < 2 && GROUPABLE_KEYS.has(key)) {
+                groups.push(key);
+                groupCount++;
+            } else {
+                sorts.push(key);
+            }
+        }
+
+        // Always ensure Name is a tie-breaker at the end if not present
+        if (!sorts.includes('name')) sorts.push('name');
+
+        return { groupHierarchy: groups, leafSortOrder: sorts };
+    }, [userProfile]);
+
+    const getGroupValue = (item, type) => {
+        if (!type) return 'Unknown';
+        let val = item[type];
+
+        // Mappings from Settings Wizard keys to Data keys
+        if (type === 'type' || type === 'type_line') {
+            val = (item.type_line || item.card_data?.type_line || 'Unknown').split('—')[0].trim();
+        }
+        else if (type === 'set' || type === 'set_code') {
+            val = (item.set_code || item.card_data?.set || '???').toUpperCase();
+        }
+        else if (type === 'color' || type === 'colors') {
+            // 'color' usually means colors array
+            val = item.colors || item.card_data?.colors;
+            if (Array.isArray(val)) val = val.join('') || 'C';
+            else if (!val) val = 'C';
+        }
+        else if (type === 'color_identity') {
+            val = item.color_identity || item.card_data?.color_identity;
+            if (Array.isArray(val)) val = val.join('') || 'C';
+            else if (!val) val = 'C';
+        }
+        else if (type === 'rarity') {
+            val = (item.rarity || item.card_data?.rarity || 'common');
+        }
+        else if (type === 'artist') {
+            val = (item.artist || item.card_data?.artist || 'Unknown');
+        }
+
+        return String(val || 'Unknown');
+    };
+
+    const getCurrentItems = () => {
+        return allItems.filter(item => {
+            return currentPath.every(step => {
+                const itemValue = getGroupValue(item, step.type);
+                return itemValue === step.value;
+            });
+        });
+    };
+
+    const currentFilteredItems = useMemo(() => {
+        let items = getCurrentItems();
+
+        // Apply Status Filters
+        if (filter === 'pending') items = items.filter(i => !i.reviewed);
+        else if (filter === 'mismatch') items = items.filter(i => i.reviewed && i.actual_quantity !== i.expected_quantity);
+
+        // Apply Sort at leaf level based on `leafSortOrder`
+        // We use a multi-stage sort helper
+        return items.sort((a, b) => {
+            for (const key of leafSortOrder) {
                 let diff = 0;
-                if (criterion === 'set') diff = (a.set_code || '').localeCompare(b.set_code || '');
-                else if (criterion === 'collector_number') diff = parseInt(a.collector_number || 0) - parseInt(b.collector_number || 0);
-                else if (criterion === 'name') diff = (a.name || '').localeCompare(b.name || '');
+
+                // Mappings
+                if (key === 'collector_number') {
+                    const cA = parseInt(a.collector_number) || 0;
+                    const cB = parseInt(b.collector_number) || 0;
+                    diff = cA - cB;
+                }
+                else if (key === 'price') {
+                    // Sorting High to Low for price usually
+                    const pA = parseFloat(a.prices?.usd || a.card_data?.prices?.usd || 0);
+                    const pB = parseFloat(b.prices?.usd || b.card_data?.prices?.usd || 0);
+                    diff = pB - pA;
+                }
+                else if (key === 'cmc') {
+                    const cA = parseFloat(a.cmc || a.card_data?.cmc || 0);
+                    const cB = parseFloat(b.cmc || b.card_data?.cmc || 0);
+                    diff = cA - cB;
+                }
+                else if (key === 'name') {
+                    diff = (a.name || '').localeCompare(b.name || '');
+                }
+
                 if (diff !== 0) return diff;
             }
-            return (a.name || '').localeCompare(b.name || '');
+            return 0;
         });
+    }, [allItems, currentPath, filter, leafSortOrder]);
+
+    const isLeaf = currentPath.length >= groupHierarchy.length;
+    const currentGroupType = groupHierarchy[currentPath.length];
+
+    // Grouping Logic for Folder View
+    const folders = useMemo(() => {
+        if (isLeaf) return [];
+
+        const groups = {};
+        const items = getCurrentItems();
+
+        items.forEach(item => {
+            const val = getGroupValue(item, currentGroupType);
+            if (!groups[val]) groups[val] = 0;
+            groups[val]++;
+        });
+
+        // Sort folders naturally (alphabetic)
+        return Object.entries(groups)
+            .map(([name, count]) => ({ name, count, type: currentGroupType }))
+            .sort((a, b) => a.name.localeCompare(b.name));
+    }, [allItems, currentPath, isLeaf, groupHierarchy]);
+
+
+    const handleFolderClick = (name) => {
+        setCurrentPath([...currentPath, { type: currentGroupType, value: name }]);
+    };
+
+    const handleBreadcrumbClick = (index) => {
+        // Go back to that index
+        // -1 = root
+        if (index === -1) setCurrentPath([]);
+        else setCurrentPath(currentPath.slice(0, index + 1));
     };
 
     const updateItemQuantity = async (itemId, newQuantity, reviewed = null) => {
         const qty = parseInt(newQuantity);
         if (isNaN(qty) || qty < 0) return;
 
-        setItems(prev => prev.map(item => {
+        setAllItems(prev => prev.map(item => {
             if (item.id !== itemId) return item;
             return {
                 ...item,
@@ -270,7 +456,7 @@ export default function AuditWizard() {
     const handleFinishSection = async () => {
         try {
             setLoading(true);
-            await api.reviewAuditSection(session.id, { deckId, group });
+            await api.reviewAuditSection(session.id, { deckId, group: groupParam });
             navigate(`/audit/${session.id}`);
         } catch (err) {
             console.error(err);
@@ -278,14 +464,7 @@ export default function AuditWizard() {
         }
     };
 
-    const filteredItems = useMemo(() => {
-        if (filter === 'all') return items;
-        if (filter === 'pending') return items.filter(i => !i.reviewed);
-        if (filter === 'mismatch') return items.filter(i => i.reviewed && i.actual_quantity !== i.expected_quantity);
-        return items;
-    }, [items, filter]);
-
-    const visibleItems = filteredItems.slice(0, visibleCount);
+    const visibleLeafItems = currentFilteredItems.slice(0, visibleCount);
 
     if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin w-8 h-8 border-4 border-indigo-500 rounded-full" /></div>;
     if (!session) return null;
@@ -294,20 +473,49 @@ export default function AuditWizard() {
         <div className="max-w-7xl mx-auto px-4 py-8 animate-fade-in pb-24">
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8 bg-gray-900/50 p-6 rounded-2xl border border-white/5 backdrop-blur-md sticky top-20 z-30 shadow-xl">
-                <div>
+                <div className="flex-1">
                     <button onClick={() => navigate(`/audit/${session.id}`)} className="text-gray-500 hover:text-white flex items-center gap-2 text-sm font-bold mb-2">Back to Hub</button>
                     <h1 className="text-2xl font-black text-white flex items-center gap-3">
-                        <span className="text-indigo-400">Audit:</span> {deckName || group || session.type}
+                        <span className="text-indigo-400">Audit:</span>
+                        {deckName ? deckName : (
+                            // Show grouping context if available, else session type/name
+                            groupHierarchy.length > 0 ?
+                                (groupHierarchy[0].replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()))
+                                : session.type
+                        )}
                     </h1>
+
+                    {/* Breadcrumbs */}
+                    <div className="flex flex-wrap items-center gap-2 mt-2 text-sm font-mono">
+                        <button
+                            onClick={() => handleBreadcrumbClick(-1)}
+                            className={`hover:text-white transition-colors py-1 px-2 rounded ${currentPath.length === 0 ? 'text-white font-bold bg-gray-800' : 'text-gray-500'}`}
+                        >
+                            ROOT
+                        </button>
+                        {currentPath.map((step, idx) => (
+                            <React.Fragment key={idx}>
+                                <span className="text-gray-600">/</span>
+                                <button
+                                    onClick={() => handleBreadcrumbClick(idx)}
+                                    className={`hover:text-white transition-colors py-1 px-2 rounded ${idx === currentPath.length - 1 ? 'text-white font-bold bg-gray-800' : 'text-gray-500'}`}
+                                >
+                                    {step.value}
+                                </button>
+                            </React.Fragment>
+                        ))}
+                    </div>
                 </div>
 
                 <div className="flex gap-4 items-center">
-                    {/* Filter Toggles */}
-                    <div className="bg-gray-800 p-1 rounded-lg flex text-xs font-bold">
-                        <button onClick={() => setFilter('all')} className={`px-3 py-1.5 rounded-md transition-colors ${filter === 'all' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-white'}`}>All</button>
-                        <button onClick={() => setFilter('pending')} className={`px-3 py-1.5 rounded-md transition-colors ${filter === 'pending' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-white'}`}>Pending</button>
-                        <button onClick={() => setFilter('mismatch')} className={`px-3 py-1.5 rounded-md transition-colors ${filter === 'mismatch' ? 'bg-red-600 text-white' : 'text-gray-400 hover:text-white'}`}>Mismatches</button>
-                    </div>
+                    {/* Leaf-only controls */}
+                    {isLeaf && (
+                        <div className="bg-gray-800 p-1 rounded-lg flex text-xs font-bold">
+                            <button onClick={() => setFilter('all')} className={`px-3 py-1.5 rounded-md transition-colors ${filter === 'all' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-white'}`}>All</button>
+                            <button onClick={() => setFilter('pending')} className={`px-3 py-1.5 rounded-md transition-colors ${filter === 'pending' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-white'}`}>Pending</button>
+                            <button onClick={() => setFilter('mismatch')} className={`px-3 py-1.5 rounded-md transition-colors ${filter === 'mismatch' ? 'bg-red-600 text-white' : 'text-gray-400 hover:text-white'}`}>Mismatches</button>
+                        </div>
+                    )}
 
                     <button
                         onClick={() => setIsForgeLensOpen(true)}
@@ -324,22 +532,36 @@ export default function AuditWizard() {
                 </div>
             </div>
 
-            {/* Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {visibleItems.map(item => (
-                    <AuditItemCard
-                        key={item.id}
-                        item={item}
-                        onUpdate={updateItemQuantity}
-                        onViewDetails={(i) => openCardModal({ ...i, data: i.card_data })}
-                        onSwapFoil={() => { }} // Not implemented in rewrite yet
-                    />
-                ))}
-            </div>
-
-            {/* Infinite Scroll Trigger */}
-            {visibleCount < filteredItems.length && (
-                <div ref={loadMoreRef} className="h-24 flex items-center justify-center"><div className="animate-spin w-6 h-6 border-2 border-indigo-500 rounded-full" /></div>
+            {/* Content Area */}
+            {isLeaf ? (
+                // --- LEAF VIEW (CARDS) ---
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                    {visibleLeafItems.map(item => (
+                        <AuditItemCard
+                            key={item.id}
+                            item={item}
+                            onUpdate={updateItemQuantity}
+                            onViewDetails={(i) => openCardModal({ ...i, data: i.card_data })}
+                            onSwapFoil={() => { }}
+                        />
+                    ))}
+                    {visibleCount < currentFilteredItems.length && (
+                        <div ref={loadMoreRef} className="h-24 flex items-center justify-center col-span-full"><div className="animate-spin w-6 h-6 border-2 border-indigo-500 rounded-full" /></div>
+                    )}
+                </div>
+            ) : (
+                // --- FOLDER VIEW ---
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {folders.map(f => (
+                        <FolderCard
+                            key={f.name}
+                            name={f.name}
+                            count={f.count}
+                            onClick={() => handleFolderClick(f.name)}
+                            type={f.type}
+                        />
+                    ))}
+                </div>
             )}
 
             <ForgeLensModal
@@ -347,36 +569,12 @@ export default function AuditWizard() {
                 onClose={() => setIsForgeLensOpen(false)}
                 onFinish={async (scannedBatch) => {
                     if (!scannedBatch.length) return;
-                    const ownedBatch = scannedBatch.filter(c => !c.is_wishlist);
-                    const wishlistBatch = scannedBatch.filter(c => c.is_wishlist);
 
-                    // Add wishlist items directly to collection
-                    if (wishlistBatch.length > 0) {
-                        try {
-                            const payload = wishlistBatch.map(item => ({
-                                name: item.name,
-                                scryfall_id: item.scryfall_id,
-                                set_code: item.set_code,
-                                collector_number: item.collector_number,
-                                image_uri: item.data.image_uris?.normal || item.data.card_faces?.[0]?.image_uris?.normal,
-                                count: item.quantity,
-                                data: item.data,
-                                is_wishlist: true,
-                                tags: []
-                            }));
-                            await api.batchAddToCollection(payload);
-                            addToast(`Saved ${wishlistBatch.length} items to wishlist!`, 'success');
-                        } catch (err) {
-                            console.error("Wishlist save failed", err);
-                        }
-                    }
-
+                    // Simple local match logic
                     let matchCount = 0;
-                    let failCount = 0;
+                    const newItems = [...allItems];
 
-                    const newItems = [...items];
-                    for (const scanned of ownedBatch) {
-                        // Try to find a match in the current items
+                    for (const scanned of scannedBatch) {
                         const index = newItems.findIndex(i =>
                             i.scryfall_id === scanned.scryfall_id &&
                             (scanned.finish ? i.finish === scanned.finish : true)
@@ -385,31 +583,17 @@ export default function AuditWizard() {
                         if (index !== -1) {
                             const item = newItems[index];
                             const newQty = (item.actual_quantity || 0) + scanned.quantity;
+                            newItems[index] = { ...item, actual_quantity: newQty, reviewed: true };
 
-                            newItems[index] = {
-                                ...item,
-                                actual_quantity: newQty,
-                                reviewed: true
-                            };
-
-                            try {
-                                await api.updateAuditItem(session.id, item.id, newQty, true);
-                                matchCount++;
-                            } catch (e) {
-                                console.error("Failed to update audit item", e);
-                            }
-                        } else {
-                            failCount++;
+                            // Fire API update
+                            api.updateAuditItem(session.id, item.id, newQty, true).catch(console.error);
+                            matchCount++;
                         }
                     }
 
-                    setItems(newItems);
-                    if (matchCount > 0) {
-                        addToast(`Verified ${matchCount} cards!`, 'success');
-                    }
-                    if (failCount > 0) {
-                        addToast(`${failCount} scanned cards were not in this section.`, 'warning');
-                    }
+                    setAllItems(newItems);
+                    if (matchCount > 0) addToast(`Verified ${matchCount} cards in this audit session!`, 'success');
+                    else addToast('No matching cards found in this session.', 'warning');
                 }}
             />
         </div>
