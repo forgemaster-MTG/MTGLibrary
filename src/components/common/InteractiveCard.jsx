@@ -1,7 +1,7 @@
-import React, { useState, memo } from 'react';
+import React, { useState } from 'react';
 import { useCardModal } from '../../contexts/CardModalContext';
 
-const InteractiveCard = memo(function InteractiveCard({ card, normalCount = 0, foilCount = 0, wishlistCount = 0, onUpdateCount, onUpdateWishlistCount, ownerName, currentUser, showOwnerTag = false }) {
+const InteractiveCard = ({ card, normalCount = 0, foilCount = 0, wishlistCount = 0, onUpdateCount, onUpdateWishlistCount, ownerName, currentUser, showOwnerTag = false }) => {
     const { openCardModal } = useCardModal();
     const [isFlipped, setIsFlipped] = useState(false);
 
@@ -104,19 +104,11 @@ const InteractiveCard = memo(function InteractiveCard({ card, normalCount = 0, f
                 )}
 
                 {/* Price Display - Bottom Center */}
-                <div className="absolute bottom-2 right-2 left-2 z-10 font-mono">
-                    <div className="bg-black/80 backdrop-blur-md rounded-lg border border-white/10 overflow-hidden">
-                        {/* Metadata Header */}
-                        <div className="flex items-center justify-between px-3 py-1 bg-white/5 border-b border-white/5 text-xs font-black tracking-wider text-gray-300">
-                            <span>{card.set?.toUpperCase()}</span>
-                            <span>#{card.collector_number}</span>
-                        </div>
-                        {/* Pricing Row */}
-                        <div className="flex items-center justify-around px-2 py-1.5 text-[11px]">
-                            <span className="text-gray-300">${(parseFloat(card.prices?.usd) || 0).toFixed(2)}</span>
-                            <div className="h-3 w-[1px] bg-white/20" />
-                            <span className="text-yellow-400 font-bold">${(parseFloat(card.prices?.usd_foil) || 0).toFixed(2)} ★</span>
-                        </div>
+                <div className="absolute bottom-2 right-2 left-2 z-10">
+                    <div className="bg-black/70 backdrop-blur-md px-2 py-1 rounded-lg border border-white/10 flex items-center justify-around text-[10px] font-mono">
+                        <span className="text-gray-400">${(parseFloat(card.prices?.usd) || 0).toFixed(2)}</span>
+                        <div className="h-2 w-[1px] bg-white/20" />
+                        <span className="text-yellow-400">${(parseFloat(card.prices?.usd_foil) || 0).toFixed(2)} ★</span>
                     </div>
                 </div>
             </div>
@@ -194,6 +186,6 @@ const InteractiveCard = memo(function InteractiveCard({ card, normalCount = 0, f
             </div>
         </div>
     );
-});
+};
 
 export default InteractiveCard;

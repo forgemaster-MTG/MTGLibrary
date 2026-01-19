@@ -45,7 +45,6 @@ const RemoteLensPage = () => {
     const [status, setStatus] = useState('connecting'); // connecting | ready | error
     const [socket, setSocket] = useState(null);
     const [scannedHistory, setScannedHistory] = useState([]);
-    const [isFoil, setIsFoil] = useState(false);
 
     // OCR State
     const webcamRef = useRef(null);
@@ -224,7 +223,7 @@ const RemoteLensPage = () => {
             set_code: data.set || data.setcode,
             collector_number: data.collector_number || data.number,
             image: data.image_uri || data.image_uris?.small || data.card_faces?.[0]?.image_uris?.small,
-            finish: isFoil ? 'foil' : 'nonfoil',
+            finish: 'nonfoil',
             quantity: 1,
             data: data,
             variants: variants,
@@ -291,62 +290,44 @@ const RemoteLensPage = () => {
                 />
 
                 {/* Overlay Brackets */}
-                <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                    <div className="w-[80%] aspect-[80/30] border-2 border-white/5 rounded-2xl relative">
-                        <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-indigo-500 rounded-tl-xl" />
-                        <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-indigo-500 rounded-tr-xl" />
-                        <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-indigo-500 rounded-bl-xl" />
-                        <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-indigo-500 rounded-br-xl" />
+                <div className="absolute inset-4 border-2 border-white/5 rounded-2xl pointer-events-none">
+                    <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-indigo-500 rounded-tl-xl" />
+                    <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-indigo-500 rounded-tr-xl" />
+                    <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-indigo-500 rounded-bl-xl" />
+                    <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-indigo-500 rounded-br-xl" />
 
-                        {/* Feedback */}
-                        <div className="absolute -bottom-20 left-1/2 -translate-x-1/2 w-[120%]">
-                            {isProcessing ? (
-                                <div className="bg-indigo-600 text-white text-xs py-2 rounded-full font-black text-center animate-pulse">
-                                    ANALYZING...
-                                </div>
-                            ) : lastDetection?.success ? (
-                                <div className="bg-green-600 text-white text-xs py-2 rounded-full font-black text-center flex items-center justify-center gap-2">
-                                    <Check className="w-4 h-4" /> {lastDetection.name} SENT!
-                                </div>
-                            ) : lastDetection?.error ? (
-                                <div className="bg-red-600 text-white text-xs py-2 rounded-full font-black text-center">
-                                    {lastDetection.error}
-                                </div>
-                            ) : (
-                                <div className="bg-black/60 backdrop-blur-md text-white/60 text-[10px] py-2 rounded-full text-center uppercase font-bold tracking-widest">
-                                    Align Set Code & Number
-                                </div>
-                            )}
-                        </div>
+                    {/* Feedback */}
+                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-full px-8">
+                        {isProcessing ? (
+                            <div className="bg-indigo-600 text-white text-xs py-2 rounded-full font-black text-center animate-pulse">
+                                ANALYZING...
+                            </div>
+                        ) : lastDetection?.success ? (
+                            <div className="bg-green-600 text-white text-xs py-2 rounded-full font-black text-center flex items-center justify-center gap-2">
+                                <Check className="w-4 h-4" /> {lastDetection.name} SENT!
+                            </div>
+                        ) : lastDetection?.error ? (
+                            <div className="bg-red-600 text-white text-xs py-2 rounded-full font-black text-center">
+                                {lastDetection.error}
+                            </div>
+                        ) : (
+                            <div className="bg-black/60 backdrop-blur-md text-white/60 text-[10px] py-2 rounded-full text-center uppercase font-bold tracking-widest">
+                                Align Set Code & Number
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
 
             {/* Controls */}
             <div className="w-full flex flex-col items-center gap-6 mb-20">
-                <div className="flex items-center gap-8">
-                    {/* Foil Toggle */}
-                    <button
-                        onClick={() => setIsFoil(!isFoil)}
-                        className={`flex flex-col items-center gap-1 transition-all ${isFoil ? 'text-yellow-400' : 'text-gray-500'}`}
-                    >
-                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border-2 transition-all ${isFoil ? 'bg-yellow-500/20 border-yellow-500/50 shadow-[0_0_15px_rgba(234,179,8,0.3)]' : 'bg-gray-800 border-white/5'}`}>
-                            <span className="text-xl">✨</span>
-                        </div>
-                        <span className="text-[10px] font-black uppercase tracking-widest">{isFoil ? 'Foil' : 'Normal'}</span>
-                    </button>
-
-                    <button
-                        onClick={captureAndProcess}
-                        disabled={isProcessing || !isWorkerReady}
-                        className="w-24 h-24 bg-indigo-600 rounded-full flex items-center justify-center shadow-2xl active:scale-90 transition-all border-4 border-white/5"
-                    >
-                        {isProcessing ? <RefreshCw className="w-10 h-10 animate-spin" /> : <Camera className="w-10 h-10" />}
-                    </button>
-
-                    {/* Placeholder for symmetry or other quick action */}
-                    <div className="w-12 h-12" />
-                </div>
+                <button
+                    onClick={captureAndProcess}
+                    disabled={isProcessing || !isWorkerReady}
+                    className="w-24 h-24 bg-indigo-600 rounded-full flex items-center justify-center shadow-2xl active:scale-90 transition-all border-4 border-white/5"
+                >
+                    {isProcessing ? <RefreshCw className="w-10 h-10 animate-spin" /> : <Camera className="w-10 h-10" />}
+                </button>
 
                 {/* Scanned Mini List */}
                 <div className="w-full h-20 flex gap-3 overflow-x-auto pb-2 scroll-smooth">

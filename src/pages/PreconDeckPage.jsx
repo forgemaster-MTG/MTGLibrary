@@ -7,6 +7,7 @@ import { useToast } from '../contexts/ToastContext';
 import DeckCharts from '../components/DeckCharts';
 import { useCollection } from '../hooks/useCollection';
 import { useDecks } from '../hooks/useDecks';
+import PreconImportModal from '../components/modals/PreconImportModal';
 import { getTierConfig } from '../config/tiers';
 
 const MTG_IDENTITY_REGISTRY = [
@@ -50,6 +51,11 @@ const PreconDeckPage = () => {
     const [viewMode, setViewMode] = useState('grid');
     const [creating, setCreating] = useState(null);
     const [activePartnerIndex, setActivePartnerIndex] = useState(0);
+
+    // Import Modal State
+    const [importModalOpen, setImportModalOpen] = useState(false);
+    const [ownershipData, setOwnershipData] = useState(null);
+    const [pendingImportMode, setPendingImportMode] = useState(null);
 
     useEffect(() => {
         const fetchDeck = async () => {
@@ -202,31 +208,60 @@ const PreconDeckPage = () => {
             return;
         }
 
-        // 2. Collection/Wishlist Limit
-        const isWishlist = mode === 'wishlist';
-        const limitType = isWishlist ? 'wishlist' : 'collection';
-        const limit = config.limits[limitType];
+        setCreating(mode);
 
-        if (limit !== Infinity && collection) {
-            // Count current
-            const currentCount = collection
-                .filter(c => !!c.is_wishlist === isWishlist)
-                .reduce((acc, c) => acc + (c.count || 1), 0);
+        try {
+            // Check ownership first
+            const ownership = await api.checkPreconOwnership(deck.id);
+            console.log('Precon Ownership Check:', ownership);
 
-            // Count adding
-            const addingCount = totalCards; // pre-calculated memo
+            // If we own significant cards (e.g. > 0), prompt user
+            const ownedCount = ownership.ownedCards || 0;
+            const totalCount = ownership.totalCards || 0;
+            const percent = ownership.percentOwned || 0;
 
-            if (currentCount + addingCount > limit) {
-                addToast(`${isWishlist ? 'Wishlist' : 'Collection'} limit reached. Cannot add ${addingCount} cards. Upgrade needed!`, 'error');
-                return;
+            if (ownedCount > 0) {
+                setOwnershipData(ownership);
+                setPendingImportMode(mode);
+                setImportModalOpen(true);
+            } else {
+                // Own 0 or Own All? If Own All, still might want to move?
+                // Default to creating new if owned is 0.
+                // If owned is total, we DEFINITELY want to prompt or use existing.
+                // Let's just use useExisting=false default for 0 owned.
+                // If 100% owned, logic above catches it.
+                await doCreateDeck(mode, false);
+            }
+
+        } catch (err) {
+            console.error('Ownership check failed', err);
+            // Fallback to blind create?
+            if (window.confirm("Ownership check failed. Create deck anyway (may duplicate cards)?")) {
+                await doCreateDeck(mode, false);
+            }
+        } finally {
+            setCreating(null);
+        }
+    };
+
+    const handleImportConfirm = async (useExisting) => {
+        setImportModalOpen(false);
+        if (pendingImportMode) {
+            setCreating(pendingImportMode);
+            try {
+                await doCreateDeck(pendingImportMode, useExisting);
+            } finally {
+                setCreating(null);
+                setPendingImportMode(null);
             }
         }
+    };
 
-        setCreating(mode);
+    const doCreateDeck = async (mode, useExisting) => {
         try {
-            const result = await api.post(`/api/precons/${deck.id}/create`, { mode });
+            const result = await api.createPreconDeck(deck.id, { mode, useExisting });
             if (result.success) {
-                addToast('Deck created successfully!', 'success');
+                addToast(useExisting ? 'Deck created using existing cards!' : 'Deck created with new cards!', 'success');
                 navigate(`/decks/${result.deckId}`);
             }
         } catch (err) {
@@ -236,8 +271,6 @@ const PreconDeckPage = () => {
             } else {
                 addToast('Failed to create deck', 'error');
             }
-        } finally {
-            setCreating(null);
         }
     };
 
@@ -452,6 +485,13 @@ const PreconDeckPage = () => {
 
                 </div>
             </div>
+
+            <PreconImportModal
+                isOpen={importModalOpen}
+                onClose={() => { setImportModalOpen(false); setCreating(null); }}
+                onConfirm={handleImportConfirm}
+                ownership={ownershipData}
+            />
         </div>
     );
 };

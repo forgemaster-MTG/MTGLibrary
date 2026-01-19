@@ -399,11 +399,12 @@ router.post('/import', checkLimit('decks'), async (req, res) => {
         // A. Check Collection first?
         if (options.checkCollection) {
           // Try to find an unassigned copy of this card
-          // Logic: Match scryfall_id + finish + deck_id IS NULL
+          // Logic: Match Natural Key (Set + Number + Finish) + deck_id IS NULL
           const existing = await trx('user_cards')
             .where({
               user_id: userId,
-              scryfall_id: scryfallId,
+              set_code: c.set_code || c.set || '???',
+              collector_number: c.collector_number || '0',
               finish: c.finish || 'nonfoil'
             })
             .whereNull('deck_id')
@@ -480,11 +481,25 @@ router.post('/:id/cards/batch', async (req, res) => {
         const scryfallId = c.scryfall_id || c.id;
 
         // 1. Try to find an unassigned copy in the binder with a 3-TIER Strategy
-        // Tier A: Exact Match (ID + Finish)
+
+        // Tier 0: Natural Key Match (Set + Number + Finish) - PREFERRED
         let existing = await trx('user_cards')
-          .where({ user_id: userId, scryfall_id: scryfallId, finish: c.finish || 'nonfoil' })
+          .where({
+            user_id: userId,
+            set_code: c.set_code || c.set || '???',
+            collector_number: c.collector_number || '0',
+            finish: c.finish || 'nonfoil'
+          })
           .whereNull('deck_id')
           .first();
+
+        // Tier A: Scryfall ID Match (Legacy/Migration support)
+        if (!existing) {
+          existing = await trx('user_cards')
+            .where({ user_id: userId, scryfall_id: scryfallId, finish: c.finish || 'nonfoil' })
+            .whereNull('deck_id')
+            .first();
+        }
 
         // Tier B: Loose ID Match (Same Card, Any Finish) -> Prefer Foil
         if (!existing) {

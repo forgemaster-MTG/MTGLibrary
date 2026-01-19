@@ -34,13 +34,6 @@ import epicsApi from './api/epics.js';
 import ticketsApi from './api/tickets.js';
 import releasesApi from './api/releases.js';
 import auditApi from './api/audit.js';
-import matchesApi from './api/matches.js';
-import friendsApi from './api/friends.js';
-import socialApi from './api/social.js';
-import matchStatsApi from './api/match_stats.js';
-import tournamentsApi from './api/tournaments.js';
-import importApi from './api/import.js';
-import proxyApi from './api/proxy.js';
 
 const require = createRequire(import.meta.url);
 
@@ -194,13 +187,6 @@ app.use('/api/epics', epicsApi);
 app.use('/api/tickets', ticketsApi);
 app.use('/api/releases', releasesApi);
 app.use('/api/audit', auditApi);
-app.use('/api/matches', matchesApi);
-app.use('/api/friends', friendsApi);
-app.use('/api/social', socialApi);
-app.use('/api/stats', matchStatsApi);
-app.use('/api/tournaments', tournamentsApi);
-app.use('/api/import', importApi);
-app.use('/api/proxy', proxyApi);
 
 // Health endpoint
 app.get('/api/health', (req, res) => {
@@ -255,18 +241,12 @@ if (yaml && swaggerUi) {
   }
 }
 
-import { setupGameHandler } from './socket/gameHandler.js';
-
 // Socket.io logic
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
-  // Initialize Game Handlers
-  setupGameHandler(io, socket);
-
   socket.on('join-pairing', (sessionId) => {
     socket.join(`pair-${sessionId}`);
-    socket.to(`pair-${sessionId}`).emit('peer-connected');
     console.log(`Socket ${socket.id} joined pairing room: pair-${sessionId}`);
   });
 

@@ -72,7 +72,7 @@ router.get('/', async (req, res) => {
         let mixedMode = false;
 
         // Check request specific user or 'all'
-        if (req.query.userId && String(req.query.userId) !== String(req.user.id)) {
+        if (req.query.userId && req.query.userId !== req.user.id) {
 
             if (req.query.userId === 'all') {
                 mixedMode = true;
@@ -86,31 +86,18 @@ router.get('/', async (req, res) => {
                 targetUserIds = [req.user.id, ...friendIds];
             } else {
                 // Specific friend
-                const targetUserId = req.query.userId;
-                targetUserIds = [targetUserId];
+                targetUserIds = [req.query.userId];
 
-                // 1. Check Explicit Permission
+                // Verify Global Permission
                 const perm = await knex('collection_permissions')
                     .where({
-                        owner_id: targetUserId,
+                        owner_id: req.query.userId,
                         grantee_id: req.user.id
                     })
-                    .whereNull('target_deck_id')
+                    .whereNull('target_deck_id') // Global permission
                     .first();
 
-                // 2. Check Public Status
-                const targetUser = await knex('users').where('id', targetUserId).first();
-                const isPublic = targetUser && targetUser.is_public_library;
-
-                // 3. Check Friendship
-                const isFriend = await knex('user_relationships')
-                    .where(b => b.where('requester_id', req.user.id).andWhere('addressee_id', targetUserId))
-                    .orWhere(b => b.where('requester_id', targetUserId).andWhere('addressee_id', req.user.id))
-                    .andWhere('status', 'accepted')
-                    .first();
-
-                // Allow if any condition matches
-                if (!perm && !isPublic && !isFriend) {
+                if (!perm) {
                     return res.status(403).json({ error: 'Access denied to this collection' });
                 }
             }
@@ -172,10 +159,32 @@ router.get('/', async (req, res) => {
 
 
 // Add card to collection (or deck)
+// Batch Delete
+router.delete('/batch', authMiddleware, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { ids } = req.body; // Array of user_card IDs
+
+        if (!ids || !Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ error: 'No IDs provided' });
+        }
+
+        const count = await knex('user_cards')
+            .where({ user_id: userId })
+            .whereIn('id', ids)
+            .del();
+
+        res.json({ success: true, count });
+    } catch (err) {
+        console.error('[collection] batch delete error', err);
+        res.status(500).json({ error: 'db error' });
+    }
+});
+
 router.post('/', dynamicLimitCheck, async (req, res) => {
     try {
         // Body should contain scryfall_id, and other cache data
-        const { scryfall_id, name, set_code, collector_number, finish, count, data, deck_id, targetUserId, board } = req.body;
+        const { scryfall_id, name, set_code, collector_number, finish, count, data, deck_id, targetUserId } = req.body;
 
         if (!scryfall_id || !name) return res.status(400).json({ error: 'Missing required card fields' });
 
@@ -205,15 +214,67 @@ router.post('/', dynamicLimitCheck, async (req, res) => {
             set_code: set_code || '???',
             collector_number: collector_number || '0',
             finish: finish || 'nonfoil',
-            image_uri: req.body.image_uri || cardService.resolveImage(data) || null,
+            image_uri: cardService.resolveImage(data) || null,
             count: count || 1,
             data: data || null,
             deck_id: deck_id || null,
             is_wishlist: req.body.is_wishlist || false,
             tags: JSON.stringify(req.body.tags || []),
-            price_bought: req.body.price_bought || null,
-            board: board || 'mainboard'
+            price_bought: req.body.price_bought || null
         };
+
+        // Check for existing card with same attributes (Same "Card Object")
+        // We match by: user_id, set_code, collector_number, finish, deck_id (or null), binder_id (or null), is_wishlist
+        // Note: We do NOT match by scryfall_id because that's the problem source (IDs changing).
+        // We trust Set+Number+Finish as the identity.
+
+        const existing = await knex('user_cards')
+            .where({
+                user_id: userId,
+                set_code: set_code || '???',
+                collector_number: collector_number || '0',
+                finish: finish || 'nonfoil',
+                is_wishlist: req.body.is_wishlist || false
+            })
+            .where((builder) => {
+                if (deck_id) builder.where('deck_id', deck_id);
+                else builder.whereNull('deck_id');
+            })
+            // Binder check if applicable (schema might not always have it or it's optional)
+            // If binder support is robust, add it. For now, matching main collection logic.
+            .first();
+
+        if (existing) {
+            // Update existing
+            const newCount = (existing.count || 1) + (count || 1);
+
+            // Merge tags
+            const existingTags = typeof existing.tags === 'string' ? JSON.parse(existing.tags || '[]') : (existing.tags || []);
+            const incomingTags = req.body.tags || [];
+            const mergedTags = [...new Set([...existingTags, ...incomingTags])];
+
+            const update = {
+                count: newCount,
+                tags: JSON.stringify(mergedTags),
+                // Update Metadata if checking provided fresher data? 
+                // Let's keep existing metadata to be safe, or update if we trust the new import more.
+                // Usually "Add" means "I bought another one", so maybe update price?
+                // price_bought: req.body.price_bought // Hard to average without history. Let's keep existing or overwrite? simpler to ignore for now.
+            };
+
+            // If existing had no image but new one does, update it
+            if (!existing.image_uri && insert.image_uri) {
+                update.image_uri = insert.image_uri;
+                update.data = insert.data;
+            }
+
+            const [row] = await knex('user_cards')
+                .where({ id: existing.id })
+                .update(update)
+                .returning('*');
+
+            return res.status(200).json(row);
+        }
 
         const [row] = await knex('user_cards').insert(insert).returning('*');
         res.status(201).json(row);
@@ -239,7 +300,6 @@ router.put('/:id', async (req, res) => {
         if (req.body.is_wishlist !== undefined) update.is_wishlist = req.body.is_wishlist;
         if (price_bought !== undefined) update.price_bought = price_bought;
         if (tags !== undefined) update.tags = JSON.stringify(tags);
-        if (req.body.board !== undefined) update.board = req.body.board;
 
         if (Object.keys(update).length === 0) return res.json(existing);
 
@@ -395,7 +455,6 @@ router.post('/batch', batchLimitCheck, async (req, res) => {
                 const collectorNumber = c.collector_number || '0';
                 const finish = c.finish || 'nonfoil';
                 const isWishlist = c.is_wishlist || false;
-                const incomingCount = c.count || 1;
 
                 // Validate FKs
                 let deckId = null;
@@ -408,47 +467,13 @@ router.post('/batch', batchLimitCheck, async (req, res) => {
 
                 const binderId = (c.binder_id && validBinderIds.has(c.binder_id)) ? c.binder_id : null;
 
-                // --- 1. TRANSFER LOGIC ---
-                // If mode is transfer_to_deck, we first try to find the card in the binder and "take" it.
-                if (mode === 'transfer_to_deck' && deckId) {
-                    const binderCards = await trx('user_cards')
-                        .where({
-                            user_id: userId,
-                            scryfall_id: scryfallId,
-                            set_code: setCode,
-                            collector_number: collectorNumber,
-                            finish: finish,
-                            is_wishlist: false, // Don't transfer from wishlist
-                            deck_id: null
-                        })
-                        .orderBy('count', 'desc'); // Take from largest stacks first
-
-                    let remainingToTransfer = incomingCount;
-                    for (const bc of binderCards) {
-                        if (remainingToTransfer <= 0) break;
-                        const take = Math.min(bc.count, remainingToTransfer);
-                        if (bc.count <= take) {
-                            await trx('user_cards').where({ id: bc.id }).del();
-                        } else {
-                            await trx('user_cards').where({ id: bc.id }).update({ count: bc.count - take });
-                        }
-                        remainingToTransfer -= take;
-                    }
-
-                    // If we couldn't find enough in the binder, and fallback is NOT allowed, we might skip.
-                    // But for this feature, if we didn't find it, we just add it anyway as "new" acquisition
-                    // unless a strict flag is passed.
-                }
-
-                // --- 2. MERGE/INSERT LOGIC ---
-
                 // Check for existing card with same attributes (Binder merge only)
+                // MATCHING: Natural Key (Set + Number + Finish)
                 let existing = null;
                 if (mode !== 'replace' && !deckId) {
                     existing = await trx('user_cards')
                         .where({
                             user_id: userId,
-                            scryfall_id: scryfallId,
                             set_code: setCode,
                             collector_number: collectorNumber,
                             finish: finish,
@@ -461,7 +486,7 @@ router.post('/batch', batchLimitCheck, async (req, res) => {
 
                 if (existing) {
                     // Update existing card - increment count
-                    const newCount = (existing.count || 1) + incomingCount;
+                    const newCount = (existing.count || 1) + (c.count || 1);
 
                     // Merge tags
                     const existingTags = typeof existing.tags === 'string' ? JSON.parse(existing.tags || '[]') : (existing.tags || []);
@@ -475,8 +500,7 @@ router.post('/batch', batchLimitCheck, async (req, res) => {
                             tags: JSON.stringify(mergedTags),
                             data: c.data || existing.data,
                             price_bought: c.price_bought !== undefined ? c.price_bought : existing.price_bought,
-                            binder_id: binderId || existing.binder_id,
-                            image_uri: c.image_uri || cardService.resolveImage(c.data || existing.data) || existing.image_uri
+                            binder_id: binderId || existing.binder_id
                         });
 
                     updated++;
@@ -490,11 +514,8 @@ router.post('/batch', batchLimitCheck, async (req, res) => {
                         set_code: setCode,
                         collector_number: collectorNumber,
                         finish: finish,
-                        collector_number: collectorNumber,
-                        finish: finish,
-                        image_uri: c.image_uri || cardService.resolveImage(cardData) || null,
-                        count: incomingCount,
-                        count: incomingCount,
+                        image_uri: cardService.resolveImage(cardData) || c.image_uri || null,
+                        count: c.count || 1,
                         data: cardData,
                         deck_id: deckId,
                         binder_id: binderId,
@@ -519,3 +540,5 @@ router.post('/batch', batchLimitCheck, async (req, res) => {
 });
 
 export default router;
+
+

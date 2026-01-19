@@ -2,7 +2,7 @@
 
 # Configuration
 # Container Names (Must match your docker-compose container_names)
-PROD_CONTAINER="postgres"
+PROD_CONTAINER="mtg-postgres-prod"
 STAGING_CONTAINER="postgres-staging"
 DEV_CONTAINER="postgres-dev"
 

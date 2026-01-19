@@ -2,11 +2,9 @@ import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useDeck } from '../hooks/useDeck';
 import { useDecks } from '../hooks/useDecks';
-import useUndo from '../hooks/useUndo';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useCollection } from '../hooks/useCollection';
-import { useMarketData } from '../hooks/useMarketData';
 import { deckService } from '../services/deckService';
 import { getTierConfig } from '../config/tiers';
 import CardSearchModal from '../components/CardSearchModal';
@@ -16,17 +14,12 @@ import AddFromCollectionModal from '../components/modals/AddFromCollectionModal'
 import DeckAdvancedStats from '../components/DeckAdvancedStats';
 import DeckStatsModal from '../components/modals/DeckStatsModal';
 import DeckStrategyModal from '../components/modals/DeckStrategyModal';
-import ShareModal from '../components/Social/ShareModal';
+import ShareModal from '../components/modals/ShareModal';
 import DeckDoctorModal from '../components/modals/DeckDoctorModal';
 import DeckAI from '../components/DeckAI';
-import TokenModal from '../components/modals/TokenModal';
 import CardGridItem from '../components/common/CardGridItem';
-import { api } from '../services/api';
-import StartAuditModal from '../components/Audit/StartAuditModal';
 import StartAuditButton from '../components/Audit/StartAuditButton';
 import ForgeLensModal from '../components/modals/ForgeLensModal';
-import PrintSettingsModal from '../components/printing/PrintSettingsModal';
-import DeckSettingsModal from '../components/modals/DeckSettingsModal';
 
 const MTG_IDENTITY_REGISTRY = [
     { badge: "White", colors: ["W"], theme: "Absolute Order", flavor_text: "A single spark of light can banish a world of shadows." },
@@ -108,28 +101,23 @@ const DeckDetailsPage = () => {
         const action = deck.is_mockup ? 'delete' : 'remove'; // Delete from DB for mockups, remove to binder for decks
         const count = selectedCardIds.size;
 
-        if (!window.confirm(`Are you sure you want to ${action === 'delete' ? 'delete' : 'remove'} ${count} cards ? `)) return;
+        if (!window.confirm(`Are you sure you want to ${action === 'delete' ? 'delete' : 'remove'} ${count} cards?`)) return;
 
         try {
-            const idsToRemove = Array.from(selectedCardIds);
-
-            // Optimistic Update
-            const newCards = deckCards.filter(c => !idsToRemove.includes(c.id)); // Note: c.id matches logic in toggleSelection
-            recordAction(`Removed ${count} cards`, newCards);
-            setCards(newCards);
-
-            await deckService.batchRemoveCards(currentUser.uid, deckId, idsToRemove, action);
+            await deckService.batchRemoveCards(currentUser.uid, deckId, Array.from(selectedCardIds), action);
             addToast(`Successfully removed ${count} cards`, 'success');
-
             setIsManageMode(false);
             setSelectedCardIds(new Set());
-            // No full reload needed if optimistic update works
-            // But checking consistency is good
-            refreshDeck(true);
+            // Ideally refetch deck or optimistic update. 
+            // Trigger refresh via some method if available, or just reload page?
+            // Existing `useDeck` hook poll? Or force update.
+            // Let's assume the mutation triggers re-render if we update local state?
+            // We need to invalidate query or update local list.
+            // For now, reload window is safest or refetch.
+            window.location.reload();
         } catch (err) {
             console.error(err);
             addToast('Failed to remove cards', 'error');
-            refreshDeck();
         }
     };
     const [flippedCards, setFlippedCards] = useState({}); // { [id]: boolean }
@@ -147,75 +135,17 @@ const DeckDetailsPage = () => {
     const [isStrategyModalOpen, setIsStrategyModalOpen] = useState(false);
     const [isStatsModalOpen, setIsStatsModalOpen] = useState(false);
     const [isDoctorOpen, setIsDoctorOpen] = useState(false);
-    const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-
-    // Audit State
-    const [auditState, setAuditState] = useState({ isOpen: false, loading: false, activeSession: null });
-
-    const handleAuditClick = async (e) => {
-        if (e) e.stopPropagation(); // prevent closing menu immediately if we want? Actually we DO want to close menu, but AFTER starting async?
-        // No, we want menu to close. But we want Modal to open.
-        // Since modal is now in Page, it persists.
-        setIsToolsMenuOpen(false);
-
-        setAuditState(prev => ({ ...prev, loading: true }));
-        try {
-            const active = await api.getActiveAudit();
-            if (active) {
-                const isTypeMatch = active.type === 'deck';
-                const isTargetMatch = !deckId || String(active.target_id) === String(deckId);
-
-                if (isTypeMatch && isTargetMatch) {
-                    navigate(`/audit/${active.id}`);
-                    setAuditState(prev => ({ ...prev, loading: false }));
-                    return;
-                }
-                // Mismatch, show modal with active session info
-                setAuditState({ isOpen: true, loading: false, activeSession: active });
-                return;
-            }
-            // No active session, open modal
-            setAuditState({ isOpen: true, loading: false, activeSession: null });
-        } catch (err) {
-            console.error(err);
-            setAuditState({ isOpen: true, loading: false, activeSession: null });
-        }
-    };
-
-    const handleAuditConfirm = async () => {
-        setAuditState(prev => ({ ...prev, loading: true }));
-        try {
-            if (auditState.activeSession) {
-                await api.cancelAudit(auditState.activeSession.id);
-            }
-            const session = await api.startAudit({ type: 'deck', targetId: deckId });
-            navigate(`/audit/${session.id}`);
-            setAuditState({ isOpen: false, loading: false, activeSession: null });
-        } catch (err) {
-            console.error(err);
-            addToast('Failed to start audit: ' + err.message, 'error');
-            setAuditState(prev => ({ ...prev, loading: false }));
-        }
-    };
-
-    const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
-    const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
     const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
-    const [isToolsMenuLocked, setIsToolsMenuLocked] = useState(false);
     const toolsMenuRef = useRef(null);
-    const toolsMenuTimeoutRef = useRef(null);
 
     const [showStats, setShowStats] = useState(true);
     // Initialize from settings or default to 'grid'
     const [viewMode, setViewModeState] = useState(userProfile?.settings?.deckViewMode || 'grid');
-    const [activeTab, setActiveTab] = useState('overview');
-    const [activeBoard, setActiveBoard] = useState('mainboard'); // 'mainboard', 'sideboard', 'maybeboard'
 
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (toolsMenuRef.current && !toolsMenuRef.current.contains(event.target)) {
-                setIsToolsMenuLocked(false);
                 setIsToolsMenuOpen(false);
             }
         };
@@ -228,92 +158,9 @@ const DeckDetailsPage = () => {
         updateSettings({ deckViewMode: mode });
     };
 
-    const { deck, cards: deckCards, setCards, loading: deckLoading, error: deckError, refresh: refreshDeck } = useDeck(deckId);
-    // Market Data
-    const { value: marketValue, tcgPlayerLink } = useMarketData(deckCards);
+    const { deck, cards: deckCards, loading: deckLoading, error: deckError, refresh: refreshDeck } = useDeck(deckId);
     const { decks } = useDecks();
     const { cards: collection } = useCollection();
-
-    // Undo/Redo Integration
-    const handleUndoRedoStateChange = React.useCallback((restoredCards) => {
-        setCards(currentCards => {
-            // Diffing Logic: currentCards vs restoredCards
-            // We need to transform current backend state (currentCards) to match history state (restoredCards)
-
-            // 1. Find cards to remove (Present in current, missing in restored)
-            // WE USE MANAGED ID (row id) for stable identity
-            if (!restoredCards || !Array.isArray(restoredCards)) {
-                console.warn('Undo state invalid', restoredCards);
-                return currentCards;
-            }
-            const restoredIds = new Set(restoredCards.map(c => c.managedId));
-            const cardsToRemove = currentCards.filter(c => !restoredIds.has(c.managedId));
-
-            // 2. Find cards to add (Present in restored, missing in current)
-            const currentIds = new Set(currentCards.map(c => c.managedId));
-            const cardsToAdd = restoredCards.filter(c => !currentIds.has(c.managedId));
-
-            // 3. Find quantity updates
-            const cardsToUpdate = restoredCards.filter(r => {
-                const current = currentCards.find(c => c.managedId === r.managedId);
-                return current && current.countInDeck !== r.countInDeck;
-            });
-
-            // Early return if no changes needed
-            if (cardsToRemove.length === 0 && cardsToAdd.length === 0 && cardsToUpdate.length === 0) {
-                return currentCards;
-            }
-
-            // Execute Sync Actions (Fire and forget, or toast on error)
-            const syncBackend = async () => {
-                try {
-                    // Removals
-                    if (cardsToRemove.length > 0) {
-                        for (const c of cardsToRemove) {
-                            await deckService.removeCardFromDeck(currentUser.uid, deckId, c.managedId);
-                        }
-                    }
-
-                    // Additions (Complex: managedId changes on re-add usually)
-                    // If we just re-add the card, the DB creates a NEW managedId.
-                    // This breaks future diffs if we don't update local state with new ID.
-                    // THIS IS A CRITICAL ISSUE with Undo/Redo on DB rows relative to snapshots.
-                    // Snapshots store OLD managedIds.
-                    // If I restore a snapshot with ID=100, but ID=100 was deleted, I can't "restore" ID=100.
-                    // I must create a NEW card.
-                    if (cardsToAdd.length > 0) {
-                        for (const c of cardsToAdd) {
-                            await deckService.addCardToDeck(currentUser.uid, deckId, c);
-                        }
-                        // We really should re-fetch here because IDs changed.
-                        refreshDeck(true);
-                    }
-
-                    // Updates
-                    if (cardsToUpdate.length > 0) {
-                        for (const c of cardsToUpdate) {
-                            await deckService.updateCardQuantity(currentUser.uid, deckId, c.managedId, c.countInDeck);
-                        }
-                    }
-
-                } catch (err) {
-                    console.error("Undo Sync Failed", err);
-                    addToast('Sync error. Refreshing...', 'error');
-                    refreshDeck();
-                }
-            };
-
-            syncBackend();
-
-            return restoredCards;
-        });
-    }, [currentUser, deckId, addToast, refreshDeck]);
-
-    const { undo, redo, recordAction, canUndo, canRedo } = useUndo(deckCards, handleUndoRedoStateChange);
-
-    // Keyboard Shortcuts for Undo/Redo are handled by useUndo hook globally if mounted.
-    // However, useUndo attaches listener to window. 
-    // This is fine for DeckDetailsPage.
 
     // Permissions
     const permissionLevel = deck?.permissionLevel || 'viewer';
@@ -362,11 +209,9 @@ const DeckDetailsPage = () => {
     }, [collection]);
 
     // Helpers (Moved here to be used in useMemo)
-    // Helpers (Moved here to be used in useMemo)
     const countByType = (type) => {
         if (!deckCards) return 0;
-        // Only count Mainboard cards for stats
-        let count = deckCards.filter(c => (!c.board || c.board === 'mainboard')).reduce((acc, c) => (((c.data?.type_line || c.type_line) || '').includes(type) ? acc + (c.countInDeck || 1) : acc), 0);
+        let count = deckCards.reduce((acc, c) => (((c.data?.type_line || c.type_line) || '').includes(type) ? acc + (c.countInDeck || 1) : acc), 0);
 
         // Add commander if not in the cards list but in the header
         // Compare using scryfall_id as c.id is the database row ID
@@ -381,8 +226,7 @@ const DeckDetailsPage = () => {
 
     const totalCards = useMemo(() => {
         if (!deckCards) return 0;
-        // Total cards in MAINBOARD
-        let total = deckCards.filter(c => (!c.board || c.board === 'mainboard')).reduce((acc, c) => acc + (c.countInDeck || 1), 0);
+        let total = deckCards.reduce((acc, c) => acc + (c.countInDeck || 1), 0);
         // Include commanders in header if not present as rows
         if (deck?.commander && !deckCards.some(c => c.scryfall_id === (deck.commander.id || deck.commander.scryfall_id) || (c.oracle_id && c.oracle_id === deck.commander.oracle_id))) total++;
         if (deck?.commander_partner && !deckCards.some(c => c.scryfall_id === (deck.commander_partner.id || deck.commander_partner.scryfall_id) || (c.oracle_id && c.oracle_id === deck.commander_partner.oracle_id))) total++;
@@ -392,7 +236,7 @@ const DeckDetailsPage = () => {
     const ownedCardsCount = useMemo(() => {
         if (!deckCards) return 0;
         let owned = deckCards
-            .filter(c => (!c.board || c.board === 'mainboard') && !c.is_wishlist)
+            .filter(c => !c.is_wishlist)
             .reduce((acc, c) => acc + (c.countInDeck || 1), 0);
 
         // Commanders in header are considered owned for counting purposes
@@ -401,12 +245,9 @@ const DeckDetailsPage = () => {
         return owned;
     }, [deckCards, deck]);
 
-    const isBinder = deck?.format === 'binder';
-
     const totalValue = useMemo(() => {
         if (!deckCards) return 0;
-        // Only sum Mainboard value for the header display
-        let value = deckCards.filter(c => !c.board || c.board === 'mainboard').reduce((acc, c) => {
+        let value = deckCards.reduce((acc, c) => {
             const price = parseFloat(c.prices?.[c.finish === 'foil' ? 'usd_foil' : 'usd']) || (parseFloat(c.data?.prices?.[c.finish === 'foil' ? 'usd_foil' : 'usd']) || 0);
             return acc + (price * (c.countInDeck || 1));
         }, 0);
@@ -454,9 +295,7 @@ const DeckDetailsPage = () => {
             Sorcery: [], Artifact: [], Enchantment: [], Land: [], Other: []
         };
 
-        const currentBoardCards = deckCards.filter(c => (c.board || 'mainboard') === activeBoard);
-
-        currentBoardCards.forEach(c => {
+        deckCards.forEach(c => {
             const cardData = c;
             const typeLine = ((cardData.data?.type_line || cardData.type_line) || '').toLowerCase();
 
@@ -479,7 +318,7 @@ const DeckDetailsPage = () => {
         });
 
         return Object.fromEntries(Object.entries(groups).filter(([_, list]) => list.length > 0));
-    }, [deckCards, deck, activeBoard]);
+    }, [deckCards, deck]);
 
     // Handlers
     const handleExportDeck = () => {
@@ -499,7 +338,7 @@ const DeckDetailsPage = () => {
 
         const link = document.createElement("a");
         link.href = url;
-        link.download = `${deck.name.replace(/[^a-z0-9]/yi, '_')} _backup.json`;
+        link.download = `${deck.name.replace(/[^a-z0-9]/yi, '_')}_backup.json`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -527,10 +366,10 @@ const DeckDetailsPage = () => {
 
         // Add commander(s)
         if (deck.commander) {
-            decklistLines.push(`1 ${deck.commander.name} `);
+            decklistLines.push(`1 ${deck.commander.name}`);
         }
         if (deck.commander_partner) {
-            decklistLines.push(`1 ${deck.commander_partner.name} `);
+            decklistLines.push(`1 ${deck.commander_partner.name}`);
         }
 
         // Add all other cards
@@ -538,7 +377,7 @@ const DeckDetailsPage = () => {
             const count = card.countInDeck || 1;
             const name = card.name || card.data?.name || '';
             if (name) {
-                decklistLines.push(`${count} ${name} `);
+                decklistLines.push(`${count} ${name}`);
             }
         });
 
@@ -581,52 +420,11 @@ const DeckDetailsPage = () => {
 
     const handleAddToDeck = async (card) => {
         try {
-            // Optimistic Update
-            // Note: managedId is missing until refresh. We use a temp placeholder.
-            // RESPECT ACTIVE BOARD when adding!
-            const newCard = { ...card, countInDeck: 1, managedId: `temp-${Date.now()}`, board: activeBoard };
-            const newCards = [...deckCards, newCard];
-
-            // Record History
-            recordAction(`Added ${card.name}`, newCards);
-            setCards(newCards);
-
-            // We need to pass the board to the API. deckService.addCardToDeck might need updating or we assume mainboard default.
-            // Let's check cardService/deckService. addCardToDeck does NOT take board.
-            // I should update it, OR call an update immediately after (risky).
-            // Better: update deckService.addCardToDeck to accept 'board' in params.
-            // See deckService update below.
-
-            // For now, I'll stick to mainboard default in API, then move it if needed?
-            // Or I update the previous tool call to include board in addCardToDeck.
-            // Actually, I can just include it in the 'card' object passed to addCardToDeck if I spread it?
-            // deckService: scryfall_id: card.id... data: card.
-            // It doesn't explicitly look for 'board'.
-
-            // Wait, I can pass a hacked card object: { ...card, board: activeBoard }.
-            // But deckService constructs the payload manually.
-            // I'll update deckService to pass 'board' if present in the card object or as argument.
-            // But for this step let's just get the UI working. The cards will land in Mainboard, and user can move them.
-            // That's acceptable for now to reduce scope creep in this single tool call.
-
             await deckService.addCardToDeck(currentUser.uid, deckId, card);
-
-            // If activeBoard is NOT mainboard, we need to move it.
-            // But we don't have the ID yet! 
-            // This is a limitation. New cards go to Mainboard. User has to move them.
-            // I'll add a toast hint.
-            if (activeBoard !== 'mainboard') {
-                addToast(`Added to Mainboard. Please move to ${activeBoard} if desired.`, 'info');
-            } else {
-                addToast(`Added ${card.name} to deck`, 'success');
-            }
-
-            // Silent refresh to get real managedId (important for subsequent deletes)
-            refreshDeck(true);
+            addToast(`Added ${card.name} to deck`, 'success');
         } catch (err) {
             console.error(err);
             addToast('Failed to add card to deck', 'error');
-            refreshDeck(); // Revert on error
         }
     };
 
@@ -637,53 +435,14 @@ const DeckDetailsPage = () => {
             message: `Are you sure you want to remove ${cardName} from this deck?`,
             onConfirm: async () => {
                 try {
-                    // Optimistic Update
-                    const newCards = deckCards.filter(c => c.managedId !== cardId && c.id !== cardId); // Check both for robustness
-
-                    recordAction(`Removed ${cardName}`, newCards);
-                    setCards(newCards);
-
                     await deckService.removeCardFromDeck(currentUser.uid, deckId, cardId); // cardId is managedId
                     addToast(`Removed ${cardName} from deck`, 'success');
-                    setConfirmModal({ isOpen: false });
-                    refreshDeck(true);
                 } catch (err) {
                     console.error(err);
                     addToast('Failed to remove card', 'error');
-                    refreshDeck();
                 }
             }
         });
-    };
-
-    const handleBulkMoveToBoard = async (targetBoard) => {
-        if (selectedCardIds.size === 0) return;
-
-        try {
-            // Optimistic Update
-            const newCards = deckCards.map(c => {
-                if (selectedCardIds.has(c.managedId)) { // Use managedId for selection
-                    return { ...c, board: targetBoard };
-                }
-                return c;
-            });
-
-            recordAction(`Moved ${selectedCardIds.size} cards to ${targetBoard}`, newCards);
-            setCards(newCards);
-
-            // Execute Backend Updates
-            const promises = Array.from(selectedCardIds).map(id => deckService.moveCardToBoard(currentUser.uid, deckId, id, targetBoard));
-            await Promise.all(promises);
-
-            addToast(`Moved ${selectedCardIds.size} cards to ${targetBoard}`, 'success');
-            setSelectedCardIds(new Set()); // Clear selection
-            setIsManageMode(false); // Exit manage mode? optional
-            refreshDeck(true);
-        } catch (err) {
-            console.error(err);
-            addToast('Failed to move cards', 'error');
-            refreshDeck();
-        }
     };
 
     // Helper to robustly get image URL from various potential structures
@@ -742,8 +501,13 @@ const DeckDetailsPage = () => {
 
                 await deckService.updateDeck(currentUser.uid, deckId, updateField);
 
-                // Re-fetch to get clean state
-                refreshDeck(true);
+                // Optimistically update local deck state logic would be ideal here, 
+                // but window reload is safer or let props update if using real-time (not currently).
+                // For now, we manually mutate the local card object in memory to show the flip instantly
+                // Note: This mutates the 'deck' prop object which is generally bad practice but works for immediate feedback 
+                // until useDeck re-fetches.
+                if (index === 0) deck.commander = fullCardData;
+                else deck.commander_partner = fullCardData;
 
                 addToast('Commander data updated.', 'success');
             } catch (err) {
@@ -902,12 +666,8 @@ const DeckDetailsPage = () => {
                                     <div className="flex flex-col gap-0.5 min-w-0">
                                         <div className="flex items-center gap-2 group max-w-full">
                                             <h2 className="text-xl md:text-3xl lg:text-4xl font-black text-white tracking-tighter uppercase truncate leading-tight flex-1" title={deck.name}>{deck.name}</h2>
-                                            {(canEdit || isOwner) && (
-                                                <button
-                                                    onClick={() => setIsSettingsModalOpen(true)}
-                                                    className="p-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-white shrink-0"
-                                                    title="Edit Deck Settings"
-                                                >
+                                            {canEdit && (
+                                                <button onClick={handleStartEdit} className="p-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-white shrink-0">
                                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                                                 </button>
                                             )}
@@ -916,11 +676,6 @@ const DeckDetailsPage = () => {
                                             <div className="text-[10px] md:text-[11px] text-indigo-300 font-black uppercase tracking-[0.15em] md:tracking-[0.2em] opacity-80 whitespace-nowrap">
                                                 {identityInfo.badge} — {identityInfo.theme}
                                             </div>
-                                            {(deck.tags || []).map(tag => (
-                                                <span key={tag} className="bg-gray-800/50 text-gray-400 text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded border border-white/5">
-                                                    {tag}
-                                                </span>
-                                            ))}
                                             {!isOwner && (
                                                 <span className={`text-[9px] md:text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border whitespace-nowrap ${canEdit ? 'bg-green-900/40 text-green-400 border-green-500/30' : 'bg-gray-800 text-gray-400 border-gray-700'}`}>
                                                     {permissionLevel} Access
@@ -994,26 +749,7 @@ const DeckDetailsPage = () => {
                         </div>
 
                         {/* Right: Actions */}
-                        <div className="flex items-center gap-2 md:gap-3 bg-gray-950/40 p-1.5 rounded-2xl border border-white/5 backdrop-blur-md relative self-end lg:self-auto">
-                            <div className="flex gap-1 mr-2 border-r border-white/10 pr-3">
-                                <button
-                                    onClick={undo}
-                                    disabled={!canUndo}
-                                    className={`p-2 rounded-lg transition-colors ${canUndo ? 'bg-gray-800 hover:bg-gray-700 text-white' : 'bg-gray-900/50 text-gray-600 cursor-not-allowed'}`}
-                                    title="Undo (Ctrl+Z)"
-                                >
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
-                                </button>
-                                <button
-                                    onClick={redo}
-                                    disabled={!canRedo}
-                                    className={`p-2 rounded-lg transition-colors ${canRedo ? 'bg-gray-800 hover:bg-gray-700 text-white' : 'bg-gray-900/50 text-gray-600 cursor-not-allowed'}`}
-                                    title="Redo (Ctrl+Y)"
-                                >
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6" /></svg>
-                                </button>
-                            </div>
-
+                        <div className="flex items-center gap-2 md:gap-3 bg-gray-950/40 p-1.5 rounded-2xl border border-white/5 backdrop-blur-md relative self-end lg:self-auto" ref={toolsMenuRef}>
                             <button
                                 onClick={() => setIsStrategyModalOpen(true)}
                                 className="bg-indigo-600 hover:bg-indigo-500 text-white font-black py-2.5 px-4 md:px-6 rounded-xl shadow-lg shadow-indigo-900/40 transition-all flex items-center gap-2 uppercase tracking-widest text-[10px] md:text-xs shrink-0"
@@ -1032,51 +768,37 @@ const DeckDetailsPage = () => {
                                 </button>
                             )}
 
-
-
-                            {/* Grouped Action Menu */}
-                            <div
-                                ref={toolsMenuRef}
-                                className="relative"
-                                onMouseEnter={() => {
-                                    if (toolsMenuTimeoutRef.current) {
-                                        clearTimeout(toolsMenuTimeoutRef.current);
-                                        toolsMenuTimeoutRef.current = null;
-                                    }
-                                    setIsToolsMenuOpen(true);
-                                }}
-                                onMouseLeave={() => {
-                                    if (!isToolsMenuLocked) {
-                                        toolsMenuTimeoutRef.current = setTimeout(() => {
-                                            setIsToolsMenuOpen(false);
-                                        }, 400); // 400ms delay for easier navigation
-                                    }
-                                }}
-                            >
+                            {/* Mobile/Desktop Tools Toggle */}
+                            <div className="relative">
                                 <button
-                                    onClick={() => {
-                                        const newLocked = !isToolsMenuLocked;
-                                        setIsToolsMenuLocked(newLocked);
-                                        setIsToolsMenuOpen(true);
-                                    }}
-                                    className={`flex items-center gap-3 px-6 py-3 rounded-2xl border transition-all duration-300 shadow-xl ${isToolsMenuLocked
-                                        ? 'bg-indigo-600 border-indigo-500 text-white'
-                                        : 'bg-indigo-600/10 border-indigo-500/20 text-indigo-300 hover:text-white hover:border-indigo-500/50 hover:bg-indigo-600/20'
-                                        }`}
+                                    onClick={() => setIsToolsMenuOpen(!isToolsMenuOpen)}
+                                    className={`group relative flex items-center justify-center w-12 h-11 md:w-auto md:px-5 transition-all rounded-xl border ${isToolsMenuOpen ? 'bg-indigo-600 border-indigo-400 text-white' : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700 hover:text-white'} shadow-md`}
+                                    title="Deck Tools & Management"
                                 >
-                                    <div className="flex -space-x-1.5 items-center">
-                                        <div className="w-5 h-5 rounded-full bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center backdrop-blur-sm">
-                                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                                        </div>
-                                        <div className="w-5 h-5 rounded-full bg-purple-500/20 border border-purple-500/40 flex items-center justify-center backdrop-blur-sm">
-                                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" /></svg>
-                                        </div>
-                                        <div className="w-5 h-5 rounded-full bg-blue-500/20 border border-blue-500/40 flex items-center justify-center backdrop-blur-sm">
+                                    {/* Desktop: Action Cluster Icon Set */}
+                                    <div className="hidden md:flex items-center -space-x-2 mr-3 opacity-70 group-hover:opacity-100 transition-opacity">
+                                        <div className="w-6 h-6 rounded-full bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center backdrop-blur-sm">
                                             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg>
                                         </div>
+                                        <div className="w-6 h-6 rounded-full bg-purple-500/20 border border-purple-500/40 flex items-center justify-center backdrop-blur-sm">
+                                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                        </div>
+                                        <div className="w-6 h-6 rounded-full bg-blue-500/20 border border-blue-500/40 flex items-center justify-center backdrop-blur-sm">
+                                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                        </div>
                                     </div>
-                                    <span className="text-xs font-black uppercase tracking-widest">{isToolsMenuLocked ? 'Close' : 'Tools'}</span>
+
+                                    <span className="text-[10px] md:text-xs font-black uppercase tracking-widest">
+                                        {isToolsMenuOpen ? 'Close' : 'Tools'}
+                                    </span>
+
+                                    {/* Mobile Indicator Ring */}
+                                    {!isToolsMenuOpen && (
+                                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-indigo-500 rounded-full border-2 border-gray-900 md:hidden animate-pulse" />
+                                    )}
                                 </button>
+
+                                {/* Grouped Action Menu */}
                                 {isToolsMenuOpen && (
                                     <div className="absolute right-0 top-full mt-3 w-72 md:w-80 bg-gray-950/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden z-[60] animate-in fade-in zoom-in-95 duration-200 origin-top-right">
                                         <div className="p-4 space-y-6">
@@ -1087,11 +809,10 @@ const DeckDetailsPage = () => {
                                                     {canEdit && (
                                                         <button
                                                             onClick={(e) => { e.stopPropagation(); setIsForgeLensOpen(true); setIsToolsMenuOpen(false); }}
-                                                            className="flex flex-col items-center justify-center p-3 bg-white/5 hover:bg-indigo-500/20 rounded-xl border border-white/5 transition-all group lg:min-h-[64px] group"
-                                                            title="Forge Lens: Scan & Add"
+                                                            className="flex flex-col items-center gap-2 p-3 bg-white/5 hover:bg-indigo-500/20 rounded-xl border border-white/5 transition-all group"
                                                         >
-                                                            <svg className="w-5 h-5 text-indigo-400 group-hover:scale-110 transition-transform mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg>
-                                                            <span className="text-[10px] font-bold text-gray-300">Forge Lens</span>
+                                                            <svg className="w-5 h-5 text-indigo-400 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                                            <span className="text-[10px] font-bold text-gray-300">Scan</span>
                                                         </button>
                                                     )}
 
@@ -1103,14 +824,6 @@ const DeckDetailsPage = () => {
                                                     >
                                                         <svg className="w-5 h-5 text-blue-400 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                                                         <span className="text-[10px] font-bold text-gray-300">Search</span>
-                                                    </button>
-
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); setIsTokenModalOpen(true); setIsToolsMenuOpen(false); }}
-                                                        className="flex flex-col items-center justify-center p-3 bg-white/5 hover:bg-indigo-500/20 rounded-xl border border-white/5 transition-all group group"
-                                                    >
-                                                        <svg className="w-5 h-5 text-indigo-400 group-hover:scale-110 transition-transform mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14v6m-3-3h6M6 10h2a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2zm10 0h2a2 2 0 002-2V6a2 2 0 00-2-2h-2a2 2 0 00-2 2v2a2 2 0 002 2zM6 20h2a2 2 0 002-2v-2a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2z" /></svg>
-                                                        <span className="text-[10px] font-bold text-gray-300">View Tokens</span>
                                                     </button>
                                                 </div>
                                             </div>
@@ -1130,118 +843,41 @@ const DeckDetailsPage = () => {
                                                             setIsDoctorOpen(true);
                                                             setIsToolsMenuOpen(false);
                                                         }}
-                                                        className={`flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border transition-all group ${getTierConfig(userProfile?.subscription_tier).features.deckDoctor
+                                                        className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all group ${getTierConfig(userProfile?.subscription_tier).features.deckDoctor
                                                             ? 'bg-indigo-500/10 hover:bg-indigo-500/30 border-indigo-500/20'
                                                             : 'bg-gray-900 border-gray-800 opacity-40 cursor-not-allowed'
                                                             }`}
                                                     >
-                                                        <svg className="w-8 h-8 text-indigo-400 group-hover:scale-110 transition-transform bg-indigo-500/20 p-1.5 rounded-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
-                                                        <span className="text-[10px] font-bold text-indigo-300 uppercase tracking-wider">Deck Doctor</span>
+                                                        <span className="text-xl group-hover:scale-110 transition-transform">🩺</span>
+                                                        <span className="text-[10px] font-bold text-indigo-300">Doctor</span>
                                                     </button>
 
-                                                    {
-                                                        canEdit && (
-                                                            getTierConfig(userProfile?.subscription_tier).features.deckAudit ? (
-                                                                <button
-                                                                    onClick={handleAuditClick}
-                                                                    className="w-full h-full flex flex-col items-center gap-2 p-3 bg-purple-500/10 hover:bg-purple-500/30 border border-purple-500/20 rounded-xl transition-all mr-2"
-                                                                >
-                                                                    <svg className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
-                                                                    <span className="font-bold text-[10px] text-purple-300">Audit</span>
-                                                                </button>
-                                                            ) : (
-                                                                <button
-                                                                    onClick={(e) => { e.stopPropagation(); addToast('Deck Audits are available on Magician tier and above.', 'info'); }}
-                                                                    className="flex flex-col items-center gap-2 p-3 bg-gray-900 border border-gray-800 rounded-xl opacity-40 cursor-not-allowed"
-                                                                >
-                                                                    <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                                                    <span className="text-[10px] font-bold text-gray-500">Audit</span>
-                                                                </button>
-                                                            )
+                                                    {canEdit && (
+                                                        getTierConfig(userProfile?.subscription_tier).features.deckAudit ? (
+                                                            <div onClick={() => setIsToolsMenuOpen(false)} className="h-full">
+                                                                <StartAuditButton type="deck" targetId={deckId} label="Audit" className="w-full h-full flex flex-col items-center gap-2 p-3 bg-purple-500/10 hover:bg-purple-500/30 border border-purple-500/20 rounded-xl transition-all font-bold text-[10px] text-purple-300" />
+                                                            </div>
+                                                        ) : (
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); addToast('Deck Audits are available on Magician tier and above.', 'info'); }}
+                                                                className="flex flex-col items-center gap-2 p-3 bg-gray-900 border border-gray-800 rounded-xl opacity-40 cursor-not-allowed"
+                                                            >
+                                                                <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                                <span className="text-[10px] font-bold text-gray-500">Audit</span>
+                                                            </button>
                                                         )
-                                                    }
+                                                    )}
                                                 </div>
                                             </div>
 
                                             <div className="space-y-2">
-                                                <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] px-2">Tabletop & Print</h3>
-                                                <div className="grid grid-cols-2 gap-2">
-                                                    <Link
-                                                        to={`/solitaire/${deckId}`}
-                                                        className="flex flex-col items-center justify-center p-3 bg-white/5 hover:bg-amber-500/20 rounded-xl border border-amber-500/10 hover:border-amber-500/30 transition-all group lg:min-h-[64px]"
-                                                    >
-                                                        <span className="text-xl mb-1 group-hover:scale-110 transition-transform">🃏</span>
-                                                        <span className="text-[10px] font-bold text-amber-300 uppercase tracking-wider">Playtest</span>
-                                                    </Link>
-
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); setIsPrintModalOpen(true); setIsToolsMenuOpen(false); }}
-                                                        className="flex flex-col items-center justify-center p-3 bg-white/5 hover:bg-gray-500/20 rounded-xl border border-gray-500/10 hover:border-gray-500/30 transition-all group lg:min-h-[64px]"
-                                                    >
-                                                        <span className="text-xl mb-1 group-hover:scale-110 transition-transform">🖨️</span>
-                                                        <span className="text-[10px] font-bold text-gray-300 uppercase tracking-wider">Print</span>
-                                                    </button>
-
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); navigate('/play'); setIsToolsMenuOpen(false); }}
-                                                        className="flex flex-col items-center justify-center p-3 bg-white/5 hover:bg-green-500/20 rounded-xl border border-green-500/10 hover:border-green-500/30 transition-all group lg:min-h-[64px]"
-                                                    >
-                                                        <span className="text-xl mb-1 group-hover:scale-110 transition-transform">🎲</span>
-                                                        <span className="text-[10px] font-bold text-green-300 uppercase tracking-wider">Life Counter</span>
-                                                    </button>
-
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); navigate('/tournaments'); setIsToolsMenuOpen(false); }}
-                                                        className="flex flex-col items-center justify-center p-3 bg-white/5 hover:bg-orange-500/20 rounded-xl border border-orange-500/10 hover:border-orange-500/30 transition-all group lg:min-h-[64px]"
-                                                    >
-                                                        <span className="text-xl mb-1 group-hover:scale-110 transition-transform">🏆</span>
-                                                        <span className="text-[10px] font-bold text-orange-300 uppercase tracking-wider">Tournaments</span>
-                                                    </button>
+                                                <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] px-2">Tabletop Tools</h3>
+                                                <div className="px-2 py-3 bg-white/5 rounded-xl border border-white/5 border-dashed">
+                                                    <p className="text-[9px] text-gray-500 font-bold uppercase tracking-wider text-center italic">Future Tabletop expansion area</p>
                                                 </div>
                                             </div>
 
-                                            {activeTab === 'market' && (
-                                                <div className="space-y-8 animate-fade-in">
-                                                    {/* Value Summary */}
-                                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                                        <div className="bg-gray-900/50 p-4 rounded-2xl border border-white/5">
-                                                            <div className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Total Value</div>
-                                                            <div className="text-3xl font-mono font-bold text-amber-500">
-                                                                ${marketValue?.total?.toFixed(2) || '0.00'}
-                                                            </div>
-                                                        </div>
-                                                        <div className="bg-gray-900/50 p-4 rounded-2xl border border-white/5">
-                                                            <div className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Avg Card Price</div>
-                                                            <div className="text-xl font-mono font-bold text-gray-300">
-                                                                ${marketValue?.average?.toFixed(2) || '0.00'}
-                                                            </div>
-                                                        </div>
-                                                        <div className="bg-gray-900/50 p-4 rounded-2xl border border-white/5">
-                                                            <div className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Most Expensive</div>
-                                                            <div className="text-sm font-bold text-white truncate">{marketValue?.maxCard?.name || '-'}</div>
-                                                            <div className="text-lg font-mono text-indigo-400">${marketValue?.max?.toFixed(2) || '0.00'}</div>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Charts */}
-                                                    <DeckValueChart cards={deckCards} />
-
-                                                    {/* Conversion Actions */}
-                                                    <div className="flex justify-center pt-8">
-                                                        <a
-                                                            href={tcgPlayerLink}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="group relative inline-flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-black uppercase tracking-widest rounded-xl shadow-lg shadow-green-900/50 hover:shadow-green-500/30 transition-all transform hover:-translate-y-1"
-                                                        >
-                                                            <span className="relative z-10 flex items-center gap-2">
-                                                                Buy Deck on TCGPlayer
-                                                                <svg className="w-5 h-5 opacity-70 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                                                            </span>
-                                                        </a>
-                                                    </div>
-                                                </div>
-                                            )}
+                                            {/* Section: Management */}
                                             <div className="space-y-2">
                                                 <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] px-2">Management</h3>
                                                 <div className="bg-white/5 rounded-xl border border-white/5 divide-y divide-white/5">
@@ -1371,94 +1007,38 @@ const DeckDetailsPage = () => {
                                     </div>
                                 )}
                             </h3>
-                            {/* Board Selection & Bulk Actions Container */}
-                            <div className="flex flex-1 items-center justify-end gap-3 mx-4">
-                                {/* Tabs */}
-                                <div className="flex bg-gray-900/50 p-1 rounded-lg border border-gray-700">
-                                    {['mainboard', 'sideboard', 'maybeboard'].map(board => {
-                                        const count = deckCards.filter(c => (c.board || 'mainboard') === board).reduce((a, c) => a + (c.countInDeck || 1), 0);
-                                        const label = board === 'mainboard' ? 'Main' : board === 'sideboard' ? 'Side' : 'Maybe';
-                                        return (
-                                            <button
-                                                key={board}
-                                                onClick={() => setActiveBoard(board)}
-                                                className={`px-3 py-1 text-xs font-bold uppercase tracking-wider rounded transition-all ${activeBoard === board
-                                                    ? 'bg-indigo-600 text-white shadow-lg'
-                                                    : 'text-gray-400 hover:text-white hover:bg-white/5'
-                                                    }`}
-                                            >
-                                                {label} <span className="text-[10px] opacity-60 ml-1">({count})</span>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-
-                                {/* Bulk Toolbar */}
-                                <div className="flex bg-gray-900/50 rounded-lg p-1 gap-1 border border-gray-700 items-center animate-fade-in">
-                                    {isManageMode ? (
-                                        <div className="flex items-center gap-2 mr-2 animate-fade-in">
-                                            <button
-                                                onClick={handleSelectAll}
-                                                className="px-2 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded text-xs px-2 mr-2 border border-gray-600"
-                                            >
-                                                {selectedCardIds.size === deckCards.length ? 'Deselect All' : 'Select All'}
-                                            </button>
-                                            <span className="text-xs text-indigo-300 font-bold ml-2">{selectedCardIds.size} Selected</span>
-                                            <button
-                                                onClick={handleBulkAction}
-                                                disabled={selectedCardIds.size === 0}
-                                                className="px-3 py-1 bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/30 rounded text-xs font-bold uppercase transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                            >
-                                                {deck.is_mockup ? 'Delete' : 'Remove'}
-                                            </button>
-
-                                            {/* Move Actions */}
-                                            <div className="h-4 w-px bg-gray-600 mx-1"></div>
-
-                                            {activeBoard !== 'mainboard' && (
-                                                <button
-                                                    onClick={() => handleBulkMoveToBoard('mainboard')}
-                                                    disabled={selectedCardIds.size === 0}
-                                                    className="px-2 py-1 bg-indigo-500/20 hover:bg-indigo-500 text-indigo-400 hover:text-white border border-indigo-500/30 rounded text-[10px] font-bold uppercase transition-all"
-                                                >
-                                                    To Main
-                                                </button>
-                                            )}
-                                            {activeBoard !== 'sideboard' && (
-                                                <button
-                                                    onClick={() => handleBulkMoveToBoard('sideboard')}
-                                                    disabled={selectedCardIds.size === 0}
-                                                    className="px-2 py-1 bg-indigo-500/20 hover:bg-indigo-500 text-indigo-400 hover:text-white border border-indigo-500/30 rounded text-[10px] font-bold uppercase transition-all"
-                                                >
-                                                    To Side
-                                                </button>
-                                            )}
-                                            {activeBoard !== 'maybeboard' && (
-                                                <button
-                                                    onClick={() => handleBulkMoveToBoard('maybeboard')}
-                                                    disabled={selectedCardIds.size === 0}
-                                                    className="px-2 py-1 bg-indigo-500/20 hover:bg-indigo-500 text-indigo-400 hover:text-white border border-indigo-500/30 rounded text-[10px] font-bold uppercase transition-all"
-                                                >
-                                                    To Maybe
-                                                </button>
-                                            )}
-
-                                            <button
-                                                onClick={() => setIsManageMode(false)}
-                                                className="p-1 px-2 text-gray-400 hover:text-white text-xs"
-                                            >
-                                                Cancel
-                                            </button>
-                                        </div>
-                                    ) : (
+                            <div className="flex bg-gray-900/50 rounded-lg p-1 gap-1 border border-gray-700 items-center">
+                                {isManageMode ? (
+                                    <div className="flex items-center gap-2 mr-2 animate-fade-in">
                                         <button
-                                            onClick={() => setIsManageMode(true)}
-                                            className="text-xs font-bold text-gray-400 hover:text-indigo-400 px-3 transition-colors uppercase mr-1"
+                                            onClick={handleSelectAll}
+                                            className="px-2 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded text-xs px-2 mr-2 border border-gray-600"
                                         >
-                                            Select
+                                            {selectedCardIds.size === deckCards.length ? 'Deselect All' : 'Select All'}
                                         </button>
-                                    )}
-                                </div>
+                                        <span className="text-xs text-indigo-300 font-bold ml-2">{selectedCardIds.size} Selected</span>
+                                        <button
+                                            onClick={handleBulkAction}
+                                            disabled={selectedCardIds.size === 0}
+                                            className="px-3 py-1 bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/30 rounded text-xs font-bold uppercase transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {deck.is_mockup ? 'Delete' : 'Remove'}
+                                        </button>
+                                        <button
+                                            onClick={() => setIsManageMode(false)}
+                                            className="p-1 px-2 text-gray-400 hover:text-white text-xs"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={() => setIsManageMode(true)}
+                                        className="text-xs font-bold text-gray-400 hover:text-indigo-400 px-3 transition-colors uppercase mr-1"
+                                    >
+                                        Select
+                                    </button>
+                                )}
                                 <div className="w-px h-4 bg-gray-700 mx-1" />
                                 <button
                                     onClick={() => setViewMode('grid')}
@@ -1569,8 +1149,8 @@ const DeckDetailsPage = () => {
                     {/* Right: Sidebar (Fixed Width) */}
                     <div className="w-full lg:w-80 space-y-6 shrink-0 order-1 lg:order-2">
 
-                        {/* Commander Mini View - Hide for Binders */}
-                        {!isBinder && deck.commander && (
+                        {/* Commander Mini View */}
+                        {deck.commander && (
                             <div className="bg-gray-950/40 backdrop-blur-3xl rounded-3xl shadow-2xl overflow-hidden border border-white/10 relative group">
                                 <div className="p-4 bg-white/5 border-b border-white/5 flex justify-between items-center">
                                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">
@@ -1590,7 +1170,7 @@ const DeckDetailsPage = () => {
                                     {/* Partner (Render Behind) */}
                                     {deck.commander_partner && (
                                         <div
-                                            className={`transition-all duration-500 ease-out transform absolute top-4
+                                            className={`transition-all duration-500 ease-out transform absolute top-4 
                                             ${activeCommanderIndex === 0 ? 'scale-90 opacity-60 translate-x-4 -rotate-3 z-0 blur-[1px] hover:blur-0' : 'scale-100 opacity-100 z-10 translate-x-0 rotate-0'}
                                             cursor-pointer`}
                                             onClick={(e) => handleFlip(e, deck.commander_partner, 1)}
@@ -1615,7 +1195,7 @@ const DeckDetailsPage = () => {
 
                                     {/* Primary Commander */}
                                     <div
-                                        className={`transition-all duration-500 ease-out transform relative
+                                        className={`transition-all duration-500 ease-out transform relative 
                                         ${deck.commander_partner && activeCommanderIndex === 1 ? 'scale-90 opacity-60 -translate-x-4 rotate-3 z-0 blur-[1px] hover:blur-0 cursor-pointer' : 'scale-100 opacity-100 z-10'}
                                         `}
                                         onClick={(e) => handleFlip(e, deck.commander, 0)}
@@ -1640,63 +1220,38 @@ const DeckDetailsPage = () => {
                             </div>
                         )}
 
-                        {/* AI Tools - Hide for Binders */}
-                        {!isBinder && (
-                            <div className="bg-gray-950/40 backdrop-blur-3xl rounded-3xl shadow-2xl p-6 border border-white/10 relative overflow-hidden group">
-                                <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
-                                    <span className="text-8xl">🤖</span>
-                                </div>
-                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
-                                    {helperName} Tools
-                                </h3>
-                                <div className="space-y-3 relative z-10">
-                                    <button
-                                        onClick={() => {
-                                            if (deck.format?.toLowerCase() === 'standard') {
-                                                addToast("Standard AI Deck Tech coming soon! Please verify on Discord to prioritize.", 'info', 0); // 0 = persistent
-                                            } else {
-                                                navigate(`/decks/${deckId}/build`);
-                                            }
-                                        }}
-                                        className="w-full py-4 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-300 rounded-xl border border-indigo-500/20 hover:border-indigo-500/40 transition-all font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3 group/btn"
-                                    >
-                                        <span className="text-lg group-hover/btn:scale-110 transition-transform">✨</span>
-                                        {helperName}'s Deck Builder
-                                    </button>
-                                    <button
-                                        onClick={() => setIsStatsModalOpen(true)}
-                                        className="w-full py-4 bg-indigo-900/10 hover:bg-indigo-900/20 text-indigo-400 rounded-xl border border-indigo-500/10 hover:border-indigo-500/30 transition-all font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3"
-                                    >
-                                        <span className="text-lg">📊</span>
-                                        Full Deck Stats
-                                    </button>
-                                    <button
-                                        onClick={() => navigate('/tournaments')}
-                                        className="w-full py-4 bg-yellow-600/10 hover:bg-yellow-600/20 text-yellow-500 rounded-xl border border-yellow-500/20 hover:border-yellow-500/40 transition-all font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3"
-                                    >
-                                        <span className="text-lg">🏆</span>
-                                        Tournament Mode
-                                    </button>
-                                </div>
+                        {/* AI Tools */}
+                        <div className="bg-gray-950/40 backdrop-blur-3xl rounded-3xl shadow-2xl p-6 border border-white/10 relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <span className="text-8xl">🤖</span>
                             </div>
-                        )}
-
-                        {/* Deck Settings Modal */}
-                        <DeckSettingsModal
-                            isOpen={isSettingsModalOpen}
-                            onClose={() => setIsSettingsModalOpen(false)}
-                            deck={deck}
-                            onUpdate={() => refreshDeck(false)}
-                        />
-
-                        {/* Audit Modal */}
-                        <StartAuditModal
-                            isOpen={auditState.isOpen}
-                            state={auditState}
-                            onClose={() => setAuditState({ isOpen: false, loading: false })}
-                            onConfirm={handleAuditConfirm}
-                        />
+                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
+                                {helperName} Tools
+                            </h3>
+                            <div className="space-y-3 relative z-10">
+                                <button
+                                    onClick={() => {
+                                        if (deck.format?.toLowerCase() === 'standard') {
+                                            addToast("Standard AI Deck Tech coming soon! Please verify on Discord to prioritize.", 'info', 0); // 0 = persistent
+                                        } else {
+                                            navigate(`/decks/${deckId}/build`);
+                                        }
+                                    }}
+                                    className="w-full py-4 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-300 rounded-xl border border-indigo-500/20 hover:border-indigo-500/40 transition-all font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3 group/btn"
+                                >
+                                    <span className="text-lg group-hover/btn:scale-110 transition-transform">✨</span>
+                                    {helperName}'s Deck Builder
+                                </button>
+                                <button
+                                    onClick={() => setIsStatsModalOpen(true)}
+                                    className="w-full py-4 bg-indigo-900/10 hover:bg-indigo-900/20 text-indigo-400 rounded-xl border border-indigo-500/10 hover:border-indigo-500/30 transition-all font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3"
+                                >
+                                    <span className="text-lg">📊</span>
+                                    Full Deck Stats
+                                </button>
+                            </div>
+                        </div>
 
                         {/* External Sites */}
                         <div className="bg-gray-950/40 backdrop-blur-3xl rounded-3xl shadow-2xl overflow-hidden border border-white/10 relative group">
@@ -1738,17 +1293,12 @@ const DeckDetailsPage = () => {
                 {/* Mobile FAB / Action Bar if needed */}
 
                 {/* Share Modal */}
-                <ShareModal
+                < ShareModal
                     isOpen={isShareModalOpen}
                     onClose={() => setIsShareModalOpen(false)}
                     deck={deck}
-                    onUpdateDeck={(updates) => {
-                        // Optimistically update sharing state if needed
-                        if (updates.is_public !== undefined) deck.is_public = updates.is_public;
-                        if (updates.shareSlug !== undefined) deck.shareSlug = updates.shareSlug;
-                    }}
+                    onUpdateDeck={(updated) => Object.assign(deck, updated)}
                 />
-
 
                 {/* Doctor Modal */}
                 <DeckDoctorModal
@@ -1765,10 +1315,6 @@ const DeckDetailsPage = () => {
                     isOpen={isSearchOpen}
                     onClose={() => setIsSearchOpen(false)}
                     onAddCard={handleAddToDeck}
-                    onOpenForgeLens={() => {
-                        setIsSearchOpen(false);
-                        setIsForgeLensOpen(true);
-                    }}
                 />
 
                 {/* Confirmation Modal */}
@@ -1810,7 +1356,6 @@ const DeckDetailsPage = () => {
                     onClose={() => setIsAddCollectionOpen(false)}
                     deck={deck}
                     deckCards={deckCards}
-                    onCardAdded={() => refreshDeck(true)}
                 />
                 {/* Stats Modal */}
                 <DeckStatsModal
@@ -1823,10 +1368,9 @@ const DeckDetailsPage = () => {
                 <ForgeLensModal
                     isOpen={isForgeLensOpen}
                     onClose={() => setIsForgeLensOpen(false)}
-                    onFinish={async (scannedBatch, options = {}) => {
+                    onFinish={async (scannedBatch) => {
                         if (!scannedBatch.length) return;
                         try {
-                            const { targetDeckId, additionMode } = options;
                             const payload = scannedBatch.map(item => ({
                                 name: item.name,
                                 scryfall_id: item.scryfall_id,
@@ -1840,47 +1384,17 @@ const DeckDetailsPage = () => {
                                 tags: []
                             }));
 
-                            const apiMode = additionMode === 'transfer' ? 'transfer_to_deck' : 'merge';
-                            // Use the targetDeckId from options if provided, otherwise fallback to current deckId
-                            const finalDeckId = targetDeckId || deckId;
-
-                            await deckService.batchAddCardsToDeck(currentUser.uid, finalDeckId, payload, apiMode);
-
-                            const destination = targetDeckId ? (targetDeckId === deckId ? 'this deck' : 'another deck') : 'your collection';
-                            addToast(`Successfully ${additionMode === 'transfer' ? 'moved' : 'added'} ${scannedBatch.length} cards to ${destination}!`, 'success');
-
-                            if (finalDeckId === deckId) refreshDeck();
+                            await deckService.batchAddCardsToDeck(currentUser.uid, deckId, payload);
+                            addToast(`Successfully added ${scannedBatch.length} cards to deck!`, 'success');
+                            refreshDeck();
                         } catch (err) {
                             console.error("Forge Lens Add Failed", err);
                             addToast("Failed to add scanned cards.", "error");
                         }
                     }}
                 />
-
-                <TokenModal
-                    isOpen={isTokenModalOpen}
-                    onClose={() => setIsTokenModalOpen(false)}
-                    deckCards={deckCards}
-                />
-
-                <StartAuditModal
-                    isOpen={auditState.isOpen}
-                    onClose={() => setAuditState(prev => ({ ...prev, isOpen: false }))}
-                    onConfirm={handleAuditConfirm}
-                    type="deck"
-                    targetId={deckId}
-                    loading={auditState.loading}
-                    activeSession={auditState.activeSession}
-                />
-
-                <PrintSettingsModal
-                    isOpen={isPrintModalOpen}
-                    onClose={() => setIsPrintModalOpen(false)}
-                    cards={deckCards}
-                    deckName={deck?.name || 'Proxy Deck'}
-                />
             </div>
-        </div >
+        </div>
     );
 };
 

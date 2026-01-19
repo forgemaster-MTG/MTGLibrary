@@ -34,6 +34,23 @@ async function authMiddleware(req, res, next) {
 		// Try to find user row in Postgres by firestore_id
 		let user = await knex('users').where({ firestore_id: uid }).first();
 
+		// Fallback: If not found by UID, try to find by EMAIL (link accounts)
+		if (!user && decoded.email) {
+			user = await knex('users').whereRaw('lower(email) = ?', [decoded.email.toLowerCase()]).first();
+			if (user) {
+				console.log(`[Auth] Linked new auth UID ${uid} to existing user ${user.id} (${user.email})`);
+				// Optional: We could update the firestore_id here, but that might break the *other* login method if we overwrite it.
+				// Better to just let them share the row.
+				// However, the `firestore_id` column is unique? Let's check schema.
+				// If firestore_id is unique, we can't easily "add" this new UID to the same row without schema changes (e.g. array of IDs).
+				// BUT, if we just return this `user` object, the efficient lookups later might fail if they rely on `firestore_id`.
+				// Looking at the code:
+				// app.get('/me') uses `req.user.id`.
+				// Most logic uses `req.user.id`.
+				// SO simply returning the user row here is sufficient for the session to work.
+			}
+		}
+
 		// If not found, attempt to fetch profile from Firestore 'users' collection
 		if (!user) {
 			// Check for referral code in headers

@@ -552,39 +552,33 @@ router.get('/:id/stats', authMiddleware, async (req, res) => {
         const session = await knex('audit_sessions').where({ id, user_id: req.user.id }).first();
         if (!session) return res.status(404).json({ error: 'Session not found' });
 
-        const { items, deckMap } = await (async () => {
-            // Fetch items with Card Data for robust grouping
-            const rawItems = await knex('audit_items')
-                .leftJoin(
-                    knex('cards').distinctOn(knex.raw('lower(setcode)'), 'number').select('setcode', 'number', 'data').as('cards'),
-                    function () {
-                        this.on(knex.raw('lower("audit_items"."set_code")'), '=', knex.raw('lower("cards"."setcode")'))
-                            .andOn('audit_items.collector_number', '=', 'cards.number')
-                    }
-                )
-                .select(
-                    'audit_items.*',
-                    knex.raw("COALESCE(cards.data, '{}'::jsonb) as card_data")
-                )
-                .where({ session_id: id });
-
-            const deckIds = [...new Set(rawItems.map(i => i.deck_id).filter(Boolean))];
-            const deckList = await knex('user_decks')
-                .whereIn('id', deckIds)
-                .select('id', 'name', 'commander');
-
-            const dMap = deckList.reduce((acc, d) => {
-                let colors = [];
-                if (d.commander && d.commander.color_identity) colors = d.commander.color_identity;
-                else if (d.commander && d.commander.colors) colors = d.commander.colors;
-                return { ...acc, [d.id]: { name: d.name, colors } };
-            }, {});
-
-            return { items: rawItems, deckMap: dMap };
-        })();
+        const items = await knex('audit_items').where({ session_id: id });
 
         // 1. Deck Stats
         const deckStats = {};
+        const deckIds = [...new Set(items.map(i => i.deck_id).filter(Boolean))];
+
+        // Use commander colors as proxy for deck colors
+        const decks = await knex('user_decks')
+            .whereIn('id', deckIds)
+            .select('id', 'name', 'commander');
+
+        const deckMap = decks.reduce((acc, d) => {
+            // Extract colors from commander object
+            let colors = [];
+            if (d.commander && d.commander.color_identity) {
+                colors = d.commander.color_identity;
+            } else if (d.commander && d.commander.colors) {
+                colors = d.commander.colors;
+            }
+            return {
+                ...acc,
+                [d.id]: {
+                    name: d.name,
+                    colors: colors
+                }
+            };
+        }, {});
 
         const stats = {
             total_cards: items.length,
@@ -600,40 +594,9 @@ router.get('/:id/stats', authMiddleware, async (req, res) => {
             mismatches: []
         };
 
-        const { groupBy } = req.query; // 'set', 'type', 'rarity', 'color'
-
-        // Helper to get group key based on user preference
-        const getGroupKey = (item) => {
-            const data = item.card_data || {};
-
-            if (groupBy === 'type') {
-                const typeLine = (data.type_line || '').toLowerCase();
-                if (typeLine.includes('creature')) return 'Creature';
-                if (typeLine.includes('instant')) return 'Instant';
-                if (typeLine.includes('sorcery')) return 'Sorcery';
-                if (typeLine.includes('artifact')) return 'Artifact';
-                if (typeLine.includes('enchantment')) return 'Enchantment';
-                if (typeLine.includes('planeswalker')) return 'Planeswalker';
-                if (typeLine.includes('land')) return 'Land';
-                return 'Other';
-            }
-
-            if (groupBy === 'rarity') {
-                const r = data.rarity || 'unknown';
-                return r.charAt(0).toUpperCase() + r.slice(1);
-            }
-
-            if (groupBy === 'color') {
-                const colors = data.color_identity || [];
-                if (colors.length === 0) return 'Colorless';
-                if (colors.length > 1) return 'Multicolor';
-                const map = { 'W': 'White', 'U': 'Blue', 'B': 'Black', 'R': 'Red', 'G': 'Green' };
-                return map[colors[0]] || 'Unknown';
-            }
-
-            // Default: 'set'
-            return (item.set_code || 'Unknown').toUpperCase();
-        };
+        // Helper to get group key
+        // For MVP: Group Loose by Set Code
+        const getGroupKey = (item) => (item.set_code || 'Unknown').toUpperCase();
 
         for (const item of items) {
             const isVerified = item.actual_quantity === item.expected_quantity;
@@ -685,6 +648,7 @@ router.get('/:id/stats', authMiddleware, async (req, res) => {
         }
 
         stats.decks = Object.values(deckStats);
+        // Convert groups to array
         stats.collection.groups = Object.values(stats.collection.groups);
 
         res.json(stats);

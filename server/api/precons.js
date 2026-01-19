@@ -235,27 +235,91 @@ router.post('/:id/create', auth, async (req, res) => {
       await knex('user_decks').where({ id: newDeck.id }).update({ commander: JSON.stringify(commanderData) });
     }
 
-    // 2. Insert Cards
-    const cardsToInsert = cards.map(c => {
-      const cardData = c.card_data || {};
-      const isWishlist = mode === 'wishlist';
+    // 2. Insert or Assign Cards
+    const cardsToInsert = [];
 
-      return {
-        user_id: userId,
-        scryfall_id: c.scryfall_id,
-        name: c.card_name,
-        set_code: c.set_code,
-        collector_number: c.collector_number,
-        finish: c.finish,
-        image_uri: cardData.image_uris?.normal || null,
-        count: c.quantity,
-        data: cardData,
-        deck_id: newDeck.id,
-        is_wishlist: isWishlist,
-        tags: JSON.stringify(isWishlist ? [] : ['PreconSource']),
-        added_at: new Date()
-      };
-    });
+    // Fetch user collection for matching if needed
+    let binderCards = [];
+    if (req.body.useExisting) {
+      // Fetch potential matches from binder
+      binderCards = await knex('user_cards')
+        .where({ user_id: userId })
+        .whereNull('deck_id')
+        .select('*');
+    }
+
+    for (const c of cards) {
+      const cardData = c.card_data || {};
+      const isWishlist = mode === 'wishlist'; // Force wishlist if mode is wishlist
+
+      let assigned = false;
+
+      // Try to find existing card if requested
+      if (req.body.useExisting) {
+        // Natural Key Match
+        const matchIndex = binderCards.findIndex(bc =>
+          (bc.set_code === c.set_code || bc.set_code === '???') &&
+          (bc.collector_number === c.collector_number || bc.collector_number === '0') &&
+          (bc.finish === c.finish || bc.finish === 'nonfoil')
+        );
+
+        if (matchIndex !== -1) {
+          const match = binderCards[matchIndex];
+          // Assign to deck
+          // Logic: If count > qty needed?
+          // Precon usually needs 1. If we have 1, we take it.
+          // If we have 4, we take 1 (decrement count, insert new row linked to deck? or just split?)
+          // "Split Stack" logic:
+          if (match.count > c.quantity) {
+            // Decrement binder stack
+            await knex('user_cards').where({ id: match.id }).decrement('count', c.quantity);
+            // Insert NEW card linked to deck with same data
+            cardsToInsert.push({
+              user_id: userId,
+              scryfall_id: match.scryfall_id, // Use owned ID
+              name: match.name,
+              set_code: match.set_code,
+              collector_number: match.collector_number,
+              finish: match.finish,
+              image_uri: match.image_uri,
+              count: c.quantity,
+              data: match.data,
+              deck_id: newDeck.id,
+              is_wishlist: isWishlist, // Should match deck mode? Or inherit? Usually deck items aren't wishlist unless deck is mockup.
+              tags: JSON.stringify(isWishlist ? [] : ['PreconSource']),
+              added_at: new Date()
+            });
+          } else {
+            // Move entire stack (or exactly 1)
+            // If match.count == c.quantity, move it.
+            // If match.count < c.quantity? Take it, and insert missing?
+            // Assume match.count == 1 usually.
+            await knex('user_cards').where({ id: match.id }).update({ deck_id: newDeck.id });
+          }
+          // Remove from local binder array so we don't double use
+          binderCards.splice(matchIndex, 1);
+          assigned = true;
+        }
+      }
+
+      if (!assigned) {
+        cardsToInsert.push({
+          user_id: userId,
+          scryfall_id: c.scryfall_id,
+          name: c.card_name,
+          set_code: c.set_code,
+          collector_number: c.collector_number,
+          finish: c.finish,
+          image_uri: cardData.image_uris?.normal || null,
+          count: c.quantity,
+          data: cardData,
+          deck_id: newDeck.id,
+          is_wishlist: isWishlist,
+          tags: JSON.stringify(isWishlist ? [] : ['PreconSource']),
+          added_at: new Date()
+        });
+      }
+    }
 
     if (cardsToInsert.length > 0) {
       await knex('user_cards').insert(cardsToInsert);
@@ -266,6 +330,95 @@ router.post('/:id/create', auth, async (req, res) => {
   } catch (err) {
     console.error('[precons] create deck error', err);
     res.status(500).json({ error: 'db error: ' + err.message });
+  }
+});
+
+// Check Ownership Status for Precon Cards
+router.post('/:id/check-ownership', auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    // 1. Fetch Precon Cards
+    const cards = await knex('precon_cards')
+      .leftJoin('cards', knex.raw("precon_cards.scryfall_id = CAST(cards.data->>'id' AS TEXT)"))
+      .select('precon_cards.*', 'cards.data as card_data')
+      .where('precon_cards.precon_id', id);
+
+    if (cards.length === 0) return res.status(404).json({ error: 'Precon not found or empty' });
+
+    // 2. Fetch User's Entire Collection for these cards
+    // Optimization: We can't easily "WHERE IN" for multi-column keys in all SQL dialects cleanly efficiently without tuples
+    // But we can fetch potentially relevant cards or just fetch all user cards (expensive?)
+    // Or iterate?
+    // Better: Fetch all user cards that match the SETS involved?
+    // Or just fetch all cards for the user?
+    // If user has 20k cards, fetching all is okay-ish (few MB).
+    // Let's try fetching all "Binder" cards? Or all cards?
+    // "Do I own this?" implies "Is it in my collection anywhere?" or "Is it available?".
+    // Let's assume global ownership check first.
+
+    const userCards = await knex('user_cards')
+      .select('set_code', 'collector_number', 'finish', 'count', 'deck_id')
+      .where({ user_id: userId });
+
+    // Index User Cards by Natural Key
+    // Key: set_code|collector_number|finish
+    const ownershipMap = new Map();
+    userCards.forEach(uc => {
+      const key = `${uc.set_code}|${uc.collector_number}|${uc.finish}`.toLowerCase();
+      if (!ownershipMap.has(key)) ownershipMap.set(key, 0);
+      ownershipMap.set(key, ownershipMap.get(key) + (uc.count || 1));
+    });
+
+    let ownedCount = 0;
+    let totalRequired = 0;
+    const missing = [];
+
+    for (const c of cards) {
+      const requiredQty = c.quantity || 1;
+      totalRequired += requiredQty;
+
+      // Card props
+      const set = (c.set_code || '').toLowerCase();
+      const num = (c.collector_number || '').toLowerCase();
+      const finish = (c.finish || 'nonfoil').toLowerCase();
+      const key = `${set}|${num}|${finish}`;
+
+      const userOwned = ownershipMap.get(key) || 0;
+
+      if (userOwned >= requiredQty) {
+        ownedCount += requiredQty;
+        // Decrease map availability if we want to simulate "consuming" copies?
+        // No, user might own 1 copy and logic is "Do I own it?".
+        // If I own 1 and deck needs 2, I own 1.
+        // But simpler: "Fully Owned?"
+      } else {
+        ownedCount += userOwned;
+        missing.push({
+          name: c.card_name,
+          set: c.set_code,
+          number: c.collector_number,
+          required: requiredQty,
+          owned: userOwned
+        });
+      }
+    }
+
+    const percent = totalRequired > 0 ? Math.round((ownedCount / totalRequired) * 100) : 0;
+
+    res.json({
+      preconId: id,
+      totalCards: totalRequired,
+      ownedCards: ownedCount,
+      percentOwned: percent,
+      isFullyOwned: percent === 100,
+      missingCards: missing
+    });
+
+  } catch (err) {
+    console.error('[precons] check-ownership error', err);
+    res.status(500).json({ error: 'db error' });
   }
 });
 

@@ -86,6 +86,8 @@ export const api = {
     put: (endpoint, body) => request('PUT', endpoint, body),
     delete: (endpoint, body) => request('DELETE', endpoint, body),
     batchAddToCollection: (cards, mode = 'merge') => request('POST', '/api/collection/batch', { cards, mode }),
+    batchDeleteCollection: (ids) => request('DELETE', '/api/collection/batch', { ids }),
+    batchAddCardsToDeck: (deckId, cards) => request('POST', `/api/decks/${deckId}/cards/batch`, { cards }),
     getBugs: () => request('GET', '/bugs').then(res => res.content),
     updateUser: (id, data) => request('PUT', `/api/users/${id}`, data),
     getBinders: () => request('GET', '/api/binders'),
@@ -120,6 +122,10 @@ export const api = {
     // Releases
     getReleases: () => request('GET', '/api/releases'),
     publishRelease: (data) => request('POST', '/api/releases', data),
+
+    // Precons
+    checkPreconOwnership: (id) => request('POST', `/api/precons/${id}/check-ownership`),
+    createPreconDeck: (id, options = {}) => request('POST', `/api/precons/${id}/create`, options),
 
     // Audit
     getActiveAudit: () => request('GET', '/api/audit/active'),
