@@ -273,7 +273,11 @@ const CollectionPage = () => {
     }, [sharedSources]);
 
     const deckOptions = useMemo(() => {
-        return decks.map(d => ({ value: d.id, label: d.name }));
+        const options = decks.map(d => ({ value: d.id, label: d.name }));
+        return [
+            { value: 'none', label: 'Unassigned (No Deck)' },
+            ...options
+        ];
     }, [decks]);
 
     // Advanced Sorting Internal Comparator
@@ -379,7 +383,11 @@ const CollectionPage = () => {
 
             // Decks
             if (filters.decks.length > 0) {
-                if (!filters.decks.includes(card.deckId)) return false;
+                const match = filters.decks.some(id => {
+                    if (id === 'none') return !card.deckId;
+                    return card.deckId === id;
+                });
+                if (!match) return false;
             }
 
             // Users
