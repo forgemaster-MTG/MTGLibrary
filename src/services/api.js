@@ -139,7 +139,10 @@ export const api = {
 
     swapFoilAuditItem: (sessionId, itemId) => request('POST', `/api/audit/${sessionId}/item/${itemId}/swap-foil`),
 
+    addAuditItem: (sessionId, data) => request('POST', `/api/audit/${sessionId}/items/add`, data),
+
     cancelAudit: (id) => request('POST', `/api/audit/${id}/cancel`),
     finalizeAudit: (id) => request('POST', `/api/audit/${id}/finalize`),
-    reviewAuditSection: (id, data) => request('POST', `/api/audit/${id}/section/review`, data)
+    reviewAuditSection: (id, data) => request('POST', `/api/audit/${id}/section/review`, data),
+    batchUpdateAuditItems: (id, updates) => request('POST', `/api/audit/${id}/items/batch-update`, { updates })
 };

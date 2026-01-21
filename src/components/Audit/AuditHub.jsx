@@ -286,7 +286,9 @@ export default function AuditHub() {
                                 </thead>
                                 <tbody className="text-sm divide-y divide-gray-700/50">
                                     {stats.mismatches.map(m => {
-                                        const diff = m.actual - m.expected;
+                                        const expected = m.expected_qty !== undefined ? m.expected_qty : m.expected;
+                                        const actual = m.scanned_qty !== undefined ? m.scanned_qty : (m.actual !== undefined ? m.actual : 0);
+                                        const diff = actual - expected;
                                         return (
                                             <tr key={m.id} className="text-white hover:bg-white/5 transition-colors">
                                                 <td className="p-4 font-bold max-w-xs truncate">{m.name} {m.finish === 'foil' && <span className="text-xs text-yellow-500 ml-1">FOIL</span>}</td>
@@ -298,8 +300,8 @@ export default function AuditHub() {
                                                         <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-purple-500"></span> Collection</span>
                                                     )}
                                                 </td>
-                                                <td className="p-4 text-center font-mono text-gray-400">{m.expected}</td>
-                                                <td className="p-4 text-center font-mono font-bold">{m.actual}</td>
+                                                <td className="p-4 text-center font-mono text-gray-400">{expected}</td>
+                                                <td className="p-4 text-center font-mono font-bold">{actual}</td>
                                                 <td className={`p-4 text-right font-mono font-bold ${diff > 0 ? 'text-green-400' : 'text-red-400'}`}>
                                                     {diff > 0 ? `+${diff}` : diff}
                                                 </td>

@@ -6,16 +6,19 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useCardModal } from '../../contexts/CardModalContext';
 import ForgeLensModal from '../modals/ForgeLensModal';
 import { useToast } from '../../contexts/ToastContext';
+import {
+    Swords, Mountain, Sparkles, Cog, Zap, Scroll, Crown,
+    Box, Ghost, User, Star
+} from 'lucide-react';
 
-// --- Sub-Component: Audit Item Card ---
 // --- Sub-Component: Audit Item Card ---
 const AuditItemCard = React.memo(({ item, onUpdate, onViewDetails, onSwapFoil }) => {
     const [isFlipped, setIsFlipped] = useState(false);
 
     // Status Logic
     const isReviewed = item.reviewed;
-    const isMatched = isReviewed && item.actual_quantity === item.expected_quantity; // Green
-    const isMismatch = isReviewed && item.actual_quantity !== item.expected_quantity; // Red
+    const isMatched = isReviewed && item.scanned_qty === item.expected_qty; // Green
+    const isMismatch = isReviewed && item.scanned_qty !== item.expected_qty; // Red
     const isPending = !isReviewed; // Neutral
 
     const isFoil = item.finish === 'foil';
@@ -60,7 +63,7 @@ const AuditItemCard = React.memo(({ item, onUpdate, onViewDetails, onSwapFoil })
         // "Check" button.
         // Confirm match: Set quantity to expected and reviewed=true.
         if (!isMatched) {
-            onUpdate(item.id, item.expected_quantity, true);
+            onUpdate(item.id, item.expected_qty, true);
         }
     };
 
@@ -124,7 +127,7 @@ const AuditItemCard = React.memo(({ item, onUpdate, onViewDetails, onSwapFoil })
                 <h3 className="text-white font-black text-lg leading-tight mb-1 truncate" title={displayName}>{displayName}</h3>
                 <div className="text-xs text-gray-500 font-mono mb-4 flex items-center justify-between">
                     <span>#{item.collector_number} · {item.set_code.toUpperCase()}</span>
-                    <span className="text-gray-400 font-bold">Goal: {item.expected_quantity}</span>
+                    <span className="text-gray-400 font-bold">Goal: {item.expected_qty}</span>
                 </div>
 
                 {/* Actions */}
@@ -132,8 +135,7 @@ const AuditItemCard = React.memo(({ item, onUpdate, onViewDetails, onSwapFoil })
                     {/* Mismatch Button (X) */}
                     <button
                         onClick={handleMismatchClick}
-                        disabled={isMismatch} // Disabled if already mismatch? No, maybe they want to verify 0.
-                        // Actually, if it's mismatch, input is editable. Button not strictly needed, but good for Reset-to-0.
+                        disabled={isMismatch}
                         className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors 
                             ${isMismatch ? 'bg-red-500 text-white shadow-lg shadow-red-500/20' : 'text-gray-500 hover:text-red-400 hover:bg-red-500/10'}`}
                         title="Mark Mismatch (Set to 0)"
@@ -146,7 +148,7 @@ const AuditItemCard = React.memo(({ item, onUpdate, onViewDetails, onSwapFoil })
                         <input
                             type="number"
                             min="0"
-                            value={item.actual_quantity}
+                            value={item.scanned_qty}
                             disabled={!isEditable}
                             onChange={handleInputChange}
                             className={`w-full bg-gray-900 border rounded-lg px-3 py-1.5 font-mono text-center focus:outline-none focus:ring-2 transition-colors 
@@ -160,7 +162,7 @@ const AuditItemCard = React.memo(({ item, onUpdate, onViewDetails, onSwapFoil })
                     {/* Match Button (Check) */}
                     <button
                         onClick={handleMatchClick}
-                        disabled={isMatched} // Disabled if already matched
+                        disabled={isMatched}
                         className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors 
                             ${isMatched ? 'bg-green-500 text-white shadow-lg shadow-green-500/20' : 'text-gray-500 hover:text-green-400 hover:bg-green-500/10'}`}
                         title="Confirm Match"
@@ -192,26 +194,102 @@ const ManaPips = ({ items }) => (
     </div>
 );
 
-const FolderCard = ({ name, count, onClick, type }) => {
+const TypeIcon = ({ type }) => {
+    const t = type.toLowerCase();
+    const className = "w-12 h-12 text-gray-400 group-hover:text-indigo-400 transition-colors";
+
+    // Lucide Icons Mapping
+    // Creature: Swords or Ghost or Skull. Using Swords for 'Combat' feel.
+    if (t.includes('artifact')) return <Cog className="w-12 h-12 text-gray-400 group-hover:text-slate-300" strokeWidth={1.5} />;
+
+    // Artifact Creature -> Cog or Sword? 
+    // Usually Creature type is more defining for gameplay visualization in folders.
+    // If it has both, we can default to one. The 'if' order matters. 
+    // Putting Artifact first means Artifact Creature gets Cog.
+    // Putting Creature first means Artifact Creature gets Swords.
+    // User complaint was "Creature is a smile face". 
+
+    if (t.includes('land')) return <Mountain className="w-12 h-12 text-gray-400 group-hover:text-amber-600" strokeWidth={1.5} />;
+
+    if (t.includes('creature')) return <Swords className="w-12 h-12 text-gray-400 group-hover:text-red-400" strokeWidth={1.5} />;
+
+    if (t.includes('enchantment')) return <Sparkles className="w-12 h-12 text-gray-400 group-hover:text-yellow-400" strokeWidth={1.5} />;
+
+    if (t.includes('instant')) return <Zap className="w-12 h-12 text-gray-400 group-hover:text-blue-500" strokeWidth={1.5} fill="currentColor" fillOpacity={0.2} />;
+
+    if (t.includes('sorcery')) return <Scroll className="w-12 h-12 text-gray-400 group-hover:text-orange-500" strokeWidth={1.5} />;
+
+    if (t.includes('planeswalker')) return <Crown className="w-12 h-12 text-gray-400 group-hover:text-purple-500" strokeWidth={1.5} />;
+
+    // Fallback
+    return <Box className={className} strokeWidth={1} />;
+};
+
+const FolderCard = ({ name, count, reviewed, onClick, type }) => {
     const isMana = (type === 'color' || type === 'color_identity') && name !== 'Unknown';
+    const isSet = (type === 'set' || type === 'set_code');
+    const isType = (type === 'type' || type === 'type_line');
+
+    const progress = Math.round((reviewed / count) * 100) || 0;
+    const isComplete = progress === 100;
 
     return (
         <div
             onClick={onClick}
             className="group relative flex flex-col aspect-[4/3] bg-gray-800 rounded-xl overflow-hidden border border-gray-700 hover:border-indigo-500/50 cursor-pointer transition-all hover:-translate-y-1 hover:shadow-xl"
         >
-            <div className="flex-1 flex items-center justify-center bg-gray-900/50 group-hover:bg-gray-800 transition-colors">
+            {/* Progress Background Gradient */}
+            <div
+                className="absolute inset-0 bg-gradient-to-t from-indigo-900/40 to-transparent transition-all duration-500"
+                style={{
+                    height: `${progress}%`,
+                    top: 'auto',
+                    bottom: 0,
+                    opacity: 0.3
+                }}
+            />
+
+            <div className="flex-1 flex items-center justify-center bg-gray-900/50 group-hover:bg-gray-800 transition-colors p-4 z-10">
                 {isMana ? (
                     <ManaPips items={name} />
+                ) : isSet ? (
+                    <img
+                        src={`https://svgs.scryfall.io/sets/${name.toLowerCase()}.svg`}
+                        alt={name}
+                        className="w-20 h-20 opacity-70 group-hover:opacity-100 transition-opacity filter drop-shadow-lg"
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                    />
+                ) : isType ? (
+                    <TypeIcon type={name} />
                 ) : (
                     <svg className="w-16 h-16 text-gray-700 group-hover:text-indigo-500/50 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                     </svg>
                 )}
             </div>
-            <div className="p-4 bg-gray-900 border-t border-gray-800">
-                <div className="text-white font-bold truncate text-lg">{name || 'Unknown'}</div>
-                <div className="text-xs text-gray-500 font-mono uppercase tracking-wider">{count} Items</div>
+
+            <div className="p-4 bg-gray-900/90 border-t border-gray-800 z-10 backdrop-blur-sm">
+                <div className="flex justify-between items-start mb-1">
+                    <div className="text-white font-bold truncate text-lg uppercase tracking-tight">{name || 'Unknown'}</div>
+                    {isComplete && <span className="text-green-400"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg></span>}
+                </div>
+
+                <div className="flex items-center justify-between text-xs font-mono uppercase tracking-wider">
+                    <span className={isComplete ? "text-green-400" : "text-gray-500"}>
+                        {reviewed} / {count} Verified
+                    </span>
+                    <span className={`font-bold ${isComplete ? "text-green-400" : "text-indigo-400"}`}>
+                        {progress}%
+                    </span>
+                </div>
+
+                {/* Mini Progress Bar Line */}
+                <div className="w-full h-1 bg-gray-800 rounded-full mt-2 overflow-hidden">
+                    <div
+                        className={`h-full transition-all duration-500 ${isComplete ? 'bg-green-500' : 'bg-indigo-500'}`}
+                        style={{ width: `${progress}%` }}
+                    />
+                </div>
             </div>
         </div>
     );
@@ -239,6 +317,8 @@ export default function AuditWizard() {
     // Pagination for LEAF nodes
     const [visibleCount, setVisibleCount] = useState(50);
     const loadMoreRef = useRef(null);
+
+    const [viewAllOverride, setViewAllOverride] = useState(false);
 
     // Filters
     const [filter, setFilter] = useState('all'); // 'all', 'pending', 'mismatch'
@@ -401,7 +481,7 @@ export default function AuditWizard() {
         });
     }, [allItems, currentPath, filter, leafSortOrder]);
 
-    const isLeaf = currentPath.length >= groupHierarchy.length;
+    const isLeaf = viewAllOverride || currentPath.length >= groupHierarchy.length;
     const currentGroupType = groupHierarchy[currentPath.length];
 
     // Grouping Logic for Folder View
@@ -413,26 +493,97 @@ export default function AuditWizard() {
 
         items.forEach(item => {
             const val = getGroupValue(item, currentGroupType);
-            if (!groups[val]) groups[val] = 0;
-            groups[val]++;
+            if (!groups[val]) groups[val] = { count: 0, reviewed: 0 };
+            groups[val].count++;
+            if (item.reviewed) groups[val].reviewed++;
         });
 
         // Sort folders naturally (alphabetic)
         return Object.entries(groups)
-            .map(([name, count]) => ({ name, count, type: currentGroupType }))
+            .map(([name, stats]) => ({
+                name,
+                count: stats.count,
+                reviewed: stats.reviewed,
+                type: currentGroupType
+            }))
             .sort((a, b) => a.name.localeCompare(b.name));
     }, [allItems, currentPath, isLeaf, groupHierarchy]);
 
 
     const handleFolderClick = (name) => {
+        setViewAllOverride(false);
         setCurrentPath([...currentPath, { type: currentGroupType, value: name }]);
     };
 
     const handleBreadcrumbClick = (index) => {
         // Go back to that index
         // -1 = root
+        setViewAllOverride(false);
         if (index === -1) setCurrentPath([]);
         else setCurrentPath(currentPath.slice(0, index + 1));
+    };
+
+    const [addCardState, setAddCardState] = useState({
+        collectorNumber: '',
+        finish: 'nonfoil',
+        setCode: '',
+        isSubmitting: false
+    });
+
+    // Auto-populate setCode if context is available
+    useEffect(() => {
+        let foundSet = '';
+
+        // Priority 1: Check if we are drilled down into a Set folder
+        const setStep = currentPath.find(step => step.type === 'set' || step.type === 'set_code');
+        if (setStep) {
+            foundSet = setStep.value;
+        }
+        // Priority 2: Check URL group param (if it looks like a set code)
+        else if (groupParam && groupParam.length <= 4) {
+            foundSet = groupParam;
+        }
+        // Priority 3: Check Audit Session target (if it's a Set Audit)
+        else if (session && session.type === 'set' && session.target_id) {
+            foundSet = session.target_id;
+        }
+
+        if (foundSet) {
+            setAddCardState(prev => ({ ...prev, setCode: foundSet.toUpperCase() }));
+        }
+    }, [groupParam, session, currentPath]);
+
+    const handleAddMissingCard = async (e) => {
+        e.preventDefault();
+        const { setCode, collectorNumber, finish } = addCardState;
+        if (!setCode || !collectorNumber) return;
+
+        setAddCardState(prev => ({ ...prev, isSubmitting: true }));
+        try {
+            const res = await api.addAuditItem(session.id, {
+                setCode,
+                collectorNumber,
+                finish,
+                deckId: deckId || null
+            });
+
+            if (res.success && res.item) {
+                setAllItems(prev => {
+                    const exists = prev.find(i => i.id === res.item.id);
+                    if (exists) {
+                        return prev.map(i => i.id === res.item.id ? res.item : i);
+                    }
+                    return [...prev, res.item];
+                });
+                addToast(`Added ${res.item.name} #${res.item.collector_number}`, 'success');
+                // Reset (keep setCode)
+                setAddCardState(prev => ({ ...prev, collectorNumber: '', isSubmitting: false }));
+            }
+        } catch (err) {
+            console.error(err);
+            addToast(err.message || 'Failed to add card', 'error');
+            setAddCardState(prev => ({ ...prev, isSubmitting: false }));
+        }
     };
 
     const updateItemQuantity = async (itemId, newQuantity, reviewed = null) => {
@@ -443,7 +594,7 @@ export default function AuditWizard() {
             if (item.id !== itemId) return item;
             return {
                 ...item,
-                actual_quantity: qty,
+                scanned_qty: qty,
                 reviewed: reviewed !== null ? reviewed : item.reviewed
             };
         }));
@@ -454,12 +605,39 @@ export default function AuditWizard() {
     };
 
     const handleFinishSection = async () => {
+        // "Finish" in this context now means "Verify all visible items in this folder"
+        // Filter for items that are not yet reviewed
+        const itemsToVerify = currentFilteredItems.filter(i => !i.reviewed);
+
+        if (itemsToVerify.length === 0) {
+            addToast('All items in this section are already reviewed.', 'info');
+            return;
+        }
+
+        if (!window.confirm(`Mark ${itemsToVerify.length} items as verified?`)) return;
+
+        setLoading(true);
+
+        // Optimistic Update
+        const updates = itemsToVerify.map(item => ({
+            id: item.id,
+            scanned_qty: item.expected_qty,
+            reviewed: true
+        }));
+
+        setAllItems(prev => prev.map(item => {
+            const update = updates.find(u => u.id === item.id);
+            return update ? { ...item, ...update } : item;
+        }));
+
         try {
-            setLoading(true);
-            await api.reviewAuditSection(session.id, { deckId, group: groupParam });
-            navigate(`/audit/${session.id}`);
+            await api.batchUpdateAuditItems(session.id, updates);
+            addToast(`Verified ${itemsToVerify.length} items`, 'success');
         } catch (err) {
             console.error(err);
+            addToast('Failed to batch verify items', 'error');
+            // Revert? (Not implementing revert for simplicity, user can refresh)
+        } finally {
             setLoading(false);
         }
     };
@@ -532,6 +710,49 @@ export default function AuditWizard() {
                 </div>
             </div>
 
+            {/* Quick Add Sticky Header */}
+            {isLeaf && (
+                <div className="sticky top-[168px] z-20 bg-gray-800/90 backdrop-blur border border-white/10 rounded-xl p-3 mb-6 flex flex-col md:flex-row items-center gap-4 shadow-lg">
+                    <span className="text-xs font-bold uppercase text-gray-400 whitespace-nowrap px-2">Found Missing Card?</span>
+                    <form onSubmit={handleAddMissingCard} className="flex-1 flex gap-2 w-full">
+                        <input
+                            type="text"
+                            placeholder="Set (e.g. KND)"
+                            className="w-24 bg-gray-900 border border-gray-700 rounded px-3 py-1 text-white text-sm font-mono uppercase focus:border-indigo-500 outline-none"
+                            value={addCardState.setCode}
+                            onChange={e => setAddCardState({ ...addCardState, setCode: e.target.value.toUpperCase() })}
+                        />
+                        <input
+                            type="text"
+                            placeholder="# No."
+                            className="w-24 bg-gray-900 border border-gray-700 rounded px-3 py-1 text-white text-sm font-mono focus:border-indigo-500 outline-none"
+                            value={addCardState.collectorNumber}
+                            onChange={e => setAddCardState({ ...addCardState, collectorNumber: e.target.value })}
+                        />
+                        <select
+                            className="bg-gray-900 border border-gray-700 rounded px-3 py-1 text-white text-sm focus:border-indigo-500 outline-none"
+                            value={addCardState.finish}
+                            onChange={e => setAddCardState({ ...addCardState, finish: e.target.value })}
+                        >
+                            <option value="nonfoil">Normal</option>
+                            <option value="foil">Foil</option>
+                        </select>
+                        <button
+                            type="submit"
+                            disabled={addCardState.isSubmitting}
+                            className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-1 rounded text-sm transition-colors flex items-center gap-1"
+                        >
+                            {addCardState.isSubmitting ? '...' : (
+                                <>
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                                    Add
+                                </>
+                            )}
+                        </button>
+                    </form>
+                </div>
+            )}
+
             {/* Content Area */}
             {isLeaf ? (
                 // --- LEAF VIEW (CARDS) ---
@@ -552,13 +773,26 @@ export default function AuditWizard() {
             ) : (
                 // --- FOLDER VIEW ---
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {/* View All Option */}
+                    <div
+                        onClick={() => setViewAllOverride(true)}
+                        className="group relative flex flex-col aspect-[4/3] bg-gray-800/30 border-2 border-dashed border-gray-700/50 hover:border-indigo-500/50 hover:bg-gray-800 rounded-xl overflow-hidden cursor-pointer transition-all hover:-translate-y-1 hover:shadow-xl items-center justify-center p-6 text-center"
+                    >
+                        <div className="w-16 h-16 rounded-full bg-gray-800 group-hover:bg-indigo-600/20 flex items-center justify-center mb-3 transition-colors">
+                            <svg className="w-8 h-8 text-gray-500 group-hover:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                        </div>
+                        <span className="text-white font-bold text-lg">View All Cards</span>
+                        <span className="text-xs text-gray-500 font-mono mt-1 uppercase tracking-wider">In this section</span>
+                    </div>
+
                     {folders.map(f => (
                         <FolderCard
                             key={f.name}
                             name={f.name}
                             count={f.count}
-                            onClick={() => handleFolderClick(f.name)}
+                            reviewed={f.reviewed}
                             type={f.type}
+                            onClick={() => handleFolderClick(f.name)}
                         />
                     ))}
                 </div>
@@ -582,8 +816,8 @@ export default function AuditWizard() {
 
                         if (index !== -1) {
                             const item = newItems[index];
-                            const newQty = (item.actual_quantity || 0) + scanned.quantity;
-                            newItems[index] = { ...item, actual_quantity: newQty, reviewed: true };
+                            const newQty = (item.scanned_qty || 0) + scanned.quantity;
+                            newItems[index] = { ...item, scanned_qty: newQty, reviewed: true };
 
                             // Fire API update
                             api.updateAuditItem(session.id, item.id, newQty, true).catch(console.error);
