@@ -3,6 +3,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { WelcomeStep, SubscriptionStep, AISetupStep, WalkthroughStep } from '../components/onboarding/OnboardingSteps';
 import { HelperForgeStep } from '../components/onboarding/HelperForgeStep';
+import { HelpSystemStep } from '../components/onboarding/HelpSystemStep';
+import { AddFirstCardsStep } from '../components/onboarding/AddFirstCardsStep';
 import PlaystyleWizardModal from '../components/modals/PlaystyleWizardModal';
 import { api } from '../services/api';
 import { TIERS } from '../config/tiers';
@@ -240,9 +242,17 @@ const OnboardingPage = () => {
     const handleFinish = async () => {
         await updateSettings({
             onboarding_complete: true,
-            onboarding_step: 7
+            onboarding_step: 8
         }); // Mark complete
         navigate('/dashboard');
+    };
+
+    const handleManualEntry = async () => {
+        await updateSettings({
+            onboarding_complete: true,
+            onboarding_step: 8
+        });
+        navigate('/collection?onboarding=true&openAdd=true');
     };
 
     return (
@@ -387,13 +397,15 @@ const OnboardingPage = () => {
                     </div>
                 )}
 
-                {step === 6 && <WalkthroughStep onNext={handleFinish} onBack={handleBack} />}
+                {step === 6 && <HelpSystemStep onNext={handleNext} onBack={handleBack} />}
+
+                {step === 7 && <AddFirstCardsStep onNext={handleFinish} onManualEntry={handleManualEntry} />}
 
             </div>
 
             {/* Progress Dots */}
             <div className="relative z-10 py-8 flex justify-center gap-3">
-                {[0, 1, 2, 3, 4, 5, 6].map(i => (
+                {[0, 1, 2, 3, 4, 5, 6, 7].map(i => (
                     <div key={i} className={`h-2 rounded-full transition-all duration-300 ${i === step ? 'w-8 bg-indigo-500' : 'w-2 bg-gray-700'}`} />
                 ))}
             </div>

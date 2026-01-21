@@ -19,7 +19,11 @@ import DeckDoctorModal from '../components/modals/DeckDoctorModal';
 import DeckAI from '../components/DeckAI';
 import CardGridItem from '../components/common/CardGridItem';
 import StartAuditButton from '../components/Audit/StartAuditButton';
+
 import ForgeLensModal from '../components/modals/ForgeLensModal';
+import PrintSettingsModal from '../components/printing/PrintSettingsModal';
+import FeatureTour from '../components/common/FeatureTour';
+
 
 const MTG_IDENTITY_REGISTRY = [
     { badge: "White", colors: ["W"], theme: "Absolute Order", flavor_text: "A single spark of light can banish a world of shadows." },
@@ -65,7 +69,9 @@ const DeckDetailsPage = () => {
 
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [isAddCollectionOpen, setIsAddCollectionOpen] = useState(false);
+
     const [isForgeLensOpen, setIsForgeLensOpen] = useState(false);
+    const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
 
     // Edit Mode State
     const [isEditingName, setIsEditingName] = useState(false);
@@ -152,6 +158,24 @@ const DeckDetailsPage = () => {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    // Tour
+    const [isTourOpen, setIsTourOpen] = useState(false);
+    useEffect(() => {
+        const handleStartTour = () => setIsTourOpen(true);
+        window.addEventListener('start-tour', handleStartTour);
+        if (!localStorage.getItem('tour_seen_deck_details_v1')) {
+            setTimeout(() => setIsTourOpen(true), 1000);
+        }
+        return () => window.removeEventListener('start-tour', handleStartTour);
+    }, []);
+
+    const TOUR_STEPS = [
+        { target: 'h2', title: 'Deck Command', content: 'Rename your deck, see its colors, and track its stats.' },
+        { target: '#deck-identity-badge', title: 'Identity & Theme', content: 'Automatically detected color identity and archetype theme.' },
+        { target: '#deck-stats-bar', title: 'Vital Stats', content: 'Track power level, value, and mana curve brackets.' },
+        { target: '#deck-tools-trigger', title: 'Tools & Strategy', content: 'Access AI strategy analysis, Mana Curve Doctor, and more.' }
+    ];
 
     const setViewMode = (mode) => {
         setViewModeState(mode);
@@ -673,7 +697,7 @@ const DeckDetailsPage = () => {
                                             )}
                                         </div>
                                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                                            <div className="text-[10px] md:text-[11px] text-indigo-300 font-black uppercase tracking-[0.15em] md:tracking-[0.2em] opacity-80 whitespace-nowrap">
+                                            <div id="deck-identity-badge" className="text-[10px] md:text-[11px] text-indigo-300 font-black uppercase tracking-[0.15em] md:tracking-[0.2em] opacity-80 whitespace-nowrap">
                                                 {identityInfo.badge} — {identityInfo.theme}
                                             </div>
                                             {!isOwner && (
@@ -704,7 +728,7 @@ const DeckDetailsPage = () => {
                                 )}
 
                                 <div className="flex flex-wrap items-center gap-2 md:gap-3 mt-2 md:mt-3">
-                                    <div className="flex items-center gap-2 bg-black/40 px-2.5 md:px-3 py-1 md:py-1.5 rounded-xl border border-white/5 backdrop-blur-md shadow-2xl">
+                                    <div id="deck-stats-bar" className="flex items-center gap-2 bg-black/40 px-2.5 md:px-3 py-1 md:py-1.5 rounded-xl border border-white/5 backdrop-blur-md shadow-2xl">
                                         <span className="bg-orange-600/20 text-orange-400 px-2 py-0.5 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest border border-orange-500/30">
                                             {deck.format || 'Commander'}
                                         </span>
@@ -771,6 +795,7 @@ const DeckDetailsPage = () => {
                             {/* Mobile/Desktop Tools Toggle */}
                             <div className="relative">
                                 <button
+                                    id="deck-tools-trigger"
                                     onClick={() => setIsToolsMenuOpen(!isToolsMenuOpen)}
                                     className={`group relative flex items-center justify-center w-12 h-11 md:w-auto md:px-5 transition-all rounded-xl border ${isToolsMenuOpen ? 'bg-indigo-600 border-indigo-400 text-white' : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700 hover:text-white'} shadow-md`}
                                     title="Deck Tools & Management"
@@ -872,8 +897,56 @@ const DeckDetailsPage = () => {
 
                                             <div className="space-y-2">
                                                 <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] px-2">Tabletop Tools</h3>
-                                                <div className="px-2 py-3 bg-white/5 rounded-xl border border-white/5 border-dashed">
-                                                    <p className="text-[9px] text-gray-500 font-bold uppercase tracking-wider text-center italic">Future Tabletop expansion area</p>
+                                                <div className="grid grid-cols-1 gap-2">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            navigate(`/solitaire/${deckId}`);
+                                                            setIsToolsMenuOpen(false);
+                                                        }}
+                                                        className="w-full py-3 bg-emerald-900/10 hover:bg-emerald-900/20 text-emerald-400 rounded-xl border border-emerald-500/10 hover:border-emerald-500/30 transition-all font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3 group"
+                                                    >
+                                                        <span className="text-lg group-hover:scale-110 transition-transform">🎲</span>
+                                                        Solitaire & Playtest
+                                                    </button>
+
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setIsPrintModalOpen(true);
+                                                                setIsToolsMenuOpen(false);
+                                                            }}
+                                                            className="flex flex-col items-center gap-2 p-3 bg-white/5 hover:bg-white/10 rounded-xl border border-white/5 transition-all group"
+                                                        >
+                                                            <span className="text-xl group-hover:scale-110 transition-transform">🖨️</span>
+                                                            <span className="text-[10px] font-bold text-gray-300">Print Proxies</span>
+                                                        </button>
+
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                navigate('/play/lobby');
+                                                                setIsToolsMenuOpen(false);
+                                                            }}
+                                                            className="flex flex-col items-center gap-2 p-3 bg-white/5 hover:bg-white/10 rounded-xl border border-white/5 transition-all group"
+                                                        >
+                                                            <span className="text-xl group-hover:scale-110 transition-transform">🎥</span>
+                                                            <span className="text-[10px] font-bold text-gray-300">Live Session</span>
+                                                        </button>
+                                                    </div>
+
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            navigate('/tournaments');
+                                                            setIsToolsMenuOpen(false);
+                                                        }}
+                                                        className="w-full py-2 bg-amber-900/10 hover:bg-amber-900/20 text-amber-500 rounded-xl border border-amber-500/10 hover:border-amber-500/30 transition-all font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 group"
+                                                    >
+                                                        <span className="text-sm group-hover:scale-110 transition-transform">🏆</span>
+                                                        Find Tournament
+                                                    </button>
                                                 </div>
                                             </div>
 
@@ -1393,7 +1466,21 @@ const DeckDetailsPage = () => {
                         }
                     }}
                 />
+
+                <PrintSettingsModal
+                    isOpen={isPrintModalOpen}
+                    onClose={() => setIsPrintModalOpen(false)}
+                    cards={deckCards}
+                    deckName={deck.name}
+                />
             </div>
+            {/* Render Feature Tour */}
+            <FeatureTour
+                steps={TOUR_STEPS}
+                isOpen={isTourOpen}
+                onClose={() => setIsTourOpen(false)}
+                tourId="deck_details_v1"
+            />
         </div>
     );
 };

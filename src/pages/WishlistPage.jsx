@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useCollection } from '../hooks/useCollection';
 import MultiSelect from '../components/MultiSelect';
 import CardSkeleton from '../components/CardSkeleton';
@@ -6,6 +6,7 @@ import CardGridItem from '../components/common/CardGridItem';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { collectionService } from '../services/collectionService';
+import FeatureTour from '../components/common/FeatureTour';
 
 const WishlistPage = () => {
     const { cards, loading, error, refresh } = useCollection({ wishlist: true }); // added refresh if useCollection supports it
@@ -13,6 +14,25 @@ const WishlistPage = () => {
     const { addToast } = useToast();
     const [searchTerm, setSearchTerm] = useState('');
     const [showFilters, setShowFilters] = useState(false);
+
+    // Tour
+    const [isTourOpen, setIsTourOpen] = useState(false);
+    useEffect(() => {
+        const handleStartTour = () => setIsTourOpen(true);
+        window.addEventListener('start-tour', handleStartTour);
+        const tourId = 'wishlist_tour_v1';
+        if (!localStorage.getItem(`tour_seen_${tourId}`)) {
+            setTimeout(() => setIsTourOpen(true), 1000);
+        }
+        return () => window.removeEventListener('start-tour', handleStartTour);
+    }, []);
+
+    const TOUR_STEPS = [
+        { target: 'h1', title: 'Wishlist', content: 'Track cards you want to acquire here.' },
+        { target: '#wishlist-search', title: 'Search', content: 'Quickly find specific cards in your wishlist.' },
+        { target: '#wishlist-manage-btn', title: 'Bulk Actions', content: 'Switch to selection mode to remove multiple cards at once.' },
+        { target: '#wishlist-filter-btn', title: 'Filters', content: 'Filter by color, scarcity, or set to prioritize.' }
+    ];
 
     // Management Mode State
     const [isManageMode, setIsManageMode] = useState(false);
@@ -143,6 +163,7 @@ const WishlistPage = () => {
                             </svg>
                         </div>
                         <input
+                            id="wishlist-search"
                             type="text"
                             className="block w-full pl-10 pr-10 py-2 border border-gray-700 rounded-md leading-5 bg-gray-800 text-gray-300 placeholder-gray-500 focus:outline-none focus:bg-gray-700 focus:border-orange-500 transition duration-150 ease-in-out sm:text-sm"
                             placeholder="Search wishlist..."
@@ -185,6 +206,7 @@ const WishlistPage = () => {
                         ) : (
                             <button
                                 onClick={() => setIsManageMode(true)}
+                                id="wishlist-manage-btn"
                                 className="px-3 py-2 bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-indigo-400 border border-gray-700 rounded-md transition-colors text-sm font-bold uppercase"
                             >
                                 Select
@@ -192,6 +214,7 @@ const WishlistPage = () => {
                         )}
 
                         <button
+                            id="wishlist-filter-btn"
                             onClick={() => setShowFilters(!showFilters)}
                             className={`px-3 py-2 rounded-md border transition-colors flex items-center gap-2 ${showFilters ? 'bg-orange-600 border-orange-500 text-white' : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-white'}`}
                         >
@@ -313,6 +336,13 @@ const WishlistPage = () => {
                     )}
                 </div>
             )}
+
+            <FeatureTour
+                steps={TOUR_STEPS}
+                isOpen={isTourOpen}
+                onClose={() => setIsTourOpen(false)}
+                tourId="wishlist_tour_v1"
+            />
         </div>
     );
 };

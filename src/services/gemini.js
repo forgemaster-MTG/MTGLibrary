@@ -161,8 +161,13 @@ Your goal is to provide accurate, strategic, and engaging advice to players.
 - If asked about deck building, consider mana curve, synergy, and format staples.
 - If asked about lore, be descriptive and immersive.
 
-Context from User's Current View:
+**Current Context & Documentation:**
+You are currently helping the user on a specific page. 
+Here is the relevant documentation for the user's current view. USE THIS to answer their questions:
+---
 ${context}
+---
+If the user's question is about the current page, prioritize the information above.
 `.trim();
 
         const contents = [

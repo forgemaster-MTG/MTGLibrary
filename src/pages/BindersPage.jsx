@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDecks } from '../hooks/useDecks';
 import { useAuth } from '../contexts/AuthContext';
@@ -6,6 +6,7 @@ import { deckService } from '../services/deckService';
 import { useToast } from '../contexts/ToastContext';
 import DeckRow from '../components/decks/DeckRow';
 import { TIER_CONFIG } from '../config/tiers';
+import FeatureTour from '../components/common/FeatureTour';
 
 const BindersPage = () => {
     const { decks, loading, refresh } = useDecks();
@@ -13,6 +14,22 @@ const BindersPage = () => {
     const { addToast } = useToast();
     const navigate = useNavigate();
     const [isCreating, setIsCreating] = useState(false);
+
+    // Tour
+    const [isTourOpen, setIsTourOpen] = useState(false);
+    useEffect(() => {
+        const handleStartTour = () => setIsTourOpen(true);
+        window.addEventListener('start-tour', handleStartTour);
+        if (!localStorage.getItem('tour_seen_binders_tour_v1')) {
+            setTimeout(() => setIsTourOpen(true), 1000);
+        }
+        return () => window.removeEventListener('start-tour', handleStartTour);
+    }, []);
+
+    const TOUR_STEPS = [
+        { target: 'h1', title: 'The Armory', content: 'Manage your binders here. Binders are like decks but for trading or showcasing.' },
+        { target: '#new-binder-btn', title: 'Create Binder', content: 'Start a new binder to organize your cards.' }
+    ];
 
     // Filter for decks with format 'binder'
     const binders = decks.filter(d => d.format === 'binder');
@@ -75,6 +92,7 @@ const BindersPage = () => {
                     </div>
 
                     <button
+                        id="new-binder-btn"
                         onClick={handleCreateBinder}
                         disabled={isCreating}
                         className="group bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs transition-all shadow-lg shadow-indigo-500/20 flex items-center gap-2 border border-indigo-400/20 hover:border-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -111,7 +129,14 @@ const BindersPage = () => {
                     </div>
                 )}
             </div>
-        </div>
+
+            <FeatureTour
+                steps={TOUR_STEPS}
+                isOpen={isTourOpen}
+                onClose={() => setIsTourOpen(false)}
+                tourId="binders_tour_v1"
+            />
+        </div >
     );
 };
 

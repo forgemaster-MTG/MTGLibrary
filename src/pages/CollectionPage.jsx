@@ -16,6 +16,7 @@ import StartAuditButton from '../components/Audit/StartAuditButton';
 import CardSearchModal from '../components/CardSearchModal';
 import CollectionTable from '../components/CollectionTable';
 import ViewToggle from '../components/ViewToggle';
+import FeatureTour from '../components/common/FeatureTour';
 import BulkCollectionImportModal from '../components/modals/BulkCollectionImportModal';
 import BinderWizardModal from '../components/modals/BinderWizardModal';
 import BinderGuideModal from '../components/modals/BinderGuideModal';
@@ -30,7 +31,41 @@ const CollectionPage = () => {
     const { addToast } = useToast();
     // Parse query params for wishlist mode
     const location = useLocation();
-    const isWishlistMode = new URLSearchParams(location.search).get('wishlist') === 'true';
+    const searchParams = new URLSearchParams(location.search);
+    const isWishlistMode = searchParams.get('wishlist') === 'true';
+    const isOnboarding = searchParams.get('onboarding') === 'true';
+    const shouldOpenAdd = searchParams.get('openAdd') === 'true';
+
+    // Tour Logic
+    const [isTourOpen, setIsTourOpen] = useState(false);
+    const [tourId, setTourId] = useState('collection_tour_v1');
+
+    useEffect(() => {
+        const handleStartTour = () => {
+            setTourId('collection_tour_v1');
+            setIsTourOpen(true);
+        };
+        window.addEventListener('start-tour', handleStartTour);
+
+        // Auto-start check
+        if (shouldOpenAdd) {
+            // Specific flow for "Add Manual" onboarding
+            setIsAddCardOpen(true);
+            setTourId('add_card_tour');
+            // Delay for modal render
+            setTimeout(() => setIsTourOpen(true), 800);
+        } else if (!localStorage.getItem('tour_seen_collection_tour_v1') || isOnboarding) {
+            // Standard onboarding
+            setTourId('collection_tour_v1');
+            setTimeout(() => setIsTourOpen(true), 1000);
+
+            if (isOnboarding) {
+                setTimeout(() => addToast("Welcome to your Collection! Let's get you started.", "success"), 500);
+            }
+        }
+
+        return () => window.removeEventListener('start-tour', handleStartTour);
+    }, [isOnboarding, shouldOpenAdd, addToast]);
 
 
     // Shared Collection Logic
@@ -43,9 +78,6 @@ const CollectionPage = () => {
                 // data is array of perms. Extract unique owners.
                 const unique = [];
                 const seen = new Set();
-                // Check if data is array or data.data (axios) - usually api returns data directly in this codebase helper?
-                // api.js returns response.data usually.
-                // communityService returns api.get result.
                 const perms = Array.isArray(data) ? data : (data.data || []);
 
                 perms.forEach(p => {
@@ -67,11 +99,72 @@ const CollectionPage = () => {
         userId: selectedSource === 'me' ? null : selectedSource
     });
     const { binders, refreshBinders } = useBinders();
-    const { decks, loading: decksLoading } = useDecks(selectedSource === 'me' ? null : selectedSource); // Decks hook may not support 'all' yet but we'll leave as is for now or fix if needed. 
-    // Actually Decks hook probably needs update if we want mixed decks too, but task focused on collection. Let's pass 'all' and if deckService fails gracefully or we update it later.
-    // For now assuming CollectionTable handles the mixed cards.
+    const { decks, loading: decksLoading } = useDecks(selectedSource === 'me' ? null : selectedSource);
+
     const [searchTerm, setSearchTerm] = useState('');
     const [showFilters, setShowFilters] = useState(false);
+
+    const TOUR_STEPS = useMemo(() => {
+        if (tourId === 'add_card_tour') {
+            return [
+                {
+                    target: '#card-search-input',
+                    title: 'Search for Cards',
+                    content: 'Type any card name here. We search Scryfall directly so you can find anything.',
+                    disableBeacon: true
+                },
+                {
+                    target: '#card-search-advanced-toggle',
+                    title: 'Advanced Filters',
+                    content: 'Need to find a specific print? Filter by set, color, rarity, or artist.'
+                },
+                {
+                    target: '#card-search-results',
+                    title: 'Adding to Collection',
+                    content: 'Hover over any card result and click "Add" to put it in your collection. You can toggle between Normal and Foil.',
+                    placement: 'center'
+                }
+            ];
+        }
+
+        return [
+            {
+                target: 'h1',
+                title: 'Welcome to your Collection',
+                content: 'This is the heart of your library. Here you can view, filter, and manage every card you own.'
+            },
+            {
+                target: '#collection-sync-btn',
+                title: 'Sync Prices',
+                content: 'Click here to fetch the latest prices from Scryfall. We track your collection value daily.'
+            },
+            {
+                target: '#collection-view-toggle',
+                title: 'View Modes',
+                content: 'Switch between Grid (visual), Folder (organized), and Table (data) views.'
+            },
+            {
+                target: '#collection-filter-bar',
+                title: 'Filters',
+                content: 'Drill down by color, type, rarity, and more to find exactly what you need.'
+            },
+            {
+                target: '#collection-add-card-btn',
+                title: 'Add Cards',
+                content: 'Manually add cards to your collection using our search tool.'
+            },
+            {
+                target: '#collection-forge-lens-btn',
+                title: 'Forge Lens',
+                content: 'Use your camera to scan physical cards directly into your digital collection.'
+            },
+            ...(cards.length > 0 ? [{
+                target: '#collection-first-card',
+                title: 'Card Details',
+                content: 'Click on any card to view detailed pricing, oracle text, and legality information.'
+            }] : [])
+        ]
+    }, [cards.length, tourId]);
     const [syncLoading, setSyncLoading] = useState(false);
 
     // Mass Actions State
@@ -691,6 +784,7 @@ const CollectionPage = () => {
                                 {filteredCards.length} {filteredCards.length === 1 ? 'card' : 'cards'} found • <span className="text-indigo-400">${filteredCards.reduce((acc, c) => acc + (parseFloat(c.prices?.usd || 0) * (c.count || 1)), 0).toFixed(2)}</span>
                             </p>
                             <button
+                                id="collection-sync-btn"
                                 onClick={handleSyncPrices}
                                 disabled={syncLoading}
                                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-[10px] font-black uppercase tracking-widest transition-all border border-indigo-500/20 ${syncLoading ? 'opacity-70 cursor-wait' : ''}`}
@@ -703,20 +797,22 @@ const CollectionPage = () => {
                     </div>
 
                     <div className="flex gap-2 md:gap-3 w-full md:w-auto items-center justify-between md:justify-end">
-                        <ViewToggle
-                            mode={viewMode}
-                            onChange={(m) => {
-                                setViewMode(m);
-                                setActiveFolder(null);
-                                // If switching to folder and binders restricted, default to smart
-                                if (m === 'folder') {
-                                    const canAccess = getTierConfig(userProfile?.subscription_tier).features.binders;
-                                    if (!canAccess) {
-                                        setGroupingMode('smart');
+                        <div id="collection-view-toggle">
+                            <ViewToggle
+                                mode={viewMode}
+                                onChange={(m) => {
+                                    setViewMode(m);
+                                    setActiveFolder(null);
+                                    // If switching to folder and binders restricted, default to smart
+                                    if (m === 'folder') {
+                                        const canAccess = getTierConfig(userProfile?.subscription_tier).features.binders;
+                                        if (!canAccess) {
+                                            setGroupingMode('smart');
+                                        }
                                     }
-                                }
-                            }}
-                        />
+                                }}
+                            />
+                        </div>
 
                         {!isSharedView && (
                             <div className="flex h-10 items-center gap-2">
@@ -776,6 +872,7 @@ const CollectionPage = () => {
                                 </button>
 
                                 <button
+                                    id="collection-add-card-btn"
                                     onClick={() => setIsAddCardOpen(true)}
                                     className="flex bg-indigo-600 hover:bg-indigo-500 text-white font-bold p-2.5 md:px-6 md:py-3 rounded-xl shadow-lg shadow-indigo-900/40 transition-all items-center gap-2 uppercase tracking-widest text-xs whitespace-nowrap"
                                 >
@@ -784,6 +881,7 @@ const CollectionPage = () => {
                                 </button>
 
                                 <button
+                                    id="collection-forge-lens-btn"
                                     onClick={() => setIsForgeLensOpen(true)}
                                     className="flex bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 font-bold p-2.5 md:px-6 md:py-3 rounded-xl border border-indigo-500/20 transition-all items-center gap-2 uppercase tracking-widest text-xs whitespace-nowrap"
                                     title="Scan Cards with Camera"
@@ -795,6 +893,13 @@ const CollectionPage = () => {
                         )}
                     </div>
                 </div>
+
+                <FeatureTour
+                    steps={TOUR_STEPS}
+                    isOpen={isTourOpen}
+                    onClose={() => setIsTourOpen(false)}
+                    tourId="collection_tour_v1"
+                />
 
                 {/* Error State */}
                 {error && (
@@ -815,7 +920,7 @@ const CollectionPage = () => {
                 <div className="bg-gray-950/40 border border-white/5 rounded-3xl p-4 md:p-6 backdrop-blur-md shadow-2xl">
 
                     {/* Search & Toggle Filters */}
-                    <div className="flex flex-col lg:flex-row gap-3 md:gap-4 mb-6 justify-between">
+                    <div id="collection-filter-bar" className="flex flex-col lg:flex-row gap-3 md:gap-4 mb-6 justify-between">
                         <div className="flex gap-2 flex-wrap flex-1">
                             <div className="relative flex-1 min-w-[200px]">
                                 <input
@@ -1157,8 +1262,8 @@ w - 8 h - 8 rounded - full border flex items - center justify - center transitio
                                 {viewMode === 'grid' && (
                                     <>
                                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 animate-fade-in">
-                                            {paginatedCards.map((card) => (
-                                                <div key={card.firestoreId || card.id} className="h-full">
+                                            {paginatedCards.map((card, index) => (
+                                                <div key={card.firestoreId || card.id} className="h-full" id={index === 0 ? "collection-first-card" : undefined}>
                                                     <CardGridItem
                                                         card={card}
                                                         decks={decks}

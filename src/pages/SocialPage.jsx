@@ -9,6 +9,7 @@ import Leaderboard from '../components/Social/Leaderboard';
 import TournamentGrid from '../components/Tournaments/TournamentGrid';
 import TournamentCreateModal from '../components/Tournaments/TournamentCreateModal';
 import { api } from '../services/api';
+import FeatureTour from '../components/common/FeatureTour';
 
 const SocialPage = () => {
     const { user, userProfile, refreshUserProfile } = useAuth();
@@ -18,6 +19,23 @@ const SocialPage = () => {
     const [tournaments, setTournaments] = useState([]);
     const [loadingTournaments, setLoadingTournaments] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
+
+    // Tour
+    const [isTourOpen, setIsTourOpen] = useState(false);
+    useEffect(() => {
+        const handleStartTour = () => setIsTourOpen(true);
+        window.addEventListener('start-tour', handleStartTour);
+        if (!localStorage.getItem('tour_seen_social_tour_v1')) {
+            setTimeout(() => setIsTourOpen(true), 1000);
+        }
+        return () => window.removeEventListener('start-tour', handleStartTour);
+    }, []);
+
+    const TOUR_STEPS = [
+        { target: 'h1', title: 'Social Hub', content: 'Connect with friends and the community.' },
+        { target: '#social-lfg-toggle', title: 'Looking for Game', content: 'Toggle this on to let your friends know you are ready to play.' },
+        { target: '#social-tabs', title: 'Navigation', content: 'Switch between Activity Feed, Friends, Leaderboards, and Tournaments.' }
+    ];
 
     useEffect(() => {
         if (userProfile?.lfg_status !== undefined) {
@@ -77,6 +95,7 @@ const SocialPage = () => {
                 <div className={`p-4 rounded-xl border transition-colors ${lfgStatus ? 'bg-green-500/10 border-green-500/30' : 'bg-gray-900 border-gray-800'}`}>
                     <div className="flex items-center gap-3">
                         <button
+                            id="social-lfg-toggle"
                             onClick={handleLfgChange}
                             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-900 ${lfgStatus ? 'bg-green-500' : 'bg-gray-700'}`}
                         >
@@ -96,7 +115,7 @@ const SocialPage = () => {
 
             <div className="bg-gray-900/40 border border-white/5 rounded-2xl overflow-hidden backdrop-blur-sm">
                 <div className="border-b border-white/5">
-                    <div className="flex overflow-x-auto">
+                    <div className="flex overflow-x-auto" id="social-tabs">
                         {tabs.map((tab) => {
                             const Icon = tab.icon;
                             const isActive = activeTab === tab.id;
@@ -148,6 +167,12 @@ const SocialPage = () => {
             <TournamentCreateModal
                 isOpen={showCreateModal}
                 onClose={() => setShowCreateModal(false)}
+            />
+            <FeatureTour
+                steps={TOUR_STEPS}
+                isOpen={isTourOpen}
+                onClose={() => setIsTourOpen(false)}
+                tourId="social_tour_v1"
             />
         </div>
     );

@@ -4,6 +4,7 @@ import { useCollection } from '../hooks/useCollection';
 import { Link, useNavigate } from 'react-router-dom';
 import CardAutocomplete from '../components/common/CardAutocomplete';
 import { api } from '../services/api';
+import FeatureTour from '../components/common/FeatureTour';
 
 const SetsPage = () => {
     const { sets, loading: setsLoading, error: setsError } = useSets();
@@ -13,7 +14,26 @@ const SetsPage = () => {
     const [setsWithCard, setSetsWithCard] = useState(null); // null means no card search active
     const [searchingCard, setSearchingCard] = useState(false);
     const [showOnlyOwned, setShowOnlyOwned] = useState(false);
+
     const navigate = useNavigate();
+
+    // Tour
+    const [isTourOpen, setIsTourOpen] = useState(false);
+    useEffect(() => {
+        const handleStartTour = () => setIsTourOpen(true);
+        window.addEventListener('start-tour', handleStartTour);
+        if (!localStorage.getItem('tour_seen_sets_tour_v1')) {
+            setTimeout(() => setIsTourOpen(true), 1000);
+        }
+        return () => window.removeEventListener('start-tour', handleStartTour);
+    }, []);
+
+    const TOUR_STEPS = [
+        { target: 'h1', title: 'Set Library', content: 'Browse every Magic: The Gathering set ever released.' },
+        { target: '#sets-search', title: 'Find Sets', content: 'Search for sets by name or code (e.g. "ELD").' },
+        { target: '#sets-card-search', title: 'Find Card in Sets', content: 'Looking for a specific card? Find which sets contain it.' },
+        { target: '#sets-owned-toggle', title: 'Collection Filter', content: 'Toggle to show only sets where you own cards.' }
+    ];
 
     // Debounced card search to find containing sets
     useEffect(() => {
@@ -172,6 +192,7 @@ const SetsPage = () => {
                                     placeholder="Search sets..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
+                                    id="sets-search"
                                 />
                                 {searchTerm && (
                                     <button
@@ -183,7 +204,7 @@ const SetsPage = () => {
                                 )}
                             </div>
 
-                            <div className="relative flex-grow max-w-sm">
+                            <div className="relative flex-grow max-w-sm" id="sets-card-search">
                                 <CardAutocomplete
                                     value={cardSearchTerm}
                                     onChange={setCardSearchTerm}
@@ -193,6 +214,7 @@ const SetsPage = () => {
 
                             <button
                                 onClick={() => setShowOnlyOwned(!showOnlyOwned)}
+                                id="sets-owned-toggle"
                                 className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${showOnlyOwned
                                     ? 'bg-indigo-600 text-white shadow-lg'
                                     : 'bg-gray-800/80 text-gray-400 border border-white/5 hover:bg-gray-700'
@@ -288,7 +310,14 @@ const SetsPage = () => {
                     )
                 ))}
             </div>
-        </div>
+
+            <FeatureTour
+                steps={TOUR_STEPS}
+                isOpen={isTourOpen}
+                onClose={() => setIsTourOpen(false)}
+                tourId="sets_tour_v1"
+            />
+        </div >
     );
 };
 

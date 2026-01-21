@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../../services/api';
 import StartAuditModal from './StartAuditModal';
 import AuditGuideModal from '../modals/AuditGuideModal';
+import FeatureTour from '../common/FeatureTour';
 
 export default function AuditHub() {
     const { id: routeId } = useParams();
@@ -19,6 +20,24 @@ export default function AuditHub() {
     });
     const [showGuide, setShowGuide] = useState(false);
     const [confirmInput, setConfirmInput] = useState('');
+
+    // Tour
+    const [isTourOpen, setIsTourOpen] = useState(false);
+    useEffect(() => {
+        const handleStartTour = () => setIsTourOpen(true);
+        window.addEventListener('start-tour', handleStartTour);
+        if (!localStorage.getItem('tour_seen_audit_tour_v1')) {
+            setTimeout(() => setIsTourOpen(true), 1000);
+        }
+        return () => window.removeEventListener('start-tour', handleStartTour);
+    }, []);
+
+    const TOUR_STEPS = [
+        { target: 'h1', title: 'Audit Dashboard', content: 'Track the status of your collection verification.' },
+        { target: '#audit-progress', title: 'Progress', content: 'See your overall completion and accuracy.' },
+        { target: '#audit-decks', title: 'Decks', content: 'Audit specific decks card by card.' },
+        { target: '#audit-guide-btn', title: 'Guide', content: 'Read the full guide if you get stuck.' }
+    ];
 
     useEffect(() => {
         const fetchSession = async () => {
@@ -146,6 +165,7 @@ export default function AuditHub() {
                             Verify decks and binder to reconcile your inventory.
                             <button
                                 onClick={() => setShowGuide(true)}
+                                id="audit-guide-btn"
                                 className="text-indigo-400 hover:text-indigo-300 font-bold ml-2 text-sm flex items-center gap-1 group/guide"
                             >
                                 <svg className="w-4 h-4 transition-transform group-hover/guide:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -170,7 +190,7 @@ export default function AuditHub() {
                 </div>
 
                 {/* Overall Progress */}
-                <div className="bg-gray-800/50 rounded-2xl p-6 border border-gray-700 relative overflow-hidden">
+                <div id="audit-progress" className="bg-gray-800/50 rounded-2xl p-6 border border-gray-700 relative overflow-hidden">
                     <div className="flex justify-between items-center mb-2 relative z-10">
                         <span className="text-xl font-bold text-white">Total Progress</span>
                         <span className="text-2xl font-mono text-indigo-400">{percentComplete}%</span>
@@ -189,7 +209,7 @@ export default function AuditHub() {
 
                 {/* DECKS GRID */}
                 {stats.decks.length > 0 && (
-                    <div>
+                    <div id="audit-decks">
                         <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
                             <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                             Decks
@@ -367,6 +387,12 @@ export default function AuditHub() {
             <AuditGuideModal
                 isOpen={showGuide}
                 onClose={() => setShowGuide(false)}
+            />
+            <FeatureTour
+                steps={TOUR_STEPS}
+                isOpen={isTourOpen}
+                onClose={() => setIsTourOpen(false)}
+                tourId="audit_tour_v1"
             />
         </div>
     );

@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { GeminiService } from '../services/gemini';
+import { getPageDoc } from '../data/helpDocs';
 import { useAuth } from '../contexts/AuthContext';
 
 const ChatWidget = () => {
@@ -28,6 +30,16 @@ const ChatWidget = () => {
     }, [messages]);
 
     // Fetch dynamic intro only when opened for the first time
+    useEffect(() => {
+        // Event Listener for external open
+        const handleOpenEvent = () => {
+            setIsOpen(true);
+        };
+        window.addEventListener('open-chat-widget', handleOpenEvent);
+
+        return () => window.removeEventListener('open-chat-widget', handleOpenEvent);
+    }, []);
+
     useEffect(() => {
         if (!isOpen) return;
 
@@ -66,7 +78,11 @@ const ChatWidget = () => {
         fetchIntro();
     }, [isOpen, userProfile?.settings?.geminiApiKey, helperName, introFetched]);
 
-    // Playstyle Data
+    // Page Context for AI
+    const location = useLocation();
+
+
+    // Playstyle Context
     const playstyle = userProfile?.settings?.playstyle;
     const playstyleContext = playstyle ? `
 User's Playstyle Profile:
@@ -75,6 +91,14 @@ User's Playstyle Profile:
 - Combat Preference: ${playstyle.scores?.aggression > 50 ? 'Aggressive' : 'Defensive'}
 - Interaction Level: ${playstyle.scores?.interaction > 50 ? 'High' : 'Low'}
     `.trim() : '';
+
+    // Combine Page Docs + Playstyle
+    const pageDoc = getPageDoc ? getPageDoc(location.pathname) : '';
+    const fullContext = `
+${pageDoc}
+
+${playstyleContext}
+    `.trim();
 
     const handleSend = async (e) => {
         e.preventDefault();
@@ -97,8 +121,8 @@ User's Playstyle Profile:
 
             const history = messages.map(m => ({ role: m.role, content: m.content }));
 
-            // Pass playstyle context
-            const responseHtml = await GeminiService.sendMessage(apiKey, history, userMsg, playstyleContext, helper);
+            // Pass full context (Docs + Playstyle)
+            const responseHtml = await GeminiService.sendMessage(apiKey, history, userMsg, fullContext, helper);
 
             setMessages(prev => [...prev, { role: 'model', content: responseHtml }]);
         } catch (error) {

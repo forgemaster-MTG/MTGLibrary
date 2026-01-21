@@ -367,6 +367,7 @@ const CardSearchModal = ({ isOpen, onClose, onAddCard, onOpenForgeLens }) => {
                             <div className="flex flex-col md:flex-row gap-4">
                                 <div className="relative flex-1 group">
                                     <input
+                                        id="card-search-input"
                                         ref={inputRef}
                                         type="text"
                                         placeholder="Search cards..."
@@ -418,6 +419,7 @@ const CardSearchModal = ({ isOpen, onClose, onAddCard, onOpenForgeLens }) => {
                                 </div>
 
                                 <button
+                                    id="card-search-advanced-toggle"
                                     type="button"
                                     onClick={() => setShowAdvanced(!showAdvanced)}
                                     className={`px-6 rounded-2xl border border-white/10 flex items-center gap-2 font-bold transition-all ${showAdvanced ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-gray-950 text-gray-400 hover:text-white hover:bg-gray-800'}`}
@@ -527,7 +529,7 @@ const CardSearchModal = ({ isOpen, onClose, onAddCard, onOpenForgeLens }) => {
                     </div>
 
                     {/* Results Area */}
-                    <div className="p-6">
+                    <div id="card-search-results" className="p-6">
                         {error && (
                             <div className="flex items-center justify-center p-8 text-red-400 bg-red-500/10 rounded-2xl border border-red-500/20">
                                 <p className="font-bold">{error}</p>

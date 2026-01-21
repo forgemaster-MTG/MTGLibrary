@@ -45,6 +45,7 @@ import DonationModal from '../components/modals/DonationModal';
 import BinderGuideModal from '../components/modals/BinderGuideModal';
 import PodGuideModal from '../components/modals/PodGuideModal';
 import AuditGuideModal from '../components/modals/AuditGuideModal';
+import FeatureTour from '../components/common/FeatureTour';
 
 import SingleActionWidget from '../components/dashboard/SingleActionWidget';
 
@@ -277,6 +278,26 @@ const Dashboard = () => {
     const [deleteModalData, setDeleteModalData] = useState({ isOpen: false, name: '' });
     const loadLayoutBtnRef = useRef(null);
     const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
+
+    // Tour State
+    const [isTourOpen, setIsTourOpen] = useState(false);
+
+    useEffect(() => {
+        const handleStartTour = () => {
+            setIsTourOpen(true);
+            // Ensure we are in a state where tour elements exist
+            if (!editMode) setEditMode(false);
+        };
+        window.addEventListener('start-tour', handleStartTour);
+        return () => window.removeEventListener('start-tour', handleStartTour);
+    }, [editMode]);
+
+    const TOUR_STEPS = [
+        { title: "Welcome to Dashboard", content: "This is your command center. Get a quick overview of your collection and decks here.", target: "h1" },
+        { title: "Customize", content: "Toggle this switch to enter Edit Mode. In Edit Mode, you can add, remove, and resize widgets.", target: "#customize-toggle" },
+        // Dynamic step: only if layout menu button exists
+        { title: "Load & Save", content: "Use this menu to load presets, save your layout, or share it with others.", target: "#layout-menu-btn" },
+    ];
 
     // Migration helper: Convert old zone-based layout to new unified grid
     const migrateLayout = (oldLayout) => {
@@ -636,7 +657,7 @@ const Dashboard = () => {
                     </div>
                     <div className="flex items-center gap-3 bg-gray-900/50 p-2 rounded-xl backdrop-blur-md border border-white/5">
                         <div className="relative">
-                            <button onClick={() => setIsLayoutMenuOpen(!isLayoutMenuOpen)} className="bg-gray-800 text-white text-xs rounded-lg border border-gray-700 px-3 py-1.5 hover:bg-gray-700 transition-colors flex items-center gap-2">
+                            <button id="layout-menu-btn" onClick={() => setIsLayoutMenuOpen(!isLayoutMenuOpen)} className="bg-gray-800 text-white text-xs rounded-lg border border-gray-700 px-3 py-1.5 hover:bg-gray-700 transition-colors flex items-center gap-2">
                                 <span>Load Layout...</span>
                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                             </button>
@@ -718,6 +739,8 @@ const Dashboard = () => {
                         >
                             <span className={`${editMode ? 'translate-x-6' : 'translate-x-1'} inline-block h-4 w-4 transform rounded-full bg-white transition-transform`} />
                         </Switch>
+                        {/* Invisible target for tour */}
+                        <div id="customize-toggle" className="absolute inset-0 pointer-events-none" />
                     </div>
                 </div>
 
@@ -747,6 +770,36 @@ const Dashboard = () => {
                     {/* Unified Grid - All Widgets */}
                     <SortableContext items={layout.grid || []} strategy={rectSortingStrategy} id="grid">
                         <div className="relative w-full min-h-[600px]">
+                            {/* Empty State */}
+                            {(!layout.grid || layout.grid.length === 0) && (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-20">
+                                    <div className="bg-gray-900/90 backdrop-blur-xl border border-indigo-500/30 p-8 rounded-3xl text-center shadow-2xl max-w-lg pointer-events-auto">
+                                        <div className="w-20 h-20 bg-indigo-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                                            <span className="text-4xl">✨</span>
+                                        </div>
+                                        <h2 className="text-2xl font-bold text-white mb-2">Your Dashboard is Empty</h2>
+                                        <p className="text-gray-400 mb-8">Start by loading a preset layout or customize it from scratch.</p>
+
+                                        <div className="flex gap-4 justify-center">
+                                            <button
+                                                onClick={() => handleLoadLayout('Starter Standard')} // Assuming 'Starter Standard' exists in presets? Checking file... DEFAULT_PRESETS usually has 'Default'
+                                                className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-500/20 transition-all flex items-center gap-2"
+                                            >
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                                                Load Preset
+                                            </button>
+                                            <button
+                                                onClick={() => { setEditMode(true); setIsSidebarOpen(true); }}
+                                                className="px-6 py-3 bg-gray-800 hover:bg-gray-700 text-white border border-gray-600 rounded-xl font-bold transition-all flex items-center gap-2"
+                                            >
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                                                Add Widgets
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Visual Grid & Column Markers (Edit Mode Only) */}
                             {editMode && (
                                 <div className="absolute inset-0 grid grid-cols-12 gap-3 pointer-events-none z-0 select-none">
@@ -755,7 +808,6 @@ const Dashboard = () => {
                                             <span className="text-[9px] font-black text-indigo-400/50 uppercase tracking-wider">Col {i + 1}</span>
                                         </div>
                                     ))}
-                                    {/* Horizontal Lines (Optional/Simple) - can leave out to reduce noise, or use repeat linear-gradient just for rows if needed */}
                                 </div>
                             )}
 
@@ -789,6 +841,13 @@ const Dashboard = () => {
                             </div>
                         </div>
                     </SortableContext>
+
+                    <FeatureTour
+                        isOpen={isTourOpen}
+                        onClose={() => setIsTourOpen(false)}
+                        steps={TOUR_STEPS}
+                        tourId="dashboard_tour"
+                    />
 
 
                     {/* Drag Overlay (Visual feedback) */}

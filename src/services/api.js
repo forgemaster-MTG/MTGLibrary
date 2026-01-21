@@ -76,8 +76,20 @@ async function request(method, endpoint, body = null, params = {}) {
     if (response.status === 204) return null;
 
     // Safely parse JSON
+    // Safely parse JSON
     const text = await response.text();
-    return text ? JSON.parse(text) : {};
+    if (!text) return {};
+
+    try {
+        // Check if response looks like HTML (common for SPA 404s)
+        if (text.trim().toLowerCase().startsWith('<!doctype html') || text.trim().toLowerCase().startsWith('<html')) {
+            throw new Error('Received HTML response from API (likely 404 or SPA fallback)');
+        }
+        return JSON.parse(text);
+    } catch (e) {
+        console.warn(`[API] Failed to parse response from ${endpoint}:`, e.message);
+        throw new Error('Invalid JSON response from API');
+    }
 }
 
 export const api = {
