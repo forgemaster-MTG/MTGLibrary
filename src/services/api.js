@@ -30,6 +30,12 @@ export const setGlobalToast = (fn) => { globalToast = fn; };
 async function request(method, endpoint, body = null, params = {}) {
     // ... (url construction same as before) ...
     let urlString = `${BASE_URL}${endpoint}`;
+
+    // Fail fast if offline
+    if (!navigator.onLine) {
+        throw new Error('Network Error: Device is offline');
+    }
+
     const url = new URL(urlString, window.location.origin);
 
     Object.keys(params).forEach(key => {

@@ -8,24 +8,35 @@ const TradeMatchWidget = ({ size = 'medium' }) => {
     const [matchCount, setMatchCount] = useState(0);
     const [loading, setLoading] = useState(true);
 
+    const [error, setError] = useState(false);
+
     useEffect(() => {
-        if (!currentUser) return;
+        if (!currentUser || !userProfile?.id || error) return;
+
+        let isMounted = true;
 
         const checkMatches = async () => {
             try {
                 // For the widget, we might want a lightweight 'count' endpoint later.
                 // For now, fetch all matches (client-side filter)
                 const matches = await tradeService.findMatches(userProfile.id);
-                setMatchCount(matches.length);
+                if (isMounted) setMatchCount(matches?.length || 0);
             } catch (err) {
-                console.warn("Widget trade check failed", err);
+                // Determine if it's an offline/network error to avoid scary warnings
+                const isOffline = !navigator.onLine || err.message?.includes('HTML') || err.message?.includes('403');
+                if (!isOffline) {
+                    console.warn("Widget trade check failed", err);
+                }
+                if (isMounted) setError(true); // Stop retrying on error
             } finally {
-                setLoading(false);
+                if (isMounted) setLoading(false);
             }
         };
 
         checkMatches();
-    }, [userProfile]);
+
+        return () => { isMounted = false; };
+    }, [currentUser, userProfile?.id, error]);
 
     if (loading) return (
         <div className="h-full w-full bg-gray-800 rounded-2xl animate-pulse flex items-center justify-center">

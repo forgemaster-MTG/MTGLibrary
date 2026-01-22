@@ -431,9 +431,9 @@ const CardSearchModal = ({ isOpen, onClose, onAddCard, onOpenForgeLens }) => {
                                 <button
                                     type="submit"
                                     disabled={loading}
-                                    className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3 rounded-2xl text-lg font-bold transition-all disabled:opacity-50 min-w-[120px] shadow-lg shadow-indigo-500/20"
+                                    className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3 rounded-2xl text-lg font-bold transition-all disabled:opacity-50 min-w-[120px] shadow-lg shadow-indigo-500/20 active:scale-95 border border-indigo-500/50"
                                 >
-                                    {loading ? '...' : 'Search'}
+                                    {loading ? 'Searching...' : 'Search'}
                                 </button>
                             </div>
 

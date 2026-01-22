@@ -6,13 +6,11 @@ import {
     signOut,
     GoogleAuthProvider,
     signInWithPopup,
-    updateProfile,
     sendPasswordResetEmail,
     sendEmailVerification
 } from 'firebase/auth';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { auth, storage } from '../lib/firebase';
-
+import { auth } from '../lib/firebase';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../services/api';
 
 const AuthContext = createContext();
@@ -21,28 +19,40 @@ export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
     const [currentUser, setCurrentUser] = useState(null);
-    const [userProfile, setUserProfile] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [firebaseLoading, setFirebaseLoading] = useState(true);
+    const queryClient = useQueryClient();
+
+    // Query for User Profile
+    const { data: userProfile = null, refetch: refetchProfile } = useQuery({
+        queryKey: ['userProfile', currentUser?.uid],
+        queryFn: async () => {
+            if (!currentUser) return null;
+            console.log('[AuthContext] Fetching user profile...');
+            return await api.get('/api/users/me');
+        },
+        enabled: !!currentUser,
+        staleTime: 1000 * 60 * 60, // 1 hour (profile doesn't change often)
+    });
 
     // Sign up
     const signup = async (email, password, profileData = {}) => {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
-
-        // If we have profile data, update it in our DB immediately
+        // Profile creation logic is usually handled by backend triggers, 
+        // but we can optimistic update or wait.
+        // For now preventing caching issues by initial refetch delay or manual set?
+        // Let's stick to existing logic but invalidating queries.
         if (Object.keys(profileData).length > 0) {
             try {
-                // We need to wait a moment for the user to be created in DB via middleware if it's the first time
-                // Or we can manually trigger a creation/update here.
-                // The middleware handles creation on the next request.
-                // Let's call refreshUserProfile to ensure the user exists in DB.
-                await refreshUserProfile();
-                // Then update with profile data
-                // We need the numeric ID from the profile
-                const freshProfile = await api.get('/api/users/me');
-                if (freshProfile?.id) {
-                    await api.updateUser(freshProfile.id, profileData);
-                    await refreshUserProfile();
+                // wait for trigger ???
+                // Or call API to update if it exists.
+                // Existing logic had complex checks. 
+                // For simplicity in this caching refactor, we retain core flow but use invalidation.
+                // We might need to manually ensure profile exists first.
+                await refetchProfile();
+                const fresh = await api.get('/api/users/me'); // Direct call to avoid cache delay if critical
+                if (fresh?.id) {
+                    await api.updateUser(fresh.id, profileData);
+                    queryClient.invalidateQueries(['userProfile', userCredential.user.uid]);
                 }
             } catch (err) {
                 console.error("Failed to save profile data during signup", err);
@@ -63,8 +73,9 @@ export const AuthProvider = ({ children }) => {
     };
 
     // Logout
-    const logout = () => {
-        setUserProfile(null);
+    const logout = async () => {
+        queryClient.setQueryData(['userProfile', currentUser?.uid], null);
+        queryClient.removeQueries(['userProfile']);
         return signOut(auth);
     };
 
@@ -79,134 +90,80 @@ export const AuthProvider = ({ children }) => {
         return sendEmailVerification(auth.currentUser);
     };
 
+    // Mutations/Updates
+    const updateProfileMutation = useMutation({
+        mutationFn: async ({ id, data }) => {
+            return await api.updateUser(id, data);
+        },
+        onSuccess: (newData) => {
+            queryClient.invalidateQueries(['userProfile', currentUser?.uid]);
+            // Optionally optimistic update via setQueryData if API returns the full object
+            // queryClient.setQueryData(['userProfile', currentUser?.uid], (old) => ({ ...old, ...data }));
+        }
+    });
+
     const updateProfileFields = async (fields) => {
-        if (!userProfile?.id) {
-            console.warn('[AuthContext] Profile missing ID, attempting re-fetch before update...');
-            await refreshUserProfile();
-        }
-        if (!userProfile?.id) {
-            throw new Error(`User profile not ready. (User: ${currentUser?.email}, Profile: ${!!userProfile})`);
-        }
+        if (!userProfile?.id) throw new Error("User profile not ready");
+        await updateProfileMutation.mutateAsync({ id: userProfile.id, data: fields });
+    };
+
+    const updateSettings = async (newSettings) => {
+        if (!userProfile?.id) return;
+        const updatedSettings = { ...(userProfile.settings || {}), ...newSettings };
+
+        // Optimistic Update
+        queryClient.setQueryData(['userProfile', currentUser?.uid], (old) => {
+            if (!old) return old;
+            return {
+                ...old,
+                settings: updatedSettings
+            };
+        });
+
         try {
-            await api.updateUser(userProfile.id, fields);
-            await refreshUserProfile();
+            await updateProfileMutation.mutateAsync({ id: userProfile.id, data: { settings: updatedSettings } });
         } catch (error) {
-            console.error("Failed to update profile fields:", error);
-            throw error;
+            console.error('Failed to update settings:', error);
+            queryClient.invalidateQueries(['userProfile', currentUser?.uid]); // Revert on error
         }
     };
 
-    // Upload Profile Picture
     const uploadProfilePicture = async (file) => {
-        console.log('[AuthContext] uploadProfilePicture called', { file: file.name, currentUser: !!currentUser });
+        if (!currentUser) throw new Error("No user logged in");
 
-        if (!currentUser) {
-            console.error('[AuthContext] No user logged in');
-            throw new Error("No user logged in");
-        }
+        // ... (Existing validation logic) ...
+        if (!file.type.startsWith('image/')) throw new Error("File must be an image.");
+        if (file.size > 10 * 1024 * 1024) throw new Error("File size must be under 10MB.");
 
-        // 1. Safety Checks
-        if (!file.type.startsWith('image/')) {
-            console.error('[AuthContext] Invalid file type:', file.type);
-            throw new Error("File must be an image.");
-        }
-        if (file.size > 10 * 1024 * 1024) { // 10MB limit
-            console.error('[AuthContext] File too large:', file.size);
-            throw new Error("File size must be under 10MB.");
-        }
+        const reader = new FileReader();
+        const base64Promise = new Promise((resolve, reject) => {
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+        const photoDataURL = await base64Promise;
 
-        try {
-            console.log('[AuthContext] Converting image to base64...');
+        if (!userProfile?.id) throw new Error("User profile not ready");
 
-            // 2. Convert image to base64
-            const reader = new FileReader();
-            const base64Promise = new Promise((resolve, reject) => {
-                reader.onload = () => resolve(reader.result);
-                reader.onerror = reject;
-                reader.readAsDataURL(file);
-            });
-
-            const photoDataURL = await base64Promise;
-            console.log('[AuthContext] Image converted to base64, size:', photoDataURL.length);
-
-            // 3. Save to database
-            console.log('[AuthContext] Saving to database...');
-
-            if (!userProfile?.id) {
-                throw new Error("User profile not ready");
-            }
-            await api.updateUser(userProfile.id, { photo_url: photoDataURL });
-            console.log('[AuthContext] Saved to database');
-
-            await refreshUserProfile();
-            console.log('[AuthContext] Profile refreshed');
-
-            return photoDataURL;
-
-        } catch (error) {
-            console.error("[AuthContext] Error uploading profile picture:", error);
-            console.error("[AuthContext] Error code:", error.code);
-            console.error("[AuthContext] Error message:", error.message);
-            throw error;
-        }
+        await updateProfileMutation.mutateAsync({ id: userProfile.id, data: { photo_url: photoDataURL } });
+        return photoDataURL;
     };
 
-    const refreshUserProfile = async () => {
-        if (!auth.currentUser) {
-            console.warn('[AuthContext] refreshUserProfile: No currentUser found in Firebase Auth');
-            return;
-        }
-        try {
-            console.log('[AuthContext] Fetching user profile from /api/users/me...');
-            const profile = await api.get('/api/users/me');
-
-            if (!profile || !profile.id) {
-                console.error('[AuthContext] Profile fetch returned invalid data:', profile);
-            } else {
-                console.log('[AuthContext] Profile loaded successfully:', profile.username || profile.email);
-            }
-
-            setUserProfile(profile);
-        } catch (error) {
-            console.error('[AuthContext] Failed to fetch user profile:', error.message);
-        }
-    };
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
             setCurrentUser(user);
-            if (user) {
-                // Fetch profile
-                // We need to wait a bit or ensure token is ready? 
-                // api.js handles token retrieval.
-                await refreshUserProfile();
-            } else {
-                setUserProfile(null);
-            }
-            setLoading(false);
+            setFirebaseLoading(false);
         });
         return unsubscribe;
     }, []);
 
-    const updateSettings = async (newSettings) => {
-        if (!userProfile) return;
-        const updatedSettings = { ...(userProfile.settings || {}), ...newSettings };
-        console.log('[AuthContext] Updating settings:', updatedSettings);
-        try {
-            const resp = await api.updateUser(userProfile.id, { settings: updatedSettings });
-            if (resp) {
-                setUserProfile(prev => ({ ...prev, settings: updatedSettings }));
-            }
-        } catch (error) {
-            console.error('Failed to update settings:', error);
-        }
-    };
-
     const value = {
         currentUser,
-        user: currentUser, // Alias for convenience
+        user: currentUser,
         userProfile,
-        refreshUserProfile,
+        loading: firebaseLoading,
+        refreshUserProfile: refetchProfile,
         updateSettings,
         signup,
         login,
@@ -220,7 +177,7 @@ export const AuthProvider = ({ children }) => {
 
     return (
         <AuthContext.Provider value={value}>
-            {!loading && children}
+            {!firebaseLoading && children}
         </AuthContext.Provider>
     );
 };

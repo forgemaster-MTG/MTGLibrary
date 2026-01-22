@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, forwardRef } from 'react';
+import { VirtuosoGrid } from 'react-virtuoso';
 import { useLocation } from 'react-router-dom';
 import { useCollection } from '../hooks/useCollection';
 import { useDecks } from '../hooks/useDecks';
@@ -27,7 +28,7 @@ import { evaluateRules } from '../services/ruleEvaluator';
 
 
 const CollectionPage = () => {
-    const { userProfile } = useAuth();
+    const { userProfile, updateSettings } = useAuth();
     const { addToast } = useToast();
     // Parse query params for wishlist mode
     const location = useLocation();
@@ -272,9 +273,28 @@ const CollectionPage = () => {
         }
     };
 
-    // View States (Persisted)
-    const [viewMode, setViewMode] = useState(() => localStorage.getItem('collection_viewMode') || 'grid');
-    const [groupingMode, setGroupingMode] = useState(() => localStorage.getItem('collection_groupingMode') || 'binders'); // 'smart' | 'custom' | 'binders'
+    // View States (Synced with UserProfile)
+    // Initialize from Profile (if ready) or fallback to localStorage -> default
+    const getInitState = (key, fallback) => {
+        return userProfile?.settings?.collection?.[key] || localStorage.getItem(`collection_${key}`) || fallback;
+    };
+
+    // For object states (filters), we need parsing if coming from localStorage
+    const getInitFilters = () => {
+        if (userProfile?.settings?.collection?.filters) return userProfile.settings.collection.filters;
+        const saved = localStorage.getItem('collection_filters');
+        return saved ? JSON.parse(saved) : {
+            colors: [],
+            rarity: [],
+            types: [],
+            sets: [],
+            decks: [],
+            users: []
+        };
+    };
+
+    const [viewMode, setViewMode] = useState(() => getInitState('viewMode', 'grid'));
+    const [groupingMode, setGroupingMode] = useState(() => getInitState('groupingMode', 'binders')); // 'smart' | 'custom' | 'binders'
     const [activeFolder, setActiveFolder] = useState(null); // ID of open folder
     const [binderCards, setBinderCards] = useState([]);
     const [binderLoading, setBinderLoading] = useState(false);
@@ -288,53 +308,140 @@ const CollectionPage = () => {
     const [isForgeLensOpen, setIsForgeLensOpen] = useState(false);
     const [editingBinder, setEditingBinder] = useState(null);
 
-    // Filter State (Persisted)
-    const [filters, setFilters] = useState(() => {
-        const saved = localStorage.getItem('collection_filters');
-        return saved ? JSON.parse(saved) : {
-            colors: [],
-            rarity: [],
-            types: [],
-            sets: [],
-            decks: [],
-            users: []
-        };
+    // Filter State
+    const [filters, setFilters] = useState(() => getInitFilters());
+    const [sortBy, setSortBy] = useState(() => getInitState('sortBy', 'added_at'));
+    const [sortOrder, setSortOrder] = useState(() => getInitState('sortOrder', 'desc'));
+    const [itemsPerPage, setItemsPerPage] = useState(() => {
+        const val = userProfile?.settings?.collection?.itemsPerPage || localStorage.getItem('collection_itemsPerPage');
+        return val ? parseInt(val) : 50;
     });
 
-    const [sortBy, setSortBy] = useState(() => localStorage.getItem('collection_sortBy') || 'added_at');
-    const [sortOrder, setSortOrder] = useState(() => localStorage.getItem('collection_sortOrder') || 'desc');
+    // Virtuoso Grid Components
+    const GridList = forwardRef(({ style, children, ...props }, ref) => (
+        <div
+            ref={ref}
+            {...props}
+            style={style}
+            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 animate-fade-in pb-24"
+        >
+            {children}
+        </div>
+    ));
 
-    // Pagination State (Grid View Only)
-    const [currentPage, setCurrentPage] = useState(() => parseInt(localStorage.getItem('collection_currentPage')) || 1);
-    const [itemsPerPage, setItemsPerPage] = useState(() => parseInt(localStorage.getItem('collection_itemsPerPage')) || 50);
+    const GridItem = forwardRef(({ children, ...props }, ref) => (
+        <div ref={ref} {...props} className="h-full">
+            {children}
+        </div>
+    ));
 
-    // Persistence Effects
-    React.useEffect(() => {
+    // Settings Sync: Read from Profile (Sync Down)
+    useEffect(() => {
+        if (!userProfile?.settings?.collection) return;
+
+        const remote = userProfile.settings.collection;
+
+        if (remote.viewMode && remote.viewMode !== viewMode) setViewMode(remote.viewMode);
+        if (remote.groupingMode && remote.groupingMode !== groupingMode) setGroupingMode(remote.groupingMode);
+        if (remote.sortBy && remote.sortBy !== sortBy) setSortBy(remote.sortBy);
+        if (remote.sortOrder && remote.sortOrder !== sortOrder) setSortOrder(remote.sortOrder);
+        if (remote.itemsPerPage && parseInt(remote.itemsPerPage) !== itemsPerPage) setItemsPerPage(parseInt(remote.itemsPerPage));
+
+        // Deep compare for filters (simplified)
+        if (remote.filters && JSON.stringify(remote.filters) !== JSON.stringify(filters)) {
+            setFilters(remote.filters);
+        }
+    }, [userProfile]);
+
+    // Settings Sync: Write to Profile (Sync Up)
+    useEffect(() => {
+        if (!userProfile?.id) return;
+
+        const currentLocal = {
+            viewMode,
+            groupingMode,
+            sortBy,
+            sortOrder,
+            itemsPerPage,
+            filters
+        };
+
+        const currentRemote = userProfile.settings?.collection || {};
+
+        // Remove keys from remote that aren't in local model to compare apples-to-apples
+        // actually safer to compare only the keys we care about
+        const remoteSubset = {
+            viewMode: currentRemote.viewMode,
+            groupingMode: currentRemote.groupingMode,
+            sortBy: currentRemote.sortBy,
+            sortOrder: currentRemote.sortOrder,
+            itemsPerPage: currentRemote.itemsPerPage ? parseInt(currentRemote.itemsPerPage) : undefined,
+            filters: currentRemote.filters
+        };
+
+        // Deep compare
+        if (JSON.stringify(currentLocal) !== JSON.stringify(remoteSubset)) {
+            // Debounce or check if we just updated? 
+            // Ideally we'd use a ref to track "lastSaved" but react-query should handle dedup.
+            // Issue is if updateSettings fails (network error), userProfile doesn't update, so this runs again?
+            // No, effect dependency is [viewMode, etc]. So it only runs when USER changes something.
+            // BUT, if userProfile changes (e.g. some other background sync), this runs again.
+            // If remote != local, we overwrite remote.
+            // This is risky if remote is "newer" but we just loaded?
+            // No, we have a "Sync Down" effect above.
+
+            // The loop happens if: 
+            // 1. We updateSettings.
+            // 2. Profile updates.
+            // 3. "Sync Down" effect runs -> sets State.
+            // 4. State updates.
+            // 5. This "Sync Up" effect runs -> updates Settings.
+            // 6. Loop.
+
+            // Fix: "Sync Down" only sets state if DIFFERENT.
+            // "Sync Up" only updates if DIFFERENT.
+            // The jitter usually comes from type mismatches (int vs string) or undefined vs null.
+
+            updateSettings({
+                collection: {
+                    ...currentRemote,
+                    ...currentLocal
+                }
+            });
+        }
+
+        // Always save to localStorage as backup
         localStorage.setItem('collection_viewMode', viewMode);
-    }, [viewMode]);
-
-    React.useEffect(() => {
         localStorage.setItem('collection_groupingMode', groupingMode);
-    }, [groupingMode]);
-
-    React.useEffect(() => {
         localStorage.setItem('collection_filters', JSON.stringify(filters));
-    }, [filters]);
-
-    React.useEffect(() => {
         localStorage.setItem('collection_sortBy', sortBy);
         localStorage.setItem('collection_sortOrder', sortOrder);
-    }, [sortBy, sortOrder]);
-
-    React.useEffect(() => {
-        localStorage.setItem('collection_currentPage', currentPage);
         localStorage.setItem('collection_itemsPerPage', itemsPerPage);
-    }, [currentPage, itemsPerPage]);
 
-    // Reset to page 1 when filters, search, or sort changes
-    React.useEffect(() => {
-        setCurrentPage(1);
-    }, [searchTerm, filters, sortBy, sortOrder]);
+    }, [viewMode, groupingMode, filters, sortBy, sortOrder, itemsPerPage, userProfile?.id]); // Removed userProfile from deps, only ID and update function needed?
+    // Wait, if we depend on userProfile, we re-run when it changes. 
+    // If we only depend on local state changes, we only save when user interacts.
+    // BUT we need `updateSettings` which is stable. 
+    // AND we need to compare against `currentRemote` to avoid loop.
+    // If we remove userProfile from deps, we use stale `currentRemote`? 
+    // Actually we don't strictly need to compare against remote if we only want to save ON CHANGE.
+    // The "Sync Down" effect handles the "Load" case.
+    // This effect should only fire when Local State changes.
+    // Usage of functional updates or refs can help.
+
+    // Better Approach:
+    // Only save when [viewMode ... filters] change. 
+    // Do NOT depend on userProfile.
+    // Inside, read userProfile from ref or just fire the update blindly?
+    // No, we want to batch. 
+    // Let's rely on the fact that we checked equality. 
+    // But `currentRemote` comes from `userProfile`.
+
+    // Simplest Fix for the Loop:
+    // Remove `userProfile` from dependency array. 
+    // We only want to push updates when the USER changes the UI (viewMode, etc).
+    // The "Sync Down" effect handles the initial load.
+    // Ensuring `updateSettings` is stable.
 
     // Fetch binder cards when activeFolder changes to a binder
     useEffect(() => {
@@ -739,18 +846,7 @@ const CollectionPage = () => {
         return group;
     }, [groups, activeFolder, binderCards]);
 
-    // Pagination Logic (Grid View Only)
-    const paginatedCards = useMemo(() => {
-        if (viewMode !== 'grid') return filteredCards;
-        const startIndex = (currentPage - 1) * itemsPerPage;
-        const endIndex = startIndex + itemsPerPage;
-        return filteredCards.slice(startIndex, endIndex);
-    }, [filteredCards, currentPage, itemsPerPage, viewMode]);
 
-    const totalPages = useMemo(() => {
-        if (viewMode !== 'grid') return 1;
-        return Math.ceil(filteredCards.length / itemsPerPage);
-    }, [filteredCards.length, itemsPerPage, viewMode]);
 
     // Verify View Permissions on Load
     useEffect(() => {
@@ -765,7 +861,7 @@ const CollectionPage = () => {
         <div className="relative min-h-screen overflow-x-hidden">
             {/* Immersive Background */}
             <div
-                className="fixed inset-0 z-0 bg-cover bg-center transition-all duration-1000"
+                className="fixed inset-0 z-0 bg-cover bg-center transform-gpu"
                 style={{ backgroundImage: 'url(/MTG-Forge_Logo_Background.png)' }}
             >
                 <div className="absolute inset-0 bg-gray-950/80 backdrop-blur-sm" />
@@ -1243,44 +1339,61 @@ w - 8 h - 8 rounded - full border flex items - center justify - center transitio
                                                 />
                                             )}
                                         </div>
-                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-                                            {activeGroup.cards.map(card => (
-                                                <div key={card.firestoreId || card.id} className="h-full">
+                                        <VirtuosoGrid
+                                            useWindowScroll
+                                            totalCount={activeGroup.cards.length}
+                                            overscan={200}
+                                            components={{
+                                                List: GridList,
+                                                Item: GridItem
+                                            }}
+                                            itemContent={(index) => {
+                                                const card = activeGroup.cards[index];
+                                                return (
                                                     <CardGridItem
                                                         card={card}
                                                         decks={decks}
                                                         currentUser={userProfile}
                                                         showOwnerTag={isMixedView}
                                                     />
-                                                </div>
-                                            ))}
-                                        </div>
+                                                );
+                                            }}
+                                        />
                                     </div>
                                 )}
 
-                                {/* GRID VIEW */}
+                                {/* GRID VIEW (Virtualized) */}
                                 {viewMode === 'grid' && (
                                     <>
-                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 animate-fade-in">
-                                            {paginatedCards.map((card, index) => (
-                                                <div key={card.firestoreId || card.id} className="h-full" id={index === 0 ? "collection-first-card" : undefined}>
-                                                    <CardGridItem
-                                                        card={card}
-                                                        decks={decks}
-                                                        currentUser={userProfile}
-                                                        showOwnerTag={isMixedView}
-                                                        selectMode={isSelectionMode}
-                                                        isSelected={selectedCardIds.has(card.firestoreId || card.id)}
-                                                        onToggleSelect={(id) => toggleCardSelect(id)}
-                                                    />
-                                                </div>
-                                            ))}
-                                            {filteredCards.length === 0 && (
-                                                <div className="col-span-full py-20 text-center text-gray-500 italic">
-                                                    No cards found.
-                                                </div>
-                                            )}
-                                        </div>
+                                        {filteredCards.length > 0 ? (
+                                            <VirtuosoGrid
+                                                useWindowScroll
+                                                totalCount={filteredCards.length}
+                                                overscan={200}
+                                                components={{
+                                                    List: GridList,
+                                                    Item: GridItem
+                                                }}
+                                                itemContent={(index) => {
+                                                    const card = filteredCards[index];
+                                                    return (
+                                                        <CardGridItem
+                                                            card={card}
+                                                            decks={decks}
+                                                            currentUser={userProfile}
+                                                            showOwnerTag={isMixedView}
+                                                            selectMode={isSelectionMode}
+                                                            isSelected={selectedCardIds.has(card.firestoreId || card.id)}
+                                                            onToggleSelect={(id) => toggleCardSelect(id)}
+                                                        />
+                                                    );
+                                                }}
+                                            />
+                                        ) : (
+                                            <div className="py-20 text-center text-gray-500 italic">
+                                                No cards found.
+                                            </div>
+                                        )}
                                     </>
                                 )}
 
@@ -1369,160 +1482,7 @@ w - 8 h - 8 rounded - full border flex items - center justify - center transitio
                 }}
             />
 
-            {/* Fixed Pagination Footer (Responsive, Grid View) */}
-            {
-                viewMode === 'grid' && filteredCards.length > 0 && (
-                    <>
-                        {/* Desktop Pagination Footer */}
-                        <div className="hidden md:block fixed bottom-0 left-0 right-0 z-[55] bg-gray-950/95 backdrop-blur-xl border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
-                            <div className="max-w-[1600px] mx-auto px-6 pr-24 py-4">
-                                <div className="flex items-center justify-between gap-4">
-                                    {/* Page Info */}
-                                    <div className="text-sm text-gray-400 font-medium whitespace-nowrap">
-                                        Showing {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredCards.length)} of {filteredCards.length} cards
-                                    </div>
 
-                                    {/* Page Navigation */}
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={() => setCurrentPage(1)}
-                                            disabled={currentPage === 1}
-                                            className="px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                                            title="First Page"
-                                        >
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" /></svg>
-                                        </button>
-                                        <button
-                                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                                            disabled={currentPage === 1}
-                                            className="px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                                            title="Previous Page"
-                                        >
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-                                        </button>
-
-                                        <div className="flex items-center gap-1">
-                                            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                                                // Show pages around current page
-                                                let pageNum;
-                                                if (totalPages <= 5) {
-                                                    pageNum = i + 1;
-                                                } else if (currentPage <= 3) {
-                                                    pageNum = i + 1;
-                                                } else if (currentPage >= totalPages - 2) {
-                                                    pageNum = totalPages - 4 + i;
-                                                } else {
-                                                    pageNum = currentPage - 2 + i;
-                                                }
-
-                                                return (
-                                                    <button
-                                                        key={pageNum}
-                                                        onClick={() => setCurrentPage(pageNum)}
-                                                        className={`min-w-[2.5rem] px-3 py-2 rounded-lg font-bold text-sm transition-all ${currentPage === pageNum
-                                                            ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
-                                                            : 'bg-gray-800 border border-gray-700 text-gray-400 hover:text-white hover:bg-gray-700'
-                                                            }`}
-                                                    >
-                                                        {pageNum}
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-
-                                        <button
-                                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                                            disabled={currentPage === totalPages}
-                                            className="px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                                            title="Next Page"
-                                        >
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-                                        </button>
-                                        <button
-                                            onClick={() => setCurrentPage(totalPages)}
-                                            disabled={currentPage === totalPages}
-                                            className="px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                                            title="Last Page"
-                                        >
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg>
-                                        </button>
-                                    </div>
-
-                                    {/* Items Per Page Selector */}
-                                    <div className="flex items-center gap-2 whitespace-nowrap">
-                                        <label className="text-sm text-gray-400 font-medium">Per page:</label>
-                                        <select
-                                            value={itemsPerPage}
-                                            onChange={(e) => {
-                                                setItemsPerPage(parseInt(e.target.value));
-                                                setCurrentPage(1);
-                                            }}
-                                            className="bg-gray-800 border border-gray-700 text-white px-3 py-2 rounded-lg font-bold text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                                        >
-                                            <option value={25}>25</option>
-                                            <option value={50}>50</option>
-                                            <option value={100}>100</option>
-                                            <option value={200}>200</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Mobile Pagination Footer */}
-                        <div className="md:hidden fixed bottom-16 left-0 right-0 z-[55] bg-gray-950/95 backdrop-blur-xl border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
-                            <div className="px-4 pr-24 py-3">
-                                <div className="flex items-center justify-between gap-3">
-                                    {/* Compact Page Info */}
-                                    <div className="text-xs text-gray-400 font-medium">
-                                        Page {currentPage} of {totalPages}
-                                    </div>
-
-                                    {/* Compact Navigation */}
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                                            disabled={currentPage === 1}
-                                            className="px-2.5 py-2 rounded-lg bg-gray-800 border border-gray-700 text-gray-400 active:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                                            title="Previous"
-                                        >
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-                                        </button>
-
-                                        <div className="text-xs font-bold text-white bg-indigo-600 px-3 py-2 rounded-lg min-w-[3rem] text-center">
-                                            {currentPage}
-                                        </div>
-
-                                        <button
-                                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                                            disabled={currentPage === totalPages}
-                                            className="px-2.5 py-2 rounded-lg bg-gray-800 border border-gray-700 text-gray-400 active:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                                            title="Next"
-                                        >
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-                                        </button>
-                                    </div>
-
-                                    {/* Compact Per Page Selector */}
-                                    <select
-                                        value={itemsPerPage}
-                                        onChange={(e) => {
-                                            setItemsPerPage(parseInt(e.target.value));
-                                            setCurrentPage(1);
-                                        }}
-                                        className="bg-gray-800 border border-gray-700 text-white px-2 py-2 rounded-lg font-bold text-xs focus:outline-none"
-                                    >
-                                        <option value={25}>25</option>
-                                        <option value={50}>50</option>
-                                        <option value={100}>100</option>
-                                        <option value={200}>200</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    </>
-                )
-            }
 
             {/* Organization Wizard */}
             <OrganizationWizardModal

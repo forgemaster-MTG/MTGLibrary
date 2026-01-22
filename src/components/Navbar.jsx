@@ -11,6 +11,7 @@ import { useToast } from '../contexts/ToastContext';
 import HelpCenterModal from './modals/HelpCenterModal';
 import ForgeLensModal from './modals/ForgeLensModal';
 import { api } from '../services/api';
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 
 const Navbar = () => {
     const location = useLocation();
@@ -27,7 +28,23 @@ const Navbar = () => {
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+    const [imageError, setImageError] = useState(false);
     const fileInputRef = React.useRef(null);
+
+
+    // Keyboard Shortcuts
+    useKeyboardShortcuts([
+        {
+            key: 'k',
+            modifiers: ['ctrl'],
+            action: () => setIsSearchOpen(true)
+        },
+        {
+            key: '/',
+            modifiers: ['ctrl'],
+            action: () => setIsHelpOpen(true)
+        }
+    ]);
 
     // Close user menu when clicking outside
     React.useEffect(() => {
@@ -261,11 +278,12 @@ const Navbar = () => {
                                                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                                                 className="text-gray-400 hover:text-white transition-colors focus:outline-none"
                                             >
-                                                {currentUser.photoURL ? (
+                                                {currentUser.photoURL && !imageError ? (
                                                     <img
                                                         src={currentUser.photoURL}
                                                         alt="Profile"
                                                         className="h-8 w-8 rounded-full object-cover ring-2 ring-transparent hover:ring-indigo-500 transition-all border border-gray-600"
+                                                        onError={() => setImageError(true)}
                                                     />
                                                 ) : (
                                                     <div className="h-8 w-8 rounded-full bg-indigo-500/20 border border-indigo-500/50 flex items-center justify-center ring-2 ring-transparent hover:ring-indigo-500 transition-all">

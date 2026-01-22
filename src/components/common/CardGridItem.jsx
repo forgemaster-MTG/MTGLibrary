@@ -1,5 +1,6 @@
 import React, { useState, memo } from 'react';
 import { useCardModal } from '../../contexts/CardModalContext';
+import LazyImage from './LazyImage';
 
 const CardGridItem = memo(function CardGridItem({ card, availableFoils, onRemove, showQuantity = true, onClick, decks = [], ownerName, currentUser, showOwnerTag = false, hideDeckTag = false, hideOwnerTag = false, selectMode = false, isSelected = false, onToggleSelect }) {
     const [isFlipped, setIsFlipped] = useState(false);
@@ -57,11 +58,10 @@ const CardGridItem = memo(function CardGridItem({ card, availableFoils, onRemove
 
                 {/* Front Face */}
                 <div className="absolute inset-0 w-full h-full backface-hidden rounded-lg overflow-hidden shadow-md bg-gray-950/40 backdrop-blur-md border border-white/5 bg-cover bg-center" style={{ backgroundImage: `url('/card-back.jpg')` }}>
-                    <img
+                    <LazyImage
                         src={frontImage}
                         alt={card.name}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
+                        className="w-full h-full rounded-lg"
                     />
 
                     {/* Badges (Front only) */}
@@ -181,11 +181,10 @@ const CardGridItem = memo(function CardGridItem({ card, availableFoils, onRemove
                 {/* Back Face */}
                 {hasBackFace && (
                     <div className="absolute inset-0 w-full h-full backface-hidden rotate-y-180 rounded-lg overflow-hidden shadow-md bg-gray-950/40 backdrop-blur-md border border-white/5 bg-cover bg-center" style={{ backgroundImage: `url('/card-back.jpg')` }}>
-                        <img
+                        <LazyImage
                             src={backImage}
                             alt={`${card.name} (Back)`}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
+                            className="w-full h-full rounded-lg"
                         />
                         {/* Hover Overlay Back */}
                         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-200 flex flex-col justify-center items-center gap-2 p-2 backdrop-blur-sm z-30">
