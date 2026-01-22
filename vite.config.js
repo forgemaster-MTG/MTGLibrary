@@ -50,13 +50,13 @@ export default defineConfig({
                         },
                     },
                     {
-                        // Cache Scryfall and Firebase Storage images specifically
-                        urlPattern: /^https:\/\/(cards\.scryfall\.io|firebasestorage\.googleapis\.com)/,
+                        // Cache Scryfall, Firebase, Google User Content (Profile Pics), and Placeholders
+                        urlPattern: /^https:\/\/(cards\.scryfall\.io|firebasestorage\.googleapis\.com|.*\.googleusercontent\.com|placehold\.co)/,
                         handler: 'StaleWhileRevalidate',
                         options: {
-                            cacheName: 'external-images-cache-v2',
+                            cacheName: 'external-images-cache-v4', // Bump version again for large storage
                             expiration: {
-                                maxEntries: 500,
+                                maxEntries: 20000, // Increased for massive collections (10k+)
                                 maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
                             },
                             cacheableResponse: {
