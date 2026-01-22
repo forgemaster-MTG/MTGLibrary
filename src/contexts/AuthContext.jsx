@@ -23,7 +23,7 @@ export const AuthProvider = ({ children }) => {
     const queryClient = useQueryClient();
 
     // Query for User Profile
-    const { data: userProfile = null, refetch: refetchProfile } = useQuery({
+    const { data: userProfile = null, refetch: refetchProfile, isLoading: profileLoading } = useQuery({
         queryKey: ['userProfile', currentUser?.uid],
         queryFn: async () => {
             if (!currentUser) return null;
@@ -162,7 +162,7 @@ export const AuthProvider = ({ children }) => {
         currentUser,
         user: currentUser,
         userProfile,
-        loading: firebaseLoading,
+        loading: firebaseLoading || (!!currentUser && profileLoading),
         refreshUserProfile: refetchProfile,
         updateSettings,
         signup,
@@ -177,7 +177,7 @@ export const AuthProvider = ({ children }) => {
 
     return (
         <AuthContext.Provider value={value}>
-            {!firebaseLoading && children}
+            {!firebaseLoading && (!currentUser || !profileLoading) && children}
         </AuthContext.Provider>
     );
 };

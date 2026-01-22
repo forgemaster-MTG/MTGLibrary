@@ -40,12 +40,12 @@ export default defineConfig({
                 runtimeCaching: [
                     {
                         urlPattern: ({ request }) => request.destination === 'image',
-                        handler: 'CacheFirst',
+                        handler: 'StaleWhileRevalidate',
                         options: {
                             cacheName: 'images-cache',
                             expiration: {
-                                maxEntries: 100,
-                                maxAgeSeconds: 30 * 24 * 60 * 60,
+                                maxEntries: 200,
+                                maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
                             },
                         },
                     },
