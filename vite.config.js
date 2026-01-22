@@ -42,7 +42,7 @@ export default defineConfig({
                         urlPattern: ({ request }) => request.destination === 'image',
                         handler: 'StaleWhileRevalidate',
                         options: {
-                            cacheName: 'images-cache',
+                            cacheName: 'images-cache-v2',
                             expiration: {
                                 maxEntries: 200,
                                 maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
@@ -50,10 +50,25 @@ export default defineConfig({
                         },
                     },
                     {
+                        // Cache Scryfall and Firebase Storage images specifically
+                        urlPattern: /^https:\/\/(cards\.scryfall\.io|firebasestorage\.googleapis\.com)/,
+                        handler: 'StaleWhileRevalidate',
+                        options: {
+                            cacheName: 'external-images-cache-v2',
+                            expiration: {
+                                maxEntries: 500,
+                                maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
+                            },
+                            cacheableResponse: {
+                                statuses: [0, 200] // Important for opaque responses (CORS)
+                            }
+                        },
+                    },
+                    {
                         urlPattern: ({ request }) => request.destination === 'script' || request.destination === 'style',
                         handler: 'StaleWhileRevalidate',
                         options: {
-                            cacheName: 'static-resources',
+                            cacheName: 'static-resources-v2',
                         },
                     },
                 ]

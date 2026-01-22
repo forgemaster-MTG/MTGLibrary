@@ -31,7 +31,7 @@ export const AuthProvider = ({ children }) => {
             return await api.get('/api/users/me');
         },
         enabled: !!currentUser,
-        staleTime: 1000 * 60 * 60, // 1 hour (profile doesn't change often)
+        staleTime: 1000 * 60 * 5, // 5 minutes (balance between fresh data and offline support)
     });
 
     // Sign up
