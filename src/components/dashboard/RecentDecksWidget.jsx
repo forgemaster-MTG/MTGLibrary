@@ -75,9 +75,12 @@ const DeckItem = ({ deck, navigate }) => {
                         const partnerColors = deck?.commander_partner?.color_identity || [];
                         const allColors = [...new Set([...mainColors, ...partnerColors])];
                         if (allColors.length === 0) allColors.push('C');
-                        return allColors.map(c => (
-                            <img key={c} src={`https://svgs.scryfall.io/card-symbols/${c}.svg`} alt={c} className="w-2.5 h-2.5" />
-                        ));
+                        return allColors.map(c => {
+                            const symbol = c.replace(/[{}]/g, '');
+                            return (
+                                <img key={c} src={`https://svgs.scryfall.io/card-symbols/${symbol}.svg`} alt={symbol} className="w-4 h-4 shadow-sm" />
+                            );
+                        });
                     })()}
                 </div>
             </div>
