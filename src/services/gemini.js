@@ -1,177 +1,308 @@
-const MODEL_NAME = "gemini-2.5-flash-preview-09-2025";
+/**
+ * Gemini Service
+ * Handles all AI interactions with built-in rotation and usage tracking.
+ */
 
-export const GeminiService = {
-    // ... (previous methods)
+const PRICING = {
+    'pro': { input: 1.25 / 1000000, output: 5.00 / 1000000 },
+    'flash': { input: 0.075 / 1000000, output: 0.30 / 1000000 },
+    'flash-lite': { input: 0.0375 / 1000000, output: 0.15 / 1000000 }
+};
 
-    /**
-     * Generates deck suggestions based on a commander, playstyle, and candidate list.
-     * Incorporates detailed Player Profiles, Strategy Guides, and Custom Helper Personas.
-     */
-    generateDeckSuggestions: async (apiKey, payload) => {
+const getModelTier = (model) => {
+    if (model.includes('pro')) return 'pro';
+    if (model.includes('lite') || model.includes('8b')) return 'flash-lite';
+    return 'flash';
+};
+
+const estimateTokens = (text) => {
+    if (!text) return 0;
+    return Math.ceil(text.length / 4);
+};
+
+const updateUsageStats = (keyIndex, model, status, inputTokens, outputTokens) => {
+    try {
+        const stats = JSON.parse(localStorage.getItem('gemini_usage_stats') || '{}');
+        const key = `key_${keyIndex}`;
+        if (!stats[key]) stats[key] = {};
+        if (!stats[key][model]) stats[key][model] = { success: 0, failure: 0, "429": 0, inputTokens: 0, outputTokens: 0 };
+
+        const mStats = stats[key][model];
+        if (status === 'success') {
+            mStats.success++;
+            mStats.inputTokens += inputTokens;
+            mStats.outputTokens += outputTokens;
+        } else if (status === 429) {
+            mStats["429"]++;
+        } else {
+            mStats.failure++;
+        }
+
+        localStorage.setItem('gemini_usage_stats', JSON.stringify(stats));
+    } catch (e) {
+        console.error("Failed to update usage stats", e);
+    }
+};
+
+const getKeys = (primaryKey, userProfile) => {
+    const keys = [primaryKey];
+    if (userProfile?.settings?.geminiApiKeys && Array.isArray(userProfile.settings.geminiApiKeys)) {
+        userProfile.settings.geminiApiKeys.forEach(k => {
+            if (k && !keys.includes(k)) keys.push(k);
+        });
+    }
+    return keys.filter(Boolean).slice(0, 4);
+};
+
+const PREFERRED_MODELS = [
+    "gemini-1-pro-preview",
+    "gemini-3-pro-preview",
+    "gemini-2.5-pro",
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
+    "gemini-2.0-flash-exp",
+    "gemini-1.5-flash-002",
+    "gemini-1.5-flash",
+    "gemini-1.5-pro-002",
+    "gemini-1.5-pro",
+    "gemini-1.0-pro"
+];
+
+const GeminiService = {
+    async executeWithFallback(payload, userProfile, options = {}) {
+        const primaryKey = options.apiKey;
+        const keys = getKeys(primaryKey, userProfile);
+        const models = options.models || PREFERRED_MODELS;
+
+        let failureSummary = [];
+        let hitOverall429 = true;
+
+        let inputTokens = 0;
+        if (payload.contents) {
+            payload.contents.forEach(c => c.parts.forEach(p => { if (p.text) inputTokens += estimateTokens(p.text); }));
+        }
+        if (payload.systemInstruction) {
+            payload.systemInstruction.parts.forEach(p => { if (p.text) inputTokens += estimateTokens(p.text); });
+        }
+        if (payload.system_instruction) {
+            payload.system_instruction.parts.forEach(p => { if (p.text) inputTokens += estimateTokens(p.text); });
+        }
+
+        for (let kIdx = 0; kIdx < keys.length; kIdx++) {
+            const key = keys[kIdx];
+            for (const model of models) {
+                try {
+                    const apiVer = (model.includes('exp') || model.includes('2.0') || model.includes('2.5') || model.includes('3') || model.includes('beta') || model.includes('preview')) ? 'v1beta' : 'v1';
+                    const response = await fetch(`https://generativelanguage.googleapis.com/${apiVer}/models/${model}:generateContent?key=${key}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        let errorMsg = response.status.toString();
+                        try {
+                            const errData = await response.json();
+                            if (errData.error?.message) errorMsg = errData.error.message;
+                        } catch (e) { /* ignore */ }
+
+                        if (response.status === 429) {
+                            updateUsageStats(kIdx, model, 429, 0, 0);
+                            continue;
+                        }
+
+                        hitOverall429 = false;
+                        updateUsageStats(kIdx, model, response.status, 0, 0);
+                        failureSummary.push(`${model} (Key ${kIdx}): ${errorMsg}`);
+                        continue;
+                    }
+
+                    const data = await response.json();
+                    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (text) {
+                        const outTokens = estimateTokens(text);
+                        updateUsageStats(kIdx, model, 'success', inputTokens, outTokens);
+                        return text;
+                    }
+                } catch (e) {
+                    updateUsageStats(kIdx, model, 'error', 0, 0);
+                    failureSummary.push(`${model} (Key ${kIdx}) Error: ${e.message}`);
+                }
+            }
+        }
+
+        if (hitOverall429 && typeof window !== 'undefined' && window.addToast) {
+            window.addToast("All free tiers of Gemini have been used today across all provided keys.", "warning");
+        }
+
+        throw new Error(`Oracle Exhausted: ${failureSummary.join(' | ')}`);
+    },
+
+    async generateDeckSuggestions(apiKey, payload, helper = null, userProfile = null) {
         const {
-            deckName,
-            commander,
-            playerProfile,   // Detailed behavioral/psychological text
-            strategyGuide,   // The "Aetherius" style strategy guide text
-            helperPersona,   // User's custom helper (Name, Type, Personality)
-            targetRole,
-            candidates,
-            currentContext,
-            neededCount,
-            experienceLevel = "Advanced"
+            deckName, commander, playerProfile, strategyGuide, helperPersona,
+            targetRole, candidates, currentContext, neededCount, buildMode
         } = payload;
 
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey || ""}`;
+        const helperName = helperPersona?.name || helper?.name || "The Oracle";
+        const helperTone = helperPersona?.personality || helper?.personality || "Professional and helpful";
 
-        // 1. Construct the System Persona with the custom Helper Tone
-        const helperName = helperPersona?.name || "The Oracle";
-        const helperType = helperPersona?.type || "AI";
-        const helperTone = helperPersona?.personality || "Professional and helpful";
-
-        const systemInstruction = `You are ${helperName}, a ${helperType}. 
-        Your personality is: ${helperTone}.
-
-        VOICE GUIDELINES:
-        - When writing the 'reason' for a card, strictly adhere to your personality.
-        - Address the user as an equal (or however your personality dictates).
-        - If you are snarky or high-minded, use that tone to explain why a card is mathematically or strategically superior to the "garbage" others play.
-
-        YOUR CORE MISSION:
-        - You specialize in "Psychographic Profiling"—matching a deck's mechanical soul to a player's specific psychological needs.
-        - Analyze the PLAYER PROFILE: ${playerProfile}
-        - Analyze the STRATEGY GUIDE: ${strategyGuide}
-        - Select EXACTLY ${neededCount} cards from the CANDIDATE LIST for the role of '${targetRole}'.
+        const systemMessage = `You are ${helperName}. Your personality is: ${helperTone}.
+        VOICE: Strictly adhere to your personality. Address the user as an equal.
+        CORE MISSION:
+        - Match a deck's mechanical soul to PLAYER PROFILE: ${playerProfile}
+        - Align with STRATEGY GUIDE: ${strategyGuide}
+        - Select EXACTLY THE REQUESTED NUMBER OF CARDS for each functional role. Avoid over-suggesting.
+        - SYNERGY OVER STAPLES: Prefer cards that enable the specific loops of the commander.
+        - COLOR IDENTITY: You MUST ONLY suggest cards that match the commander's color identity: ${payload.commanderColorIdentity}. This includes both casting cost and any mana symbols in the rules text (Oracle).
         
-        CRITICAL SELECTION CRITERIA:
-        - SYNERGY OVER STAPLES: Prefer cards that enable the specific loops in the Strategy Guide.
-        - PLAYER SATISFACTION: Align card mechanics with the player's desire for "inescapable defeat" or "meticulous engineering."`;
+        ALLOWED ROLES:
+        You MUST assign every card one of these EXACT roles:
+        - 'Synergy / Strategy' (The core engine)
+        - 'Mana Ramp' (Artifacts/spells that accelerate mana)
+        - 'Card Draw' (Spells that net card advantage)
+        - 'Targeted Removal' (Single target interaction)
+        - 'Board Wipes' (Mass removal)
+        - 'Land' (Utility or mana-fixing lands)
 
-        // 2. Build the User Query
+        CRITICAL INSTRUCTIONS FOR DISCOVERY MODE:
+        When in DISCOVERY mode, you are not limited to the candidate pool. You must search the entire Magic: The Gathering card history.
+        Suggestions will be resolved PRIMARILY BY NAME. Focus on the best mechanical fit.
+        Providing 'set' and 'collectorNumber' is still recommended for a baseline printing, but robustness is prioritized via Name.
+        IMPORTANT: Use modern Scryfall set codes (e.g., 'cmd', 'mh1', 'tmkm').
+        
+        CRITICAL INSTRUCTIONS FOR COLLECTION MODE:
+        Only suggest cards from the [CANDIDATE POOL]. Use the 'firestoreId' provided.`;
+
         const userQuery = `
-            DECK: ${deckName}
-            COMMANDER: ${commander}
+            DECK: ${deckName} | COMMANDER: ${commander}
+            [COLOR IDENTITY] ${payload.commanderColorIdentity}
+            [PSYCHOGRAPHIC PROFILE] ${playerProfile}
+            [STRATEGY] ${strategyGuide}
+            [STATUS] Current deck contains: ${JSON.stringify(currentContext)}
+            [REQUEST] I need the following counts for these specific roles: ${JSON.stringify(payload.deckRequirements || { [targetRole]: neededCount })}
+            [MODE] ${buildMode === 'discovery' ? 'DISCOVERY (Global Search)' : 'COLLECTION (Strict Pool)'}
             
-            [PLAYER PSYCHOGRAPHIC PROFILE]
-            ${playerProfile}
-            
-            [GUIDING STRATEGY & ASSUMED ABILITIES]
-            ${strategyGuide}
-            
-            [CURRENT DECK CONTEXT]
-            ${currentContext?.length > 0 ? currentContext.join(', ') : 'No cards added yet.'}
-            
-            [CATEGORY TO FILL]
-            I need exactly ${neededCount} cards for the '${targetRole}' slot.
-            
-            [CANDIDATE POOL]
-            ${candidates.map(c => `ID: ${c.firestoreId} | Name: ${c.name} | Type: ${c.type_line}`).join('\n')}
-            
-            OUTPUT REQUIREMENTS:
-            Return a JSON object with 'suggestions'. 
-            In the 'reason' field, speak as ${helperName} (${helperTone}). Explain why the card is a perfect choice for the user's style, perhaps mocking the inadequacy of alternative cards.
+            ${buildMode !== 'discovery' ? `[CANDIDATE POOL]\n${candidates.map(c => `ID: ${c.firestoreId || c.id} | Name: ${c.name} | Type: ${c.type_line}`).join('\n')}` : ''}
         `;
 
-        // 3. Define Structured Output Schema
-        const generationConfig = {
-            responseMimeType: "application/json",
-            responseSchema: {
-                type: "OBJECT",
-                properties: {
-                    suggestions: {
-                        type: "ARRAY",
-                        items: {
-                            type: "OBJECT",
-                            properties: {
-                                firestoreId: { type: "STRING" },
-                                rating: { type: "NUMBER" },
-                                reason: { type: "STRING", description: "Justification written in the voice of the custom helper persona." }
-                            },
-                            required: ["firestoreId", "rating", "reason"]
+        const payload_obj = {
+            system_instruction: { parts: [{ text: systemMessage }] },
+            contents: [{ role: 'user', parts: [{ text: userQuery }] }],
+            generationConfig: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: "OBJECT",
+                    properties: {
+                        suggestions: {
+                            type: "ARRAY",
+                            items: {
+                                type: "OBJECT",
+                                properties: {
+                                    firestoreId: { type: "STRING", description: "The ID from the pool, or 'discovery' for new cards" },
+                                    name: { type: "STRING" },
+                                    rating: { type: "NUMBER", description: "1-10 how well it fits" },
+                                    reason: { type: "STRING", description: "Detailed gameplay justification" },
+                                    set: { type: "STRING", description: "Scryfall set code (e.g. 'mkm')" },
+                                    collectorNumber: { type: "STRING", description: "Scryfall collector number" },
+                                    role: {
+                                        type: "STRING",
+                                        description: "MUST be one of: 'Synergy / Strategy', 'Mana Ramp', 'Card Draw', 'Targeted Removal', 'Board Wipes', 'Land'"
+                                    }
+                                },
+                                required: ["name", "rating", "reason", "set", "collectorNumber", "role"]
+                            }
                         }
                     }
                 }
             }
         };
 
-        const body = {
-            contents: [{ parts: [{ text: userQuery }] }],
-            systemInstruction: { parts: [{ text: systemInstruction }] },
-            generationConfig
+        const result = await this.executeWithFallback(payload_obj, userProfile, { apiKey });
+        return JSON.parse(result);
+    },
+
+    async analyzeDeck(apiKey, deckList, commanderName, helper = null, userProfile = null) {
+        const helperName = helper?.name || 'The Deck Doctor';
+        const deckContext = deckList.map(c => `- ${c.countInDeck || 1}x ${c.name} (${c.type_line})`).join('\n') +
+            `\n\nTotal Lands: ${deckList.reduce((acc, c) => (c.type_line?.toLowerCase().includes('land') ? acc + (c.countInDeck || 1) : acc), 0)}`;
+
+        const prompt = `You are ${helperName}. Analyze this Commander deck for "${commanderName}".
+        
+        [DECKLIST]
+        ${deckContext}
+        
+        [INSTRUCTIONS]
+        Perform a clinical evaluation. Be critical but constructive.
+        1. Calculate a Score (0-100).
+        2. Identify 3-5 critical structural Issues.
+        3. Propose up to 5 surgical Swaps with 'remove', 'add', 'reason'.
+        4. Focus on Mana Curve, Synergy density, and Interaction package.`;
+
+        const payload = {
+            system_instruction: { parts: [{ text: prompt }] },
+            contents: [{ role: 'user', parts: [{ text: `Analyze this Commander deck for "${commanderName}"` }] }],
+            generationConfig: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: "OBJECT",
+                    properties: {
+                        score: { type: "NUMBER" },
+                        metrics: {
+                            type: "OBJECT",
+                            properties: {
+                                synergy: { type: "NUMBER" },
+                                speed: { type: "NUMBER" },
+                                interaction: { type: "NUMBER" }
+                            }
+                        },
+                        issues: { type: "ARRAY", items: { type: "STRING" } },
+                        changes: {
+                            type: "ARRAY",
+                            items: {
+                                type: "OBJECT",
+                                properties: {
+                                    remove: { type: "STRING" },
+                                    add: { type: "STRING" },
+                                    reason: { type: "STRING" }
+                                },
+                                required: ["remove", "add", "reason"]
+                            }
+                        }
+                    },
+                    required: ["score", "metrics", "issues", "changes"]
+                }
+            }
         };
 
-        // 4. Execution with Exponential Backoff
-        let attempt = 0;
-        const maxAttempts = 5;
-        const delays = [1000, 2000, 4000, 8000, 16000];
-
-        while (attempt < maxAttempts) {
-            try {
-                const response = await fetch(endpoint, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body)
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
-                }
-
-                const result = await response.json();
-                const textResponse = result.candidates?.[0]?.content?.parts?.[0]?.text;
-
-                if (!textResponse) throw new Error("The Oracle returned an empty vision.");
-
-                return JSON.parse(textResponse);
-
-            } catch (error) {
-                attempt++;
-                if (attempt === maxAttempts) {
-                    throw new Error(`The Oracle (${helperName}) is currently silent. Details: ${error.message}`);
-                }
-                await new Promise(resolve => setTimeout(resolve, delays[attempt - 1]));
-            }
-        }
+        const result = await this.executeWithFallback(payload, userProfile, { apiKey });
+        return JSON.parse(result);
     },
-    async sendMessage(apiKey, history, message, context = '', helper = null) {
-        if (!apiKey) throw new Error("API Key is missing. Please add it in Settings.");
 
+    async sendMessage(apiKey, history, message, context = '', helper = null, userProfile = null) {
         const helperName = helper?.name || 'MTG Forge';
-        const helperPersonality = helper?.personality ? `Personality: ${helper.personality}` : 'Personality: Knowledgeable, friendly, and concise.';
+        const helperPersonality = helper?.personality || 'Knowledgeable, friendly, and concise.';
 
-        const SYSTEM_PROMPT = `
-You are ${helperName}, an elite Magic: The Gathering AI assistant.
-Your goal is to provide accurate, strategic, and engaging advice to players.
-
-**Persona & Style:**
-- ${helperPersonality}
-- Use emojis to add flair (e.g., ⚔️, 🛡️, 🔥, 💀, 🌳, 💧, ☀️).
-- Format responses using **Tailwind CSS** classes within HTML tags for a premium look.
-- Do NOT use Markdown. Output raw HTML that can be injected directly into a <div>.
-
-**Formatting Rules:**
-- Use <p class="mb-2 text-gray-300"> for paragraphs.
-- Use <strong class="text-indigo-400"> for key terms or card names.
-- Use <ul class="list-disc pl-5 mb-2 space-y-1 text-gray-300"> for lists.
-- Use <div class="bg-gray-700/50 p-3 rounded-lg border-l-4 border-indigo-500 mb-2"> for important notes or rules citations.
-- Use <code class="bg-gray-900 px-1 py-0.5 rounded text-indigo-300 font-mono text-sm"> for mana costs (e.g., {1}{U}{B}) or keywords.
-
-**Content Guidance:**
-- If asked about rules, cite the Comprehensive Rules if possible.
-- If asked about deck building, consider mana curve, synergy, and format staples.
-- If asked about lore, be descriptive and immersive.
-
-**Current Context & Documentation:**
-You are currently helping the user on a specific page. 
-Here is the relevant documentation for the user's current view. USE THIS to answer their questions:
----
-${context}
----
-If the user's question is about the current page, prioritize the information above.
-`.trim();
+        const systemPrompt = `You are ${helperName}, an elite Magic: The Gathering AI strategist and companion.
+        
+        [PERSONALITY]
+        ${helperPersonality}
+        
+        [RESPONSE GUIDELINES]
+        - Output ONLY raw HTML. Do not use Markdown blocks (no \`\`\`html).
+        - Use Tailwind CSS classes for styling.
+        - Primary font color should be text-gray-300 unless highlighting.
+        - Use <strong class="text-indigo-400"> for card names or key terms.
+        - Use <ul class="space-y-2 list-disc pl-5 my-4"> for lists.
+        - Use <div class="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl my-4"> for emphasis or summary blocks.
+        
+        [CONTEXT]
+        ${context}
+        
+        You are interacting with the user inside their personal deck-building laboratory. Be helpful, strategic, and stay in character.`;
 
         const contents = [
-            { role: 'user', parts: [{ text: SYSTEM_PROMPT }] },
+            { role: 'user', parts: [{ text: systemPrompt }] },
             ...history.map(msg => ({
                 role: msg.role === 'user' ? 'user' : 'model',
                 parts: [{ text: msg.content }]
@@ -179,931 +310,310 @@ If the user's question is about the current page, prioritize the information abo
             { role: 'user', parts: [{ text: message }] }
         ];
 
-        const PREFERRED_MODELS = [
-            'gemini-2.5-flash',
-            'gemini-2.0-flash',
-            'gemini-flash-latest',
-            'gemini-2.5-flash-lite',
-            'gemini-2.0-flash-lite',
-            'gemini-flash-lite-latest',
-            'gemini-exp-1206',
-            'gemini-pro-latest',
-            'gemini-1.5-flash',
-            'gemini-1.5-flash-latest',
-            'gemini-1.5-pro',
-            'gemini-1.5-pro-latest'
-        ];
-
-        let lastError = null;
-
-        for (const model of PREFERRED_MODELS) {
-            try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents })
-                });
-
-                if (!response.ok) {
-                    const err = await response.json();
-                    if (response.status === 404 || response.status === 429) {
-                        console.warn(`Model ${model} failed (${response.status}). Trying next...`);
-                        lastError = err;
-                        continue;
-                    }
-                    throw new Error(err.error?.message || `Gemini API Error: ${response.statusText}`);
-                }
-
-                const data = await response.json();
-                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                return text || "I couldn't generate a response.";
-
-            } catch (error) {
-                console.warn(`Error with model ${model}:`, error);
-                lastError = error;
-            }
-        }
-
-        console.error("All Gemini models failed. Last error:", lastError);
-        throw lastError || new Error("Failed to connect to any Gemini model.");
+        const payload = { contents };
+        return await this.executeWithFallback(payload, userProfile, { apiKey });
     },
 
-    /**
-     * Spruces up a text input (Ticket or Epic description)
-     * @param {string} apiKey 
-     * @param {string} text 
-     * @param {string} type 'Ticket' | 'Epic' | 'General'
-     */
-    async spruceUpText(apiKey, text, type = 'General') {
-        const prompt = `
-            You are an expert project manager and communications specialist.
-            Please rewrite the following ${type} description to be more professional, clear, and structured.
-            
-            - Use **HTML** formatting (<b>, <ul>, <li>, <p>, <br>).
-            - Keep it concise but detailed enough.
-            - Correct any grammar or spelling mistakes.
-            - If it's a bug report, ensure steps are clear.
-            - If it's a feature request (Epic), ensure the value/goal is clear.
-            - Do NOT wrap the output in markdown code blocks or quotes. Just return the raw HTML string.
-            
-            Original Text:
-            "${text}"
-        `;
-
-        try {
-            const response = await this.sendMessage(apiKey, [], prompt);
-            // Clean up if Gemini adds markdown blocks despite instruction
-            let clean = response.trim();
-            if (clean.startsWith('```html')) clean = clean.replace('```html', '').replace('```', '');
-            else if (clean.startsWith('```')) clean = clean.replace('```', '').replace('```', '');
-            return clean.trim();
-        } catch (error) {
-            console.error("AI Spruce Up Error:", error);
-            throw new Error("Failed to spruce up text.");
-        }
-    },
-
-    /**
-     * Generate a deck strategy based on commander and playstyle
-     * @param {string} apiKey 
-     * @param {string} commanderName 
-     * @param {string} playstyle 
-     * @param {Array} existingCards 
-     * @param {Object} helper 
-     */
-    async getDeckStrategy(apiKey, commanderName, playstyle = null, existingCards = [], helper = null) {
-        if (!apiKey) throw new Error("API Key is missing.");
-
-        const helperName = helper?.name || 'The Oracle';
-        const helperStyle = helper?.personality ? `Adopt the persona of ${helperName}: ${helper.personality}` : 'Act as a Magic: The Gathering expert.';
-
-        const hasExistingCards = existingCards && existingCards.length > 0;
-        const deckListContext = hasExistingCards
-            ? `Existing Deck List Analysis:\n${existingCards.map(c => `- ${c.countInDeck || 1}x ${c.name} (${c.type_line || 'Unknown'})`).join('\n')}\n` +
-            `\nTotal Lands: ${existingCards.reduce((acc, c) => (c.type_line?.toLowerCase().includes('land') ? acc + (c.countInDeck || 1) : acc), 0)}`
-            : "This is a NEW deck build.";
-
-        let playstyleContext = "";
-        if (playstyle) {
-            playstyleContext = `
-                User Playstyle Profile:
-                - Archetypes: ${playstyle.archetypes?.join(', ') || 'N/A'}
-                - Summary: ${playstyle.summary || 'N/A'}
-                - Aggression: ${playstyle.scores?.aggression || 0}
-                - Combo Affinity: ${playstyle.scores?.comboAffinity || 0}
-                - Interaction: ${playstyle.scores?.interaction || 0}
-                Tailor the deck's theme and card suggestions to align with this playstyle.
-            `;
-        }
-
-        const prompt = `
-            ${helperStyle} I have chosen "${commanderName}" as my Commander.
-            
-            ${deckListContext}
-            
-            ${hasExistingCards
-                ? "Analyze the PROVIDED deck list. Identify the specific game plan, key synergies between these cards, and how to pilot THIS build."
-                : "Suggest a competitive yet fun deck strategy tailored to the following playstyle."}
-            
-            ${playstyleContext}
-
-            **Deck Composition Goals:**
-            - Lands: 35-38
-            - Mana Ramp: 10-12
-            - Card Draw: 10
-            - Targeted Removal: 8-10
-            - Board Wipes: 2-4
-            - Synergy / Strategy: 25-30
-
-            **Mana Curve Goal (Bell Curve):**
-            - 1-2 Mana: High volume for setup.
-            - 3-4 Mana: Moderate volume for utility/threats.
-            - 5+ Mana: Low volume for finishers.
-
-            **Formatting Instructions:**
-            - Use **HTML** for the 'strategy' field.
-            - The 'theme' field should be a **short, punchy title** (e.g., "Elemental Mastery", "Shadow Infiltration").
-            - The 'strategy' field should start with a **Theme Summary**: 2-3 sentences providing high-level context, styled with a distinct, prominent look.
-            - Focus on a structured breakdown:
-              1. **Welcome/Theme Summary**: A few sentences on why this commander and theme work.
-              2. **Commander Context**: What are the assumed or key abilities that drive the build?
-              3. **Early Game (Turns 1-3)**: Focus on setup, ramp, and disruption. Use a ⚡ emoji.
-              4. **Mid Game (Turns 4-6)**: Focus on value engines and commander deployment. Use a 🔥 emoji.
-              5. **Late Game (Turns 7+)**: Focus on finishers and storming off. Use a ☠️ emoji.
-              6. **Key Synergies & Combos**: Highlight 3-4 specific card combinations. Use a 💡 emoji.
-            - Use **Tailwind CSS** classes (e.g., <span class="text-indigo-400 font-bold">Key Card</span>) to highlight important terms.
-            - Use headers for each phase (e.g., <h4 class="text-indigo-400 font-black uppercase mb-2">⚡ Early Game</h4>).
-            5. **CRITICAL: Deck Composition Numbers**:
-                - You MUST calculate specific counts for this specific commander strategies.
-                - Do NOT use generic numbers (like 10/10/10). Tailor them! (e.g., A spellslinger deck might want 25 Instants and only 5 Creatures).
-                - The 'functional' categories MUST sum to exactly **99** cards (assuming 1 commander).
-                - The 'types' categories MUST sum to exactly **99** cards.
-                - Ensure 'Lands' concept matches in both sections (e.g. if Functional Lands is 36, Type Lands should be 36).
-
-            You MUST respond with VALID JSON strictly matching this format:
-            {
-                "layout": {
-                    "functional": {
-                        "Lands": 36, 
-                        "Mana Ramp": 10,
-                        "Card Draw": 10,
-                        "Targeted Removal": 10,
-                        "Board Wipes": 3,
-                        "Synergy / Strategy": 30
-                    },
-                    "types": {
-                        "Creatures": 30,
-                        "Instants": 10,
-                        "Sorceries": 10,
-                        "Artifacts": 10,
-                        "Enchantments": 5,
-                        "Planeswalkers": 0,
-                        "Lands": 34
-                    }
-                },
-                "suggestedName": "...",
-                "theme": "...",
-                "strategy": "<div>...Structured HTML Content...</div>"
-            }
-            CRITICAL: 
-            1. 'layout' is the MOST IMPORTANT field. It MUST be populated.
-            2. 'functional' counts must sum to exactly 99.
-            3. 'types' counts must sum to exactly 99. 
-            4. Do NOT refer to yourself as "The Oracle" unless your name is explicitly "The Oracle". Use ONLY your assigned name: ${helperName}.
-            Do NOT use markdown code blocks. Return only the JSON string.
-        `;
-
-        try {
-            console.log('[GeminiService] sending prompt to Gemini...');
-            const response = await this.sendMessage(apiKey, [], prompt);
-            console.log('[GeminiService] raw response length:', response?.length);
-            const cleanJson = response.replace(/```json/g, '').replace(/```/g, '').trim();
-            const parsed = JSON.parse(cleanJson);
-            console.log('[GeminiService] parsed strategy:', parsed);
-            return parsed;
-        } catch (error) {
-            console.error("AI Strategy Error:", error);
-            throw new Error("Failed to generate strategy. Please try again.");
-        }
-    },
-    async generatePlaystyleQuestion(apiKey, priorAnswers) {
-        if (!apiKey) throw new Error("API Key is missing.");
-
-        const systemInstruction = `You are an expert survey designer for Magic: The Gathering (MTG) players. Your goal is to create the most informative question to understand a user's playstyle based on their previous answers. Questions should be clear and concise, with 3-5 distinct multiple-choice answers. Avoid repeating questions. Focus on different aspects of MTG playstyles, such as deck preferences, game strategies, social interaction styles, and risk tolerance.`;
-
-        let userPrompt;
-        if (priorAnswers.length === 0) {
-            userPrompt = "Generate the very first question for an MTG playstyle questionnaire. This question should gauge the player's overall experience with the game, as this will help tailor subsequent questions.";
-        } else if (priorAnswers.length === 1) {
-            userPrompt = "Generate the second question for an MTG playstyle questionnaire. This question should build on the player's overall experience and delve into their specific preferences.";
-        } else if (priorAnswers.length === 2) {
-            userPrompt = "Generate the third question for an MTG playstyle questionnaire. This question should explore the player's fantasy or thematic preferences in deck building.";
-        } else {
-            const previousAnswersText = priorAnswers.map(a => `- ${a.question}: ${a.answer}`).join('\n');
-            userPrompt = `Based on the user's previous answers, generate the next single best question to further refine their playstyle profile. Do not repeat questions.\n\nPrevious Answers:\n${previousAnswersText}`;
-        }
-
-        const prompt = `${systemInstruction}\n\n${userPrompt}\n\nRespond with VALID JSON ONLY:\n{ "question": "...", "choices": ["...", "..."] }`;
-
-        try {
-            const response = await this.sendMessage(apiKey, [], prompt);
-            const cleanJson = response.replace(/```json/g, '').replace(/```/g, '').trim();
-            return JSON.parse(cleanJson);
-        } catch (error) {
-            console.error("Gemini Question Error:", error);
-            throw error;
-        }
-    },
-
-    async synthesizePlaystyle(apiKey, answers) {
-        if (!apiKey) throw new Error("API Key is missing.");
-
-        const systemInstruction = `You are an expert MTG coach and psychographic analyst. Your task is to analyze a player's answers and synthesize a detailed playstyle profile. The summary should be a concise paragraph. Scores must be 0-100.`;
-        const userPrompt = `Analyze the following questionnaire answers and generate a detailed playstyle profile in JSON format.\n\n${answers.map(a => `- ${a.question} -> ${a.answer}`).join('\n')}`;
-
-        const prompt = `${systemInstruction}\n\n${userPrompt}\n\nRespond with VALID JSON ONLY matching this schema:
-        {
-            "summary": "...",
-            "tags": ["tag1", "tag2"],
-            "scores": { "aggression": 50, "consistency": 50, "interaction": 50, "variance": 50, "comboAffinity": 50 },
-            "archetypes": ["archetype1", "archetype2"]
-        }`;
-
-        try {
-            const response = await this.sendMessage(apiKey, [], prompt);
-            const cleanJson = response.replace(/```json/g, '').replace(/```/g, '').trim();
-            return JSON.parse(cleanJson);
-        } catch (error) {
-            console.error("Gemini Synthesis Error:", error);
-            throw new Error("Failed to synthesize profile.");
-        }
-    },
-
-    async refinePlaystyleChat(apiKey, history, currentProfile, helper = null) {
-        if (!apiKey) throw new Error("API Key is missing.");
-
-        const helperName = helper?.name || 'The Oracle';
-        const helperPersona = helper?.personality ? `Personality: ${helper.personality}` : 'Personality: Wise, insightful, slightly magical.';
-        const isInit = history.length === 0;
-
-        const systemMessage = `
-            You are ${helperName}, an expert MTG coach conducting a "Deep Dive" interview to build a player's psychographic profile.
-            ${helperPersona}
-
-            Current Profile Summary: ${currentProfile?.summary || 'New Profile'}
-            Current Tags: ${currentProfile?.tags?.join(', ') || 'None'}
-
-            Instructions:
-            ${isInit
-                ? `1. Introduce yourself as ${helperName}.
-                   2. Explain that you want to understand their playstyle to help build better decks.
-                   3. Ask the FIRST open-ended question to start the profile (e.g. "What draws you to magic?").`
-                : `1. Analyze the user's latest input.
-                   2. Formulate a conversational response (warm, insightful, matching your persona).
-                   3. Ask ONE follow-up question to dig deeper into a missing or vague area.
-                   4. Simultaneously, UPDATE the JSON profile based on the new information (merging with known info).`
-            }
-        `;
-
-        // Only sending the last few messages to keep context window clean but relevant
-        const recentHistory = history.slice(-6);
-
-        const contents = [
-            { role: 'user', parts: [{ text: systemMessage }] },
-            ...recentHistory.map(msg => ({
-                role: msg.role === 'user' ? 'user' : 'model',
-                parts: [{ text: msg.content }]
-            }))
-        ];
-
-        // We use a specific schema to ensure the UI can update live
-        const prompt = `
-            ${isInit ? 'Generate the initial greeting and first question.' : 'Based on the conversation, respond to the user and update the profile.'}
-            RETURN JSON ONLY.
-        `;
-
-        contents.push({ role: 'user', parts: [{ text: prompt }] });
-
-        const PREFERRED_MODELS = [
-            'gemini-2.0-flash',
-            'gemini-2.5-flash',
-            'gemini-flash-latest',
-            'gemini-1.5-flash-latest',
-            'gemini-1.5-flash',
-            'gemini-1.5-pro',
-            'gemini-1.5-pro-latest'
-        ];
-
-        let failureSummary = [];
-
-        for (const model of PREFERRED_MODELS) {
-            // Tier 1: Schema
-            try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents,
-                        generationConfig: {
-                            responseMimeType: "application/json",
-                            responseSchema: {
-                                type: "OBJECT",
-                                properties: {
-                                    "aiResponse": { "type": "STRING" },
-                                    "updatedProfile": {
-                                        "type": "OBJECT",
-                                        "properties": {
-                                            "summary": { "type": "STRING" },
-                                            "tags": { "type": "ARRAY", "items": { "type": "STRING" } },
-                                            "scores": {
-                                                "type": "OBJECT",
-                                                "properties": {
-                                                    "aggression": { "type": "NUMBER" },
-                                                    "consistency": { "type": "NUMBER" },
-                                                    "interaction": { "type": "NUMBER" },
-                                                    "comboAffinity": { "type": "NUMBER" }
-                                                }
-                                            },
-                                            "archetypes": { "type": "ARRAY", "items": { "type": "STRING" } }
-                                        },
-                                        "required": ["summary", "tags", "scores", "archetypes"]
-                                    }
-                                },
-                                required: ["aiResponse", "updatedProfile"]
-                            }
-                        }
-                    })
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                    if (text) return JSON.parse(text);
-                } else {
-                    const err = await response.json();
-                    failureSummary.push(`${model} (Schema): ${response.status} ${err.error?.message || ''}`);
-                    if (response.status === 404 || response.status === 429) continue;
-                }
-            } catch (e) {
-                failureSummary.push(`${model} (Schema Error): ${e.message}`);
-            }
-
-            // Tier 2: Raw JSON Fallback
-            try {
-                // Clone contents for raw attempt to avoid mutating original
-                const rawContents = JSON.parse(JSON.stringify(contents));
-                rawContents[rawContents.length - 1].parts[0].text += "\n\nCRITICAL: Respond with VALID JSON only. No markdown. Format: { aiResponse: string, updatedProfile: object }";
-
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: rawContents
-                    })
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                    if (text) {
-                        const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
-                        return JSON.parse(cleanJson);
-                    }
-                } else {
-                    const err = await response.json();
-                    failureSummary.push(`${model} (Raw): ${response.status} ${err.error?.message || ''}`);
-                }
-            } catch (e) {
-                failureSummary.push(`${model} (Raw Error): ${e.message}`);
-            }
-        }
-
-        console.error("Gemini Chat Refine Exhausted:", failureSummary);
-        throw new Error(`Oracle Exhausted: ${failureSummary[0] || 'Unknown error'}`);
-    },
-
-    async forgeHelperChat(apiKey, history, currentDraft) {
-        if (!apiKey) throw new Error("API Key is missing.");
-
-        const systemMessage = `
-            You are an expert fantasy writer and character designer allowing a user to "Forge" their own AI companion for Magic: The Gathering.
-            Your goal is to interview the user to define their Helper's Persona.
-            
-            Current Draft:
-            - Name: ${currentDraft?.name || 'Unknown'}
-            - Type: ${currentDraft?.type || 'Unknown'} (e.g., Spirit, Goblin, Construct, Wizard)
-            - Personality: ${currentDraft?.personality || 'Unknown'} (e.g., Snarky, Wise, Aggressive)
-
-            Instructions:
-            1. Analyze the user's input.
-            2. If they provided new info (name, type, personality), UPDATE the JSON draft locally.
-            3. Respond in a neutral, helpful "System" tone (like a character creation menu guide).
-            4. Ask for the missing fields one by one.
-            5. If all fields are present, ask for confirmation.
-        `;
-
-        const recentHistory = history.slice(-6);
-
-        const contents = [
-            { role: 'user', parts: [{ text: systemMessage }] },
-            ...recentHistory.map(msg => ({
-                role: msg.role === 'user' ? 'user' : 'model',
-                parts: [{ text: msg.content }]
-            }))
-        ];
-
-        const prompt = `
-            Based on the conversation, respond to the user and update the helper draft.
-            RETURN JSON ONLY.
-        `;
-
-        contents.push({ role: 'user', parts: [{ text: prompt }] });
-
-        const PREFERRED_MODELS = [
-            'gemini-2.0-flash',
-            'gemini-2.5-flash',
-            'gemini-flash-latest',
-            'gemini-1.5-flash-latest',
-            'gemini-1.5-flash',
-            'gemini-1.5-pro',
-            'gemini-1.5-pro-latest'
-        ];
-
-        let failureSummary = [];
-
-        for (const model of PREFERRED_MODELS) {
-            try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents,
-                        generationConfig: {
-                            responseMimeType: "application/json",
-                            responseSchema: {
-                                type: "OBJECT",
-                                properties: {
-                                    "aiResponse": { "type": "STRING" },
-                                    "updatedDraft": {
-                                        "type": "OBJECT",
-                                        "properties": {
-                                            "name": { "type": "STRING" },
-                                            "type": { "type": "STRING" },
-                                            "personality": { "type": "STRING" }
-                                        },
-                                        "required": ["name", "type", "personality"]
-                                    }
-                                },
-                                required: ["aiResponse", "updatedDraft"]
-                            }
-                        }
-                    })
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                    if (text) return JSON.parse(text);
-                } else {
-                    const err = await response.json();
-                    failureSummary.push(`${model}: ${response.status}`);
-                    if (response.status === 404 || response.status === 429) continue;
-                }
-            } catch (e) {
-                failureSummary.push(`${model}: ${e.message}`);
-            }
-
-            // Fallback to Raw JSON if schema fails
-            try {
-                // Clone contents for raw attempt to avoid mutating original
-                const rawContents = JSON.parse(JSON.stringify(contents));
-                rawContents[rawContents.length - 1].parts[0].text += "\n\nCRITICAL: Respond with VALID JSON only. No markdown. Format: { aiResponse: string, updatedDraft: object }";
-
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: rawContents
-                    })
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                    if (text) {
-                        const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
-                        return JSON.parse(cleanJson);
-                    }
-                }
-            } catch (e) {
-                // Ignore raw fallback error
-            }
-        }
-
-        throw new Error(`Forge Exhausted: ${failureSummary.join(' | ')}`);
-    },
-
-    async generateDeckSuggestions(apiKey, payloadData, helper = null) {
-        if (!apiKey) throw new Error("API Key is missing.");
-
-        const { playstyle, targetRole, deckRequirements } = payloadData;
-        const helperName = helper?.name || 'Expert MTG Deck Builder';
-        const helperPersonality = helper?.personality ? `Adopt the persona of ${helperName}: ${helper.personality}` : '';
-
-        let playstyleContext = "";
-        if (playstyle) {
-            playstyleContext = `
-                User Playstyle: ${playstyle.archetypes?.join(', ') || 'N/A'}. 
-                Summary: ${playstyle.summary || 'N/A'}.
-            `;
-        }
-
-        const systemMessage = `
-            You are ${helperName}. ${helperPersonality}
-            Analyze the provided candidates to build a well-balanced deck.
-            ${playstyleContext}
-            
-            **Mana Curve Priorities (Bell Curve):**
-            Focus on CMC 1-2 for high volume, 3-4 for moderate, 5+ for finishers.
-
-            **Multi-Role Fulfillment:**
-            You will be given a list of "Requirements" (Target Counts per Role).
-            Select the best cards from the candidates to fill these specific roles.
-            Ensure you meet the target counts for each role as best as possible.
-            Assign a specific "role" string to each suggestion matching the Requirement key.
-        `;
-
-        const PREFERRED_MODELS = [
-            'gemini-2.0-flash',
-            'gemini-flash-latest',
-            'gemini-1.5-flash',
-            'gemini-1.5-flash-latest',
-            'gemini-1.5-flash-001',
-            'gemini-1.5-flash-002',
-            'gemini-1.5-pro',
-            'gemini-1.5-pro-latest'
-        ];
-
-        const systemInstruction = {
-            role: 'system',
-            parts: [{ text: systemMessage }]
+    async spruceUpText(apiKey, text, type = 'General', userProfile = null) {
+        const prompt = `Rewrite this ${type} to be professional, evocative, and structured for a high-end gaming application. 
+        Use basic HTML (<b>, <i>, <ul>, <li>). Do not use markdown blocks. 
+        
+        Original Text: "${text}"`;
+        const payload = {
+            system_instruction: { parts: [{ text: `You are a professional editor. Rewrite the following ${type} text to be professional, evocative, and structured for a high-end gaming application. Use basic HTML (<b>, <i>, <ul>, <li>). Do not use markdown blocks.` }] },
+            contents: [{ role: 'user', parts: [{ text: text }] }]
         };
-
-        const contents = [{
-            role: 'user',
-            parts: [{ text: `Task: ${payloadData.instructions}\n\nRequirements: ${JSON.stringify(deckRequirements || {})}\n\nCandidates: ${JSON.stringify(payloadData.candidates)}\n\nIMPORTANT: You MUST respond with a VALID JSON object containing a "suggestions" array. Each suggestion needs "rating" (1-10), "reason", and "role".` }]
-        }];
-
-        let failureSummary = [];
-
-        for (const model of PREFERRED_MODELS) {
-            // Tier 1: With Response Schema (Strict)
-            try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        system_instruction: systemInstruction,
-                        contents,
-                        generationConfig: {
-                            responseMimeType: "application/json",
-                            responseSchema: {
-                                type: "OBJECT",
-                                properties: {
-                                    "suggestions": {
-                                        type: "ARRAY",
-                                        items: {
-                                            type: "OBJECT",
-                                            properties: {
-                                                "firestoreId": { "type": "STRING" },
-                                                "name": { "type": "STRING" },
-                                                "count": { "type": "NUMBER" },
-                                                "rating": { "type": "NUMBER" },
-                                                "reason": { "type": "STRING" },
-                                                "role": { "type": "STRING" },
-                                                "isBasicLand": { "type": "BOOLEAN" }
-                                            },
-                                            required: ["rating", "reason", "role"]
-                                        }
-                                    }
-                                },
-                                required: ["suggestions"]
-                            }
-                        }
-                    })
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                    if (text) return JSON.parse(text);
-                } else {
-                    const err = await response.json();
-                    failureSummary.push(`${model} (Schema): ${response.status} ${err.error?.message || ''}`);
-                    if (response.status === 404 || response.status === 429) continue;
-                }
-            } catch (e) {
-                failureSummary.push(`${model} (Schema Error): ${e.message}`);
-            }
-
-            // Tier 2: Raw JSON Fallback (No Schema)
-            try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        system_instruction: systemInstruction,
-                        contents: [{
-                            role: 'user',
-                            parts: [{ text: `${contents[0].parts[0].text}\n\nYou MUST respond with VALID RAW JSON format ONLY. Do not use markdown blocks.` }]
-                        }]
-                    })
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                    if (text) {
-                        const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
-                        return JSON.parse(cleanJson);
-                    }
-                } else {
-                    const err = await response.json();
-                    failureSummary.push(`${model} (Raw): ${response.status} ${err.error?.message || ''}`);
-                }
-            } catch (e) {
-                failureSummary.push(`${model} (Raw Error): ${e.message}`);
-            }
-        }
-
-        console.error("[Gemini] All models failed. Summary:", failureSummary);
-        throw new Error(`Oracle Exhausted: ${failureSummary.join(' | ')}`);
+        const result = await this.executeWithFallback(payload, userProfile, { apiKey });
+        return result.replace(/```html/g, '').replace(/```/g, '').trim();
     },
 
-    async analyzeDeck(apiKey, deckList, commanderName, helper = null) {
-        if (!apiKey) throw new Error("API Key is missing.");
+    async getDeckStrategy(apiKey, commanderName, playstyle = null, existingCards = [], helper = null, userProfile = null) {
+        const helperName = helper?.name || 'The Oracle';
+        const playstyleContext = playstyle ? `USER PLAYSTYLE: ${playstyle.summary}` : "";
 
-        const helperName = helper?.name || 'The Deck Doctor';
-        const helperPersonality = helper?.personality ? `Adopt the persona of ${helperName}: ${helper.personality}` : 'Personality: Clinical, precise, but encouraging.';
-
-        const deckContext = deckList.map(c => `- ${c.countInDeck || 1}x ${c.name} (${c.type_line})`).join('\n') +
-            `\n\nTotal Lands: ${deckList.reduce((acc, c) => (c.type_line?.toLowerCase().includes('land') ? acc + (c.countInDeck || 1) : acc), 0)}`;
-
-        const systemMessage = `
-            You are ${helperName}, an expert Magic: The Gathering deck consultant.
-            ${helperPersonality}
-            Your goal is to Grade a deck on a scale of 0-100 and identify critical flaws.
-        `;
-
-        const userPrompt = `
-            Analyze this Commander deck for "${commanderName}":
-            
-            ${deckContext}
-
-            **Rubric:**
-            - **Synergy**: Do cards support the commander?
-            - **Speed**: Is there enough ramp? Is the curve too high?
-            - **Interaction**: Is there enough removal/protection?
-            - **Consistency**: Is there enough card draw/tutors?
-
-            **Task:**
-            1. Calculate a Score (0-100).
-            2. Rate Synergy, Speed, Interaction (0-100).
-            3. List 3-5 critical "Issues" (strings).
-            4. Propose up to 5 specific "Changes". For each change:
-                - "remove": Exact card name to cut.
-                - "add": Exact card name to add.
-                - "reason": Why?
-
-            **Response Format (VALID JSON ONLY):**
-            {
-                "score": 85,
-                "metrics": { "synergy": 80, "speed": 70, "interaction": 60 },
-                "issues": ["Not enough lands (32)", "Lack of board wipes"],
-                "changes": [
-                    { "remove": "Bad Card", "add": "Good Card", "reason": "Strict upgrade for mana cost." }
-                ]
-            }
-        `;
-
-        const contents = [
-            { role: 'user', parts: [{ text: systemMessage }] },
-            { role: 'user', parts: [{ text: userPrompt }] }
-        ];
-
-        const PREFERRED_MODELS = [
-            'gemini-2.0-flash',
-            'gemini-2.5-flash',
-            'gemini-flash-latest',
-            'gemini-1.5-flash'
-        ];
-
-        for (const model of PREFERRED_MODELS) {
-            try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents,
-                        generationConfig: { responseMimeType: "application/json" }
-                    })
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                    if (text) return JSON.parse(text);
-                }
-            } catch (e) {
-                console.warn(`Deck Doctor (${model}) failed:`, e);
-            }
-        }
-        throw new Error("Deck Doctor failed to diagnose.");
-    },
-    async generateReleaseNotes(apiKey, tickets) {
-        if (!apiKey) throw new Error("API Key is missing.");
-        if (!tickets || tickets.length === 0) throw new Error("No tickets provided for release notes.");
-
-        const ticketsContext = tickets.map(t => {
-            const submitter = t.type === 'bug' && t.created_by_username ? ` [Submitted by: ${t.created_by_username}]` : '';
-            return `- [${t.type.toUpperCase()}] [Status: ${t.status}] ${t.title}${t.epic_title ? ` (Project: ${t.epic_title})` : ''}${submitter}: ${t.description?.replace(/<[^>]*>?/gm, '').substring(0, 200)}...`;
-        }).join('\n');
-
-        const prompt = `
-            You are a professional software release manager and technical writer for "MTG-Forge". 
-            Generate a Development Update in HTML using Tailwind CSS. 
-            Strictly follow the structure and styling below.
-
-            **TICKETS DATA:**
-            ${ticketsContext}
-
-            **STRICT LAYOUT RULES:**
-            1. **Title**: A large, bold title like "MTG-Forge Development Update! 🛠️".
-            2. **Intro**: A warm greeting for "Planeswalkers" with a globe emoji 🌍.
-            3. **Sections**: Group items into:
-               - "🚀 New Features" (Completed features)
-               - "🐛 Bug Fixes" (Completed bugs)
-               - "🚧 In Progress" (Everything else)
-            4. **Section Cards**: Each section should have ONE large card containing its list of items.
-               - Card Style: <div class="bg-gray-800/40 border-l-4 p-4 rounded-lg mb-6 ...">
-               - Border Colors: green-500 for Features, red-500 for Bugs, gray-500 for In Progress.
-            5. **Feature/Bug items**: Use <strong> for titles. For bugs, include a subtle "@username" shoutout for the report.
-            6. **Highlights**: Use <span class="text-indigo-400 font-bold"> for important keywords or project names.
-            7. **Sign-off**: A final warm closing message to Planeswalkers, ending with "see you in the next patch! ⚔️".
-
-            **TECHNICAL CONSTRAINTS:**
-            - Use only Tailwind CSS classes.
-            - Do NOT use markdown code blocks (\`\`\`html).
-            - Output ONLY the clean HTML string.
-        `;
-
-        try {
-            const response = await this.sendMessage(apiKey, [], prompt);
-            let clean = response.trim();
-            if (clean.startsWith('```html')) clean = clean.replace('```html', '').replace('```', '');
-            else if (clean.startsWith('```')) clean = clean.replace('```', '').replace('```', '');
-            return clean.trim();
-        } catch (error) {
-            console.error("AI Release Notes Error:", error);
-            throw new Error("Failed to generate release notes.");
-        }
-    },
-
-    /**
-     * Grades a completed deck based on mathematical efficiency and psychographic alignment.
-     * Returns a score out of 5 and a detailed breakdown in the Helper's voice.
-     */
-    gradeDeck: async (apiKey, payload) => {
-        const {
-            deckName,
-            commander,
-            cards,           // Full list of cards in the final deck
-            playerProfile,
-            strategyGuide,
-            helperPersona
-        } = payload;
-
-        const MODEL_NAME = "gemini-2.0-flash-exp";
-        const helperName = helperPersona?.name || "The Oracle";
-
-        const systemInstruction = `You are a Magic: The Gathering usage analytics engine and professional deck consultant.
-        Your task is to classify a Commander deck into the "Commander Brackets" (1-5), calculate a precise "Power Level" (1.0 - 10.0), and provide deep surgical analysis.
+        const systemPrompt = `You are ${helperName}. Generate a master strategy blueprint for a Commander deck led by ${commanderName}.
         
-        DEFINITIONS:
-        - **Bracket 1 (Exhibition)**: Ultra-casual. No Mass Land Denial (MLD), no extra turns, no 2-card infinite combos, few tutors. "Few game changers."
-        - **Bracket 2 (Core)**: Average current preconstructed deck. No MLD, no chaining extra turns, no 2-card infinite combos, few tutors.
-        - **Bracket 3 (Upgraded)**: Beyond the strength of an average precon. Late game 2-card infinite combos allowed, up to 3 "game changers".
-        - **Bracket 4 (Optimized)**: High power commander. No restrictions (other than the banned list). Highly efficient.
-        - **Bracket 5 (cEDH)**: Maximum power, very competitive and metagame focused mindset. No restrictions.
-
-        METRICS:
-        - **Efficiency** (0-10): Speed of mana curve and ramp.
-        - **Interaction** (0-10): Count and efficiency of removal/protection.
-        - **Win_Turn** (Attempted Win Turn): Average turn the deck threatens a win.
+        ${playstyleContext}
         
-        DIAGNOSTICS:
-        - Provide a "Critique" (The overall state of the deck).
-        - Provide "Mechanical Improvements" (General strategic advice).
-        - Provide "Recommended Swaps" (Specific card-for-card replacements from the meta).
-        
-        OUTPUT: Return a JSON object with the calculated metrics and diagnostics.`;
+        FORMAT INSTRUCTIONS:
+        - 'theme': A 3-5 word evocative title for the deck's specific strategy.
+        - 'strategy': High-level tactical advice in **Polished Modern HTML** format. Use <h4 class="text-white font-bold mt-4 mb-2"> for headings, <p class="text-gray-300 mb-4 leading-relaxed"> for body, <ul class="list-disc pl-5 text-gray-400 space-y-2 mb-4"> for lists, and <strong class="text-indigo-400"> for key terms. Use emojis 🔮 liberally to make it engaging.
+        - 'layout': Target counts for a 100-card deck (excluding the 1-2 commanders). 
+           - 'functional': { "Lands": 36, "Mana Ramp": 10, "Card Draw": 10, "Removal": 10, "Board Wipes": 3, "Synergy": 30 }
+           - 'types': { "Creatures": 30, "Instants": 10, "Sorceries": 10, "Artifacts": 10, "Enchantments": 4, "Planeswalkers": 0, "Lands": 36 }`;
 
-        const userQuery = `
-            Analyze this deck: "${deckName}"
-            Commander: ${commander}
-            
-            [DECK LIST]
-            ${cards.map(c => `${c.countInDeck || 1}x ${c.name} (${c.type_line})`).join('\n')}
-            
-            Return JSON only.
-        `;
-
-        const generationConfig = {
-            responseMimeType: "application/json",
-            responseSchema: {
-                type: "OBJECT",
-                properties: {
-                    powerLevel: { type: "NUMBER", description: "Precise Power Level float (1.0 to 10.0). e.g. 6.13" },
-                    commanderBracket: { type: "INTEGER", description: "Bracket ID: 1, 2, 3, 4, or 5" },
-                    metrics: {
-                        type: "OBJECT",
-                        properties: {
-                            efficiency: { type: "NUMBER", description: "0-10 score" },
-                            interaction: { type: "NUMBER", description: "0-10 score" },
-                            winTurn: { type: "NUMBER", description: "Estimated average win turn" }
-                        }
-                    },
-                    bracketJustification: { type: "STRING", description: "Short explanation of why it falls in this bracket." },
-                    critique: { type: "STRING", description: "Deep analysis of the deck's current state." },
-                    mechanicalImprovements: { type: "ARRAY", items: { type: "STRING" }, description: "List of general strategic improvements." },
-                    recommendedSwaps: {
-                        type: "ARRAY",
-                        items: {
+        const payload = {
+            system_instruction: { parts: [{ text: systemPrompt }] },
+            contents: [{ role: 'user', parts: [{ text: `Generate strategy for commander: ${commanderName}` }] }],
+            generationConfig: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: "OBJECT",
+                    properties: {
+                        suggestedName: { type: "STRING" },
+                        theme: { type: "STRING" },
+                        strategy: { type: "STRING" },
+                        layout: {
                             type: "OBJECT",
                             properties: {
-                                remove: { type: "STRING", description: "Card to remove" },
-                                add: { type: "STRING", description: "Card to add" },
-                                reason: { type: "STRING", description: "Why this swap is better" }
+                                functional: {
+                                    type: "OBJECT",
+                                    properties: {
+                                        "Lands": { type: "NUMBER" },
+                                        "Mana Ramp": { type: "NUMBER" },
+                                        "Card Draw": { type: "NUMBER" },
+                                        "Removal": { type: "NUMBER" },
+                                        "Board Wipes": { type: "NUMBER" },
+                                        "Synergy": { type: "NUMBER" }
+                                    }
+                                },
+                                types: {
+                                    type: "OBJECT",
+                                    properties: {
+                                        "Creatures": { type: "NUMBER" },
+                                        "Instants": { type: "NUMBER" },
+                                        "Sorceries": { type: "NUMBER" },
+                                        "Artifacts": { type: "NUMBER" },
+                                        "Enchantments": { type: "NUMBER" },
+                                        "Planeswalkers": { type: "NUMBER" },
+                                        "Lands": { type: "NUMBER" }
+                                    }
+                                }
                             },
-                            required: ["remove", "add", "reason"]
+                            required: ["functional", "types"]
                         }
                     },
-                    pros: { type: "ARRAY", items: { type: "STRING" } },
-                    cons: { type: "ARRAY", items: { type: "STRING" } }
-                },
-                required: ["powerLevel", "commanderBracket", "metrics", "bracketJustification", "critique", "mechanicalImprovements", "recommendedSwaps"]
+                    required: ["suggestedName", "theme", "strategy", "layout"]
+                }
             }
         };
+        const result = await this.executeWithFallback(payload, userProfile, { apiKey });
+        return JSON.parse(result);
+    },
+
+    async gradeDeck(apiKey, payload, userProfile = null) {
+        const { deckName, commander, cards, playerProfile, strategyGuide, helperPersona } = payload;
+        const helperName = helperPersona?.name || "The Oracle";
+
+        const systemInstruction = `You are ${helperName}, a Tier-1 MTG competitive analyst.
+        
+        MISSION:
+        Evaluate the power level of the provided decklist based on the "Commander Bracket" system.
+        
+        CRITIQUE FORMATTING:
+        Provide the 'critique' and 'bracketJustification' fields as **Polished Modern HTML**. 
+        - Use <strong class="text-white"> for emphasis.
+        - Use emojis 🧪 🧬 ⚡ liberally to enhance the "Deck Doctor" persona.
+        - Do NOT use markdown.
+        
+        BRACKET DEFINITIONS:
+        - Bracket 1 (Exhibition): Precons, low-powered themes, extreme budget, or jank.
+        - Bracket 2 (Core): Standard casual decks with basic synergies and upgrades.
+        - Bracket 3 (Upgraded): High-synergy decks with efficient win conditions and strong mana bases.
+        - Bracket 4 (Optimized): High-power casual, infinite combos, tutors, and fast mana (short of cEDH).
+        - Bracket 5 (cEDH): Tier-0 competitive decks designed for Turn 1-3 wins or hard stax.
+        
+        METRICS (1-10):
+        - Efficiency: Average CMC vs Mana acceleration quality.
+        - Interaction: Density and quality of removal, counters, and protection.
+        - winTurn: The average turn the deck projects to present a lethal threat.`;
+
+        const userQuery = `
+            DECK: "${deckName}"
+            COMMANDER: ${commander}
+            STRATEGY: ${strategyGuide}
+            USER PROFILE: ${playerProfile}
+            DECKLIST:
+            ${cards.map(c => `- ${c.name}`).join('\n')}
+        `;
 
         const body = {
-            contents: [{ parts: [{ text: userQuery }] }],
-            systemInstruction: { parts: [{ text: systemInstruction }] },
-            generationConfig
+            system_instruction: { parts: [{ text: systemInstruction }] },
+            contents: [{ role: 'user', parts: [{ text: userQuery }] }],
+            generationConfig: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: "OBJECT",
+                    properties: {
+                        powerLevel: { type: "NUMBER", description: "Float between 1.0 and 10.0" },
+                        commanderBracket: { type: "INTEGER", description: "1 to 5 based on rubric" },
+                        metrics: {
+                            type: "OBJECT",
+                            properties: {
+                                efficiency: { type: "NUMBER" },
+                                interaction: { type: "NUMBER" },
+                                winTurn: { type: "NUMBER" }
+                            }
+                        },
+                        bracketJustification: { type: "STRING" },
+                        critique: { type: "STRING", description: "Emotional/Strategic feedback" },
+                        mechanicalImprovements: { type: "ARRAY", items: { type: "STRING" } },
+                        recommendedSwaps: {
+                            type: "ARRAY",
+                            items: {
+                                type: "OBJECT",
+                                properties: {
+                                    remove: { type: "STRING" },
+                                    add: { type: "STRING" },
+                                    reason: { type: "STRING" }
+                                },
+                                required: ["remove", "add", "reason"]
+                            }
+                        }
+                    },
+                    required: ["powerLevel", "commanderBracket", "metrics", "bracketJustification", "critique", "mechanicalImprovements", "recommendedSwaps"]
+                }
+            }
         };
 
-        // Execution with standard backoff & Multi-Model Fallback
-        let attempt = 0;
-        let currentModel = "gemini-3-flash-preview";
+        const result = await this.executeWithFallback(body, userProfile, { apiKey });
+        return JSON.parse(result);
+    },
 
-        while (attempt < 4) {
-            try {
-                const currentEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey || ""}`;
+    async generatePlaystyleQuestion(apiKey, priorAnswers, userProfile = null) {
+        const systemPrompt = `You are the Oracle of the Multiverse. You are conducting a psychographic assessment of a Magic: The Gathering player.
+        
+        Your questions should be evocative, thematic, and cover:
+        - Aggression (Face vs Board)
+        - Interaction (Control vs Proactive)
+        - Complexity (Linear vs Rube Goldberg)
+        - Archetypes (Aggro, Control, Combo, Midrange, Stax)`;
 
-                const response = await fetch(currentEndpoint, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body)
-                });
+        const userQuery = `Current Assessment State: ${JSON.stringify(priorAnswers)}. Generate the next clinical question.`;
 
-                if (response.status === 429) {
-                    console.warn(`Deck Doctor: Rate Limited (429) on ${currentModel}. Switching to backup...`);
-
-                    if (currentModel === "gemini-3-flash-preview") {
-                        currentModel = "gemini-2.0-flash-exp";
-                    } else if (currentModel === "gemini-2.0-flash-exp") {
-                        currentModel = "gemini-1.5-flash";
-                    } else {
-                        throw new Error("All models exhausted");
-                    }
-
-                    await new Promise(r => setTimeout(r, 1000));
-                    continue;
+        const payload = {
+            system_instruction: { parts: [{ text: systemPrompt }] },
+            contents: [{ role: 'user', parts: [{ text: userQuery }] }],
+            generationConfig: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: "OBJECT",
+                    properties: {
+                        question: { type: "STRING" },
+                        choices: { type: "ARRAY", items: { type: "STRING" } }
+                    },
+                    required: ["question", "choices"]
                 }
-
-                if (!response.ok) throw new Error(`API Error: ${response.status}`);
-
-                const result = await response.json();
-                const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
-                if (text) return JSON.parse(text);
-
-                throw new Error("Empty response from AI");
-
-            } catch (error) {
-                console.warn(`Deck Grade Attempt ${attempt + 1} failed:`, error);
-                attempt++;
-                await new Promise(r => setTimeout(r, 1000 * attempt));
             }
-        }
-        throw new Error("Failed to Grade Deck. The Oracle is currently overwhelmed.");
+        };
+        const result = await this.executeWithFallback(payload, userProfile, { apiKey });
+        return JSON.parse(result);
+    },
+
+    async synthesizePlaystyle(apiKey, answers, userProfile = null) {
+        const systemPrompt = `Analyze the following MTG session answers and synthesize a permanent psychographic profile for the player.
+        
+        FORMATTING:
+        - 'summary': A 3-4 sentence evocative summary in **Polished HTML**. Use <strong class="text-white"> for emphasis and emojis 🎭. Make it feel like a mythical prophecy.
+
+        CATEGORIES:
+        - Aggression: Desire for combat and early pressure.
+        - Interaction: Desire to stop opponents or control the stack.
+        - Complexity: Preference for intricate loops vs simple power.
+        - Social: Preference for group hug/politics vs kingmaking.`;
+
+        const payload = {
+            system_instruction: { parts: [{ text: systemPrompt }] },
+            contents: [{ role: 'user', parts: [{ text: `PLAYER ANSWERS: ${JSON.stringify(answers)}` }] }],
+            generationConfig: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: "OBJECT",
+                    properties: {
+                        summary: { type: "STRING", description: "3-4 sentence evocative summary" },
+                        tags: { type: "ARRAY", items: { type: "STRING" }, description: "Short traits like 'Combo Fiend', 'Stax Master'" },
+                        scores: {
+                            type: "OBJECT",
+                            properties: {
+                                aggression: { type: "NUMBER" },
+                                interaction: { type: "NUMBER" },
+                                complexity: { type: "NUMBER" },
+                                political: { type: "NUMBER" }
+                            }
+                        },
+                        archetypes: { type: "ARRAY", items: { type: "STRING" } }
+                    },
+                    required: ["summary", "tags", "scores", "archetypes"]
+                }
+            }
+        };
+        const result = await this.executeWithFallback(payload, userProfile, { apiKey });
+        return JSON.parse(result);
+    },
+
+    async refinePlaystyleChat(apiKey, history, currentProfile, helper = null, userProfile = null) {
+        const helperName = helper?.name || 'The Oracle';
+        const systemPrompt = `You are ${helperName}. Carry out a conversation with the user to refine their MTG Playstyle Profile. 
+        Current State: ${JSON.stringify(currentProfile)}.
+        
+        In every response:
+        1. Keep the AI personality intact.
+        2. Silently update the 'updatedProfile' object based on their responses.
+        3. Be insightful and slightly assertive about your observations.`;
+
+        const payload = {
+            system_instruction: { parts: [{ text: systemPrompt }] },
+            contents: [...history.map(h => ({ role: h.role === 'user' ? 'user' : 'model', parts: [{ text: h.content }] }))],
+            generationConfig: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: "OBJECT",
+                    properties: {
+                        aiResponse: { type: "STRING", description: "Evocative conversation" },
+                        updatedProfile: { type: "OBJECT" }
+                    },
+                    required: ["aiResponse", "updatedProfile"]
+                }
+            }
+        };
+        const result = await this.executeWithFallback(payload, userProfile, { apiKey });
+        return JSON.parse(result);
+    },
+
+    async forgeHelperChat(apiKey, history, currentDraft, userProfile = null) {
+        const systemPrompt = `You are the MTG Spark-Forge. You are interviewing the user to create their permanent AI Deck-Building companion.
+        
+        CURRENT DRAFT: ${JSON.stringify(currentDraft)}
+        
+        You need to determine:
+        - Name
+        - Type (e.g. Eldrazi Construct, Faerie Spirit, Thran AI)
+        - Personality (e.g. Grumpy, Whimsical, Calculating)
+        
+        Keep the conversation immersive. Update 'updatedDraft' with every response.`;
+
+        const payload = {
+            system_instruction: { parts: [{ text: systemPrompt }] },
+            contents: [...history.map(h => ({ role: h.role === 'user' ? 'user' : 'model', parts: [{ text: h.content }] }))],
+            generationConfig: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: "OBJECT",
+                    properties: {
+                        aiResponse: { type: "STRING" },
+                        updatedDraft: { type: "OBJECT" }
+                    },
+                    required: ["aiResponse", "updatedDraft"]
+                }
+            }
+        };
+        const result = await this.executeWithFallback(payload, userProfile, { apiKey });
+        return JSON.parse(result);
+    },
+
+    async generateReleaseNotes(apiKey, tickets, userProfile = null) {
+        const systemPrompt = `You are the Lead Developer of MTG Forge. Generate professional, evocative release notes for the latest update.
+        Use HTML with Tailwind (text-gray-300, indigo-400 highlights). 
+        Include sections: [New Mechanics], [Bug Squashing], [In the Forge].`;
+
+        const payload = {
+            system_instruction: { parts: [{ text: systemPrompt }] },
+            contents: [{ role: 'user', parts: [{ text: `Tickets: ${JSON.stringify(tickets)}` }] }]
+        };
+        const result = await this.executeWithFallback(payload, userProfile, { apiKey });
+        return result.replace(/```html/g, '').replace(/```/g, '').trim();
     }
 };
+
+export { GeminiService, PRICING, getModelTier };
+export default GeminiService;

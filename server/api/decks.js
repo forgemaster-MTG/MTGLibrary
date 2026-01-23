@@ -331,7 +331,11 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const existing = await knex('user_decks').where({ id: req.params.id }).first();
-    if (!existing) return res.status(404).json({ error: 'not found' });
+    if (!existing) {
+      console.warn(`[decks] delete request for non-existent deck ${req.params.id} from user ${req.user.id} - treating as success (idempotent)`);
+      // Return success even if it doesn't exist to handle race conditions where double-click sends two reqs
+      return res.json({ success: true, message: 'Deck already deleted or not found' });
+    }
     if (existing.user_id !== req.user.id) return res.status(403).json({ error: 'unauthorized' });
 
     // user_cards are set to ON DELETE SET NULL or CASCADE?

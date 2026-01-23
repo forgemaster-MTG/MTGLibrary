@@ -34,7 +34,7 @@ Please provide:
 
             const history = []; // No history for single analysis
             // Pass helper profile as the 5th argument
-            const response = await GeminiService.sendMessage(apiKey, history, prompt, '', userProfile?.settings?.helper);
+            const response = await GeminiService.sendMessage(apiKey, history, prompt, '', userProfile?.settings?.helper, userProfile);
             setAnalysis(response);
         } catch (err) {
             setError(err.message);

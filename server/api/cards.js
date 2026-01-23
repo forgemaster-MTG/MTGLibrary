@@ -1,8 +1,22 @@
 import express from 'express';
 import { knex } from '../db.js';
 import { cardService } from '../services/cardService.js';
+import axios from 'axios';
 
 const router = express.Router();
+
+const SET_MAP = {
+	'c1': 'cmd',
+	'cmd': 'cmd',
+	'mh1': 'mh1',
+	'mh2': 'mh2',
+	'unf': 'unf',
+	'ust': 'ust',
+	'unh': 'unh',
+	'ugl': 'ugl',
+	'clb': 'clb',
+	'cmr': 'cmr'
+};
 
 // GET /cards/autocomplete
 // Query: ?q=partial_name
@@ -132,9 +146,17 @@ router.post('/search', async (req, res) => {
 	try {
 		let dbQuery = knex('cards');
 
-		if (nameQuery) dbQuery.whereRaw('name ILIKE ?', [`%${nameQuery}%`]);
+		// 1. Try local DB first
+		if (nameQuery) {
+			// Exact match or contains match
+			dbQuery.where(function () {
+				this.whereRaw('name ILIKE ?', [nameQuery])
+					.orWhereRaw('name ILIKE ?', [`%${nameQuery}%`]);
+			});
+		}
 		if (body.set) dbQuery.whereRaw("lower(setcode) = ?", [body.set.toLowerCase()]);
-		if (body.cn) dbQuery.where({ number: body.cn });
+		if (body.cn) dbQuery.where({ number: body.cn.toString() });
+
 		if (body.type) dbQuery.whereRaw("data->>'type_line' ILIKE ?", [`%${body.type}%`]);
 		if (body.text) dbQuery.whereRaw("data->>'oracle_text' ILIKE ?", [`%${body.text}%`]);
 		if (body.flavor) dbQuery.whereRaw("data->>'flavor_text' ILIKE ?", [`%${body.flavor}%`]);
@@ -174,61 +196,130 @@ router.post('/search', async (req, res) => {
 		}
 
 		dbQuery.limit(50);
-		const localResults = await dbQuery.select('*');
+		let localResults = await dbQuery.select('*');
 
-		if (localResults.length > 0 || !isSimple) {
+		// Handle preference sorting even for local results if they are variants
+		if (localResults.length > 0) {
 			const mapped = localResults.map(c => ({
 				...c,
 				...c.data,
 				image_uri: cardService.resolveImage(c.data)
 			}));
+
+			if (body.preferFinish) {
+				mapped.sort((a, b) => {
+					const getP = (card) => {
+						const p = card.prices || {};
+						if (body.preferFinish === 'foil') return parseFloat(p.usd_foil) || 999999;
+						if (body.preferFinish === 'nonfoil') return parseFloat(p.usd) || 999999;
+						return Math.min(parseFloat(p.usd) || 999999, parseFloat(p.usd_foil) || 999999);
+					};
+					return getP(a) - getP(b);
+				});
+			}
+
 			return res.json({ data: mapped });
 		}
 
-		if (isSimple) {
-			const encoded = encodeURIComponent(nameQuery + (body.set ? ` set:${body.set}` : '') + (body.cn ? ` cn:${body.cn}` : ''));
-			const response = await fetch(`https://api.scryfall.com/cards/search?q=${encoded}&unique=prints`);
+		// 2. Fallback to Scryfall if local failed and it's a "simple" query (Discovery Mode)
+		if (isSimple && (nameQuery || (body.set && body.cn))) {
+			let attempts = [];
+			const pref = body.preferFinish || 'cheapest';
 
-			if (response.ok) {
-				const data = await response.json();
-				const scryfallCards = data.data || [];
-				const savedCards = [];
+			if (nameQuery) {
+				// PRIORITY 1: Robust Fuzzy/Exact Name search (Always returns something if it exists)
+				attempts.push(`https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(nameQuery)}`);
 
-				for (const cardData of scryfallCards) {
-					const scryfallId = cardData.id;
-					let existingId = null;
-					const existingIdent = await knex('cardidentifiers').where({ scryfallid: scryfallId }).first();
-					if (existingIdent) existingId = existingIdent.uuid;
-					else {
-						const existingCard = await knex('cards').where({ uuid: scryfallId }).first();
-						if (existingCard) existingId = existingCard.uuid;
+				// PRIORITY 2: Search all prints to find cheapest/preferred finish
+				attempts.push(`https://api.scryfall.com/cards/search?q=${encodeURIComponent('!"' + nameQuery + '"')}&unique=prints&order=usd`);
+			}
+
+			if (body.set && body.cn) {
+				const rawSet = body.set.toLowerCase();
+				const set = SET_MAP[rawSet] || rawSet;
+				const cn = body.cn.toString();
+				// PRIORITY 3: Try specific set/cn (If AI suggested it, user might want it)
+				attempts.push(`https://api.scryfall.com/cards/${set}/${cn}`);
+			}
+
+			const headers = {
+				'User-Agent': 'MTGForge/1.0',
+				'Accept': 'application/json'
+			};
+
+			for (const url of attempts) {
+				try {
+					addLogSvr(`Scryfall fallback attempt: ${url}`);
+					const response = await axios.get(url, { headers, timeout: 5000 });
+
+					if (response.status === 200) {
+						let scryfallCards = response.data.data ? response.data.data : [response.data];
+
+						// If we have multiple prints, sort them by the user's preference
+						if (scryfallCards.length > 1) {
+							scryfallCards.sort((a, b) => {
+								const getP = (card) => {
+									const p = card.prices || {};
+									if (pref === 'foil') return parseFloat(p.usd_foil) || 999999;
+									if (pref === 'nonfoil') return parseFloat(p.usd) || 999999;
+									return Math.min(parseFloat(p.usd) || 999999, parseFloat(p.usd_foil) || 999999);
+								};
+								return getP(a) - getP(b);
+							});
+						}
+
+						const savedCards = [];
+
+						for (const cardData of scryfallCards) {
+							const scryfallId = cardData.id;
+							let existingId = null;
+							const existingIdent = await knex('cardidentifiers').where({ scryfallid: scryfallId }).first();
+							if (existingIdent) existingId = existingIdent.uuid;
+							else {
+								const existingCard = await knex('cards').where({ uuid: scryfallId }).first();
+								if (existingCard) existingId = existingCard.uuid;
+							}
+
+							if (existingId) {
+								await knex('cards').where({ uuid: existingId }).update({
+									data: cardData,
+									name: cardData.name,
+									setcode: cardData.set.toUpperCase(),
+									number: cardData.collector_number
+								});
+								const updated = await knex('cards').where({ uuid: existingId }).first();
+								savedCards.push({ ...updated, ...updated.data });
+							} else {
+								const [inserted] = await knex('cards').insert({
+									name: cardData.name,
+									setcode: cardData.set.toUpperCase(),
+									number: cardData.collector_number,
+									uuid: scryfallId,
+									data: cardData,
+									type: cardData.type_line,
+									manacost: cardData.mana_cost,
+									text: cardData.oracle_text
+								}).returning('*');
+								await knex('cardidentifiers').insert({ uuid: inserted.uuid, scryfallid: scryfallId });
+								savedCards.push({ ...inserted, ...inserted.data });
+							}
+
+							// If we only need the top match for Resolution, we can break after one successful save
+							// but here we might want all prints to show variants. Let's limit to top 5.
+							if (savedCards.length >= 5) break;
+						}
+						return res.json({ data: savedCards });
 					}
-
-					if (existingId) {
-						await knex('cards').where({ uuid: existingId }).update({
-							data: cardData,
-							name: cardData.name,
-							setcode: cardData.set,
-							number: cardData.collector_number
-						});
-						const updated = await knex('cards').where({ uuid: existingId }).first();
-						savedCards.push({ ...updated, ...updated.data });
-					} else {
-						const [inserted] = await knex('cards').insert({
-							name: cardData.name,
-							setcode: cardData.set,
-							number: cardData.collector_number,
-							uuid: scryfallId,
-							data: cardData,
-							type: cardData.type_line,
-							manacost: cardData.mana_cost,
-							text: cardData.oracle_text
-						}).returning('*');
-						await knex('cardidentifiers').insert({ uuid: inserted.uuid, scryfallid: scryfallId });
-						savedCards.push({ ...inserted, ...inserted.data });
+				} catch (fetchErr) {
+					const status = fetchErr.response?.status;
+					const data = fetchErr.response?.data;
+					// Don't log 404s as warnings if we have more attempts to try
+					if (status !== 404) {
+						console.warn(`[CardSvc] Scryfall fallback failed for ${url} (${status || 'timeout'}): ${status === 404 ? 'Not Found' : JSON.stringify(data || fetchErr.message)}`);
 					}
 				}
-				return res.json({ data: savedCards });
+				// Small delay between attempts
+				await new Promise(r => setTimeout(r, 100));
 			}
 		}
 
@@ -239,5 +330,9 @@ router.post('/search', async (req, res) => {
 		res.status(500).json({ error: 'internal server error' });
 	}
 });
+
+function addLogSvr(msg) {
+	console.log(`[CardSvc] ${msg}`);
+}
 
 export default router;

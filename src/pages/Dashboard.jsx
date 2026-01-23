@@ -480,6 +480,7 @@ const Dashboard = () => {
         });
 
         const value = collection.reduce((acc, card) => {
+            if (card.is_wishlist) return acc;
             const isFoil = (card.finish === 'foil') || card.is_foil || card.val_foil;
             const priceRaw = isFoil ? (card.prices?.usd_foil || card.prices?.usd) : card.prices?.usd;
             const price = parseFloat(priceRaw || 0);

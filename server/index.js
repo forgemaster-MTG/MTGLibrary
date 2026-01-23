@@ -34,6 +34,8 @@ import epicsApi from './api/epics.js';
 import ticketsApi from './api/tickets.js';
 import releasesApi from './api/releases.js';
 import auditApi from './api/audit.js';
+import proxyApi from './api/proxy.js';
+
 
 const require = createRequire(import.meta.url);
 
@@ -187,6 +189,8 @@ app.use('/api/epics', epicsApi);
 app.use('/api/tickets', ticketsApi);
 app.use('/api/releases', releasesApi);
 app.use('/api/audit', auditApi);
+app.use('/api/proxy', proxyApi);
+
 
 // Health endpoint
 app.get('/api/health', (req, res) => {

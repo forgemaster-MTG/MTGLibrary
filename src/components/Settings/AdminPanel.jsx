@@ -400,7 +400,8 @@ const AdminPanel = () => {
         try {
             const notes = await GeminiService.generateReleaseNotes(
                 userProfile.settings.geminiApiKey,
-                reportTickets
+                reportTickets,
+                userProfile
             );
             setGeneratedNotes(notes);
             // Auto-suggest version? e.g. v1.0.X

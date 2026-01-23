@@ -549,6 +549,9 @@ const CollectionPage = () => {
             const name = card.name || '';
             if (searchTerm && !name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
 
+            // Strict Mode Filter (Defensive vs API)
+            if (!!card.is_wishlist !== isWishlistMode) return false;
+
             // Colors
             if (filters.colors.length > 0) {
                 const cardColors = card.color_identity || [];

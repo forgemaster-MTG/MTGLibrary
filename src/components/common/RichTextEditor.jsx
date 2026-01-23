@@ -31,7 +31,7 @@ const RichTextEditor = ({ value, onChange, placeholder, type = 'General', height
 
         setLoading(true);
         try {
-            const spruced = await GeminiService.spruceUpText(apiKey, value, type);
+            const spruced = await GeminiService.spruceUpText(apiKey, value, type, userProfile);
             onChange(spruced);
             addToast('Spruced up successfully!', 'success');
         } catch (err) {

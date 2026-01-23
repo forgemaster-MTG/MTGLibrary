@@ -11,6 +11,7 @@ import CommunitySettingsTab from '../components/community/CommunitySettingsTab';
 import AdminPanel from '../components/Settings/AdminPanel';
 import Membership from '../components/Settings/Membership';
 import MatchHistoryTab from '../components/Settings/MatchHistoryTab';
+import GeminiUsageModal from '../components/modals/GeminiUsageModal';
 
 const SettingsPage = () => {
     const { user, userProfile, refreshUserProfile, resetPassword, sendVerification, updateProfileFields } = useAuth();
@@ -30,6 +31,8 @@ const SettingsPage = () => {
 
     // Form State
     const [geminiKey, setGeminiKey] = useState('');
+    const [geminiKeys, setGeminiKeys] = useState(['', '', '', '']);
+    const [isUsageModalOpen, setIsUsageModalOpen] = useState(false);
     const [viewMode, setViewMode] = useState('grid');
     const [gridSize, setGridSize] = useState('md');
     const [username, setUsername] = useState('');
@@ -49,6 +52,14 @@ const SettingsPage = () => {
         if (userProfile?.settings) {
             // Populate state from userProfile.settings
             if (userProfile.settings.geminiApiKey) setGeminiKey(userProfile.settings.geminiApiKey);
+            if (userProfile.settings.geminiApiKeys) {
+                const keys = [...userProfile.settings.geminiApiKeys];
+                while (keys.length < 4) keys.push('');
+                setGeminiKeys(keys.slice(0, 4));
+            } else if (userProfile.settings.geminiApiKey) {
+                // Migration: Move single key to first slot
+                setGeminiKeys([userProfile.settings.geminiApiKey, '', '', '']);
+            }
             if (userProfile.settings.viewMode) setViewMode(userProfile.settings.viewMode);
             if (userProfile.settings.gridSize) setGridSize(userProfile.settings.gridSize);
         }
@@ -89,7 +100,8 @@ const SettingsPage = () => {
             const currentSettings = userProfile?.settings || {};
             const newSettings = {
                 ...currentSettings,
-                geminiApiKey: geminiKey,
+                geminiApiKey: geminiKeys[0], // Keep [0] as primary for legacy
+                geminiApiKeys: geminiKeys,
                 viewMode,
                 gridSize
             };
@@ -413,19 +425,42 @@ const SettingsPage = () => {
                                     Keys are stored securely in your user profile.
                                 </p>
 
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium text-gray-300">Gemini API Key</label>
-                                    <input
-                                        type="password"
-                                        value={geminiKey}
-                                        onChange={(e) => setGeminiKey(e.target.value)}
-                                        placeholder="Enter AI Key..."
-                                        className="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                                    />
-                                    <div className="text-xs text-gray-500 flex justify-between">
-                                        <span>Never share your API key.</span>
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <label className="text-sm font-medium text-gray-300">Google Gemini API Keys (Up to 4)</label>
+                                        <button
+                                            onClick={() => setIsUsageModalOpen(true)}
+                                            className="text-xs bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-400 px-3 py-1 rounded-lg border border-indigo-500/30 transition-all font-bold"
+                                        >
+                                            View Usage & Costs
+                                        </button>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        {geminiKeys.map((key, idx) => (
+                                            <div key={idx} className="space-y-1">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Key {idx + 1} {idx === 0 ? '(Primary)' : ''}</span>
+                                                </div>
+                                                <input
+                                                    type="password"
+                                                    value={key}
+                                                    onChange={(e) => {
+                                                        const newKeys = [...geminiKeys];
+                                                        newKeys[idx] = e.target.value;
+                                                        setGeminiKeys(newKeys);
+                                                    }}
+                                                    placeholder={`Enter Key ${idx + 1}...`}
+                                                    className="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm"
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <div className="text-xs text-gray-500 flex justify-between bg-gray-900/50 p-3 rounded-lg border border-gray-700">
+                                        <span>Multiple keys enable automatic rotation when rate limits (429) are hit on free tiers.</span>
                                         <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-indigo-400 hover:text-indigo-300 hover:underline">
-                                            Get a key from Google AI Studio &rarr;
+                                            Get more keys &rarr;
                                         </a>
                                     </div>
                                 </div>
@@ -672,6 +707,12 @@ const SettingsPage = () => {
                     setIsOrgWizardOpen(false);
                     refreshUserProfile();
                 }}
+            />
+
+            {/* Gemini Usage Modal */}
+            <GeminiUsageModal
+                isOpen={isUsageModalOpen}
+                onClose={() => setIsUsageModalOpen(false)}
             />
 
             {/* Delete Confirmation Modal */}

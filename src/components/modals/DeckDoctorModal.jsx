@@ -44,7 +44,7 @@ const DeckDoctorModal = ({ isOpen, onClose, deck, cards, isOwner }) => {
                 playerProfile: "Competitive but casual friendly", // Default or user setting
                 strategyGuide: deck.description || "General synergy",
                 helperPersona: userProfile?.settings?.helper
-            });
+            }, userProfile);
             // Map the result directly as report
             // Map the result directly as report
             setReport(result);
@@ -283,9 +283,10 @@ const DeckDoctorModal = ({ isOpen, onClose, deck, cards, isOwner }) => {
                                     <span className="text-indigo-500">📋</span> Clinical Critique
                                 </h3>
                                 <div className="bg-gray-950/50 p-8 rounded-3xl border border-white/5 shadow-inner">
-                                    <p className="text-gray-300 leading-relaxed text-lg font-medium">
-                                        {report.critique}
-                                    </p>
+                                    <div
+                                        className="text-gray-300 leading-relaxed text-lg font-medium doctor-critique-content"
+                                        dangerouslySetInnerHTML={{ __html: report.critique }}
+                                    />
                                 </div>
                             </div>
 

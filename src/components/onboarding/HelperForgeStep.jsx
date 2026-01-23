@@ -53,7 +53,7 @@ export const HelperForgeStep = ({ onNext, onBack }) => {
             const apiKey = userProfile?.settings?.geminiApiKey;
             if (!apiKey) throw new Error("API Key missing.");
 
-            const result = await GeminiService.forgeHelperChat(apiKey, newHistory, helperDraft);
+            const result = await GeminiService.forgeHelperChat(apiKey, newHistory, helperDraft, userProfile);
 
             setHelperDraft(prev => ({ ...prev, ...result.updatedDraft }));
             setChatHistory(prev => [...prev, { role: 'model', content: result.aiResponse }]);
@@ -127,8 +127,8 @@ export const HelperForgeStep = ({ onNext, onBack }) => {
                             }}
                             disabled={!getTierConfig(userProfile?.subscription_tier).features.customAiPersona}
                             className={`p-6 border rounded-xl transition-all group text-left relative overflow-hidden ${getTierConfig(userProfile?.subscription_tier).features.customAiPersona
-                                    ? 'bg-amber-900/20 hover:bg-amber-900/30 border-amber-500/30 hover:border-amber-500 cursor-pointer'
-                                    : 'bg-gray-800/50 border-gray-700 opacity-50 cursor-not-allowed'
+                                ? 'bg-amber-900/20 hover:bg-amber-900/30 border-amber-500/30 hover:border-amber-500 cursor-pointer'
+                                : 'bg-gray-800/50 border-gray-700 opacity-50 cursor-not-allowed'
                                 }`}
                         >
                             <div className={`absolute top-0 right-0 p-2 ${getTierConfig(userProfile?.subscription_tier).features.customAiPersona ? 'opacity-50' : 'opacity-20'}`}>

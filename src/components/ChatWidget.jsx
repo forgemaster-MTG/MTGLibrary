@@ -67,7 +67,7 @@ const ChatWidget = () => {
                 `;
 
                 // We use a history of [] so it treats it as a fresh start
-                const response = await GeminiService.sendMessage(apiKey, [], introPrompt, '', helper);
+                const response = await GeminiService.sendMessage(apiKey, [], introPrompt, '', helper, userProfile);
                 setMessages([{ role: 'model', content: response }]);
             } catch (err) {
                 console.error("Intro fetch failed", err);
@@ -122,7 +122,7 @@ ${playstyleContext}
             const history = messages.map(m => ({ role: m.role, content: m.content }));
 
             // Pass full context (Docs + Playstyle)
-            const responseHtml = await GeminiService.sendMessage(apiKey, history, userMsg, fullContext, helper);
+            const responseHtml = await GeminiService.sendMessage(apiKey, history, userMsg, fullContext, helper, userProfile);
 
             setMessages(prev => [...prev, { role: 'model', content: responseHtml }]);
         } catch (error) {

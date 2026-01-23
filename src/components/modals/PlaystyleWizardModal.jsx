@@ -66,7 +66,7 @@ const PlaystyleWizardModal = ({ isOpen, onClose, onComplete }) => {
             const apiKey = userProfile?.settings?.geminiApiKey;
             if (!apiKey) throw new Error("Gemini API Key is missing.");
 
-            const qData = await GeminiService.generatePlaystyleQuestion(apiKey, currentAnswers);
+            const qData = await GeminiService.generatePlaystyleQuestion(apiKey, currentAnswers, userProfile);
             setCurrentQuestionData(qData);
             setSubStep('question');
         } catch (err) {
@@ -100,7 +100,7 @@ const PlaystyleWizardModal = ({ isOpen, onClose, onComplete }) => {
         setMode('synthesis');
         try {
             const apiKey = userProfile?.settings?.geminiApiKey;
-            const profile = await GeminiService.synthesizePlaystyle(apiKey, finalAnswers);
+            const profile = await GeminiService.synthesizePlaystyle(apiKey, finalAnswers, userProfile);
             if (onComplete) await onComplete(profile);
             onClose();
         } catch (err) {
@@ -126,7 +126,8 @@ const PlaystyleWizardModal = ({ isOpen, onClose, onComplete }) => {
                 apiKey,
                 [],
                 liveProfile,
-                userProfile.settings.helper
+                userProfile.settings.helper,
+                userProfile
             );
 
             setChatHistory([{ role: 'model', content: result.aiResponse }]);
@@ -155,7 +156,8 @@ const PlaystyleWizardModal = ({ isOpen, onClose, onComplete }) => {
                 apiKey,
                 newHistory,
                 liveProfile,
-                userProfile.settings.helper
+                userProfile.settings.helper,
+                userProfile
             );
 
             setLiveProfile(result.updatedProfile);
@@ -418,9 +420,10 @@ const PlaystyleWizardModal = ({ isOpen, onClose, onComplete }) => {
                                 <div className="space-y-6 animate-fade-in">
                                     <div className="bg-gray-900/50 rounded-xl p-4 border border-gray-800">
                                         <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Analysis</h4>
-                                        <p className="text-gray-300 text-sm leading-relaxed">
-                                            {liveProfile.summary || "Gathering data..."}
-                                        </p>
+                                        <div
+                                            className="text-gray-300 text-sm leading-relaxed"
+                                            dangerouslySetInnerHTML={{ __html: liveProfile.summary || "Gathering data..." }}
+                                        />
                                     </div>
 
                                     <div>

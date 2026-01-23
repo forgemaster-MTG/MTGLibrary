@@ -1,7 +1,7 @@
 import React from 'react';
 import { AlertCircle } from 'lucide-react';
 
-const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, confirmLabel = 'Confirm', isDangerous = false }) => {
+const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, confirmLabel = 'Confirm', isDangerous = false, isLoading = false, children }) => {
     if (!isOpen) return null;
 
     return (
@@ -12,25 +12,29 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, confirm
                         <AlertCircle className="w-6 h-6" />
                     </div>
                     <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
-                    <p className="text-gray-400 text-sm leading-relaxed">
+                    <p className="text-gray-400 text-sm leading-relaxed mb-4">
                         {message}
                     </p>
+                    {children && <div className="w-full text-left">{children}</div>}
                 </div>
 
                 <div className="flex gap-3">
                     <button
                         onClick={onClose}
-                        className="flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium rounded-lg transition-colors"
+                        disabled={isLoading}
+                        className="flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={onConfirm}
-                        className={`flex-1 px-4 py-2 font-bold rounded-lg transition-colors ${isDangerous
-                                ? 'bg-red-600 hover:bg-red-500 text-white'
-                                : 'bg-blue-600 hover:bg-blue-500 text-white'
+                        disabled={isLoading}
+                        className={`flex-1 px-4 py-2 font-bold rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${isDangerous
+                            ? 'bg-red-600 hover:bg-red-500 text-white'
+                            : 'bg-blue-600 hover:bg-blue-500 text-white'
                             }`}
                     >
+                        {isLoading && <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>}
                         {confirmLabel}
                     </button>
                 </div>

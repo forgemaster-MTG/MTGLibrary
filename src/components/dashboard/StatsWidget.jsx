@@ -78,7 +78,7 @@ export const TotalCardsWidget = ({ data, size }) => {
                     <div className="absolute top-0 right-0 w-2/3 h-full bg-gradient-to-l from-gray-900 to-transparent p-4 overflow-y-auto pl-12 border-l border-white/5">
                         <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 text-right">Recently Added</div>
                         <div className="space-y-1.5">
-                            {collection.slice(-5).reverse().map((card, i) => (
+                            {collection.filter(c => !c.is_wishlist).slice(-5).reverse().map((card, i) => (
                                 <div key={i} className="flex items-center gap-2 text-right justify-end group/card">
                                     <div className="text-xs font-bold text-gray-300 group-hover:text-white truncate flex-grow min-w-0">{card.name}</div>
                                     {card.image_uris?.art_crop && (
@@ -224,7 +224,7 @@ export const CollectionValueWidget = ({ data, actions, size }) => {
                         <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 text-right">Top Value Cards</div>
                         <div className="space-y-1.5">
                             {collection
-                                .filter(c => getPrice(c) > 0)
+                                .filter(c => !c.is_wishlist && getPrice(c) > 0)
                                 .sort((a, b) => getPrice(b) - getPrice(a))
                                 .slice(0, 5)
                                 .map((card, i) => (
@@ -248,7 +248,7 @@ export const CollectionValueWidget = ({ data, actions, size }) => {
                         <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4 flex-shrink-0">Highest Collection Assets</div>
                         <div className="grid grid-cols-4 gap-4 overflow-y-auto pr-2 custom-scrollbar">
                             {collection
-                                .filter(c => getPrice(c) > 0)
+                                .filter(c => !c.is_wishlist && getPrice(c) > 0)
                                 .sort((a, b) => getPrice(b) - getPrice(a))
                                 .slice(0, 12)
                                 .map((card, i) => (

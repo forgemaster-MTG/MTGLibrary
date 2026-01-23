@@ -29,7 +29,7 @@ export function useDeck(deckId) {
             return { deck: fetchedDeck, cards: mappedCards };
         },
         enabled: !!currentUser && !!deckId && deckId !== 'new',
-        staleTime: 1000 * 60 * 5, // 5 minutes
+        staleTime: 1000 * 60 * 1, // 1 minute (was 5 minutes)
     });
 
     const deck = data?.deck || null;

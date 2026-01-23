@@ -580,6 +580,8 @@ const DeckDetailsPage = () => {
     const deleteCardsRef = React.useRef(false);
     const [renderDeleteCheckbox, setRenderDeleteCheckbox] = useState(false);
 
+    const [isDeleting, setIsDeleting] = useState(false);
+
     const handleDeleteDeck = () => {
         deleteCardsRef.current = false; // Reset
         setRenderDeleteCheckbox(true);
@@ -587,19 +589,33 @@ const DeckDetailsPage = () => {
             isOpen: true,
             title: 'Delete Deck',
             message: 'Are you sure you want to delete this deck? Cards inside will be returned to your collection binder.',
-            onConfirm: async () => {
-                try {
-                    await deckService.deleteDeck(currentUser.uid, deckId, { deleteCards: deleteCardsRef.current });
-                    addToast('Deck deleted successfully', 'success');
-                    navigate('/decks');
-                } catch (err) {
-                    console.error(err);
-                    addToast('Failed to delete deck', 'error');
-                } finally {
-                    setRenderDeleteCheckbox(false);
-                }
-            }
+            // Pass the handler reference, don't execute inline to allow re-render
+            onConfirm: () => performDelete()
         });
+    };
+
+    const performDelete = async () => {
+        setIsDeleting(true);
+        // Force re-render of modal to show loading state by updating confirmModal state
+        // Note: Ideally we'd move isDeleting inside the modal or pass it as prop in render
+        // But since we pass props in 'confirmModal' object, we need to re-set it or use separate state.
+        // BETTER: Render ConfirmationModal with 'isLoading={isDeleting}' in the return JSX!
+
+        try {
+            await deckService.deleteDeck(currentUser.uid, deckId, { deleteCards: deleteCardsRef.current });
+            addToast('Deck deleted successfully', 'success');
+            navigate('/decks');
+        } catch (err) {
+            console.error(err);
+            addToast('Failed to delete deck', 'error');
+            setIsDeleting(false); // Only reset on error
+        } finally {
+            if (window.location.pathname.includes(deckId)) {
+                // Only reset if we didn't navigate away (on error)
+                setConfirmModal(prev => ({ ...prev, isOpen: false })); // Close regardless on success? No wait navigate handling.
+            }
+            setRenderDeleteCheckbox(false);
+        }
     };
 
 
@@ -1399,6 +1415,7 @@ const DeckDetailsPage = () => {
                     message={confirmModal.message}
                     isDanger={true}
                     confirmText="Remove"
+                    isLoading={isDeleting}
                 >
                     {renderDeleteCheckbox && (
                         <div className="flex items-center gap-2 mb-4 bg-white/5 p-3 rounded-lg border border-white/10">

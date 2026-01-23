@@ -278,9 +278,9 @@ const Navbar = () => {
                                                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                                                 className="text-gray-400 hover:text-white transition-colors focus:outline-none"
                                             >
-                                                {currentUser.photoURL && !imageError ? (
+                                                {userProfile?.photo_url || (currentUser.photoURL && !imageError) ? (
                                                     <img
-                                                        src={currentUser.photoURL}
+                                                        src={userProfile?.photo_url || currentUser.photoURL}
                                                         alt="Profile"
                                                         className="h-8 w-8 rounded-full object-cover ring-2 ring-transparent hover:ring-indigo-500 transition-all border border-gray-600"
                                                         onError={() => setImageError(true)}

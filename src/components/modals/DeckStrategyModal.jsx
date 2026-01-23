@@ -98,7 +98,9 @@ const DeckStrategyModal = ({ isOpen, onClose, deck, cards = [], onStrategyUpdate
                 deck.commander?.name || 'Unknown Commander',
                 userProfile.playstyle,
                 cards,
-                deck.commander_partner?.name // Pass partner if exists
+                deck.commander_partner?.name, // Pass partner if exists
+                null,
+                userProfile
             );
             console.log('[DeckStrategy] new strategy received:', newStrategy);
 

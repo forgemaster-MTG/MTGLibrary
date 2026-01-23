@@ -196,7 +196,8 @@ const CreateDeckPage = () => {
                 commanderName,
                 userProfile.playstyle,
                 [],
-                userProfile?.settings?.helper
+                userProfile?.settings?.helper,
+                userProfile
             );
 
             if (!data.layout) {

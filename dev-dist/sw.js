@@ -67,7 +67,7 @@ if (!self.define) {
     });
   };
 }
-define(['./workbox-ececd706'], (function (workbox) { 'use strict';
+define(['./workbox-30a642a8'], (function (workbox) { 'use strict';
 
   self.skipWaiting();
   workbox.clientsClaim();
@@ -79,7 +79,7 @@ define(['./workbox-ececd706'], (function (workbox) { 'use strict';
    */
   workbox.precacheAndRoute([{
     "url": "/index.html",
-    "revision": "0.121du5s4uo8"
+    "revision": "0.oh1bn467mbg"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("/index.html"), {
@@ -88,26 +88,26 @@ define(['./workbox-ececd706'], (function (workbox) { 'use strict';
   }));
   workbox.registerRoute(({
     request
-  }) => request.mode === "navigate", new workbox.NetworkFirst({
-    "cacheName": "pages-cache",
+  }) => request.destination === "image", new workbox.StaleWhileRevalidate({
+    "cacheName": "images-cache-v2",
     plugins: [new workbox.ExpirationPlugin({
-      maxEntries: 50,
+      maxEntries: 200,
       maxAgeSeconds: 2592000
     })]
   }), 'GET');
-  workbox.registerRoute(({
-    request
-  }) => request.destination === "image", new workbox.CacheFirst({
-    "cacheName": "images-cache",
+  workbox.registerRoute(/^https:\/\/(cards\.scryfall\.io|firebasestorage\.googleapis\.com|.*\.googleusercontent\.com|placehold\.co)/, new workbox.StaleWhileRevalidate({
+    "cacheName": "external-images-cache-v4",
     plugins: [new workbox.ExpirationPlugin({
-      maxEntries: 100,
+      maxEntries: 20000,
       maxAgeSeconds: 2592000
+    }), new workbox.CacheableResponsePlugin({
+      statuses: [0, 200]
     })]
   }), 'GET');
   workbox.registerRoute(({
     request
   }) => request.destination === "script" || request.destination === "style", new workbox.StaleWhileRevalidate({
-    "cacheName": "static-resources",
+    "cacheName": "static-resources-v2",
     plugins: []
   }), 'GET');
 
