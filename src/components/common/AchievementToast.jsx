@@ -1,6 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Trophy, X } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import { achievementService } from '../../services/AchievementService';
 
 export default function AchievementToast() {
@@ -38,9 +39,13 @@ export default function AchievementToast() {
 
     if (!visible || !current) return null;
 
-    return (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] animate-slide-up">
-            <div className="flex items-center gap-4 bg-gray-900 border border-yellow-500/50 rounded-2xl p-4 shadow-[0_0_50px_rgba(234,179,8,0.2)] pr-12 relative overflow-hidden group">
+    const content = (
+        <div className="fixed top-24 left-0 right-0 md:top-auto md:bottom-8 md:left-1/2 md:-translate-x-1/2 z-[100000] flex flex-col items-center pointer-events-none px-0 md:px-4">
+            <div className={`
+                flex items-center gap-4 bg-gray-950/90 border-y border-yellow-500/50 p-4 shadow-[0_0_50px_rgba(234,179,8,0.2)] relative overflow-hidden group pointer-events-auto
+                w-full md:w-auto md:rounded-2xl md:border md:pr-12 md:animate-slide-up backdrop-blur-xl
+                animate-fade-in-down md:animate-none
+            `}>
                 {/* Shine effect */}
                 <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:animate-shine pointer-events-none" />
 
@@ -48,11 +53,11 @@ export default function AchievementToast() {
                     <Trophy className="w-7 h-7 text-white drop-shadow-md" />
                 </div>
 
-                <div>
-                    <div className="text-[10px] font-black uppercase tracking-widest text-yellow-500 mb-0.5">Achievement Unlocked</div>
-                    <h4 className="text-lg font-bold text-white leading-tight">{current.title}</h4>
-                    <p className="text-xs text-gray-400 mt-1 leading-snug">{current.description}</p>
-                    <div className="text-xs font-bold text-gray-500 mt-1 flex items-center gap-1">
+                <div className="flex-grow md:flex-grow-0">
+                    <div className="text-[10px] font-black uppercase tracking-widest text-yellow-500 mb-0.5 text-center md:text-left">Achievement Unlocked</div>
+                    <h4 className="text-lg font-bold text-white leading-tight text-center md:text-left">{current.title}</h4>
+                    <p className="text-xs text-gray-400 mt-1 leading-snug text-center md:text-left">{current.description}</p>
+                    <div className="text-xs font-bold text-gray-500 mt-1 flex items-center justify-center md:justify-start gap-1">
                         {current.xp} XP Gained
                     </div>
                 </div>
@@ -66,6 +71,8 @@ export default function AchievementToast() {
             </div>
         </div>
     );
+
+    return createPortal(content, document.body);
 }
 
 // Ensure CSS for animation is present or added
