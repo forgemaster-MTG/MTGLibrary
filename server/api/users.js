@@ -312,4 +312,43 @@ router.delete('/me/data', authMiddleware, async (req, res) => {
   }
 });
 
+// Sync Achievements & Stats (Atomic)
+router.post('/:id/achievements', authMiddleware, async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id, 10);
+    if (req.user.id !== userId && !req.user.settings?.isAdmin) {
+      return res.status(403).json({ error: 'not allowed' });
+    }
+
+    const { achievements, stats } = req.body;
+
+    await knex.transaction(async (trx) => {
+      const user = await trx('users').where({ id: userId }).first();
+      if (!user) throw new Error('User not found');
+
+      const existingData = user.data || {};
+      const existingStats = user.settings?.stats || user.stats || {}; // Accommodate legacy locations
+      const existingAchievements = existingData.achievements || [];
+
+      // Merge achievements (Unique set)
+      const updatedAchievements = Array.from(new Set([...existingAchievements, ...(achievements || [])]));
+
+      // Merge stats
+      const updatedStats = { ...existingStats, ...(stats || {}) };
+
+      await trx('users')
+        .where({ id: userId })
+        .update({
+          data: { ...existingData, achievements: updatedAchievements },
+          settings: { ...user.settings, stats: updatedStats }
+        });
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[users] achievements sync error', err);
+    res.status(500).json({ error: 'db error' });
+  }
+});
+
 export default router;

@@ -15,43 +15,61 @@ router.post('/prices', async (req, res) => {
     try {
         const userId = req.user.id;
 
-        // 1. Get all unique Scryfall IDs from user's collection
-        const userCards = await knex('user_cards')
+        // 1. Get targets for sync (including set/number for fallback healing)
+        const syncTargets = await knex('user_cards')
             .where({ user_id: userId })
-            .distinct('scryfall_id')
-            .whereNotNull('scryfall_id');
+            .whereNotNull('scryfall_id')
+            .distinct('scryfall_id', 'set_code', 'collector_number');
 
-        const allIds = userCards.map(c => c.scryfall_id);
-
-        if (allIds.length === 0) {
+        if (syncTargets.length === 0) {
             return res.json({ message: 'Collection is empty, nothing to sync.', count: 0 });
         }
 
         // 2. Chunk into batches of 75 (Scryfall limit)
-        const batches = chunk(allIds, 75);
+        const batches = chunk(syncTargets, 75);
         let processedCount = 0;
         let updatedCount = 0;
+        let healedCount = 0;
 
-        console.log(`[Sync] Starting price sync for user ${userId}. Total cards: ${allIds.length}, Batches: ${batches.length}`);
+        console.log(`[Sync] Starting price sync for user ${userId}. Total targets: ${syncTargets.length}, Batches: ${batches.length}`);
 
         // 3. Process sequentially
-        for (const [index, batchIds] of batches.entries()) {
+        const v4Regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+        for (const [index, batchTargets] of batches.entries()) {
             console.log(`[Sync] Processing batch ${index + 1}/${batches.length}...`);
 
             try {
-                // Prepare payload for Scryfall /cards/collection
-                const payload = {
-                    identifiers: batchIds.map(id => ({ id }))
-                };
+                // Prepare identifiers (Healing suspect IDs by falling back to set/number)
+                const identifiers = batchTargets.map(t => {
+                    if (v4Regex.test(t.scryfall_id)) {
+                        return { id: t.scryfall_id };
+                    } else {
+                        console.log(`[Sync] Suspect ID detected: ${t.scryfall_id}. Falling back to set/number: ${t.set_code}/${t.collector_number}`);
+                        return { set: t.set_code.toLowerCase(), collector_number: t.collector_number };
+                    }
+                });
+
+                const payload = { identifiers };
 
                 const response = await fetch('https://api.scryfall.com/cards/collection', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'User-Agent': 'MTGForge/1.0'
+                    },
                     body: JSON.stringify(payload)
                 });
 
                 if (!response.ok) {
-                    console.error(`[Sync] Scryfall batch ${index + 1} failed: ${response.status} ${response.statusText}`);
+                    let errorDetail = '';
+                    try {
+                        const errJson = await response.json();
+                        errorDetail = JSON.stringify(errJson);
+                    } catch (e) {
+                        errorDetail = await response.text();
+                    }
+                    console.error(`[Sync] Scryfall batch ${index + 1} failed: ${response.status} ${response.statusText}. Details: ${errorDetail}`);
                     continue; // Skip this batch, try next
                 }
 
@@ -59,54 +77,60 @@ router.post('/prices', async (req, res) => {
                 const scryfallCards = data.data || [];
 
                 // 4. Update DB
-                // We do this in a transaction to ensure integrity per batch
                 await knex.transaction(async (trx) => {
                     for (const cardData of scryfallCards) {
-                        const sId = cardData.id;
+                        const newId = cardData.id;
+                        const setCode = cardData.set.toUpperCase();
+                        const collNum = cardData.collector_number;
 
-                        // A. Update reference 'cards' table 'prices' (and other mutable fields)
-                        // We check if it exists first (it should, but safety first)
-                        const refExists = await trx('cards').where({ uuid: sId }).first();
-                        if (refExists) {
-                            // Merge new data into existing data JSON
-                            const newData = { ...refExists.data, prices: cardData.prices };
-                            await trx('cards').where({ uuid: sId }).update({
-                                data: newData,
-                                // Update pure columns if they exist and are relevant (like setcode? usually static)
-                            });
+                        // A. Update global reference 'cards' table
+                        // We search by set/number to ensure we catch "mis-ID'd" cards (healing)
+                        const refCard = await trx('cards').where({ setcode: setCode, number: collNum }).first();
+                        if (refCard) {
+                            const newData = { ...refCard.data, ...cardData };
+                            const updateObj = { data: newData, uuid: newId };
+                            await trx('cards').where({ id: refCard.id }).update(updateObj);
                         }
 
-                        // B. Update 'user_cards' cache
-                        // Find all user_cards with this scryfall_id
-                        const userRows = await trx('user_cards').where({ user_id: userId, scryfall_id: sId });
+                        // B. Update 'user_cards' (Self-Healing)
+                        // Find all rows for this user matching this set/number and update them with the fresh ID and data
+                        const userRows = await trx('user_cards').where({
+                            user_id: userId,
+                            set_code: setCode,
+                            collector_number: collNum
+                        });
+
                         for (const row of userRows) {
-                            // Merge new prices into cached data
-                            const rowData = row.data || {};
-                            const updatedRowData = { ...rowData, prices: cardData.prices };
+                            const updatedRowData = { ...(row.data || {}), ...cardData };
+                            const imageUri = cardData.image_uris?.normal || cardData.card_faces?.[0]?.image_uris?.normal || row.image_uri;
 
-                            // Also update image_uris if they changed (rare but possible)
-                            if (cardData.image_uris) updatedRowData.image_uris = cardData.image_uris;
+                            const updatePayload = {
+                                scryfall_id: newId,
+                                data: updatedRowData,
+                                image_uri: imageUri
+                            };
 
-                            await trx('user_cards').where({ id: row.id }).update({
-                                data: updatedRowData
-                            });
+                            if (row.scryfall_id !== newId) {
+                                console.log(`[Sync] HEALED: Updated ${row.name} from ID ${row.scryfall_id} -> ${newId}`);
+                                healedCount++;
+                            }
+
+                            await trx('user_cards').where({ id: row.id }).update(updatePayload);
                             updatedCount++;
                         }
                     }
                 });
 
                 processedCount += scryfallCards.length;
-
-                // Wait 100ms between batches to be nice, even though we await
-                await new Promise(resolve => setTimeout(resolve, 100));
+                await new Promise(resolve => setTimeout(resolve, 100)); // Be nice to Scryfall
 
             } catch (err) {
                 console.error(`[Sync] Error processing batch ${index + 1}:`, err);
             }
         }
 
-        console.log(`[Sync] Completed. Processed ${processedCount} cards from Scryfall. Updated ${updatedCount} user_cards rows.`);
-        res.json({ success: true, processed: processedCount, updated: updatedCount });
+        console.log(`[Sync] Completed. Target Cards: ${syncTargets.length}, Processed: ${processedCount}, Updated: ${updatedCount} rows, Healed: ${healedCount} IDs.`);
+        res.json({ success: true, processed: processedCount, updated: updatedCount, healed: healedCount });
 
     } catch (err) {
         console.error('[Sync] Global error:', err);
