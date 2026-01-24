@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -316,7 +316,8 @@ export default function AuditWizard() {
 
     // Pagination for LEAF nodes
     const [visibleCount, setVisibleCount] = useState(50);
-    const loadMoreRef = useRef(null);
+
+
 
     const [viewAllOverride, setViewAllOverride] = useState(false);
 
@@ -324,18 +325,6 @@ export default function AuditWizard() {
     const [filter, setFilter] = useState('all'); // 'all', 'pending', 'mismatch'
 
     const navigate = useNavigate();
-
-    // Infinite Scroll
-    useEffect(() => {
-        const observer = new IntersectionObserver(
-            (entries) => {
-                if (entries[0].isIntersecting) setVisibleCount(p => p + 50);
-            },
-            { rootMargin: '200px' }
-        );
-        if (loadMoreRef.current) observer.observe(loadMoreRef.current);
-        return () => observer.disconnect();
-    }, [visibleCount]); // Re-attach when count changes? Or better: just observe.
 
     useEffect(() => {
         fetchSession();
@@ -480,6 +469,19 @@ export default function AuditWizard() {
             return 0;
         });
     }, [allItems, currentPath, filter, leafSortOrder]);
+
+    // Infinite Scroll via Callback Ref
+    const observer = useRef();
+    const lastElementRef = useCallback((node) => {
+        if (loading) return;
+        if (observer.current) observer.current.disconnect();
+        observer.current = new IntersectionObserver(entries => {
+            if (entries[0].isIntersecting && visibleCount < currentFilteredItems.length) {
+                setVisibleCount(prev => prev + 50);
+            }
+        });
+        if (node) observer.current.observe(node);
+    }, [loading, visibleCount, currentFilteredItems.length]);
 
     const isLeaf = viewAllOverride || currentPath.length >= groupHierarchy.length;
     const currentGroupType = groupHierarchy[currentPath.length];
@@ -767,7 +769,15 @@ export default function AuditWizard() {
                         />
                     ))}
                     {visibleCount < currentFilteredItems.length && (
-                        <div ref={loadMoreRef} className="h-24 flex items-center justify-center col-span-full"><div className="animate-spin w-6 h-6 border-2 border-indigo-500 rounded-full" /></div>
+                        <div ref={lastElementRef} className="h-32 flex flex-col items-center justify-center col-span-full gap-2 p-4">
+                            <div className="animate-spin w-6 h-6 border-2 border-indigo-500 rounded-full" />
+                            <button
+                                onClick={() => setVisibleCount(p => p + 50)}
+                                className="text-xs text-indigo-400 hover:text-white underline"
+                            >
+                                Load More
+                            </button>
+                        </div>
                     )}
                 </div>
             ) : (
