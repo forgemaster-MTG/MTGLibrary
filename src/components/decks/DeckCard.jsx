@@ -88,12 +88,13 @@ const DeckCard = memo(function DeckCard({ deck }) {
                     {/* Color Pips */}
                     <div className="absolute -top-3 left-5 flex gap-1 bg-gray-900/80 backdrop-blur-md rounded-full px-2 py-1 border border-white/10 shadow-xl">
                         {(deck.format?.toLowerCase() === 'standard' ? (deck.colors || []) : deckColors).map(c => {
-                            const pipUrl = `https://svgs.scryfall.io/card-symbols/${c}.svg`;
+                            const symbol = c.replace(/[{}]/g, '');
+                            const pipUrl = `https://svgs.scryfall.io/card-symbols/${symbol}.svg`;
                             return (
                                 <img
                                     key={c}
                                     src={pipUrl}
-                                    alt={c}
+                                    alt={symbol}
                                     className="w-4 h-4 shadow-sm"
                                 />
                             );
