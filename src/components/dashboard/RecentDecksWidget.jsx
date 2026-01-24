@@ -76,9 +76,9 @@ const DeckItem = ({ deck, navigate }) => {
                         const allColors = [...new Set([...mainColors, ...partnerColors])];
                         if (allColors.length === 0) allColors.push('C');
                         return allColors.map(c => {
-                            const symbol = c.replace(/[{}]/g, '');
+                            const symbol = c.replace(/[{}]/g, '').replace('/', '');
                             return (
-                                <img key={c} src={`https://svgs.scryfall.io/card-symbols/${symbol}.svg`} alt={symbol} className="w-4 h-4 shadow-sm" />
+                                <img key={c} src={`/assets/mana/${symbol}.svg`} alt={symbol} className="w-4 h-4 shadow-sm" />
                             );
                         });
                     })()}
