@@ -14,7 +14,7 @@ import AddFromCollectionModal from '../components/modals/AddFromCollectionModal'
 import DeckAdvancedStats from '../components/DeckAdvancedStats';
 import DeckStatsModal from '../components/modals/DeckStatsModal';
 import DeckStrategyModal from '../components/modals/DeckStrategyModal';
-import StartAuditModal from '../components/audit/StartAuditModal';
+import StartAuditModal from '../components/Audit/StartAuditModal';
 import { api } from '../services/api';
 import ShareModal from '../components/modals/ShareModal';
 import DeckDoctorModal from '../components/modals/DeckDoctorModal';
@@ -1564,8 +1564,7 @@ const DeckDetailsPage = () => {
                     targetId={deckId}
                     loading={auditLoading}
                     activeSession={activeAuditSession}
-                />
-                deckName={deck.name}
+                    deckName={deck?.name}
                 />
             </div>
             {/* Render Feature Tour */}
