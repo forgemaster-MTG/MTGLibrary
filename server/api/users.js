@@ -42,13 +42,28 @@ router.put('/:id', authMiddleware, async (req, res) => {
 
     if (!isSelf && !isAdmin) return res.status(403).json({ error: 'not allowed' });
 
-    const { email, username, first_name, last_name, settings, data } = req.body;
+    const { email, username, first_name, last_name, is_public_library, settings, data } = req.body;
+
+    // Fetch current user to safely merge settings if needed,
+    // although client usually sends full settings or we patch.
+    // But since we are moving a root prop to settings, we need to be careful.
+    // Ideally we just patch what we have.
+
+    // We need to ensure 'is_public_library' goes into settings.
+    // If settings is provided, use it, else empty object.
+    let newSettings = settings || {};
+
+    console.log(`[users] PUT ${userId}. is_public_library (param): ${is_public_library} (${typeof is_public_library})`);
+
+    if (is_public_library !== undefined) {
+      newSettings.is_public_library = is_public_library;
+    }
+
     const updateData = {};
     if (email !== undefined) updateData.email = email;
     if (username !== undefined) updateData.username = username;
     if (first_name !== undefined) updateData.first_name = first_name;
     if (last_name !== undefined) updateData.last_name = last_name;
-    if (req.body.is_public_library !== undefined) updateData.is_public_library = req.body.is_public_library;
 
     // Only Admin can update settings directly here (which includes permissions)
     // Or self can update generic settings if we allow it, but let's be safe.
@@ -191,10 +206,22 @@ router.get('/public/:id', authMiddleware, async (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     // 2. Check Permissions (Public or Friend)
-    const isPublic = user.is_public_library;
+    // 2. Check Permissions (Public or Friend)
+    // Check settings for legacy or new location
+    const isPublic = user.is_public_library || user.settings?.is_public_library;
     let relationship = null;
 
-    if (requesterId !== targetId) {
+    // Use loose comparison or ensure strict types. DB IDs are ints.
+    // requesterId (from req.user.id) and targetId (parsed int) should match.
+    console.log(`[users] GET /public/${targetId} reqBy=${requesterId}. isPublic=${isPublic}`);
+
+    // EXPLICIT SELF-CHECK
+    // If user is viewing themselves, always allow.
+    if (String(requesterId) === String(targetId)) {
+      console.log('[users] Self-access granted.');
+      relationship = { status: 'accepted', isSelf: true };
+    }
+    else if (String(requesterId) !== String(targetId)) {
       const rel = await knex('user_relationships')
         .where(b => b.where('requester_id', requesterId).andWhere('addressee_id', targetId))
         .orWhere(b => b.where('requester_id', targetId).andWhere('addressee_id', requesterId))
@@ -207,12 +234,17 @@ router.get('/public/:id', authMiddleware, async (req, res) => {
           type: rel.type,
           direction: rel.requester_id === requesterId ? 'outgoing' : 'incoming'
         };
+        console.log(`[users] Relationship found: ${rel.status}`);
+      } else {
+        console.log(`[users] No relationship found.`);
       }
     } else {
       relationship = { status: 'accepted', isSelf: true };
+      console.log(`[users] Is Self.`);
     }
 
     if (!isPublic && (!relationship || relationship.status !== 'accepted')) {
+      console.warn(`[users] Access Denied. Public=${isPublic}, RelStatus=${relationship?.status}`);
       return res.status(403).json({ error: 'Profile is private' });
     }
 
@@ -225,7 +257,8 @@ router.get('/public/:id', authMiddleware, async (req, res) => {
       avatar: user.data?.avatar || null,
       bio: user.data?.bio || null,
       joined_at: user.created_at,
-      relationship: relationship
+      relationship: relationship,
+      playstyle: user.settings?.playstyle || null
     };
 
     res.json(safeProfile);

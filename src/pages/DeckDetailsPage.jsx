@@ -14,6 +14,8 @@ import AddFromCollectionModal from '../components/modals/AddFromCollectionModal'
 import DeckAdvancedStats from '../components/DeckAdvancedStats';
 import DeckStatsModal from '../components/modals/DeckStatsModal';
 import DeckStrategyModal from '../components/modals/DeckStrategyModal';
+import StartAuditModal from '../components/audit/StartAuditModal';
+import { api } from '../services/api';
 import ShareModal from '../components/modals/ShareModal';
 import DeckDoctorModal from '../components/modals/DeckDoctorModal';
 import DeckAI from '../components/DeckAI';
@@ -649,6 +651,65 @@ const DeckDetailsPage = () => {
         return '';
     };
 
+    // Audit Logic
+    const [isAuditOpen, setIsAuditOpen] = useState(false);
+    const [auditLoading, setAuditLoading] = useState(false);
+    const [activeAuditSession, setActiveAuditSession] = useState(null);
+
+    const handleAuditClick = async () => {
+        setIsToolsMenuOpen(false); // Close menu immediately
+        setAuditLoading(true);
+        try {
+            const active = await api.getActiveAudit();
+            if (active) {
+                // Check if the active session matches our intent
+                const isTypeMatch = active.type === 'deck';
+                const isTargetMatch = String(active.target_id) === String(deckId);
+
+                if (isTypeMatch && isTargetMatch) {
+                    navigate(`/audit/${active.id}`);
+                    return;
+                }
+
+                // Mismatch: User has an active session of a different type/target
+                setActiveAuditSession(active);
+                setIsAuditOpen(true);
+                return;
+            }
+            // No active session, open modal
+            setActiveAuditSession(null);
+            setIsAuditOpen(true);
+        } catch (err) {
+            console.error(err);
+            // On error opening, just open modal blank or alert?
+            // Safer to open modal with null session
+            setActiveAuditSession(null);
+            setIsAuditOpen(true);
+        } finally {
+            setAuditLoading(false);
+        }
+    };
+
+    const handleAuditConfirm = async () => {
+        setAuditLoading(true);
+        try {
+            // Cancel existing if one exists (user confirmed overwrite)
+            if (activeAuditSession) {
+                await api.cancelAudit(activeAuditSession.id);
+            }
+
+            const session = await api.startAudit({ type: 'deck', targetId: deckId });
+            navigate(`/audit/${session.id}`);
+        } catch (err) {
+            console.error(err);
+            addToast('Failed to start audit: ' + err.message, 'error');
+        } finally {
+            setAuditLoading(false);
+            setIsAuditOpen(false);
+            setActiveAuditSession(null);
+        }
+    };
+
     // Loading/Error States - MUST BE AFTER ALL HOOKS
     if (deckLoading) return <div className="flex justify-center p-20"><div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-500"></div></div>;
     if (deckError) return <div className="p-20 text-center text-red-500 text-xl font-bold">Error loading deck: {deckError.message}</div>;
@@ -895,9 +956,13 @@ const DeckDetailsPage = () => {
 
                                                     {canEdit && (
                                                         getTierConfig(userProfile?.subscription_tier).features.deckAudit ? (
-                                                            <div onClick={() => setIsToolsMenuOpen(false)} className="h-full">
-                                                                <StartAuditButton type="deck" targetId={deckId} label="Audit" className="w-full h-full flex flex-col items-center gap-2 p-3 bg-purple-500/10 hover:bg-purple-500/30 border border-purple-500/20 rounded-xl transition-all font-bold text-[10px] text-purple-300" />
-                                                            </div>
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); handleAuditClick(); }}
+                                                                className="w-full h-full flex flex-col items-center gap-2 p-3 bg-purple-500/10 hover:bg-purple-500/30 border border-purple-500/20 rounded-xl transition-all group"
+                                                            >
+                                                                <svg className="w-5 h-5 text-purple-400 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
+                                                                <span className="text-[10px] font-bold text-purple-300 uppercase tracking-wider">Audit</span>
+                                                            </button>
                                                         ) : (
                                                             <button
                                                                 onClick={(e) => { e.stopPropagation(); addToast('Deck Audits are available on Magician tier and above.', 'info'); }}
@@ -1488,7 +1553,19 @@ const DeckDetailsPage = () => {
                     isOpen={isPrintModalOpen}
                     onClose={() => setIsPrintModalOpen(false)}
                     cards={deckCards}
-                    deckName={deck.name}
+                />
+
+                {/* Audit Modal */}
+                <StartAuditModal
+                    isOpen={isAuditOpen}
+                    onClose={() => setIsAuditOpen(false)}
+                    onConfirm={handleAuditConfirm}
+                    type="deck"
+                    targetId={deckId}
+                    loading={auditLoading}
+                    activeSession={activeAuditSession}
+                />
+                deckName={deck.name}
                 />
             </div>
             {/* Render Feature Tour */}

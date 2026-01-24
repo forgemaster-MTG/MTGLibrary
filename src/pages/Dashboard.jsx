@@ -65,11 +65,11 @@ const SortableWidget = ({ id, widgetKey, editMode, data, actions, containerId, s
 
     // Grid Spans (Top Zone) - Now with Row Spans for Dense Packing
     const gridSpans = {
-        xs: 'col-span-2 row-span-1', // 2 cols, 1 row (dense)
-        small: 'col-span-4 row-span-3', // 4 cols, 3 rows (Increased from 2)
-        medium: 'col-span-4 row-span-5', // 4 cols, 5 rows (Increased from 4)
-        large: 'col-span-6 row-span-8', // 6 cols, 8 rows (Increased from 6)
-        xlarge: 'col-span-8 row-span-8' // 8 cols, 8 rows (Increased from 6)
+        xs: 'col-span-6 md:col-span-2 row-span-2 md:row-span-1', // Half-width on mobile, 2 cols on desktop
+        small: 'col-span-12 md:col-span-4 row-span-4 md:row-span-3', // Full width mobile
+        medium: 'col-span-12 md:col-span-4 row-span-6 md:row-span-5', // Full width mobile
+        large: 'col-span-12 md:col-span-6 row-span-8', // Full width mobile
+        xlarge: 'col-span-12 md:col-span-8 row-span-8' // Full width mobile
     };
 
     // Width mappings for non-grid containers (Main/Sidebar)
@@ -634,9 +634,125 @@ const Dashboard = () => {
     return (
         <div className="relative min-h-screen" >
             {/* Background */}
-            < div className="fixed inset-0 z-0 bg-cover bg-center transition-all duration-1000" style={{ backgroundImage: 'url(/MTG-Forge_Logo_Background.png)' }} >
+            <div className="fixed inset-0 z-0 bg-cover bg-center transition-all duration-1000" style={{ backgroundImage: 'url(/MTG-Forge_Logo_Background.png)' }} >
                 <div className="absolute inset-0 bg-gray-950/80 backdrop-blur-sm" />
-            </div >
+            </div>
+
+            {/* MOBILE ONLY: Dashboard Controls (Fixed to Viewport Bottom) - Polished and elevated */}
+            <div className={`fixed bottom-[84px] left-4 z-[100] flex md:hidden items-center gap-4 bg-gray-900/95 p-2 rounded-2xl backdrop-blur-2xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)] transition-all w-fit min-w-[200px] max-w-[calc(100%-80px)]`}>
+                <div className="flex items-center gap-4 w-full">
+                    <div className="relative flex items-center gap-4 flex-grow">
+                        <button id="layout-menu-btn-mobile" onClick={() => setIsLayoutMenuOpen(!isLayoutMenuOpen)} className="bg-gray-800 hover:bg-gray-700 text-white text-[10px] font-bold rounded-xl border border-white/10 px-3 py-2 transition-all flex items-center gap-2">
+                            <span>Layouts</span>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                        </button>
+
+                        {/* Mobile Menu Dropdown (Upwards) */}
+                        {isLayoutMenuOpen && (
+                            <>
+                                <div className="fixed inset-0 z-40 cursor-default" onClick={() => setIsLayoutMenuOpen(false)} />
+                                <div className="absolute bottom-full left-0 mb-4 w-full bg-gray-900 border border-indigo-500/30 rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-slide-up-fast min-w-[200px]">
+                                    <div className="p-2 border-b border-white/5 bg-gray-950/50">
+                                        <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-2 py-1">Presets</div>
+                                        {Object.keys(PRESETS).map(key => (
+                                            <button key={key} onClick={() => { handleLoadLayout(key); setIsLayoutMenuOpen(false); }} className="w-full text-left px-2 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg transition-colors active:bg-indigo-600/20">
+                                                {key}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <div className="p-2 flex-grow overflow-y-auto max-h-[300px] bg-gray-900">
+                                        <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-2 py-1 flex justify-between items-center">
+                                            <span>My Layouts</span>
+                                        </div>
+                                        {Object.keys(savedLayouts).length === 0 ? (
+                                            <div className="px-2 py-2 text-xs text-gray-600 italic">No saved layouts</div>
+                                        ) : (
+                                            Object.keys(savedLayouts).map(key => (
+                                                <div key={key} className="flex items-center gap-1 group/item rounded-lg hover:bg-white/5 p-1 mb-1">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleLoadLayout(key);
+                                                            setIsLayoutMenuOpen(false);
+                                                        }}
+                                                        className="flex-grow text-left px-2 py-2 text-sm text-gray-300 group-hover/item:text-white truncate transition-colors font-medium active:text-indigo-400"
+                                                    >
+                                                        {key}
+                                                    </button>
+
+                                                    <div className="flex bg-gray-950/50 rounded-lg p-0.5 border border-white/5">
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); handleOverwriteLayout(key); }}
+                                                            className="p-2 text-gray-500 hover:text-green-400 hover:bg-white/5 rounded transition-all"
+                                                            title="Overwrite"
+                                                        >
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
+                                                        </button>
+                                                        <div className="w-px bg-white/10 my-1" />
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); handleDeleteLayout(key); }}
+                                                            className="p-2 text-gray-500 hover:text-red-400 hover:bg-white/5 rounded transition-all"
+                                                            title="Delete"
+                                                        >
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+
+                                    <div className="p-2 border-t border-white/5 bg-gray-950/50 grid grid-cols-3 gap-2">
+                                        <button onClick={() => { handleImport(); setIsLayoutMenuOpen(false); }} className="p-2 rounded-lg bg-indigo-500/5 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 flex flex-col items-center gap-1 text-[10px] font-bold transition-all border border-indigo-500/10" title="Import">
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                                            Import
+                                        </button>
+                                        <button onClick={() => { handleSaveAs(); setIsLayoutMenuOpen(false); }} className="p-2 rounded-lg bg-indigo-500/5 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 flex flex-col items-center gap-1 text-[10px] font-bold transition-all border border-indigo-500/10" title="Save">
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                                            Save New
+                                        </button>
+                                        <button onClick={() => { handleShare(); setIsLayoutMenuOpen(false); }} className="p-2 rounded-lg bg-indigo-500/5 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 flex flex-col items-center gap-1 text-[10px] font-bold transition-all border border-indigo-500/10" title="Share">
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                                            Share
+                                        </button>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+                        <div className="h-4 w-px bg-white/10 mx-1" />
+
+                        <div className="h-5 w-px bg-white/10 mx-1" />
+
+                        <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2 min-w-fit">
+                                <span className={`text-xs font-black uppercase tracking-tighter ${editMode ? 'text-indigo-400' : 'text-gray-500'}`}>{editMode ? 'Done' : 'Edit'}</span>
+                                <Switch
+                                    checked={editMode}
+                                    onChange={toggleEditMode}
+                                    className={`${editMode ? 'bg-indigo-600' : 'bg-gray-700'} relative inline-flex h-5 w-9 items-center rounded-full transition-colors shadow-inner`}
+                                >
+                                    <span className={`${editMode ? 'translate-x-5' : 'translate-x-1'} inline-block h-3 w-3 transform rounded-full bg-white transition-transform`} />
+                                </Switch>
+                            </div>
+
+                            {editMode && (
+                                <button
+                                    onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                                    className={`p-1.5 rounded border transition-all ${editMode && !isSidebarOpen
+                                        ? 'bg-indigo-600/20 text-indigo-400 border-indigo-500/50 animate-bounce'
+                                        : 'hover:bg-indigo-600/20 text-indigo-400 border-indigo-500/30'
+                                        }`}
+                                    title="Forge Library"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <div className="relative z-10 max-w-7xl mx-auto px-6 py-12 space-y-8 animate-fade-in w-full">
                 {/* Feedback Banner */}
@@ -656,92 +772,101 @@ const Dashboard = () => {
                         <h1 className="text-4xl font-black text-white tracking-tight mb-2">Dashboard</h1>
                         <p className="text-gray-400">Welcome back, <span className="text-indigo-400 font-bold">{currentUser ? (currentUser.displayName || currentUser.email) : 'Guest'}</span>.</p>
                     </div>
-                    <div className="flex items-center gap-3 bg-gray-900/50 p-2 rounded-xl backdrop-blur-md border border-white/5">
+                    {/* Dashboard Controls: Desktop Only (Hidden on Mobile) */}
+                    <div className={`hidden md:flex items-center gap-3 bg-gray-900/50 p-2 rounded-xl backdrop-blur-md border border-white/5`}>
                         <div className="relative">
                             <button id="layout-menu-btn" onClick={() => setIsLayoutMenuOpen(!isLayoutMenuOpen)} className="bg-gray-800 text-white text-xs rounded-lg border border-gray-700 px-3 py-1.5 hover:bg-gray-700 transition-colors flex items-center gap-2">
                                 <span>Load Layout...</span>
                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                             </button>
+                        </div>
 
-                            {isLayoutMenuOpen && (
-                                <>
-                                    <div className="fixed inset-0 z-40 cursor-default" onClick={() => setIsLayoutMenuOpen(false)} />
-                                    <div className="absolute top-full right-0 mt-2 w-72 bg-gray-900 border border-indigo-500/30 rounded-xl shadow-2xl z-[100] overflow-hidden flex flex-col animate-fade-in-down">
-                                        <div className="p-2 border-b border-white/5 bg-gray-950/50">
-                                            <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-2 py-1">Presets</div>
-                                            {Object.keys(PRESETS).map(key => (
-                                                <button key={key} onClick={() => { handleLoadLayout(key); setIsLayoutMenuOpen(false); }} className="w-full text-left px-2 py-1.5 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg transition-colors">
-                                                    {key}
-                                                </button>
-                                            ))}
+                        <div className="h-4 w-px bg-white/10 mx-1" />
+
+                        <div className="flex items-center gap-2">
+                            <span className={`text-[10px] font-bold uppercase tracking-wider ${editMode ? 'text-indigo-400' : 'text-gray-500'}`}>{editMode ? 'Done' : 'Customize'}</span>
+                            <Switch
+                                checked={editMode}
+                                onChange={toggleEditMode}
+                                className={`${editMode ? 'bg-indigo-600' : 'bg-gray-700'} relative inline-flex h-5 w-10 items-center rounded-full transition-colors`}
+                            >
+                                <span className={`${editMode ? 'translate-x-6' : 'translate-x-1'} inline-block h-3 w-3 transform rounded-full bg-white transition-transform`} />
+                            </Switch>
+                        </div>
+
+                        {/* Layout Menu Dropdown */}
+                        {isLayoutMenuOpen && (
+                            <>
+                                <div className="fixed inset-0 z-40 cursor-default" onClick={() => setIsLayoutMenuOpen(false)} />
+                                <div className={`absolute top-full mt-2 w-72 bg-gray-900 border border-indigo-500/30 rounded-xl shadow-2xl z-[100] overflow-hidden flex flex-col animate-fade-in-down ${editMode ? 'left-1/2 -translate-x-1/2 origin-top' : 'right-0 origin-top-right'}`}>
+                                    <div className="p-2 border-b border-white/5 bg-gray-950/50">
+                                        <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-2 py-1">Presets</div>
+                                        {Object.keys(PRESETS).map(key => (
+                                            <button key={key} onClick={() => { handleLoadLayout(key); setIsLayoutMenuOpen(false); }} className="w-full text-left px-2 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg transition-colors active:bg-indigo-600/20">
+                                                {key}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <div className="p-2 flex-grow overflow-y-auto max-h-[300px] bg-gray-900">
+                                        <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-2 py-1 flex justify-between items-center">
+                                            <span>My Layouts</span>
                                         </div>
+                                        {Object.keys(savedLayouts).length === 0 ? (
+                                            <div className="px-2 py-2 text-xs text-gray-600 italic">No saved layouts</div>
+                                        ) : (
+                                            Object.keys(savedLayouts).map(key => (
+                                                <div key={key} className="flex items-center gap-1 group/item rounded-lg hover:bg-white/5 p-1 mb-1">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleLoadLayout(key);
+                                                            setIsLayoutMenuOpen(false);
+                                                        }}
+                                                        className="flex-grow text-left px-2 py-2 text-sm text-gray-300 group-hover/item:text-white truncate transition-colors font-medium active:text-indigo-400"
+                                                    >
+                                                        {key}
+                                                    </button>
 
-                                        <div className="p-2 flex-grow overflow-y-auto max-h-[300px] bg-gray-900">
-                                            <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-2 py-1 flex justify-between items-center">
-                                                <span>My Layouts</span>
-                                            </div>
-                                            {Object.keys(savedLayouts).length === 0 ? (
-                                                <div className="px-2 py-2 text-xs text-gray-600 italic">No saved layouts</div>
-                                            ) : (
-                                                Object.keys(savedLayouts).map(key => (
-                                                    <div key={key} className="flex items-center gap-1 group/item rounded-lg hover:bg-white/5 p-1 mb-0.5">
-                                                        <button onClick={() => { handleLoadLayout(key); setIsLayoutMenuOpen(false); }} className="flex-grow text-left px-1 text-sm text-gray-300 group-hover/item:text-white truncate transition-colors font-medium">
-                                                            {key}
+                                                    <div className="flex bg-gray-950/50 rounded-lg p-0.5 border border-white/5">
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); handleOverwriteLayout(key); }}
+                                                            className="p-2 text-gray-500 hover:text-green-400 hover:bg-white/5 rounded transition-all"
+                                                            title="Overwrite (Save Current over this)"
+                                                        >
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
                                                         </button>
-                                                        <button onClick={() => handleOverwriteLayout(key)} className="p-1.5 text-gray-600 hover:text-green-400 opacity-0 group-hover/item:opacity-100 transition-all rounded hover:bg-white/5" title="Overwrite with current">
-                                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
-                                                        </button>
-                                                        <button onClick={() => handleDeleteLayout(key)} className="p-1.5 text-gray-600 hover:text-red-400 opacity-0 group-hover/item:opacity-100 transition-all rounded hover:bg-white/5" title="Delete">
-                                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                        <div className="w-px bg-white/10 my-1" />
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); handleDeleteLayout(key); }}
+                                                            className="p-2 text-gray-500 hover:text-red-400 hover:bg-white/5 rounded transition-all"
+                                                            title="Delete Layout"
+                                                        >
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                                         </button>
                                                     </div>
-                                                ))
-                                            )}
-                                        </div>
-
-                                        <div className="p-2 border-t border-white/5 bg-gray-950/50 grid grid-cols-3 gap-2">
-                                            <button onClick={() => { handleImport(); setIsLayoutMenuOpen(false); }} className="p-2 rounded-lg bg-indigo-500/5 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 flex flex-col items-center gap-1 text-[10px] font-bold transition-all border border-indigo-500/10" title="Import">
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-                                                Import
-                                            </button>
-                                            <button onClick={() => { handleSaveAs(); setIsLayoutMenuOpen(false); }} className="p-2 rounded-lg bg-indigo-500/5 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 flex flex-col items-center gap-1 text-[10px] font-bold transition-all border border-indigo-500/10" title="Save As">
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                                                Save New
-                                            </button>
-                                            <button onClick={() => { handleShare(); setIsLayoutMenuOpen(false); }} className="p-2 rounded-lg bg-indigo-500/5 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 flex flex-col items-center gap-1 text-[10px] font-bold transition-all border border-indigo-500/10" title="Share (Copy Code)">
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
-                                                Share
-                                            </button>
-                                        </div>
+                                                </div>
+                                            ))
+                                        )}
                                     </div>
-                                </>
-                            )}
-                        </div>
-                        <div className="h-4 w-px bg-white/10 mx-1" />
-                        {editMode && (
-                            <div className="flex items-center gap-2 mr-2 border-r border-white/10 pr-4">
-                                <button
-                                    onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                                    className={`p-1.5 rounded border transition-all ${editMode && !isSidebarOpen
-                                        ? 'bg-indigo-600/20 text-indigo-400 border-indigo-500/50 animate-bounce shadow-lg shadow-indigo-500/20'
-                                        : 'hover:bg-indigo-600/20 text-indigo-400 hover:text-indigo-300 border-indigo-500/30'
-                                        }`}
-                                    title="Forge Library"
-                                >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
-                                </button>
-                            </div>
+
+                                    <div className="p-2 border-t border-white/5 bg-gray-950/50 grid grid-cols-3 gap-2">
+                                        <button onClick={() => { handleImport(); setIsLayoutMenuOpen(false); }} className="p-2 rounded-lg bg-indigo-500/5 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 flex flex-col items-center gap-1 text-[10px] font-bold transition-all border border-indigo-500/10" title="Import">
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                                            Import
+                                        </button>
+                                        <button onClick={() => { handleSaveAs(); setIsLayoutMenuOpen(false); }} className="p-2 rounded-lg bg-indigo-500/5 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 flex flex-col items-center gap-1 text-[10px] font-bold transition-all border border-indigo-500/10" title="Save As">
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                                            Save New
+                                        </button>
+                                        <button onClick={() => { handleShare(); setIsLayoutMenuOpen(false); }} className="p-2 rounded-lg bg-indigo-500/5 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 flex flex-col items-center gap-1 text-[10px] font-bold transition-all border border-indigo-500/10" title="Share (Copy Code)">
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                                            Share
+                                        </button>
+                                    </div>
+                                </div>
+                            </>
                         )}
-                        <span className={`text-xs font-bold uppercase tracking-wider ${editMode ? 'text-indigo-400' : 'text-gray-500'}`}>{editMode ? 'Done' : 'Customize'}</span>
-                        <Switch
-                            checked={editMode}
-                            onChange={toggleEditMode}
-                            className={`${editMode ? 'bg-indigo-600' : 'bg-gray-700'} relative inline-flex h-6 w-11 items-center rounded-full transition-colors`}
-                        >
-                            <span className={`${editMode ? 'translate-x-6' : 'translate-x-1'} inline-block h-4 w-4 transform rounded-full bg-white transition-transform`} />
-                        </Switch>
-                        {/* Invisible target for tour */}
-                        <div id="customize-toggle" className="absolute inset-0 pointer-events-none" />
                     </div>
                 </div>
 
@@ -935,7 +1060,7 @@ const Dashboard = () => {
                 message={`Are you sure you want to delete the layout "${deleteModalData.name}"? This cannot be undone.`}
                 targetName={deleteModalData.name}
             />
-        </div >
+        </div>
     );
 };
 

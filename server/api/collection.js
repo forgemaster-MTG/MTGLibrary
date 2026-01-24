@@ -72,7 +72,8 @@ router.get('/', async (req, res) => {
         let mixedMode = false;
 
         // Check request specific user or 'all'
-        if (req.query.userId && req.query.userId !== req.user.id) {
+        // Ensure type-safe comparison (req.query is string, req.user.id is int)
+        if (req.query.userId && String(req.query.userId) !== String(req.user.id)) {
 
             if (req.query.userId === 'all') {
                 mixedMode = true;
@@ -98,7 +99,14 @@ router.get('/', async (req, res) => {
                     .first();
 
                 if (!perm) {
-                    return res.status(403).json({ error: 'Access denied to this collection' });
+                    // Fallback: Check if user is public
+                    const targetUser = await knex('users').where({ id: req.query.userId }).first();
+                    // Check legacy column OR settings
+                    const isPublic = targetUser && (targetUser.is_public_library || targetUser.settings?.is_public_library);
+
+                    if (!isPublic) {
+                        return res.status(403).json({ error: 'Access denied to this collection' });
+                    }
                 }
             }
         }

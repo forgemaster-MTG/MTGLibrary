@@ -14,7 +14,7 @@ const updateSW = registerSW({
         }
     },
     onOfflineReady() {
-        console.log('App is ready for offline usage')
+        // console.log('App is ready for offline usage')
     },
 })
 

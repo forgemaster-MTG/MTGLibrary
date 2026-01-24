@@ -1,4 +1,5 @@
 import { api } from './api';
+import { achievementService } from './AchievementService';
 
 export const deckService = {
     /**
@@ -79,7 +80,25 @@ export const deckService = {
     },
 
     async createDeck(userId, data) {
-        return api.post('/api/decks', data);
+        const res = await api.post('/api/decks', data);
+
+        // Trigger Achievement (Lazy load service to avoid cyclic deps if necessary, 
+        // but imported at top level is usually fine for services)
+        // Note: DeckService is an object, not class, so importing achievementService is fine if no cycle.
+        // Assuming we import it at top.
+
+        try {
+            // We need to fetch current deck count or just increment?
+            // Service check() is stateless regarding *incrementing*. It needs `decks_created` TOTAL.
+            // Let's try to pass an increment signal if service supported it, but it supports absolute values.
+            // We'll read from achievementService metrics if available, else 1.
+            const current = achievementService?.metrics?.decks_created || 0;
+            achievementService?.check({ decks_created: current + 1 });
+        } catch (e) {
+            console.warn("Achievement trigger failed", e);
+        }
+
+        return res;
     },
 
     async updateDeck(userId, deckId, data) {

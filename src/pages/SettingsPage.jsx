@@ -67,7 +67,7 @@ const SettingsPage = () => {
             setUsername(userProfile.username || '');
             setFirstName(userProfile.first_name || '');
             setLastName(userProfile.last_name || '');
-            setIsPublic(userProfile.is_public_library || false);
+            setIsPublic(userProfile.is_public_library || userProfile.settings?.is_public_library || false);
             setBio(userProfile.data?.bio || '');
             setAvatar(userProfile.data?.avatar || '');
         }
@@ -97,6 +97,7 @@ const SettingsPage = () => {
         }
         setSaving(true);
         try {
+            // 1. Save Settings
             const currentSettings = userProfile?.settings || {};
             const newSettings = {
                 ...currentSettings,
@@ -107,8 +108,31 @@ const SettingsPage = () => {
             };
 
             await api.updateUser(userProfile.id, { settings: newSettings });
-            await refreshUserProfile(); // Reload profile to confirm
-            alert('Settings saved!');
+
+            // 2. Save Profile Fields (Bio, Avatar, Public Status, etc.)
+            // We reuse the updateProfileFields logic here manually or calling it if context allows.
+            // Since updateProfileFields just calls api.updateUser too, we can actually merge them into one content call?
+            // api.updateUser accepts { settings, ...rest }.
+            // BUT api.updateUser implementation might separate them? 
+            // In api.js: updateUser(id, data) -> put(`/users/${id}`, data).
+            // In users.js: put handler accepts { settings, data, email, etc. }.
+            // So we can send ONE request with everything.
+
+            await updateProfileFields({
+                username,
+                first_name: firstName,
+                last_name: lastName,
+                is_public_library: isPublic,
+                data: {
+                    ...(userProfile?.data || {}),
+                    bio,
+                    avatar
+                },
+                settings: newSettings // Include new settings here!
+            });
+
+            // await refreshUserProfile(); // updateProfileFields usually reloads profile.
+            alert('Settings & Profile saved!');
         } catch (error) {
             console.error('Failed to save settings:', error);
             alert('Error saving settings: ' + (error.message || 'Unknown error'));
@@ -268,15 +292,7 @@ const SettingsPage = () => {
                                     className="w-full bg-gray-900 border border-gray-700 p-2.5 rounded-lg text-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none"
                                 />
                             </div>
-                            <div className="flex justify-start">
-                                <button
-                                    onClick={handleUpdateProfile}
-                                    disabled={saving}
-                                    className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors text-sm font-medium disabled:opacity-50"
-                                >
-                                    Update Profile
-                                </button>
-                            </div>
+                            {/* Consolidated Save Button is at the bottom */}
 
                             {/* Public Profile Settings */}
                             <div className="pt-6 border-t border-gray-700 space-y-4">

@@ -99,8 +99,25 @@ export default function AuditHub() {
     const handleFinalize = () => {
         openStrictModal('finalize', async () => {
             try {
-                await api.finalizeAudit(session.id);
-                navigate('/dashboard');
+                // We need the stats for the report.
+                // If we don't have them in state (we should), we might need to fetch them one last time BEFORE finalizing?
+                // Actually, finalize might return the final report?
+                // The API definition says confirmAudit returns... let's check. 
+                // The api.js says it returns the response. content.
+
+                // For now, let's use the current 'stats' state we have in this component.
+                // We assume it's relatively fresh or we rely on what was last seen.
+
+                const res = await api.finalizeAudit(session.id);
+                // If backend returns the final report stats, use that. Else use our local stats.
+                const finalStats = res && res.stats ? res.stats : stats;
+
+                navigate('/audit/complete', {
+                    state: {
+                        session: session,
+                        stats: finalStats
+                    }
+                });
             } catch (err) {
                 console.error('Finalize failed', err);
                 alert('Finalize failed: ' + err.message);

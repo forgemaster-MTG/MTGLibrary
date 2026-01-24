@@ -23,8 +23,11 @@ import AboutPage from './pages/AboutPage';
 import PublicDeckPage from './pages/PublicDeckPage';
 import RemoteLensPage from './pages/RemoteLensPage';
 import AIStrategyPage from './pages/AIStrategyPage';
+import TheVault from './pages/TheVault';
 import AuditWizard from './components/Audit/AuditWizard';
 import AuditHub from './components/Audit/AuditHub';
+import AuditCompletion from './components/Audit/AuditCompletion';
+import AchievementToast from './components/common/AchievementToast';
 import Lobby from './pages/LiveSession/Lobby';
 import GameRoom from './pages/LiveSession/GameRoom';
 import SocialPage from './pages/SocialPage';
@@ -49,6 +52,7 @@ import ReferralTracker from './components/ReferralTracker';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 
 import OfflineNotifier from './components/OfflineNotifier';
+import AchievementMonitor from './components/common/AchievementMonitor';
 
 function App() {
     // Global Shortcuts
@@ -73,7 +77,9 @@ function App() {
         >
             <ToastProvider>
                 <OfflineNotifier />
+                <AchievementToast />
                 <AuthProvider>
+                    <AchievementMonitor />
                     <CardModalProvider>
                         <div className="bg-gray-900 text-gray-200 font-sans min-h-screen flex flex-col">
                             <ScrollToTop />
@@ -103,7 +109,9 @@ function App() {
                                         <Route path="/sets/:setCode" element={<SetDetailsPage />} />
                                         <Route path="/wishlist" element={<WishlistPage />} />
                                         <Route path="/settings/:tab?" element={<SettingsPage />} />
+                                        <Route path="/vault" element={<TheVault />} />
                                         <Route path="/audit" element={<AuditHub />} />
+                                        <Route path="/audit/complete" element={<AuditCompletion />} />
                                         <Route path="/audit/:id" element={<AuditHub />} />
                                         <Route path="/audit/:auditId/wizard" element={<AuditWizard />} />
                                         <Route path="/remote/:sessionId" element={<RemoteLensPage />} />
