@@ -9,8 +9,18 @@ import { achievementService } from '../../services/AchievementService';
  * to trigger "State-based" achievements (e.g. Total Value, Total Cards, Account Age).
  */
 const AchievementMonitor = () => {
-    const { userProfile } = useAuth();
+    const { userProfile, refreshUserProfile } = useAuth();
     const { cards } = useCollection();
+
+    useEffect(() => {
+        // Listen for sync events to refresh the profile immediately
+        const unsubsribeSync = achievementService.onSync(() => {
+            console.log('[AchievementMonitor] Achievement sync detected, refreshing profile...');
+            refreshUserProfile();
+        });
+
+        return () => unsubsribeSync();
+    }, [refreshUserProfile]);
 
     useEffect(() => {
         if (!userProfile) return;

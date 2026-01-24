@@ -31,7 +31,7 @@ export const AuthProvider = ({ children }) => {
             return await api.get('/api/users/me');
         },
         enabled: !!currentUser,
-        staleTime: 1000 * 60 * 5, // 5 minutes (balance between fresh data and offline support)
+        staleTime: 1000 * 10, // 10 seconds (Shortened for achievement consistency)
     });
 
     // Sign up

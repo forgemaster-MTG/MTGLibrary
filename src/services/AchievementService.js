@@ -49,22 +49,10 @@ class AchievementService {
         this.metrics = { ...this.metrics, ...savedStats };
     }
 
-    /**
-     * Check for new unlocks based on updated metrics
-     * @param {Object} updates - Partial update to metrics (e.g. { total_cards: 105 })
-     * @returns {Array} - List of newly unlocked achievement objects
-     */
-    /**
-     * Check for new unlocks based on updated metrics
-     * @param {Object} updates - Partial update to metrics (e.g. { total_cards: 105 })
-     * @returns {Array} - List of newly unlocked achievement objects
-     */
     check(updates) {
         // If we haven't loaded user data yet, don't trigger unlocks to avoid spamming "new" unlocks 
         // that are actually just existing ones we haven't fetched yet.
         if (!this.userId) {
-            // Store updates for later? Or just ignore until next check.
-            // For now, updating metrics is safe, but verifying unlocks is risky.
             this.metrics = { ...this.metrics, ...updates };
             return [];
         }
@@ -84,23 +72,13 @@ class AchievementService {
                 this.unlockedIds.add(ach.id);
                 newUnlocks.push(ach);
 
-                // Notify listeners
+                // Notify listeners for UI Toasts
                 this.listeners.forEach(cb => cb(ach));
             }
         });
 
-        // If we have new unlocks, we should persist them to the backend
-        // We also sync stats if we had updates, regardless of unlocks, to keep progress saved.
-        // But to avoid hammering DB, maybe only sync if unlocks happen OR significant stat change?
-        // User asked to reduce load ("Running ALOT"). 
-        // Let's only sync if there are NEW unlocks. 
-        // Stats can be synced periodically or on major events (audit finish).
         if (newUnlocks.length > 0) {
             this.syncUnlocks(newUnlocks.map(u => u.id), updates);
-        } else if (updates && Object.keys(updates).length > 0) {
-            // Optional: Debounce stat updates? For now, we'll SKIP pure stat updates here to avoid spam.
-            // Stats will save when actual achievements trigger OR when explicit save is called (e.g. at end of audit).
-            // This huge optimization prevents "Running ALOT".
         }
 
         return newUnlocks;
@@ -130,6 +108,17 @@ class AchievementService {
     }
 
     /**
+     * Subscribe to sync events (for query invalidation)
+     */
+    onSync(callback) {
+        if (!this.syncListeners) this.syncListeners = [];
+        this.syncListeners.push(callback);
+        return () => {
+            this.syncListeners = this.syncListeners.filter(cb => cb !== callback);
+        };
+    }
+
+    /**
      * Persist unlocks to backend
      */
     async syncUnlocks(newIds, statsUpdates = {}) {
@@ -147,11 +136,17 @@ class AchievementService {
                 stats: statsUpdates // We send the partial updates to be merged server-side
             });
 
+            // Notify sync listeners so they can refresh profiles
+            if (this.syncListeners) {
+                this.syncListeners.forEach(cb => cb());
+            }
+
         } catch (err) {
             console.error('Failed to sync achievements', err);
         }
     }
 
+    // Calls new atomic endpoint
     /**
      * RESET achievements (Admin/Debug)
      */
