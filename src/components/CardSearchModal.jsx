@@ -195,7 +195,7 @@ const CardSearchModal = ({ isOpen, onClose, onAddCard, onOpenForgeLens }) => {
         setRarities(prev => prev.includes(r) ? prev.filter(x => x !== r) : [...prev, r]);
     };
 
-    const handleUpdateCount = async (card, type, delta) => {
+    const handleUpdateCount = async (card, type, delta, absolute = null) => {
         if (!currentUser) return addToast("Please log in", "error");
         try {
             const scryfallId = card.id;
@@ -203,38 +203,37 @@ const CardSearchModal = ({ isOpen, onClose, onAddCard, onOpenForgeLens }) => {
             const finish = type === 'foil' ? 'foil' : 'nonfoil';
             const existing = userCopies.find(c => c.finish === finish && !c.deck_id && !c.is_wishlist);
 
-            if (delta > 0) {
-                if (existing) {
-                    await collectionService.updateCard(existing.id, { count: existing.count + 1 });
-                    addToast(`Added ${finish} ${card.name}`, 'success');
-                    // For update, we might want to notify properly too, but "Undo Add" acts on New Card.
-                    // "Undo Update" is harder. 
-                    // Let's focus on New Card for now, or assume existing update is just refresh.
-                } else {
-                    const res = await collectionService.addCardToCollection(currentUser.uid, card, 1, finish, false, targetUserId);
-                    addToast(`Added new ${finish} ${card.name}`, 'success');
-
-                    if (onAddCard && res && res.id) {
-                        const addedCard = {
-                            ...card,
-                            firestoreId: res.id,
-                            id: card.id, // Scryfall ID
-                            finish: finish,
-                            count: 1,
-                            is_wishlist: false
-                        };
-                        onAddCard(addedCard);
-                    }
-                }
+            let newCount;
+            if (absolute !== null) {
+                newCount = Math.max(0, parseInt(absolute));
             } else {
-                if (existing) {
-                    if (existing.count > 1) {
-                        await collectionService.updateCard(existing.id, { count: existing.count - 1 });
-                        addToast(`Removed ${finish} ${card.name}`, 'info');
-                    } else {
-                        await collectionService.removeCard(existing.id);
-                        addToast(`Removed last ${finish} ${card.name}`, 'info');
-                    }
+                newCount = Math.max(0, (existing ? existing.count : 0) + delta);
+            }
+
+            if (existing) {
+                if (newCount > 0) {
+                    await collectionService.updateCard(existing.id, { count: newCount });
+                    const msg = absolute !== null ? `Updated ${finish} ${card.name} count to ${newCount}` : `Added ${finish} ${card.name}`;
+                    if (absolute !== null || delta > 0) addToast(msg, 'success');
+                    else addToast(`Removed ${finish} ${card.name}`, 'info');
+                } else {
+                    await collectionService.removeCard(existing.id);
+                    addToast(`Removed ${finish} ${card.name}`, 'info');
+                }
+            } else if (newCount > 0) {
+                const res = await collectionService.addCardToCollection(currentUser.uid, card, newCount, finish, false, targetUserId);
+                addToast(`Added ${newCount} ${finish} ${card.name}`, 'success');
+
+                if (onAddCard && res && res.id) {
+                    const addedCard = {
+                        ...card,
+                        firestoreId: res.id,
+                        id: card.id, // Scryfall ID
+                        finish: finish,
+                        count: newCount,
+                        is_wishlist: false
+                    };
+                    onAddCard(addedCard);
                 }
             }
             refresh();
@@ -244,31 +243,32 @@ const CardSearchModal = ({ isOpen, onClose, onAddCard, onOpenForgeLens }) => {
         }
     };
 
-    const handleUpdateWishlistCount = async (card, delta) => {
+    const handleUpdateWishlistCount = async (card, delta, absolute = null) => {
         if (!currentUser) return addToast("Please log in", "error");
         try {
             const scryfallId = card.id;
             const userCopies = collectionMap.get(scryfallId) || [];
             const existing = userCopies.find(c => c.is_wishlist && !c.deck_id);
 
-            if (delta > 0) {
-                if (existing) {
-                    await collectionService.updateCard(existing.id, { count: existing.count + 1 });
-                    addToast(`Increased ${card.name} in wishlist`, 'success');
-                } else {
-                    await collectionService.addCardToCollection(currentUser.uid, card, 1, 'nonfoil', true, targetUserId);
-                    addToast(`Added ${card.name} to wishlist`, 'success');
-                }
+            let newCount;
+            if (absolute !== null) {
+                newCount = Math.max(0, parseInt(absolute));
             } else {
-                if (existing) {
-                    if (existing.count > 1) {
-                        await collectionService.updateCard(existing.id, { count: existing.count - 1 });
-                        addToast(`Decreased ${card.name} in wishlist`, 'info');
-                    } else {
-                        await collectionService.removeCard(existing.id);
-                        addToast(`Removed ${card.name} from wishlist`, 'info');
-                    }
+                newCount = Math.max(0, (existing ? existing.count : 0) + delta);
+            }
+
+            if (existing) {
+                if (newCount > 0) {
+                    await collectionService.updateCard(existing.id, { count: newCount });
+                    if (absolute !== null || delta > 0) addToast(`Updated wishlist count for ${card.name}`, 'success');
+                    else addToast(`Decreased ${card.name} in wishlist`, 'info');
+                } else {
+                    await collectionService.removeCard(existing.id);
+                    addToast(`Removed ${card.name} from wishlist`, 'info');
                 }
+            } else if (newCount > 0) {
+                await collectionService.addCardToCollection(currentUser.uid, card, newCount, 'nonfoil', true, targetUserId);
+                addToast(`Added ${newCount} ${card.name} to wishlist`, 'success');
             }
             refresh();
         } catch (err) {

@@ -402,6 +402,19 @@ router.post('/batch', batchLimitCheck, async (req, res) => {
 
         await knex.transaction(async (trx) => {
             console.log(`[collection] TRACE: userId ${userId} starting batch import mode=${mode}`);
+
+            // Handle Target User (Permissions Check)
+            if (req.body.targetUserId && req.body.targetUserId !== req.user.id) {
+                const targetId = req.body.targetUserId;
+                const perm = await trx('collection_permissions')
+                    .where({ owner_id: targetId, grantee_id: req.user.id })
+                    .whereNull('target_deck_id')
+                    .whereIn('permission_level', ['contributor', 'editor', 'admin'])
+                    .first();
+
+                if (!perm) throw new Error('Permission denied for target collection');
+                userId = targetId; // SWITCH CONTEXT to target user
+            }
             console.log(`[collection] TRACE: decks type is ${typeof decks}, isArray=${Array.isArray(decks)}, length=${decks?.length}`);
 
             // 1. If Replace, wipe existing collection

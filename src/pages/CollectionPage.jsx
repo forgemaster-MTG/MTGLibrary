@@ -1443,7 +1443,9 @@ w - 8 h - 8 rounded - full border flex items - center justify - center transitio
             <ForgeLensModal
                 isOpen={isForgeLensOpen}
                 onClose={() => setIsForgeLensOpen(false)}
-                onFinish={async (scannedBatch) => {
+                decks={decks}
+                sharedSources={sharedSources}
+                onFinish={async (scannedBatch, destination) => {
                     if (!scannedBatch.length) return;
                     try {
                         const payload = scannedBatch.map(item => ({
@@ -1453,13 +1455,28 @@ w - 8 h - 8 rounded - full border flex items - center justify - center transitio
                             collector_number: item.collector_number,
                             image_uri: item.data.image_uris?.normal || item.data.card_faces?.[0]?.image_uris?.normal,
                             count: item.quantity,
+                            finish: item.finish,
                             data: item.data,
                             is_wishlist: item.is_wishlist,
-                            tags: [] // Pass as array, backend handles stringification
+                            tags: []
                         }));
 
-                        await api.batchAddToCollection(payload);
-                        addToast(`Successfully added ${scannedBatch.length} cards to collection!`, 'success');
+                        const totalValue = scannedBatch.reduce((sum, item) => {
+                            const price = item.finish === 'foil' ? (item.data?.prices?.usd_foil || item.data?.prices?.usd) : item.data?.prices?.usd;
+                            return sum + (parseFloat(price || 0) * item.quantity);
+                        }, 0);
+
+                        if (destination?.type === 'deck') {
+                            await api.batchAddCardsToDeck(destination.id, payload);
+                            addToast(`Addeed ${scannedBatch.length} cards to deck ($${totalValue.toFixed(2)})`, 'success');
+                        } else if (destination?.type === 'user' && destination.id !== userProfile.id) {
+                            await api.batchAddToCollection(payload, 'merge', destination.id);
+                            addToast(`Added ${scannedBatch.length} cards to ${destination.name}'s collection ($${totalValue.toFixed(2)})`, 'success');
+                        } else {
+                            await api.batchAddToCollection(payload);
+                            addToast(`Added ${scannedBatch.length} cards to collection ($${totalValue.toFixed(2)})`, 'success');
+                        }
+
                         refresh();
                     } catch (err) {
                         console.error("Forge Lens Add Failed", err);

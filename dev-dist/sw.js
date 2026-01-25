@@ -82,7 +82,7 @@ define(['./workbox-30a642a8'], (function (workbox) { 'use strict';
     "revision": "d41d8cd98f00b204e9800998ecf8427e"
   }, {
     "url": "/index.html",
-    "revision": "0.n9f39rimsao"
+    "revision": "0.fen3u6r8vj8"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("/index.html"), {
@@ -98,7 +98,7 @@ define(['./workbox-30a642a8'], (function (workbox) { 'use strict';
       maxAgeSeconds: 2592000
     })]
   }), 'GET');
-  workbox.registerRoute(/^https:\/\/(cards\.scryfall\.io|firebasestorage\.googleapis\.com|.*\.googleusercontent\.com|placehold\.co)/, new workbox.StaleWhileRevalidate({
+  workbox.registerRoute(/^https:\/\/(cards\.scryfall\.io|svgs\.scryfall\.io|firebasestorage\.googleapis\.com|.*\.googleusercontent\.com|placehold\.co)/, new workbox.StaleWhileRevalidate({
     "cacheName": "external-images-cache-v4",
     plugins: [new workbox.ExpirationPlugin({
       maxEntries: 20000,

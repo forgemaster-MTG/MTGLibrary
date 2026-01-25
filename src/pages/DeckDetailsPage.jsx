@@ -1511,6 +1511,7 @@ const DeckDetailsPage = () => {
                     onClose={() => setIsAddCollectionOpen(false)}
                     deck={deck}
                     deckCards={deckCards}
+                    onCardAdded={() => refreshDeck()} // FIX: Live update on add
                 />
                 {/* Stats Modal */}
                 <DeckStatsModal

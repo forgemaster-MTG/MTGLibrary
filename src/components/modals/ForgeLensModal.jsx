@@ -44,7 +44,7 @@ const ConsoleBridge = () => {
     );
 };
 
-const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
+const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection', decks = [], sharedSources = [] }) => {
     const { addToast } = useToast();
     const { userProfile } = useAuth();
     const tierConfig = getTierConfig(userProfile?.subscription_tier);
@@ -64,6 +64,8 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
     // Scanned Data
     const [scannedCards, setScannedCards] = useState([]);
     const [lastDetection, setLastDetection] = useState(null);
+    const [isFoil, setIsFoil] = useState(false);
+    const [destination, setDestination] = useState({ type: 'collection', id: 'me', name: 'My Collection' });
 
     // Remote Mode State
     const [isRemoteMode, setIsRemoteMode] = useState(false);
@@ -197,7 +199,7 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
             set_code: data.set || data.setcode,
             collector_number: data.collector_number || data.number,
             image: data.image_uri || data.image_uris?.small || data.card_faces?.[0]?.image_uris?.small,
-            finish: 'nonfoil',
+            finish: isFoil ? 'foil' : 'nonfoil',
             quantity: 1,
             data: data,
             variants: variants,
@@ -207,7 +209,9 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
 
         // Feature Gate: If batchScan is disabled, only keep the latest card
         setScannedCards(prev => tierConfig.features.batchScan ? [...prev, newCard] : [newCard]);
-        setLastDetection({ success: true, name: data.name });
+
+        const price = data.prices?.usd || 0;
+        setLastDetection({ success: true, name: data.name, price });
     }, [tierConfig.features.batchScan]);
 
     const processRegions = async (image) => {
@@ -435,7 +439,7 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
     };
 
     const handleConfirmAll = () => {
-        if (onFinish) onFinish(scannedCards);
+        if (onFinish) onFinish(scannedCards, destination);
         onClose();
     };
 
@@ -548,33 +552,33 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
                                 {/* Overlays */}
                                 <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center">
                                     {/* Region Guides */}
-                                    <div className="w-[85%] h-[90%] border-2 border-white/10 rounded-2xl relative">
+                                    <div className="w-[90%] h-[20%] border-2 border-indigo-500/50 bg-indigo-500/5 rounded-xl relative shadow-[0_0_100px_rgba(99,102,241,0.1)]">
                                         {/* Corner Brackets */}
-                                        <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-indigo-500 rounded-tl-xl" />
-                                        <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-indigo-500 rounded-tr-xl" />
-                                        <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-indigo-500 rounded-bl-xl" />
-                                        <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-indigo-500 rounded-br-xl" />
+                                        <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-indigo-400 rounded-tl-lg" />
+                                        <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-indigo-400 rounded-tr-lg" />
+                                        <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-indigo-400 rounded-bl-lg" />
+                                        <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-indigo-400 rounded-br-lg" />
 
                                         {/* Status Text Bar */}
-                                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-3/4 text-center">
+                                        <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 w-full text-center whitespace-nowrap">
                                             {!isWorkerReady ? (
-                                                <div className="bg-black/80 text-white text-[10px] px-3 py-1 rounded-full border border-white/10 flex items-center gap-2">
+                                                <div className="bg-black/80 text-white text-[10px] px-3 py-1 rounded-full border border-white/10 flex items-center gap-2 mx-auto w-fit">
                                                     <RefreshCw className="w-3 h-3 animate-spin" /> Wake up AI engine...
                                                 </div>
                                             ) : isProcessing ? (
-                                                <div className="bg-indigo-600 text-white text-[10px] px-4 py-1.5 rounded-full shadow-lg animate-pulse uppercase font-black">
+                                                <div className="bg-indigo-600 text-white text-[10px] px-4 py-1.5 rounded-full shadow-lg animate-pulse uppercase font-black mx-auto w-fit">
                                                     Analyzing Image...
                                                 </div>
                                             ) : lastDetection?.success ? (
-                                                <div className="bg-green-600 text-white text-[10px] px-4 py-1.5 rounded-full shadow-lg uppercase font-black flex items-center gap-2">
-                                                    <Check className="w-3 h-3" /> Found: {lastDetection.name}
+                                                <div className="bg-green-600 text-white text-[10px] px-4 py-1.5 rounded-full shadow-lg uppercase font-black flex items-center gap-2 mx-auto w-fit">
+                                                    <Check className="w-3 h-3" /> Found: {lastDetection.name} {lastDetection.price ? `($${lastDetection.price})` : ''}
                                                 </div>
                                             ) : lastDetection?.error ? (
-                                                <div className="bg-red-600 text-white text-[10px] px-4 py-1.5 rounded-full shadow-lg uppercase font-black">
+                                                <div className="bg-red-600 text-white text-[10px] px-4 py-1.5 rounded-full shadow-lg uppercase font-black mx-auto w-fit">
                                                     {lastDetection.error}
                                                 </div>
                                             ) : (
-                                                <p className="text-white/60 text-[10px] px-3 py-1 bg-black/40 rounded-full backdrop-blur-sm">Align Set Code & Number</p>
+                                                <p className="text-white/80 text-[10px] px-3 py-1 bg-black/60 rounded-full backdrop-blur-sm mx-auto w-fit border border-white/10 uppercase tracking-wider font-bold">Align Set & Number Here</p>
                                             )}
                                         </div>
                                     </div>
@@ -606,14 +610,25 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
                                         )}
                                     </div>
                                 ) : (
-                                    <button
-                                        onClick={captureAndProcess}
-                                        disabled={isProcessing || !isWorkerReady}
-                                        className="w-20 h-20 bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-full flex items-center justify-center shadow-2xl shadow-indigo-500/30 transition-all active:scale-90 relative group ring-4 ring-white/5"
-                                    >
-                                        {isProcessing ? <RefreshCw className="w-8 h-8 animate-spin" /> : <Camera className="w-8 h-8" />}
-                                        <span className="absolute -bottom-10 whitespace-nowrap text-[10px] font-black uppercase tracking-widest text-gray-500 group-hover:text-indigo-400 transition-colors">Capture Card</span>
-                                    </button>
+                                    <>
+                                        <button
+                                            onClick={() => setIsFoil(!isFoil)}
+                                            className={`w-14 h-14 rounded-2xl flex flex-col items-center justify-center border transition-all active:scale-95 ${isFoil ? 'bg-gradient-to-br from-yellow-400/20 to-orange-500/20 border-yellow-500/50 text-yellow-400 shadow-[0_0_15px_rgba(234,179,8,0.3)]' : 'bg-gray-800 border-white/5 text-gray-500 hover:text-white'}`}
+                                            title="Toggle Foil Mode"
+                                        >
+                                            <div className={`text-xl mb-1 ${isFoil ? 'animate-pulse' : ''}`}>✨</div>
+                                            <span className="text-[9px] font-black uppercase tracking-wider">{isFoil ? 'Foil' : 'Normal'}</span>
+                                        </button>
+
+                                        <button
+                                            onClick={captureAndProcess}
+                                            disabled={isProcessing || !isWorkerReady}
+                                            className="w-20 h-20 bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-full flex items-center justify-center shadow-2xl shadow-indigo-500/30 transition-all active:scale-90 relative group ring-4 ring-white/5"
+                                        >
+                                            {isProcessing ? <RefreshCw className="w-8 h-8 animate-spin" /> : <Camera className="w-8 h-8" />}
+                                            <span className="absolute -bottom-10 whitespace-nowrap text-[10px] font-black uppercase tracking-widest text-gray-500 group-hover:text-indigo-400 transition-colors">Capture Card</span>
+                                        </button>
+                                    </>
                                 )}
 
                                 {isDebugMode && debugPreviews.footer && (
@@ -779,9 +794,48 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection' }) => {
 
                 {/* Footer */}
                 <div className="p-6 border-t border-white/5 bg-gray-900/80 flex justify-between items-center">
-                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em]">
-                        {scannedCards.length} Cards in Batch
-                    </p>
+                    <div className="flex flex-col gap-1">
+                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em]">
+                            {scannedCards.length} Cards in Batch
+                        </p>
+                        {scannedCards.length > 0 && (
+                            <div className="relative">
+                                <select
+                                    value={destination.type === 'deck' ? `deck-${destination.id}` : destination.type === 'user' ? `user-${destination.id}` : 'collection'}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val === 'collection') {
+                                            setDestination({ type: 'collection', id: 'me', name: 'My Collection' });
+                                        } else if (val.startsWith('deck-')) {
+                                            const dId = val.replace('deck-', '');
+                                            const d = decks.find(dk => dk.id === dId);
+                                            setDestination({ type: 'deck', id: dId, name: d?.name || 'Deck' });
+                                        } else if (val.startsWith('user-')) {
+                                            const uId = val.replace('user-', '');
+                                            const u = sharedSources.find(us => us.id === uId);
+                                            setDestination({ type: 'user', id: uId, name: u?.name || 'Friend' });
+                                        }
+                                    }}
+                                    className="bg-gray-800 text-indigo-400 text-xs font-bold py-1 pl-2 pr-6 rounded border border-gray-700 focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer hover:bg-gray-700 transition-colors max-w-[150px] truncate"
+                                >
+                                    <option value="collection">My Collection</option>
+                                    <optgroup label="My Decks">
+                                        {decks.map(d => (
+                                            <option key={d.id} value={`deck-${d.id}`}>{d.name}</option>
+                                        ))}
+                                    </optgroup>
+                                    {sharedSources.length > 0 && (
+                                        <optgroup label="Linked Accounts">
+                                            {sharedSources.map(s => (
+                                                <option key={s.id} value={`user-${s.id}`}>{s.name}'s Collection</option>
+                                            ))}
+                                        </optgroup>
+                                    )}
+                                </select>
+                                <ChevronDown className="w-3 h-3 text-gray-500 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                            </div>
+                        )}
+                    </div>
 
                     <div className="flex gap-2">
                         {scannedCards.length > 0 && view === 'scanning' && (

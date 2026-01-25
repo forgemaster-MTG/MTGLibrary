@@ -103,7 +103,7 @@ export const api = {
     post: (endpoint, body) => request('POST', endpoint, body),
     put: (endpoint, body) => request('PUT', endpoint, body),
     delete: (endpoint, body) => request('DELETE', endpoint, body),
-    batchAddToCollection: (cards, mode = 'merge') => request('POST', '/api/collection/batch', { cards, mode }),
+    batchAddToCollection: (cards, mode = 'merge', targetUserId = null) => request('POST', '/api/collection/batch', { cards, mode, targetUserId }),
     batchDeleteCollection: (ids) => request('DELETE', '/api/collection/batch', { ids }),
     batchAddCardsToDeck: (deckId, cards) => request('POST', `/api/decks/${deckId}/cards/batch`, { cards }),
     getBugs: () => request('GET', '/bugs').then(res => res.content),

@@ -1,6 +1,66 @@
 import React, { useState } from 'react';
 import { useCardModal } from '../../contexts/CardModalContext';
 
+// Internal component for editable count
+const DebouncedCountControl = ({ value, label, labelColor, textColor, onChange }) => {
+    const [localValue, setLocalValue] = useState(value);
+
+    // Sync external changes (unless we are just about to save? acceptable race condition for simplicity)
+    React.useEffect(() => {
+        setLocalValue(value);
+    }, [value]);
+
+    // Debounce save
+    React.useEffect(() => {
+        const timer = setTimeout(() => {
+            if (localValue !== value) {
+                onChange(localValue);
+            }
+        }, 3000); // 3 seconds as requested
+        return () => clearTimeout(timer);
+    }, [localValue, value, onChange]);
+
+    const handleChange = (newVal) => {
+        if (newVal < 0) newVal = 0;
+        setLocalValue(newVal);
+    };
+
+    return (
+        <div className="flex flex-col items-center flex-1 justify-center relative hover:bg-white/5 transition-colors group/sec">
+            <button
+                onClick={(e) => { e.stopPropagation(); handleChange(localValue + 1); }}
+                className="p-1.5 text-gray-500 hover:text-white transition-all transform hover:scale-125 focus:outline-none"
+            >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 15l7-7 7 7" /></svg>
+            </button>
+            <div className="flex flex-col items-center w-full px-2">
+                <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={localValue === 0 ? '' : localValue}
+                    placeholder="0"
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '') setLocalValue(0);
+                        else if (/^\d+$/.test(val)) setLocalValue(parseInt(val, 10));
+                    }}
+                    className={`w-full bg-transparent text-center text-lg font-black ${textColor} placeholder-gray-700 outline-none tabular-nums drop-shadow-[0_2px_4px_rgba(0,0,0,1)] focus:scale-110 transition-transform`}
+                />
+                <span className={`text-[8px] font-black uppercase ${labelColor} tracking-[0.2em] -mt-1 pointer-events-none`}>{label}</span>
+            </div>
+            <button
+                onClick={(e) => { e.stopPropagation(); handleChange(localValue - 1); }}
+                className="p-1.5 text-gray-500 hover:text-white transition-all transform hover:scale-125 disabled:opacity-0 focus:outline-none"
+                disabled={localValue <= 0}
+            >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M19 9l-7 7-7-7" /></svg>
+            </button>
+        </div>
+    );
+};
+
 const InteractiveCard = ({ card, normalCount = 0, foilCount = 0, wishlistCount = 0, onUpdateCount, onUpdateWishlistCount, ownerName, currentUser, showOwnerTag = false }) => {
     const { openCardModal } = useCardModal();
     const [isFlipped, setIsFlipped] = useState(false);
@@ -27,24 +87,11 @@ const InteractiveCard = ({ card, normalCount = 0, foilCount = 0, wishlistCount =
         openCardModal(card);
     };
 
-    const handleUpdate = (e, type, delta) => {
-        e.stopPropagation();
-        if (onUpdateCount) {
-            onUpdateCount(card, type, delta);
-        }
-    };
-
     const isOwned = (normalCount + foilCount) > 0;
     const isMissingWishlist = !isOwned && wishlistCount > 0;
 
-    // Choose the price mostly likely to be relevant for a single display if needed, 
-    // but we use the dual display below.
-    const price = card.finish === 'foil' ? (card.prices?.usd_foil || card.prices?.usd) : (card.prices?.usd || card.prices?.usd_foil) || '---';
-
     return (
         <div className={`group relative flex bg-gray-900/60 backdrop-blur-md rounded-xl overflow-hidden shadow-2xl border transition-all duration-300 hover:shadow-[0_0_30px_rgba(79,70,229,0.15)] aspect-[3.2/3.5] perspective-1000 ${isOwned ? 'border-indigo-500/30' : 'border-white/5 grayscale-[0.8] opacity-70 hover:grayscale-0 hover:opacity-100'}`}>
-            {/* Aspect ratio [3.2/3.5] means Image (2.5) + Controls (0.7) = 3.2 Width, 3.5 Height.
-                This ensures the image side is a perfect 2.5/3.5 MTG ratio. */}
 
             {/* Left Side: Card Image (Perfect 2.5:3.5 Ratio) */}
             <div
@@ -60,7 +107,6 @@ const InteractiveCard = ({ card, normalCount = 0, foilCount = 0, wishlistCount =
                             className="w-full h-full object-cover"
                             loading="lazy"
                         />
-                        {/* Hover Glow Effect */}
                         <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-gradient-to-t from-indigo-500/20 to-transparent transition-opacity duration-500" />
                     </div>
 
@@ -76,7 +122,7 @@ const InteractiveCard = ({ card, normalCount = 0, foilCount = 0, wishlistCount =
                     )}
                 </div>
 
-                {/* Flip Button - Top Left (Always Available) */}
+                {/* Flip Button */}
                 {hasBackFace && (
                     <button
                         onClick={(e) => { e.stopPropagation(); setIsFlipped(!isFlipped); }}
@@ -87,7 +133,7 @@ const InteractiveCard = ({ card, normalCount = 0, foilCount = 0, wishlistCount =
                     </button>
                 )}
 
-                {/* Wishlist Badge - Top Left (Offset if flip button is present) */}
+                {/* Wishlist Badge */}
                 {isMissingWishlist && (
                     <div className={`absolute top-2 ${hasBackFace ? 'left-12' : 'left-2'} z-20 bg-orange-500 text-white p-1 rounded-md shadow-lg animate-pulse`}>
                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -96,14 +142,14 @@ const InteractiveCard = ({ card, normalCount = 0, foilCount = 0, wishlistCount =
                     </div>
                 )}
 
-                {/* Owner Tag (Left side, moved down to avoid name) */}
+                {/* Owner Tag */}
                 {showOwnerTag && resolvedOwnerName && isOwned && (
                     <div className={`absolute ${hasBackFace || isMissingWishlist ? 'top-16' : 'top-12'} left-2 bg-gray-950/90 text-white text-[11px] font-black px-2 py-0.5 rounded border border-white/20 shadow-xl z-30 backdrop-blur-md uppercase tracking-wider`}>
                         👤 {resolvedOwnerName}
                     </div>
                 )}
 
-                {/* Price Display - Bottom Center */}
+                {/* Price Display */}
                 <div className="absolute bottom-2 right-2 left-2 z-10">
                     <div className="bg-black/70 backdrop-blur-md px-2 py-1 rounded-lg border border-white/10 flex items-center justify-around text-[10px] font-mono">
                         <span className="text-gray-400">${(parseFloat(card.prices?.usd) || 0).toFixed(2)}</span>
@@ -115,74 +161,38 @@ const InteractiveCard = ({ card, normalCount = 0, foilCount = 0, wishlistCount =
 
             {/* Right Side: Integrated Controls Panel */}
             <div className="flex-1 bg-black/40 flex flex-col justify-between py-1 border-l border-white/5 relative">
-                {/* Each section is high-density */}
 
                 {/* Normal Section */}
-                <div className="flex flex-col items-center flex-1 justify-center relative hover:bg-white/5 transition-colors group/sec">
-                    <button
-                        onClick={(e) => handleUpdate(e, 'normal', 1)}
-                        className="p-1.5 text-gray-500 hover:text-white transition-all transform hover:scale-125"
-                    >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 15l7-7 7 7" /></svg>
-                    </button>
-                    <div className="flex flex-col items-center">
-                        <span className="text-lg font-black text-white tabular-nums drop-shadow-[0_2px_4px_rgba(0,0,0,1)]">{normalCount}</span>
-                        <span className="text-[8px] font-black uppercase text-gray-600 tracking-[0.2em] -mt-1">Normal</span>
-                    </div>
-                    <button
-                        onClick={(e) => handleUpdate(e, 'normal', -1)}
-                        className="p-1.5 text-gray-500 hover:text-white transition-all transform hover:scale-125 disabled:opacity-0"
-                        disabled={normalCount <= 0}
-                    >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M19 9l-7 7-7-7" /></svg>
-                    </button>
-                </div>
+                <DebouncedCountControl
+                    value={normalCount}
+                    label="Normal"
+                    labelColor="text-gray-600"
+                    textColor="text-white"
+                    onChange={(val) => onUpdateCount && onUpdateCount(card, 'normal', 0, val)}
+                />
 
                 <div className="h-[1px] bg-white/5 mx-2" />
 
                 {/* Foil Section */}
-                <div className="flex flex-col items-center flex-1 justify-center relative hover:bg-indigo-500/5 transition-colors group/sec">
-                    <button
-                        onClick={(e) => handleUpdate(e, 'foil', 1)}
-                        className="p-1.5 text-indigo-400/60 hover:text-indigo-300 transition-all transform hover:scale-125"
-                    >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 15l7-7 7 7" /></svg>
-                    </button>
-                    <div className="flex flex-col items-center">
-                        <span className="text-lg font-black text-indigo-400 tabular-nums drop-shadow-[0_2px_4px_rgba(0,0,0,1)]">{foilCount}</span>
-                        <span className="text-[8px] font-black uppercase text-indigo-600 tracking-[0.2em] -mt-1">Foil</span>
-                    </div>
-                    <button
-                        onClick={(e) => handleUpdate(e, 'foil', -1)}
-                        className="p-1.5 text-indigo-400/60 hover:text-indigo-300 transition-all transform hover:scale-125 disabled:opacity-0"
-                        disabled={foilCount <= 0}
-                    >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M19 9l-7 7-7-7" /></svg>
-                    </button>
-                </div>
+                <DebouncedCountControl
+                    value={foilCount}
+                    label="Foil"
+                    labelColor="text-indigo-600"
+                    textColor="text-indigo-400"
+                    onChange={(val) => onUpdateCount && onUpdateCount(card, 'foil', 0, val)}
+                />
 
                 <div className="h-[1px] bg-white/5 mx-2" />
 
                 {/* Wishlist Section */}
-                <div className="flex flex-col items-center flex-1 justify-center relative hover:bg-orange-500/5 transition-colors group/sec">
-                    <button
-                        onClick={(e) => { e.stopPropagation(); if (onUpdateWishlistCount) onUpdateWishlistCount(card, 1); }}
-                        className="p-1.5 text-orange-400/60 hover:text-orange-300 transition-all transform hover:scale-125"
-                    >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 15l7-7 7 7" /></svg>
-                    </button>
-                    <div className="flex flex-col items-center">
-                        <span className="text-lg font-black text-orange-400 tabular-nums drop-shadow-[0_2px_4px_rgba(0,0,0,1)]">{wishlistCount}</span>
-                        <span className="text-[8px] font-black uppercase text-orange-600 tracking-[0.2em] -mt-1">Wish</span>
-                    </div>
-                    <button
-                        onClick={(e) => { e.stopPropagation(); if (onUpdateWishlistCount) onUpdateWishlistCount(card, -1); }}
-                        className="p-1.5 text-orange-400/60 hover:text-orange-300 transition-all transform hover:scale-125 disabled:opacity-0"
-                        disabled={wishlistCount <= 0}
-                    >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M19 9l-7 7-7-7" /></svg>
-                    </button>
-                </div>
+                <DebouncedCountControl
+                    value={wishlistCount}
+                    label="Wish"
+                    labelColor="text-orange-600"
+                    textColor="text-orange-400"
+                    onChange={(val) => onUpdateWishlistCount && onUpdateWishlistCount(card, 0, val)}
+                />
+
             </div>
         </div>
     );

@@ -482,13 +482,8 @@ router.post('/:id/finalize', authMiddleware, async (req, res) => {
                             deck_id: targetDeckId,
                             count: toAdd,
                             scryfall_id: meta.id,
-                            mana_cost: meta.data?.mana_cost,
-                            cmc: meta.data?.cmc,
-                            type_line: meta.data?.type_line,
-                            colors: meta.data?.colors,
-                            color_identity: meta.data?.color_identity,
-                            rarity: meta.data?.rarity,
-                            image_uri: meta.data?.image_uris?.normal || meta.data?.image_uris?.large
+                            image_uri: meta.data?.image_uris?.normal || meta.data?.image_uris?.large,
+                            data: meta.data
                         };
                         await trx('user_cards').insert(newCardData);
                     }
