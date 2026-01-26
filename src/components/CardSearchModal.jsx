@@ -4,6 +4,7 @@ import { useScryfall } from '../hooks/useScryfall';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useCollection } from '../hooks/useCollection';
+import { useDecks } from '../hooks/useDecks'; // Import useDecks
 import { useDebounce } from '../hooks/useDebounce';
 import { collectionService } from '../services/collectionService';
 import { communityService } from '../services/communityService';
@@ -95,8 +96,11 @@ const CardSearchModal = ({ isOpen, onClose, onAddCard, onOpenForgeLens }) => {
     const { addToast } = useToast();
     // Pass targetUserId to useCollection to view that user's counts
     const { cards: collectionCards, refresh } = useCollection({ userId: targetUserId || undefined });
+    const { decks } = useDecks(); // Fetch decks
     const inputRef = useRef(null);
     const suggestionsRef = useRef(null);
+
+
 
     const debouncedQuery = useDebounce(query, 300);
 
@@ -201,28 +205,46 @@ const CardSearchModal = ({ isOpen, onClose, onAddCard, onOpenForgeLens }) => {
             const scryfallId = card.id;
             const userCopies = collectionMap.get(scryfallId) || [];
             const finish = type === 'foil' ? 'foil' : 'nonfoil';
-            const existing = userCopies.find(c => c.finish === finish && !c.deck_id && !c.is_wishlist);
 
-            let newCount;
+            // Calculate totals
+            const totalOwned = userCopies
+                .filter(c => c.finish === finish && !c.is_wishlist)
+                .reduce((sum, c) => sum + (c.count || 1), 0);
+
+            const deckCopies = userCopies
+                .filter(c => c.finish === finish && !c.is_wishlist && c.deck_id)
+                .reduce((sum, c) => sum + (c.count || 1), 0);
+
+            let newTotal;
             if (absolute !== null) {
-                newCount = Math.max(0, parseInt(absolute));
+                newTotal = Math.max(0, parseInt(absolute));
             } else {
-                newCount = Math.max(0, (existing ? existing.count : 0) + delta);
+                newTotal = Math.max(0, totalOwned + delta);
             }
 
-            if (existing) {
-                if (newCount > 0) {
-                    await collectionService.updateCard(existing.id, { count: newCount });
-                    const msg = absolute !== null ? `Updated ${finish} ${card.name} count to ${newCount}` : `Added ${finish} ${card.name}`;
+            // Binder = Total - Decks
+            if (newTotal < deckCopies) {
+                addToast(`Cannot reduce count below ${deckCopies} (used in decks)`, 'error');
+                return;
+            }
+
+            const newBinderCount = newTotal - deckCopies;
+            const binderCard = userCopies.find(c => c.finish === finish && !c.deck_id && !c.is_wishlist);
+
+
+            if (binderCard) {
+                if (newBinderCount > 0) {
+                    await collectionService.updateCard(binderCard.id, { count: newBinderCount });
+                    const msg = absolute !== null ? `Updated ${finish} count to ${newTotal}` : `Added ${finish} ${card.name}`;
                     if (absolute !== null || delta > 0) addToast(msg, 'success');
                     else addToast(`Removed ${finish} ${card.name}`, 'info');
                 } else {
-                    await collectionService.removeCard(existing.id);
+                    await collectionService.removeCard(binderCard.id);
                     addToast(`Removed ${finish} ${card.name}`, 'info');
                 }
-            } else if (newCount > 0) {
-                const res = await collectionService.addCardToCollection(currentUser.uid, card, newCount, finish, false, targetUserId);
-                addToast(`Added ${newCount} ${finish} ${card.name}`, 'success');
+            } else if (newBinderCount > 0) {
+                const res = await collectionService.addCardToCollection(currentUser.uid, card, newBinderCount, finish, false, targetUserId);
+                addToast(`Added ${newBinderCount} ${finish} ${card.name}`, 'success');
 
                 if (onAddCard && res && res.id) {
                     const addedCard = {
@@ -230,7 +252,7 @@ const CardSearchModal = ({ isOpen, onClose, onAddCard, onOpenForgeLens }) => {
                         firestoreId: res.id,
                         id: card.id, // Scryfall ID
                         finish: finish,
-                        count: newCount,
+                        count: newBinderCount,
                         is_wishlist: false
                     };
                     onAddCard(addedCard);
@@ -546,8 +568,8 @@ const CardSearchModal = ({ isOpen, onClose, onAddCard, onOpenForgeLens }) => {
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                             {results.map((card, index) => {
                                 const userCopies = collectionMap.get(card.id) || [];
-                                const normalCount = userCopies.filter(c => c.finish === 'nonfoil' && !c.deck_id && !c.is_wishlist).reduce((sum, c) => sum + (c.count || 1), 0);
-                                const foilCount = userCopies.filter(c => c.finish === 'foil' && !c.deck_id && !c.is_wishlist).reduce((sum, c) => sum + (c.count || 1), 0);
+                                const normalCount = userCopies.filter(c => c.finish === 'nonfoil' && !c.is_wishlist).reduce((sum, c) => sum + (c.count || 1), 0);
+                                const foilCount = userCopies.filter(c => c.finish === 'foil' && !c.is_wishlist).reduce((sum, c) => sum + (c.count || 1), 0);
                                 const wishlistCount = userCopies.filter(c => c.is_wishlist && !c.deck_id).reduce((sum, c) => sum + (c.count || 1), 0);
 
                                 return (
@@ -559,6 +581,8 @@ const CardSearchModal = ({ isOpen, onClose, onAddCard, onOpenForgeLens }) => {
                                         wishlistCount={wishlistCount}
                                         onUpdateCount={handleUpdateCount}
                                         onUpdateWishlistCount={handleUpdateWishlistCount}
+                                        userCopies={userCopies}
+                                        decks={decks}
                                     />
                                 );
                             })}

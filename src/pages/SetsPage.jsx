@@ -68,9 +68,9 @@ const SetsPage = () => {
         const map = new Map();
         if (collectionCards) {
             collectionCards.forEach(c => {
-                if (c.is_wishlist || c.deck_id) return;
-                const setCode = (c.set || c.set_code)?.toLowerCase();
-                const cardName = c.name; // Unique by Name
+                if (c.is_wishlist) return;
+                const setCode = (c.set || c.set_code || c.data?.set)?.toLowerCase();
+                const cardName = c.name || c.data?.name; // Ensure name is found too
 
                 if (!map.has(setCode)) map.set(setCode, new Set());
                 if (cardName) map.get(setCode).add(cardName);

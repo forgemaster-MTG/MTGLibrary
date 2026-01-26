@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import { useDecks } from '../hooks/useDecks';
 import { useCollection } from '../hooks/useCollection';
 import { collectionService } from '../services/collectionService';
 import CardSkeleton from '../components/CardSkeleton';
@@ -21,6 +22,7 @@ const SetDetailsPage = () => {
     const { currentUser, userProfile } = useAuth();
     const { addToast } = useToast();
     const { cards: collectionCards, refresh } = useCollection();
+    const { decks } = useDecks();
 
     // Sync cardFilter to sessionStorage whenever it changes
     useEffect(() => {
@@ -32,15 +34,37 @@ const SetDetailsPage = () => {
     }, [cardFilter]);
 
     // Map of Scryfall ID -> Array of UserCards
+    // Indexed by all potential ID fields to ensure robust matching
     const collectionMap = useMemo(() => {
         const map = new Map();
         if (collectionCards) {
             collectionCards.forEach(c => {
-                // Prioritize scryfall_id as the primary lookup key for set details matching
-                const key = c.scryfall_id || (c.data && (c.data.scryfall_id || c.data.id)) || c.id;
-                if (!map.has(key)) map.set(key, []);
-                map.get(key).push(c);
+                const keys = new Set();
+
+                // Add all potential ID candidates
+                if (c.scryfall_id) keys.add(c.scryfall_id);
+                if (c.scryfallId) keys.add(c.scryfallId); // CamelCase check
+                if (c.id) keys.add(c.id); // Potential database ID vs Scryfall ID ambiguity
+                if (c.data?.id) keys.add(c.data.id);
+                if (c.data?.scryfall_id) keys.add(c.data.scryfall_id);
+
+                // Add to map for each unique key
+                keys.forEach(k => {
+                    if (!map.has(k)) map.set(k, []);
+                    // Prevent duplicate pushing if a card indexes to multiple valid keys that are the same?
+                    // No, map values are arrays. If we push the SAME card object multiple times to the SAME array, stats might double count.
+                    // But here 'k' changes. The array at 'k' is unique or shared? 
+                    // map.get(k) is the array for that ID.
+                    // A card has only one "true" identity, but we don't know which field holds the key the Set Page has.
+                    // It's safe to add the card to multiple 'buckets' (keys). 
+                    // The Set Page only looks up ONE key (the ID it has). So it will get the array from that bucket.
+                    map.get(k).push(c);
+                });
             });
+
+            // Deduplication within buckets is likely not needed unless the source list has dupes.
+            // But if c.id == c.scryfall_id, we just adding to same bucket?
+            // keys is a Set, so if c.id === c.scryfall_id, we only iterate once. Good.
         }
         return map;
     }, [collectionCards]);
@@ -55,10 +79,10 @@ const SetDetailsPage = () => {
             const userCopies = collectionMap.get(card.scryfall_id || card.id) || [];
             const normalCount = userCopies
                 .filter(c => c.finish === 'nonfoil' && !c.is_wishlist)
-                .reduce((sum, c) => sum + (c.count || 1), 0);
+                .reduce((sum, c) => sum + (c.count ?? 1), 0);
             const foilCount = userCopies
                 .filter(c => c.finish === 'foil' && !c.is_wishlist)
-                .reduce((sum, c) => sum + (c.count || 1), 0);
+                .reduce((sum, c) => sum + (c.count ?? 1), 0);
 
             if (normalCount > 0 || foilCount > 0) {
                 ownedUniqueNames.add(card.name);
@@ -83,7 +107,7 @@ const SetDetailsPage = () => {
         if (filter !== 'all') {
             base = base.filter(card => {
                 const userCopies = collectionMap.get(card.scryfall_id || card.id) || [];
-                const isOwned = userCopies.some(c => !c.is_wishlist && (c.count || 0) > 0);
+                const isOwned = userCopies.some(c => !c.is_wishlist && (c.count ?? 1) > 0);
                 return filter === 'owned' ? isOwned : !isOwned;
             });
         }
@@ -119,34 +143,55 @@ const SetDetailsPage = () => {
         fetchSetCards();
     }, [setCode]);
 
-    const handleUpdateCount = async (card, type, delta) => {
+    const handleUpdateCount = async (card, type, delta, absolute = null) => {
         if (!currentUser) return addToast("Please log in", "error");
 
         try {
             const scryfallId = card.id;
             const userCopies = collectionMap.get(scryfallId) || [];
-
             const finish = type === 'foil' ? 'foil' : 'nonfoil';
-            const existing = userCopies.find(c => c.finish === finish && !c.deck_id && !c.is_wishlist);
 
-            if (delta > 0) {
-                if (existing) {
-                    await collectionService.updateCard(existing.id, { count: (existing.count || 1) + 1 });
-                    addToast(`Added ${finish} ${card.name}`, 'success');
-                } else {
-                    await collectionService.addCardToCollection(currentUser.uid, card, 1, finish);
-                    addToast(`Added new ${finish} ${card.name}`, 'success');
-                }
+            // Calculate totals
+            const totalOwned = userCopies
+                .filter(c => c.finish === finish && !c.is_wishlist)
+                .reduce((sum, c) => sum + (c.count || 1), 0);
+
+            const deckCopies = userCopies
+                .filter(c => c.finish === finish && !c.is_wishlist && c.deck_id)
+                .reduce((sum, c) => sum + (c.count || 1), 0);
+
+            // Determine target total
+            let newTotal;
+            if (absolute !== null) {
+                newTotal = Math.max(0, parseInt(absolute));
             } else {
-                if (existing) {
-                    if ((existing.count || 1) > 1) {
-                        await collectionService.updateCard(existing.id, { count: existing.count - 1 });
-                        addToast(`Removed ${finish} ${card.name}`, 'info');
-                    } else {
-                        await collectionService.removeCard(existing.id);
-                        addToast(`Removed last ${finish} ${card.name}`, 'info');
-                    }
+                newTotal = Math.max(0, totalOwned + delta);
+            }
+
+            // Calculate allowed binder count
+            // Binder = Total - Decks
+            // If newTotal < DeckCount, we would need to remove from decks -> Error
+            if (newTotal < deckCopies) {
+                addToast(`Cannot reduce count below ${deckCopies} (used in decks)`, 'error');
+                return;
+            }
+
+            const newBinderCount = newTotal - deckCopies;
+            const binderCard = userCopies.find(c => c.finish === finish && !c.deck_id && !c.is_wishlist);
+
+            if (binderCard) {
+                if (newBinderCount > 0) {
+                    await collectionService.updateCard(binderCard.id, { count: newBinderCount });
+                    const msg = absolute !== null ? `Updated ${finish} count to ${newTotal}` : `Added ${finish} ${card.name}`;
+                    if (absolute !== null || delta > 0) addToast(msg, 'success');
+                    else addToast(`Removed ${finish} ${card.name}`, 'info');
+                } else {
+                    await collectionService.removeCard(binderCard.id);
+                    addToast(`Removed last binder copy of ${finish} ${card.name}`, 'info');
                 }
+            } else if (newBinderCount > 0) {
+                await collectionService.addCardToCollection(currentUser.uid, card, newBinderCount, finish);
+                addToast(`Added new ${finish} ${card.name}`, 'success');
             }
             await refresh();
         } catch (err) {
@@ -314,13 +359,15 @@ const SetDetailsPage = () => {
                                 <InteractiveCard
                                     key={card.id || index}
                                     card={card}
-                                    normalCount={normalCount}
+                                    normalCount={normalCount} // This is binder only? No, let's check logic above.
                                     foilCount={foilCount}
                                     wishlistCount={wishlistCount}
                                     onUpdateCount={handleUpdateCount}
                                     onUpdateWishlistCount={handleUpdateWishlistCount}
                                     currentUser={userProfile}
                                     showOwnerTag={true}
+                                    userCopies={userCopies} // For locations
+                                    decks={decks} // For location names
                                 />
                             );
                         })}

@@ -9,6 +9,7 @@ import { useToast } from '../../contexts/ToastContext';
 const CardDetailsModal = () => {
     const { isOpen, selectedCard, closeCardModal } = useCardModal();
     const { cards: allUserCards, removeCard, updateCard, refreshCollection } = useCollection();
+    const { decks } = useDecks();
     const { addToast } = useToast();
 
     // Local state
@@ -363,6 +364,69 @@ const CardDetailsModal = () => {
                                                 <div className="text-[10px] font-black uppercase tracking-tighter text-gray-400 mb-0.5">Wishlist</div>
                                                 <div className="text-xl font-black text-orange-400">{wishCopies}</div>
                                                 <div className="text-[9px] text-gray-500 font-bold uppercase">Wanted</div>
+                                            </div>
+                                        </div>
+
+                                        {/* Locations Breakdown */}
+                                        <div className="bg-gray-900/40 rounded-xl p-3 border border-gray-700/50">
+                                            <div className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2">Locations</div>
+                                            <div className="space-y-1.5">
+                                                {(() => {
+                                                    const locs = [];
+                                                    let binderN = 0, binderF = 0;
+
+                                                    // Group by Deck
+                                                    const deckMap = {}; // deckId -> { name, n, f }
+
+                                                    userCopies.forEach(c => {
+                                                        if (c.is_wishlist) return;
+                                                        const count = c.count || 1;
+                                                        if (c.deck_id) {
+                                                            if (!deckMap[c.deck_id]) {
+                                                                const dName = decks?.find(d => d.id === c.deck_id)?.name || `Deck #${c.deck_id}`;
+                                                                deckMap[c.deck_id] = { name: dName, n: 0, f: 0 };
+                                                            }
+                                                            if (c.finish === 'foil') deckMap[c.deck_id].f += count;
+                                                            else deckMap[c.deck_id].n += count;
+                                                        } else {
+                                                            if (c.finish === 'foil') binderF += count;
+                                                            else binderN += count;
+                                                        }
+                                                    });
+
+                                                    if (binderN > 0 || binderF > 0) {
+                                                        locs.push(
+                                                            <div key="binder" className="flex justify-between items-center text-xs">
+                                                                <span className="text-gray-300 flex items-center gap-2">
+                                                                    <span className="w-1.5 h-1.5 rounded-full bg-gray-500"></span>
+                                                                    Binder
+                                                                </span>
+                                                                <div className="flex gap-2">
+                                                                    {binderN > 0 && <span className="text-gray-400 font-mono">{binderN} Normal</span>}
+                                                                    {binderF > 0 && <span className="text-indigo-400 font-mono">{binderF} Foil</span>}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    }
+
+                                                    Object.values(deckMap).forEach(d => {
+                                                        locs.push(
+                                                            <div key={d.name} className="flex justify-between items-center text-xs">
+                                                                <span className="text-gray-300 flex items-center gap-2">
+                                                                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                                                                    {d.name}
+                                                                </span>
+                                                                <div className="flex gap-2">
+                                                                    {d.n > 0 && <span className="text-gray-400 font-mono">{d.n} Normal</span>}
+                                                                    {d.f > 0 && <span className="text-indigo-400 font-mono">{d.f} Foil</span>}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    });
+
+                                                    if (locs.length === 0) return <div className="text-gray-500 italic text-xs">No copies in collection.</div>;
+                                                    return locs;
+                                                })()}
                                             </div>
                                         </div>
 

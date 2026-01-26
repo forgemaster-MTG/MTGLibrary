@@ -61,11 +61,40 @@ const DebouncedCountControl = ({ value, label, labelColor, textColor, onChange }
     );
 };
 
-const InteractiveCard = ({ card, normalCount = 0, foilCount = 0, wishlistCount = 0, onUpdateCount, onUpdateWishlistCount, ownerName, currentUser, showOwnerTag = false }) => {
+const InteractiveCard = ({ card, normalCount = 0, foilCount = 0, wishlistCount = 0, onUpdateCount, onUpdateWishlistCount, ownerName, currentUser, showOwnerTag = false, userCopies, decks }) => {
     const { openCardModal } = useCardModal();
     const [isFlipped, setIsFlipped] = useState(false);
 
     const resolvedOwnerName = ownerName || card.owner_username || (currentUser && (card.owner_id === currentUser.id || card.user_id === currentUser.id) ? (currentUser.username || 'ME') : null);
+
+    // Calc Locations
+    const locationSummary = React.useMemo(() => {
+        if (!userCopies || userCopies.length === 0) return null;
+
+        const summary = [];
+        const deckCounts = {};
+        let binderCount = 0;
+
+        userCopies.forEach(c => {
+            if (c.finish === 'foil' || c.finish === 'nonfoil') {
+                if (c.deck_id && decks) {
+                    const deck = decks.find(d => d.id === c.deck_id); // Decks array or map? Hook returns array usually.
+                    // On CollectionPage useDecks returns array.
+                    const name = deck ? deck.name : `Deck #${c.deck_id}`;
+                    deckCounts[name] = (deckCounts[name] || 0) + (c.count || 1);
+                } else if (!c.deck_id && !c.is_wishlist) {
+                    binderCount += (c.count || 1);
+                }
+            }
+        });
+
+        if (binderCount > 0) summary.push(`Binder (x${binderCount})`);
+        Object.entries(deckCounts).forEach(([name, count]) => {
+            summary.push(`${name} (x${count})`);
+        });
+
+        return summary;
+    }, [userCopies, decks]);
 
     // Image Helpers
     const getCardImage = (c, faceIndex = 0) => {
@@ -139,6 +168,17 @@ const InteractiveCard = ({ card, normalCount = 0, foilCount = 0, wishlistCount =
                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                         </svg>
+                    </div>
+                )}
+
+                {/* Location Tooltip (Hover) */}
+                {locationSummary && locationSummary.length > 0 && (
+                    <div className="absolute top-2 right-2 z-30 flex flex-col items-end gap-1 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100">
+                        {locationSummary.map((loc, i) => (
+                            <div key={i} className="bg-gray-900/90 text-white text-[9px] font-bold px-2 py-1 rounded border border-white/20 shadow-xl backdrop-blur-md uppercase tracking-wider whitespace-nowrap">
+                                📍 {loc}
+                            </div>
+                        ))}
                     </div>
                 )}
 
