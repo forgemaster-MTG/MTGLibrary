@@ -151,7 +151,7 @@ const UserManagement = () => {
                                         <div className="text-xs text-gray-500 max-w-[150px] truncate" title={u.email}>{u.email}</div>
                                     </td>
                                     <td className="py-3 px-4 text-center">
-                                        <button onClick={() => { setSelectedUserForSub(u); setShowSubModal(true); }} className={`text-[10px] px-2 py-0.5 rounded border uppercase font-bold tracking-wider ${u.override_tier ? 'bg-purple-900/30 text-purple-400 border-purple-500/30' : 'bg-gray-800 text-gray-400 border-gray-600'}`}>
+                                        <button onClick={() => { setSelectedUserForSub(u); setShowSubModal(true); }} className={`text-[10px] px-2 py-0.5 rounded border uppercase font-bold tracking-wider ${u.override_tier ? 'bg-purple-900/30 text-purple-400 border-purple-500/30' : (u.subscription_status === 'trial' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-gray-800 text-gray-400 border-gray-600')}`}>
                                             {(u.override_tier || u.subscription_tier || 'free').replace('tier_', 'Tier ')}
                                         </button>
                                     </td>
@@ -180,7 +180,7 @@ const UserManagement = () => {
                                                 className="text-red-500 hover:text-red-400 p-1 rounded hover:bg-red-500/10 transition-colors"
                                                 title="Delete User"
                                             >
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 0 00-1-1h-4a1 0 00-1 1v3M4 7h16" /></svg>
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                             </button>
                                         </div>
                                     </td>

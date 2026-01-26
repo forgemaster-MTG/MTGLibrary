@@ -25,7 +25,11 @@ const Membership = () => {
 
     // Fallback if subscription_status is missing but tier is not free (manual assignment)
     const status = userProfile?.subscription_status || (currentTierId !== TIERS.FREE ? 'active' : 'free');
-    const endDate = userProfile?.subscription_end_date ? new Date(userProfile.subscription_end_date).toLocaleDateString() : null;
+
+    // Calculate effective end date (Trial > Subscription)
+    const isTrial = status === 'trial';
+    const endDateRaw = isTrial ? userProfile?.trial_end_date : userProfile?.subscription_end_date;
+    const endDate = endDateRaw ? new Date(endDateRaw).toLocaleDateString() : null;
 
     // Calculate Usage Stats
     const stats = useMemo(() => {
@@ -37,13 +41,6 @@ const Membership = () => {
         // Base counts
         let totalCards = collectionItems.reduce((acc, card) => acc + (card.count || 1), 0);
         let wishlistCount = wishlistItems.reduce((acc, card) => acc + (card.count || 1), 0);
-
-        // Add commanders to card count if mostly consistent with Dashboard logic
-        // For simplicity/perf here, we might just stick to list counts, but let's try to match dashboard roughly
-        // or just rely on list length if that's the metric we care about? 
-        // The LIMIT usually applies to "cards in database row" or "total quantity"? 
-        // UsageLimits middleware counts distinct rows usually or total quantity depending on implementation.
-        // Let's assume total count for now.
 
         return {
             decks: decks.length,
@@ -152,23 +149,46 @@ const Membership = () => {
                             <h3 className="text-2xl font-bold text-white mb-1">{config.name}</h3>
                             <p className="text-gray-400 text-sm max-w-md">{config.description}</p>
 
-                            <div className="flex flex-wrap items-center gap-3 mt-4">
-                                <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide border ${status === 'active' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
-                                    status === 'canceled' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
-                                        status === 'past_due' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
-                                            'bg-gray-700 text-gray-300 border-gray-600'
-                                    }`}>
-                                    {status === 'free' ? 'Free Plan' : status.replace('_', ' ')}
-                                </span>
-                                {userProfile?.override_tier && (
-                                    <span className="px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide border bg-purple-500/10 text-purple-400 border-purple-500/20">
-                                        Admin Override
+                            <div className="flex flex-col gap-2 mt-4">
+                                {/* Status Badge */}
+                                <div className="flex items-center gap-2">
+                                    <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide border ${status === 'active' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                                        status === 'canceled' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
+                                            isTrial ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                                                status === 'past_due' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                                                    'bg-gray-700 text-gray-300 border-gray-600'
+                                        }`}>
+                                        {status === 'free' ? 'Free Plan' : status === 'trial' ? 'Full Access Trial' : status.replace('_', ' ')}
                                     </span>
-                                )}
+                                    {userProfile?.override_tier && (
+                                        <span className="px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide border bg-purple-500/10 text-purple-400 border-purple-500/20">
+                                            Admin Override
+                                        </span>
+                                    )}
+                                </div>
+
+                                {/* Timer / Renewal Info */}
                                 {endDate && status !== 'free' && !userProfile?.override_tier && (
-                                    <span className="text-xs text-gray-500">
-                                        {status === 'canceled' ? 'Expires' : 'Renews'} on {endDate}
-                                    </span>
+                                    <div className={`mt-2 p-3 rounded-lg border ${isTrial ? 'bg-blue-500/10 border-blue-500/30' : 'bg-gray-800 border-gray-700'}`}>
+                                        <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">
+                                            {status === 'canceled' ? 'Access Expires' : (isTrial ? 'Trial Remaining' : 'Next Renewal')}
+                                        </p>
+                                        <div className="flex items-baseline gap-2">
+                                            {isTrial ? (
+                                                <>
+                                                    <span className="text-xl font-bold text-white">
+                                                        {Math.max(0, Math.ceil((new Date(endDateRaw) - new Date()) / (1000 * 60 * 60 * 24)))}
+                                                    </span>
+                                                    <span className="text-sm text-gray-400">Days Left</span>
+                                                    <span className="text-xs text-gray-500 ml-1">({endDate})</span>
+                                                </>
+                                            ) : (
+                                                <span className="text-sm font-bold text-white">
+                                                    {new Date(endDateRaw).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
                                 )}
                             </div>
                         </div>

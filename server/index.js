@@ -113,6 +113,12 @@ app.get('/me', auth, async (req, res) => {
       first_name: user.first_name,
       last_name: user.last_name,
       data: user.data,
+      data: user.data,
+      subscription_tier: user.subscription_tier,
+      override_tier: user.override_tier,
+      subscription_status: user.subscription_status,
+      trial_start_date: user.trial_start_date,
+      trial_end_date: user.trial_end_date,
       settings: user.settings || {}
     });
   } catch (e) {

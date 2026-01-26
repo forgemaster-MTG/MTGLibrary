@@ -153,6 +153,16 @@ const Navbar = () => {
                                         <span className="bg-orange-500/10 border border-orange-500/30 text-orange-400 text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse w-fit leading-none">
                                             ALPHA
                                         </span>
+                                        {!userProfile?.settings?.onboarding_complete && (
+                                            <span className="bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse w-fit leading-none uppercase">
+                                                SETUP
+                                            </span>
+                                        )}
+                                        {userProfile?.subscription_status === 'trial' && (
+                                            <span className="bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse w-fit leading-none uppercase">
+                                                TRIAL
+                                            </span>
+                                        )}
                                         {tier && tier !== 'free' && (() => {
                                             const config = TIER_CONFIG[tier];
                                             let badgeColor = 'text-gray-400 border-gray-600 bg-gray-800';
@@ -182,6 +192,20 @@ const Navbar = () => {
                                                 ALPHA
                                             </span>
 
+                                            {/* Onboarding Badge */}
+                                            {!userProfile?.settings?.onboarding_complete && (
+                                                <span className="bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse leading-none uppercase">
+                                                    SETUP
+                                                </span>
+                                            )}
+
+
+                                            {userProfile?.subscription_status === 'trial' && (
+                                                <span className="bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse leading-none uppercase">
+                                                    TRIAL
+                                                </span>
+                                            )}
+
                                             {/* Tier Badge */}
                                             {tier && tier !== 'free' && (() => {
                                                 const config = TIER_CONFIG[tier];
@@ -209,15 +233,31 @@ const Navbar = () => {
                             <div className="hidden lg:ml-6 lg:flex lg:items-baseline lg:space-x-1">
                                 {currentUser ? (
                                     <>
-                                        <Link to="/dashboard" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Dashboard</Link>
-                                        <Link to="/collection" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Collection</Link>
-                                        <Link to="/wishlist" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Wishlist</Link>
-                                        <Link to="/decks" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Decks</Link>
-                                        <Link to="/binders" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Binders</Link>
-                                        <Link to="/social" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Social</Link>
-                                        <Link to="/precons" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Precons</Link>
-                                        <Link to="/sets" className="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Sets</Link>
-                                        <Link to="/vault" className="text-yellow-400 hover:text-yellow-200 px-3 py-2 rounded-md text-sm font-medium transition-colors">The Vault</Link>
+                                        {[
+                                            { path: '/dashboard', label: 'Dashboard' },
+                                            { path: '/collection', label: 'Collection' },
+                                            { path: '/wishlist', label: 'Wishlist' },
+                                            { path: '/decks', label: 'Decks' },
+                                            { path: '/binders', label: 'Binders' },
+                                            { path: '/social', label: 'Social' },
+                                            { path: '/precons', label: 'Precons' },
+                                            { path: '/sets', label: 'Sets' },
+                                            { path: '/vault', label: 'The Vault', className: 'text-yellow-400 hover:text-yellow-200' }
+                                        ].map((link) => (
+                                            <Link
+                                                key={link.path}
+                                                to={link.path}
+                                                onClick={(e) => {
+                                                    if (location.pathname === '/onboarding') {
+                                                        e.preventDefault();
+                                                        addToast('Please complete your profile setup first to access the Forge.', 'info');
+                                                    }
+                                                }}
+                                                className={`${link.className || 'text-gray-300 hover:text-white'} px-3 py-2 rounded-md text-sm font-medium transition-colors`}
+                                            >
+                                                {link.label}
+                                            </Link>
+                                        ))}
                                     </>
                                 ) : (
                                     <>
@@ -543,47 +583,33 @@ const Navbar = () => {
                                     </div>
 
                                     <div className="grid grid-cols-4 gap-4">
-                                        <Link to="/social" onClick={() => setIsMobileMenuOpen(false)} className="flex flex-col items-center gap-2 p-3 bg-gray-800/50 rounded-xl active:scale-95 transition-transform">
-                                            <div className="w-12 h-12 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-400">
-                                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                                            </div>
-                                            <span className="text-xs font-bold text-gray-300">Social</span>
-                                        </Link>
-
-                                        <Link to="/wishlist" onClick={() => setIsMobileMenuOpen(false)} className="flex flex-col items-center gap-2 p-3 bg-gray-800/50 rounded-xl active:scale-95 transition-transform">
-                                            <div className="w-12 h-12 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-400">
-                                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
-                                            </div>
-                                            <span className="text-xs font-bold text-gray-300">Wishlist</span>
-                                        </Link>
-
-                                        <Link to="/binders" onClick={() => setIsMobileMenuOpen(false)} className="flex flex-col items-center gap-2 p-3 bg-gray-800/50 rounded-xl active:scale-95 transition-transform">
-                                            <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400">
-                                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
-                                            </div>
-                                            <span className="text-xs font-bold text-gray-300">Binders</span>
-                                        </Link>
-
-                                        <Link to="/precons" onClick={() => setIsMobileMenuOpen(false)} className="flex flex-col items-center gap-2 p-3 bg-gray-800/50 rounded-xl active:scale-95 transition-transform">
-                                            <div className="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-400">
-                                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>
-                                            </div>
-                                            <span className="text-xs font-bold text-gray-300">Precons</span>
-                                        </Link>
-
-                                        <Link to="/sets" onClick={() => setIsMobileMenuOpen(false)} className="flex flex-col items-center gap-2 p-3 bg-gray-800/50 rounded-xl active:scale-95 transition-transform">
-                                            <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center text-green-400">
-                                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>
-                                            </div>
-                                            <span className="text-xs font-bold text-gray-300">Sets</span>
-                                        </Link>
-
-                                        <Link to="/vault" onClick={() => setIsMobileMenuOpen(false)} className="flex flex-col items-center gap-2 p-3 bg-gray-800/50 rounded-xl active:scale-95 transition-transform">
-                                            <div className="w-12 h-12 rounded-full bg-yellow-500/10 flex items-center justify-center text-yellow-400">
-                                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                            </div>
-                                            <span className="text-xs font-bold text-gray-300">Vault</span>
-                                        </Link>
+                                        {[
+                                            { path: '/social', label: 'Social', iconPath: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z', color: 'indigo' },
+                                            { path: '/wishlist', label: 'Wishlist', iconPath: 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z', color: 'orange' },
+                                            { path: '/binders', label: 'Binders', iconPath: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10', color: 'blue' },
+                                            { path: '/precons', label: 'Precons', iconPath: 'M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4', color: 'purple' },
+                                            { path: '/sets', label: 'Sets', iconPath: 'M4 6h16M4 10h16M4 14h16M4 18h16', color: 'green' },
+                                            { path: '/vault', label: 'Vault', iconPath: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z', color: 'yellow' }
+                                        ].map(item => (
+                                            <Link
+                                                key={item.path}
+                                                to={item.path}
+                                                onClick={(e) => {
+                                                    if (location.pathname === '/onboarding') {
+                                                        e.preventDefault();
+                                                        addToast('Please complete your profile setup first.', 'info');
+                                                        return;
+                                                    }
+                                                    setIsMobileMenuOpen(false);
+                                                }}
+                                                className="flex flex-col items-center gap-2 p-3 bg-gray-800/50 rounded-xl active:scale-95 transition-transform"
+                                            >
+                                                <div className={`w-12 h-12 rounded-full bg-${item.color}-500/10 flex items-center justify-center text-${item.color}-400`}>
+                                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.iconPath} /></svg>
+                                                </div>
+                                                <span className="text-xs font-bold text-gray-300">{item.label}</span>
+                                            </Link>
+                                        ))}
                                     </div>
                                 </div>
                             </div>

@@ -3,7 +3,7 @@ import {
     Box, Trophy, DollarSign, Star, Zap, Crown,
     Shield, Target, Layers, Book, Search, Briefcase,
     Flame, Droplets, Mountain, Skull, Leaf, Asterisk,
-    Scroll, Sword, Landmark
+    Scroll, Sword, Landmark, Sparkles
 } from 'lucide-react';
 
 // Categories for filtering
@@ -13,11 +13,16 @@ export const ACHIEVEMENT_CATEGORIES = {
     MASTERY: { id: 'mastery', label: 'Mastery', icon: Crown },
     DEDICATION: { id: 'dedication', label: 'Dedication', icon: Trophy },
     AUDIT: { id: 'audit', label: 'Audit', icon: Search },
-    COLORS: { id: 'colors', label: 'Colors', icon: Layers }, // New Category
-    TYPES: { id: 'types', label: 'Types', icon: Book }      // New Category
+    COLORS: { id: 'colors', label: 'Colors', icon: Layers },
+    TYPES: { id: 'types', label: 'Types', icon: Book },
+    ONBOARDING: { id: 'onboarding', label: 'Onboarding', icon: Sparkles }
 };
 
 export const ACHIEVEMENTS = [
+    // --- ONBOARDING (New) ---
+    { id: 'ai_setup', title: 'Technical Alliance', description: 'Configure your Personal AI Companion.', metric: 'ai_setup_complete', target: 1, xp: 150, category: 'onboarding', icon: Zap },
+    { id: 'onboarding_done', title: 'Planeswalker Spark', description: 'Complete the Forge onboarding process.', metric: 'onboarding_finished', target: 1, xp: 100, category: 'onboarding', icon: Flame },
+
     // --- COLLECTION COUNT MILESTONES ---
     { id: 'col_count_1', title: 'Starter Deck', description: 'Collect your first 60 cards.', metric: 'total_cards', target: 60, xp: 50, category: 'collection' },
     { id: 'col_count_2', title: 'Binder Filler', description: 'Collect 500 cards.', metric: 'total_cards', target: 500, xp: 150, category: 'collection' },

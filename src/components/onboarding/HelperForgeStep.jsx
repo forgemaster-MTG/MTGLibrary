@@ -7,7 +7,7 @@ import { getTierConfig } from '../../config/tiers';
 const MAX_TURNS = 15;
 
 export const HelperForgeStep = ({ onNext, onBack }) => {
-    const { userProfile } = useAuth();
+    const { userProfile, updateSettings } = useAuth();
     const [mode, setMode] = useState('selection'); // selection, forge, synthesis, complete
     const [helperDraft, setHelperDraft] = useState({ name: '', type: '', personality: '' });
 
@@ -51,7 +51,7 @@ export const HelperForgeStep = ({ onNext, onBack }) => {
 
         try {
             const apiKey = userProfile?.settings?.geminiApiKey;
-            if (!apiKey) throw new Error("API Key missing.");
+            // if (!apiKey) throw new Error("API Key missing."); // REMOVED: Let Service handle fallback
 
             const result = await GeminiService.forgeHelperChat(apiKey, newHistory, helperDraft, userProfile);
 
@@ -118,32 +118,58 @@ export const HelperForgeStep = ({ onNext, onBack }) => {
 
                         <button
                             onClick={() => {
-                                const allowed = getTierConfig(userProfile?.subscription_tier).features.customAiPersona;
-                                if (!allowed) {
-                                    // Optional: Add toast usage here if desired, but button disables click mostly
-                                    return;
-                                }
+                                // ENABLED FOR ONBOARDING TRIAL
+                                // const allowed = getTierConfig(userProfile?.subscription_tier).features.customAiPersona;
+                                // if (!allowed) return;
                                 startForge();
                             }}
-                            disabled={!getTierConfig(userProfile?.subscription_tier).features.customAiPersona}
-                            className={`p-6 border rounded-xl transition-all group text-left relative overflow-hidden ${getTierConfig(userProfile?.subscription_tier).features.customAiPersona
-                                ? 'bg-amber-900/20 hover:bg-amber-900/30 border-amber-500/30 hover:border-amber-500 cursor-pointer'
-                                : 'bg-gray-800/50 border-gray-700 opacity-50 cursor-not-allowed'
-                                }`}
+                            // disabled={!getTierConfig(userProfile?.subscription_tier).features.customAiPersona}
+                            className={`p-6 border rounded-xl transition-all group text-left relative overflow-hidden bg-amber-900/20 hover:bg-amber-900/30 border-amber-500/30 hover:border-amber-500 cursor-pointer`}
                         >
-                            <div className={`absolute top-0 right-0 p-2 ${getTierConfig(userProfile?.subscription_tier).features.customAiPersona ? 'opacity-50' : 'opacity-20'}`}>
-                                <svg className={`w-16 h-16 ${getTierConfig(userProfile?.subscription_tier).features.customAiPersona ? 'text-amber-500' : 'text-gray-600'}`} fill="currentColor" viewBox="0 0 24 24"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg>
+                            <div className={`absolute top-0 right-0 p-2 opacity-50`}>
+                                <svg className={`w-16 h-16 text-amber-500`} fill="currentColor" viewBox="0 0 24 24"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg>
                             </div>
                             <div className="relative z-10">
-                                <div className={`text-xl font-bold mb-2 ${getTierConfig(userProfile?.subscription_tier).features.customAiPersona ? 'text-white group-hover:text-amber-400' : 'text-gray-400'}`}>
+                                <div className={`text-xl font-bold mb-2 text-white group-hover:text-amber-400`}>
                                     Forge Custom Helper
                                 </div>
                                 <p className="text-gray-400 text-sm mb-4">Create a unique companion. Define their name, species, and personality via chat.</p>
-                                <span className={`text-xs font-bold uppercase tracking-wider ${getTierConfig(userProfile?.subscription_tier).features.customAiPersona ? 'text-amber-500 group-hover:text-white' : 'text-gray-600'}`}>
-                                    {getTierConfig(userProfile?.subscription_tier).features.customAiPersona ? 'Start Forging →' : 'Requires Wizard Tier'}
+                                <span className={`text-xs font-bold uppercase tracking-wider text-green-400 group-hover:text-white block`}>
+                                    Included in Trial
+                                </span>
+                                <span className="text-[10px] text-gray-500 mt-1 block group-hover:text-gray-300">
+                                    Retained with Magician tier or higher.
                                 </span>
                             </div>
                         </button>
+                    </div>
+
+                    {/* Optional API Key Input */}
+                    <div className="max-w-xl mx-auto mt-8 pt-6 border-t border-gray-800">
+                        <div className="flex flex-col gap-2 text-left">
+                            <label className="text-xs text-gray-500 uppercase tracking-widest font-bold">
+                                Optional: Enable High-Power Uplink (API Key)
+                            </label>
+                            <input
+                                type="password"
+                                placeholder="Paste Gemini API Key here (starts with AIza...)"
+                                defaultValue={userProfile?.settings?.geminiApiKey || ''}
+                                onBlur={async (e) => {
+                                    const key = e.target.value.trim();
+                                    if (key && key.startsWith('AIza')) {
+                                        try {
+                                            await updateSettings({ geminiApiKey: key });
+                                        } catch (err) {
+                                            console.error("Failed to save key", err);
+                                        }
+                                    }
+                                }}
+                                className="bg-black/40 border border-gray-700 rounded-lg px-4 py-2 text-sm text-gray-300 focus:border-amber-500 focus:outline-none w-full"
+                            />
+                            <p className="text-[10px] text-gray-600">
+                                Use this if the Oracle is exhausted. Overrides the shared connection.
+                            </p>
+                        </div>
                     </div>
                 </div>
             )}

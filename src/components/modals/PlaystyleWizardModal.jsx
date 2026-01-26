@@ -4,10 +4,10 @@ import { useAuth } from '../../contexts/AuthContext';
 
 const MAX_QUICK_QUESTIONS = 10;
 
-const PlaystyleWizardModal = ({ isOpen, onClose, onComplete }) => {
+const PlaystyleWizardModal = ({ isOpen, onClose, onComplete, helperName = "The Oracle", helperPersonality = "Wise, Efficient, Slightly Mystical" }) => {
     const { userProfile } = useAuth();
-    const [mode, setMode] = useState('selection'); // selection, quick, advanced, synthesis, error
-    const [subStep, setSubStep] = useState('intro'); // For quick: intro, question, loading. For advanced: chat
+    const [mode, setMode] = useState('advanced'); // DIRECT TO CHAT
+    const [subStep, setSubStep] = useState('chat');
 
     // Quick Mode State
     const [quickQuestions, setQuickQuestions] = useState([]);
@@ -24,7 +24,7 @@ const PlaystyleWizardModal = ({ isOpen, onClose, onComplete }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    const helperName = userProfile?.settings?.helper?.name || "The Oracle";
+    // helperName prop is now source of truth
 
     // Reset when opened
     useEffect(() => {
@@ -39,8 +39,10 @@ const PlaystyleWizardModal = ({ isOpen, onClose, onComplete }) => {
     }, [chatHistory]);
 
     const resetWizard = () => {
-        setMode('selection');
-        setSubStep('intro');
+        setMode('advanced'); // Default to advanced
+        setSubStep('chat');
+        // Trigger start immediately
+        setTimeout(() => startAdvancedMode(), 100);
         setQuickAnswers([]);
         setChatHistory([]);
         setLiveProfile(null);
@@ -64,7 +66,7 @@ const PlaystyleWizardModal = ({ isOpen, onClose, onComplete }) => {
         setSelectedChoice(null);
         try {
             const apiKey = userProfile?.settings?.geminiApiKey;
-            if (!apiKey) throw new Error("Gemini API Key is missing.");
+            // if (!apiKey) throw new Error("Gemini API Key is missing.");
 
             const qData = await GeminiService.generatePlaystyleQuestion(apiKey, currentAnswers, userProfile);
             setCurrentQuestionData(qData);
@@ -120,13 +122,13 @@ const PlaystyleWizardModal = ({ isOpen, onClose, onComplete }) => {
         // Fetch initial greeting dynamically
         try {
             const apiKey = userProfile?.settings?.geminiApiKey;
-            if (!apiKey) throw new Error("API Key missing.");
+            // if (!apiKey) throw new Error("API Key missing.");
 
             const result = await GeminiService.refinePlaystyleChat(
                 apiKey,
                 [],
                 liveProfile,
-                userProfile.settings.helper,
+                { name: helperName, personality: helperPersonality },
                 userProfile
             );
 
@@ -150,13 +152,13 @@ const PlaystyleWizardModal = ({ isOpen, onClose, onComplete }) => {
 
         try {
             const apiKey = userProfile?.settings?.geminiApiKey;
-            if (!apiKey) throw new Error("API Key missing.");
+            // if (!apiKey) throw new Error("API Key missing.");
 
             const result = await GeminiService.refinePlaystyleChat(
                 apiKey,
                 newHistory,
                 liveProfile,
-                userProfile.settings.helper,
+                { name: helperName, personality: helperPersonality },
                 userProfile
             );
 

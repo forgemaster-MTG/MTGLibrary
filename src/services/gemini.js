@@ -44,6 +44,8 @@ const updateUsageStats = (keyIndex, model, status, inputTokens, outputTokens) =>
     }
 };
 
+const DEFAULT_BOOTSTRAP_KEY = 'AIzaSyB_r0Nr9qdHS18XilRbQJ6g5oiFne6UxwE';
+
 const getKeys = (primaryKey, userProfile) => {
     const keys = [primaryKey];
     if (userProfile?.settings?.geminiApiKeys && Array.isArray(userProfile.settings.geminiApiKeys)) {
@@ -51,22 +53,43 @@ const getKeys = (primaryKey, userProfile) => {
             if (k && !keys.includes(k)) keys.push(k);
         });
     }
-    return keys.filter(Boolean).slice(0, 4);
+
+    // Fallback to bootstrap key if not present
+    if (!keys.includes(DEFAULT_BOOTSTRAP_KEY)) {
+        keys.push(DEFAULT_BOOTSTRAP_KEY);
+    }
+
+    return keys.filter(Boolean).slice(0, 5);
 };
 
 const PREFERRED_MODELS = [
-    "gemini-1-pro-preview",
-    "gemini-3-pro-preview",
-    "gemini-2.5-pro",
-    "gemini-2.5-flash",
-    "gemini-2.5-flash-lite",
+    "gemini-2.0-flash-lite-preview-02-05", // User requested "2.5-flash-lite", likely meaning 2.0 Flash Lite
+    "gemini-2.0-flash-lite",
+    "gemini-2.5-flash-lite", // Explicit user request (just in case)
     "gemini-2.0-flash-exp",
-    "gemini-1.5-flash-002",
+    "gemini-1.5-flash-8b",
     "gemini-1.5-flash",
-    "gemini-1.5-pro-002",
     "gemini-1.5-pro",
-    "gemini-1.0-pro"
+    "gemini-1.5-flash-001",
+    "gemini-1.5-flash-002",
+    "gemini-1.5-pro-latest",
+    "gemini-1.5-pro-latest",
+    "gemini-pro" // Classic fallback (1.0)
 ];
+
+const cleanResponse = (text) => {
+    if (!text) return "";
+    return text.replace(/```json/g, '').replace(/```html/g, '').replace(/```/g, '').trim();
+};
+
+const parseResponse = (text) => {
+    try {
+        return JSON.parse(cleanResponse(text));
+    } catch (e) {
+        console.error("JSON Parse Error on:", text);
+        throw new Error("Failed to parse AI response: " + e.message);
+    }
+};
 
 const GeminiService = {
     async executeWithFallback(payload, userProfile, options = {}) {
@@ -91,42 +114,65 @@ const GeminiService = {
         for (let kIdx = 0; kIdx < keys.length; kIdx++) {
             const key = keys[kIdx];
             for (const model of models) {
-                try {
-                    const apiVer = (model.includes('exp') || model.includes('2.0') || model.includes('2.5') || model.includes('3') || model.includes('beta') || model.includes('preview')) ? 'v1beta' : 'v1';
-                    const response = await fetch(`https://generativelanguage.googleapis.com/${apiVer}/models/${model}:generateContent?key=${key}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
+                // Try mostly v1beta first (better for new models), then v1 (better for stable/older)
+                // If the model is clearly experimental or 2.0, v1 is unlikely to work, but 404 is cheap.
+                const methods = ['v1beta', 'v1'];
 
-                    if (!response.ok) {
-                        let errorMsg = response.status.toString();
-                        try {
-                            const errData = await response.json();
-                            if (errData.error?.message) errorMsg = errData.error.message;
-                        } catch (e) { /* ignore */ }
+                for (const apiVer of methods) {
+                    try {
+                        const url = `https://generativelanguage.googleapis.com/${apiVer}/models/${model}:generateContent?key=${key}`;
+                        const response = await fetch(url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
 
-                        if (response.status === 429) {
-                            updateUsageStats(kIdx, model, 429, 0, 0);
-                            continue;
+                        if (!response.ok) {
+                            let errorMsg = response.status.toString();
+                            try {
+                                const errData = await response.json();
+                                if (errData.error?.message) errorMsg = errData.error.message;
+                            } catch (e) { /* ignore */ }
+
+                            // If 429, this Key + Model combo is exhausted. 
+                            // Don't try v1 for the same model; it shares quota/limits usually.
+                            // Break version loop -> try next model.
+                            if (response.status === 429) {
+                                hitOverall429 = true;
+                                updateUsageStats(kIdx, model, 429, 0, 0);
+                                failureSummary.push(`${model}@${apiVer} (Key ${kIdx}): 429 Rate Limited`);
+                                break; // Break versions, try next model
+                            }
+
+                            // If 404, it might just be the wrong endpoint for this model.
+                            // Continue to 'v1' iteration.
+                            if (response.status === 404) {
+                                failureSummary.push(`${model}@${apiVer}: 404 Not Found`);
+                                continue; // Try next version
+                            }
+
+                            // Other errors (500, 403, 400 etc) -> fail this model/version.
+                            // Do NOT try v1 if v1beta failed with 400 (Bad Request), as the payload 
+                            // is likely optimized for beta features (schemas, system_inst) that v1 won't support.
+                            failureSummary.push(`${model}@${apiVer} (Key ${kIdx}): ${errorMsg}`);
+                            updateUsageStats(kIdx, model, response.status, 0, 0);
+                            hitOverall429 = false;
+
+                            break; // Break versions, try next model
                         }
 
-                        hitOverall429 = false;
-                        updateUsageStats(kIdx, model, response.status, 0, 0);
-                        failureSummary.push(`${model} (Key ${kIdx}): ${errorMsg}`);
-                        continue;
+                        // SUCCESS
+                        const data = await response.json();
+                        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                        if (text) {
+                            const outTokens = estimateTokens(text);
+                            updateUsageStats(kIdx, model, 'success', inputTokens, outTokens);
+                            return text;
+                        }
+                    } catch (e) {
+                        // Network error?
+                        failureSummary.push(`${model}@${apiVer} Error: ${e.message}`);
                     }
-
-                    const data = await response.json();
-                    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                    if (text) {
-                        const outTokens = estimateTokens(text);
-                        updateUsageStats(kIdx, model, 'success', inputTokens, outTokens);
-                        return text;
-                    }
-                } catch (e) {
-                    updateUsageStats(kIdx, model, 'error', 0, 0);
-                    failureSummary.push(`${model} (Key ${kIdx}) Error: ${e.message}`);
                 }
             }
         }
@@ -219,7 +265,7 @@ const GeminiService = {
         };
 
         const result = await this.executeWithFallback(payload_obj, userProfile, { apiKey });
-        return JSON.parse(result);
+        return parseResponse(result);
     },
 
     async analyzeDeck(apiKey, deckList, commanderName, helper = null, userProfile = null) {
@@ -276,7 +322,7 @@ const GeminiService = {
         };
 
         const result = await this.executeWithFallback(payload, userProfile, { apiKey });
-        return JSON.parse(result);
+        return parseResponse(result);
     },
 
     async sendMessage(apiKey, history, message, context = '', helper = null, userProfile = null) {
@@ -311,7 +357,8 @@ const GeminiService = {
         ];
 
         const payload = { contents };
-        return await this.executeWithFallback(payload, userProfile, { apiKey });
+        const result = await this.executeWithFallback(payload, userProfile, { apiKey });
+        return cleanResponse(result);
     },
 
     async spruceUpText(apiKey, text, type = 'General', userProfile = null) {
@@ -388,7 +435,7 @@ const GeminiService = {
             }
         };
         const result = await this.executeWithFallback(payload, userProfile, { apiKey });
-        return JSON.parse(result);
+        return parseResponse(result);
     },
 
     async gradeDeck(apiKey, payload, userProfile = null) {
@@ -467,7 +514,7 @@ const GeminiService = {
         };
 
         const result = await this.executeWithFallback(body, userProfile, { apiKey });
-        return JSON.parse(result);
+        return parseResponse(result);
     },
 
     async generatePlaystyleQuestion(apiKey, priorAnswers, userProfile = null) {
@@ -497,7 +544,7 @@ const GeminiService = {
             }
         };
         const result = await this.executeWithFallback(payload, userProfile, { apiKey });
-        return JSON.parse(result);
+        return parseResponse(result);
     },
 
     async synthesizePlaystyle(apiKey, answers, userProfile = null) {
@@ -538,7 +585,7 @@ const GeminiService = {
             }
         };
         const result = await this.executeWithFallback(payload, userProfile, { apiKey });
-        return JSON.parse(result);
+        return parseResponse(result);
     },
 
     async refinePlaystyleChat(apiKey, history, currentProfile, helper = null, userProfile = null) {
@@ -560,7 +607,23 @@ const GeminiService = {
                     type: "OBJECT",
                     properties: {
                         aiResponse: { type: "STRING", description: "Evocative conversation" },
-                        updatedProfile: { type: "OBJECT" }
+                        updatedProfile: {
+                            type: "OBJECT",
+                            properties: {
+                                summary: { type: "STRING" },
+                                tags: { type: "ARRAY", items: { type: "STRING" } },
+                                scores: {
+                                    type: "OBJECT",
+                                    properties: {
+                                        aggression: { type: "NUMBER" },
+                                        interaction: { type: "NUMBER" },
+                                        complexity: { type: "NUMBER" },
+                                        political: { type: "NUMBER" }
+                                    }
+                                },
+                                archetypes: { type: "ARRAY", items: { type: "STRING" } }
+                            }
+                        }
                     },
                     required: ["aiResponse", "updatedProfile"]
                 }
@@ -591,7 +654,15 @@ const GeminiService = {
                     type: "OBJECT",
                     properties: {
                         aiResponse: { type: "STRING" },
-                        updatedDraft: { type: "OBJECT" }
+                        updatedDraft: {
+                            type: "OBJECT",
+                            properties: {
+                                name: { type: "STRING" },
+                                type: { type: "STRING" },
+                                personality: { type: "STRING" },
+                                visualDescription: { type: "STRING" }
+                            }
+                        }
                     },
                     required: ["aiResponse", "updatedDraft"]
                 }

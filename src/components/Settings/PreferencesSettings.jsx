@@ -141,7 +141,33 @@ const PreferencesSettings = () => {
                     <button
                         onClick={async () => {
                             if (window.confirm('This will restart the welcome tour. Continue?')) {
-                                await api.updateUser(userProfile.id, { settings: { ...userProfile.settings, onboarding_complete: false, onboarding_step: 0 } });
+                                // Preserve Keys
+                                const apiKeys = userProfile.settings?.geminiApiKeys;
+                                const singleKey = userProfile.settings?.geminiApiKey;
+
+                                await api.updateUser(userProfile.id, {
+                                    settings: {
+                                        ...userProfile.settings,
+                                        onboarding_complete: false,
+                                        onboarding_step: 0,
+
+                                        // Reset AI & Playstyle Data
+                                        helper: null,
+                                        playstyle_profile: null,
+                                        ai_enabled: false,
+
+                                        // Reset Organization Preference to Default
+                                        organization: {
+                                            mode: 'default',
+                                            sortHierarchy: [],
+                                            groupingPreference: 'set'
+                                        },
+
+                                        // Restore keys explicitly to prevent data loss
+                                        geminiApiKeys: apiKeys,
+                                        geminiApiKey: singleKey
+                                    }
+                                });
                                 await refreshUserProfile();
                                 navigate('/onboarding');
                             }

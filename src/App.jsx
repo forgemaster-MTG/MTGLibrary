@@ -85,6 +85,7 @@ function App() {
                         <div className="bg-gray-900 text-gray-200 font-sans min-h-screen flex flex-col">
                             <ScrollToTop />
                             <ReferralTracker />
+                            {/* Navbar is now always rendered but handles its own restriction logic */}
                             <Navbar />
                             <AuthGuard>
                                 <div className="flex-grow pb-24 md:pb-0">

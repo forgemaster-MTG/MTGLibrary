@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     DndContext,
     closestCorners,
@@ -29,6 +30,7 @@ import { useCollection } from '../hooks/useCollection';
 import { useDecks } from '../hooks/useDecks';
 import { api } from '../services/api';
 import { getIdentity } from '../utils/identityRegistry'; // Helper for identity data
+import { Shield, Zap } from 'lucide-react';
 
 // Components
 import { TotalCardsWidget as StatsWidget, CollectionValueWidget } from '../components/dashboard/StatsWidget';
@@ -251,6 +253,7 @@ const SortableWidget = ({ id, widgetKey, editMode, data, actions, containerId, s
 // --- Main Dashboard Component ---
 const Dashboard = () => {
     const { currentUser, userProfile, updateSettings } = useAuth();
+    const navigate = useNavigate();
     const { addToast } = useToast();
     const { cards: collection, refresh: refreshCollection } = useCollection();
     const { decks, loading: decksLoading } = useDecks();
@@ -650,7 +653,7 @@ const Dashboard = () => {
                         {/* Mobile Menu Dropdown (Upwards) */}
                         {isLayoutMenuOpen && (
                             <>
-                                <div className="fixed inset-0 z-40 cursor-default" onClick={() => setIsLayoutMenuOpen(false)} />
+                                <div className="fixed inset-0 z-40 cursor-default" onClick={() => setIsLayoutMenuOpen(false)}></div>
                                 <div className="absolute bottom-full left-0 mb-4 w-full bg-gray-900 border border-indigo-500/30 rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-slide-up-fast min-w-[200px]">
                                     <div className="p-2 border-b border-white/5 bg-gray-950/50">
                                         <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-2 py-1">Presets</div>
@@ -752,6 +755,58 @@ const Dashboard = () => {
                 </div>
             </div>
 
+            {/* Trial / Subscription Banner */}
+            {(() => {
+                const status = userProfile?.subscription_status;
+                const isTrial = status === 'trial';
+                const endDateRaw = userProfile?.trial_end_date;
+                if (!isTrial || !endDateRaw) return null;
+
+                const daysRemaining = Math.max(0, Math.ceil((new Date(endDateRaw) - new Date()) / (1000 * 60 * 60 * 24)));
+                const isLow = daysRemaining <= 3;
+
+                return (
+                    <div className={`relative z-40 mx-auto max-w-7xl px-6 mt-6 mb-[-1rem] animate-fade-in-down`}>
+                        <div className={`
+                            relative overflow-hidden rounded-xl border p-4 flex flex-col md:flex-row items-center justify-between gap-4 shadow-lg
+                            ${isLow ? 'bg-orange-500/10 border-orange-500/30' : 'bg-blue-600/10 border-blue-500/30'}
+                        `}>
+                            {/* Background decoration */}
+                            <div className={`absolute -right-10 -top-10 w-40 h-40 rounded-full blur-3xl opacity-20 ${isLow ? 'bg-orange-500' : 'bg-blue-500'}`}></div>
+
+                            <div className="flex items-center gap-4 z-10">
+                                <div className={`p-3 rounded-full shrink-0 ${isLow ? 'bg-orange-500/20 text-orange-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                                    {isLow ? <Zap className="w-6 h-6" /> : <Shield className="w-6 h-6" />}
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-white text-lg">
+                                        {isLow ? 'Trial Ending Soon!' : 'Welcome to Your Trial'}
+                                    </h3>
+                                    <p className="text-sm text-gray-300">
+                                        You have <span className={`font-bold ${isLow ? 'text-orange-400' : 'text-blue-400'}`}>{daysRemaining} days remaining</span> of full access.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-3 z-10 w-full md:w-auto">
+                                <button
+                                    onClick={() => navigate('/settings')}
+                                    className={`
+                                        w-full md:w-auto px-6 py-2 rounded-lg font-bold transition-all shadow-lg whitespace-nowrap
+                                        ${isLow
+                                            ? 'bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white'
+                                            : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white'
+                                        }
+                                    `}
+                                >
+                                    Manage Subscription
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
+
             <div className="relative z-10 max-w-7xl mx-auto px-6 py-12 space-y-8 animate-fade-in w-full">
                 {/* Feedback Banner */}
                 <div className="bg-indigo-500/10 border border-indigo-500/30 rounded-xl p-4 flex items-start gap-3 backdrop-blur-md">
@@ -795,7 +850,7 @@ const Dashboard = () => {
                         {/* Layout Menu Dropdown */}
                         {isLayoutMenuOpen && (
                             <>
-                                <div className="fixed inset-0 z-40 cursor-default" onClick={() => setIsLayoutMenuOpen(false)} />
+                                <div className="fixed inset-0 z-40 cursor-default" onClick={() => setIsLayoutMenuOpen(false)}></div>
                                 <div className={`absolute top-full mt-2 w-72 bg-gray-900 border border-indigo-500/30 rounded-xl shadow-2xl z-[100] overflow-hidden flex flex-col animate-fade-in-down ${editMode ? 'left-1/2 -translate-x-1/2 origin-top' : 'right-0 origin-top-right'}`}>
                                     <div className="p-2 border-b border-white/5 bg-gray-950/50">
                                         <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-2 py-1">Presets</div>

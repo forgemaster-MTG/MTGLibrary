@@ -45,9 +45,10 @@ export const TIER_CONFIG = {
         name: 'Apprentice',
         prices: {
             //MTG-Forge Sandbox ID's
-            monthly: 'price_1SnxT7RZLrZbIKATICyA3jfB', // $9.99
-            biannual: 'price_1SnxUeRZLrZbIKATlErTgHtz', // $49.99
-            yearly: 'price_1SnxUuRZLrZbIKATm6nmPnUr'     // $99.99
+            monthly: 'price_1SnxT7RZLrZbIKATICyA3jfB', // $2.99
+            quarterly: 'price_placeholder_t1_q',      // $8.99 (Example)
+            biannual: 'price_1SnxUeRZLrZbIKATlErTgHtz', // $14.99
+            yearly: 'price_1SnxUuRZLrZbIKATm6nmPnUr'     // $29.99
         },
         description: 'Perfect for new potential. Store up to 10 decks and 1,000 cards.',
         limits: {
@@ -80,6 +81,7 @@ export const TIER_CONFIG = {
         name: 'Magician',
         prices: {
             monthly: 'price_1SnvK5DBKqoK8H1Rj7uSTSfw', // $4.99
+            quarterly: 'price_placeholder_t2_q',      // $13.99
             biannual: 'price_1SnvVSDBKqoK8H1RFAqc0iIH', // $24.99
             yearly: 'price_1SnvVfDBKqoK8H1RryOTO2p8'     // $49.99
         },
@@ -114,6 +116,7 @@ export const TIER_CONFIG = {
         name: 'Wizard',
         prices: {
             monthly: 'price_1SnvKxDBKqoK8H1RXvh1VsT3', // $9.99
+            quarterly: 'price_placeholder_t3_q',      // $27.99
             biannual: 'price_1SnvUkDBKqoK8H1RgX9mlcxs', // $49.99
             yearly: 'price_1SnvUwDBKqoK8H1RAUVYJtmM'     // $99.99
         },
@@ -148,6 +151,7 @@ export const TIER_CONFIG = {
         name: 'Archmage',
         prices: {
             monthly: 'price_1SnvMxDBKqoK8H1RVcOon0kC', // $14.99
+            quarterly: 'price_placeholder_t4_q',      // $41.99
             biannual: 'price_1SnvUSDBKqoK8H1RRAXjFJ1h', // $74.99
             yearly: 'price_1SnvUSDBKqoK8H1RBMhvTUZA'     // $149.99
         },
@@ -182,6 +186,7 @@ export const TIER_CONFIG = {
         name: 'Planeswalker',
         prices: {
             monthly: 'price_1SnvSmDBKqoK8H1RCezHNZSu', // $19.99
+            quarterly: 'price_placeholder_t5_q',      // $55.99
             biannual: 'price_1SnvTcDBKqoK8H1RAmz1kB1d', // $99.99
             yearly: 'price_1SnvTcDBKqoK8H1Rn1rFWAws'     // $199.99
         },

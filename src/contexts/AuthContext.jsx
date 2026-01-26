@@ -41,7 +41,15 @@ export const AuthProvider = ({ children }) => {
         // but we can optimistic update or wait.
         // For now preventing caching issues by initial refetch delay or manual set?
         // Let's stick to existing logic but invalidating queries.
-        if (Object.keys(profileData).length > 0) {
+        // Merge profileData with referral code if present
+        const referralCode = localStorage.getItem('mtg_forge_ref');
+        const finalProfileData = { ...profileData };
+        if (referralCode) {
+            console.log('[AuthContext] Applying referral code:', referralCode);
+            finalProfileData.referral_code = referralCode;
+        }
+
+        if (Object.keys(finalProfileData).length > 0) {
             try {
                 // wait for trigger ???
                 // Or call API to update if it exists.
@@ -51,8 +59,11 @@ export const AuthProvider = ({ children }) => {
                 await refetchProfile();
                 const fresh = await api.get('/api/users/me'); // Direct call to avoid cache delay if critical
                 if (fresh?.id) {
-                    await api.updateUser(fresh.id, profileData);
+                    await api.updateUser(fresh.id, finalProfileData);
                     queryClient.invalidateQueries(['userProfile', userCredential.user.uid]);
+
+                    // Clear referral after successful use
+                    if (referralCode) localStorage.removeItem('mtg_forge_ref');
                 }
             } catch (err) {
                 console.error("Failed to save profile data during signup", err);

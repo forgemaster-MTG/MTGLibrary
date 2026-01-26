@@ -773,6 +773,9 @@ const AdminPanel = () => {
                                         const isAdmin = u.settings?.isAdmin;
                                         return (
                                             <tr key={u.id} className="hover:bg-gray-800/50 transition-colors">
+                                                {/* DATA DEBUG */}
+                                                {u.id === 198 && console.log('DEBUG USER(198):', u.subscription_status, u)}
+                                                {u.username === 'FORGE_Test147' && console.log('DEBUG USER(147):', u)}
                                                 <td className="py-3 px-4 font-medium text-white">
                                                     {u.username || 'No Username'}
                                                     {u.id === 1 && <span className="ml-2 text-[10px] bg-yellow-500 text-black px-1 rounded">ROOT</span>}
@@ -781,16 +784,36 @@ const AdminPanel = () => {
 
                                                 {/* Subscription Column */}
                                                 <td className="py-3 px-4">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className={`text-xs px-2 py-0.5 rounded border ${u.override_tier ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' : 'bg-gray-700 text-gray-300 border-gray-600'}`}>
-                                                            {(u.override_tier || u.subscription_tier || 'free').replace('tier_', 'Tier ')}
-                                                        </span>
-                                                        <button
-                                                            onClick={() => handleOpenSubModal(u)}
-                                                            className="text-[10px] bg-gray-700 hover:bg-gray-600 text-white px-2 py-1 rounded transition-colors"
-                                                        >
-                                                            Manage
-                                                        </button>
+                                                    <div className="flex flex-col gap-1">
+                                                        <div className="flex items-center gap-2">
+                                                            {/* Tier Badge */}
+                                                            <span className={`text-xs px-2 py-0.5 rounded border ${u.override_tier ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' : (u.subscription_status === 'trial' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-gray-700 text-gray-300 border-gray-600')}`}>
+                                                                {(u.override_tier || u.subscription_tier || 'free').replace('tier_', 'Tier ')}
+                                                            </span>
+
+                                                            {/* Status Badge */}
+                                                            {u.subscription_status === 'trial' && (
+                                                                <span className="text-[10px] px-1.5 py-0.5 rounded border bg-amber-500/20 text-amber-400 border-amber-500/30 uppercase font-bold">
+                                                                    Trial
+                                                                </span>
+                                                            )}
+                                                            {!u.settings?.onboarding_complete && (
+                                                                <span className="text-[10px] px-1.5 py-0.5 rounded border bg-blue-500/20 text-blue-400 border-blue-500/30 uppercase font-bold">
+                                                                    Onboarding
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-[10px] text-gray-500 uppercase">
+                                                                {u.subscription_status || 'inactive'}
+                                                            </span>
+                                                            <button
+                                                                onClick={() => handleOpenSubModal(u)}
+                                                                className="text-[10px] bg-gray-700 hover:bg-gray-600 text-white px-2 py-0.5 rounded transition-colors"
+                                                            >
+                                                                Edit
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 </td>
 

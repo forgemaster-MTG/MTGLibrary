@@ -31,6 +31,12 @@ router.get('/', authMiddleware, async (req, res) => {
     const totalCards = await knex('user_cards').count('id as count').first();
     const totalDecks = await knex('user_decks').count('id as count').first();
     console.log(`[users] DEBUG: Total Cards: ${totalCards?.count}, Total Decks: ${totalDecks?.count}`);
+
+    const debugUser = rows.find(r => r.id === 198);
+    if (debugUser) {
+      console.log('[users] DEBUG USER 198:', JSON.stringify(debugUser, null, 2));
+    }
+
     if (rows.length > 0) {
       console.log('[users] First User:', JSON.stringify(rows[0], null, 2));
     }
@@ -78,15 +84,38 @@ router.put('/:id', authMiddleware, async (req, res) => {
 
     // We need to ensure 'is_public_library' goes into settings.
     // If settings is provided, use it, else empty object.
-    let newSettings = settings || {};
+    let newSettings = settings ? { ...settings } : {};
 
-    console.log(`[users] PUT ${userId}. is_public_library (param): ${is_public_library} (${typeof is_public_library})`);
+
+
+    // --- PROMOTION LOGIC: Extract root columns from settings ---
+    // This allows clients (like OnboardingPage) to send these in 'settings' via updateSettings()
+    // and have them correctly applied to the root user columns.
+    const { subscription_status, subscription_tier, trial_start_date, trial_end_date } = newSettings;
+    const updateData = {};
+
+    if (subscription_status !== undefined) {
+      updateData.subscription_status = subscription_status;
+      delete newSettings.subscription_status;
+    }
+    if (subscription_tier !== undefined) {
+      updateData.subscription_tier = subscription_tier;
+      delete newSettings.subscription_tier;
+    }
+    if (trial_start_date !== undefined) {
+      updateData.trial_start_date = trial_start_date;
+      delete newSettings.trial_start_date;
+    }
+    if (trial_end_date !== undefined) {
+      updateData.trial_end_date = trial_end_date;
+      delete newSettings.trial_end_date;
+    }
+    // -------------------------------------------------------------
 
     if (is_public_library !== undefined) {
       newSettings.is_public_library = is_public_library;
     }
 
-    const updateData = {};
     if (email !== undefined) updateData.email = email;
     if (username !== undefined) updateData.username = username;
     if (first_name !== undefined) updateData.first_name = first_name;
@@ -96,7 +125,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     // Or self can update generic settings if we allow it, but let's be safe.
     // Assuming 'settings' passed here merges or replaces. 
     // For specific permission updates, we prefer a dedicated endpoint, but this general update is fine for admin too.
-    if (settings !== undefined) {
+    if (settings !== undefined || is_public_library !== undefined) {
       // Safe update: deep merge or careful replacement recommended.
       // If regular user, maybe prevent overwriting isAdmin/permissions?
       if (!isAdmin && isSelf) {
@@ -104,15 +133,24 @@ router.put('/:id', authMiddleware, async (req, res) => {
         // Logic: Existing settings + new keys, but preventing privilege escalation
         const existing = await knex('users').where({ id: userId }).first();
         const existingSettings = existing.settings || {};
-        const safeSettings = { ...existingSettings, ...(settings || {}) };
+        const safeSettings = { ...existingSettings, ...newSettings };
 
         // Restore protected fields from existing to ensure no tampering
         safeSettings.isAdmin = existingSettings.isAdmin || false;
         safeSettings.permissions = existingSettings.permissions || [];
         updateData.settings = safeSettings;
       } else {
-        updateData.settings = settings;
+        updateData.settings = newSettings;
       }
+    }
+
+    // Check for referral code application
+    if (data && data.referral_code) {
+      const { processReferralSignup } = await import('../utils/referrals.js');
+      await processReferralSignup(userId, data.referral_code);
+
+      // Remove from data so we don't save the code itself into the generic 'data' json column if likely invalid or just meta
+      delete data.referral_code;
     }
 
     if (data !== undefined) updateData.data = data;
@@ -127,6 +165,8 @@ router.put('/:id', authMiddleware, async (req, res) => {
       .returning('*');
 
     const row = Array.isArray(result) ? result[0] : result;
+
+
     if (!row) return res.status(404).json({ error: 'User not found after update' });
 
     res.json(row);
