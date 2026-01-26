@@ -5,9 +5,36 @@ import authMiddleware from '../middleware/auth.js';
 const router = express.Router();
 
 // List users (admin use) - protected
+// List users (admin use) - protected
 router.get('/', authMiddleware, async (req, res) => {
   try {
-    const rows = await knex('users').select('id', 'firestore_id', 'email', 'username', 'settings', 'data', 'subscription_tier', 'override_tier', 'subscription_status').limit(200);
+    const rows = await knex('users')
+      .select(
+        'users.id',
+        'users.firestore_id',
+        'users.email',
+        'users.username',
+        'users.settings',
+        'users.data',
+        'users.subscription_tier',
+        'users.override_tier',
+        'users.subscription_status',
+        'users.created_at',
+        'users.created_at',
+        'users.created_at as last_login',
+        knex.raw('(SELECT COUNT(*) FROM user_cards WHERE user_cards.user_id = users.id)::int as card_count'),
+        knex.raw('(SELECT COUNT(*) FROM user_decks WHERE user_decks.user_id = users.id)::int as deck_count')
+      )
+      .limit(200);
+
+    // DEBUG: Check counts
+    const totalCards = await knex('user_cards').count('id as count').first();
+    const totalDecks = await knex('user_decks').count('id as count').first();
+    console.log(`[users] DEBUG: Total Cards: ${totalCards?.count}, Total Decks: ${totalDecks?.count}`);
+    if (rows.length > 0) {
+      console.log('[users] First User:', JSON.stringify(rows[0], null, 2));
+    }
+
     res.json(rows);
   } catch (err) {
     console.error('[users] list error', err);
@@ -348,6 +375,39 @@ router.post('/:id/achievements', authMiddleware, async (req, res) => {
   } catch (err) {
     console.error('[users] achievements sync error', err);
     res.status(500).json({ error: 'db error' });
+  }
+});
+
+// ADMIN: Delete a user by ID
+router.delete('/:id', authMiddleware, async (req, res) => {
+  try {
+    const adminUser = req.user;
+    const isRoot = adminUser.firestore_id === 'Kyrlwz6G6NWICCEPYbXtFfyLzWI3';
+    // Strict Admin Check
+    if (!isRoot && !adminUser.settings?.isAdmin) return res.status(403).json({ error: 'Admin access required' });
+
+    const targetId = parseInt(req.params.id, 10);
+    if (!targetId) return res.status(400).json({ error: 'Invalid ID' });
+
+    // Prevent deleting self (use the /me/data or cancellation flow for that, or just block here to be safe)
+    if (targetId === adminUser.id) return res.status(400).json({ error: 'Cannot delete yourself from Admin panel.' });
+
+    await knex.transaction(async (trx) => {
+      // 1. Delete Dependencies
+      await trx('user_cards').where({ user_id: targetId }).del();
+      await trx('user_decks').where({ user_id: targetId }).del();
+      // If table exists
+      // await trx('user_relationships').where({ requester_id: targetId }).orWhere({ addressee_id: targetId }).del(); 
+
+      // 2. Delete User
+      const count = await trx('users').where({ id: targetId }).del();
+      if (count === 0) throw new Error('User not found');
+    });
+
+    res.json({ success: true, id: targetId });
+  } catch (err) {
+    console.error('[users] admin delete error', err);
+    res.status(500).json({ error: 'db error: ' + err.message });
   }
 });
 

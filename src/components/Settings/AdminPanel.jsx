@@ -270,6 +270,32 @@ const AdminPanel = () => {
         }
     };
 
+    // User Sync Logic
+    const [syncingUser, setSyncingUser] = useState(null);
+    const handleSyncUser = async (user) => {
+        if (!window.confirm(`Force push card collection for ${user.username} (ID: ${user.id}) to Firestore? This will overwrite the specific Firestore collection with Postgres data.`)) return;
+
+        setSyncingUser(user.id);
+        try {
+            const res = await fetch('/api/admin/sync-user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: user.id })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                alert(`Sync Complete! Upserted: ${data.stats.upserted}, Deleted: ${data.stats.deleted}`);
+            } else {
+                alert(`Sync Failed: ${data.error}`);
+            }
+        } catch (err) {
+            alert(`Request Failed: ${err.message}`);
+        } finally {
+            setSyncingUser(null);
+        }
+    };
+
 
 
     // Epic State
@@ -737,6 +763,7 @@ const AdminPanel = () => {
                                         <th className="py-3 px-4">Subscription</th>
                                         <th className="py-3 px-4 text-center">Admin</th>
                                         <th className="py-3 px-4 text-center">Ticket Mgr</th>
+                                        <th className="py-3 px-4 text-center">Sync</th>
                                         <th className="py-3 px-4 text-right">Actions</th>
                                     </tr>
                                 </thead>
@@ -776,6 +803,17 @@ const AdminPanel = () => {
                                                 <td className="py-3 px-4 text-center">
                                                     <button onClick={() => togglePermission(u, 'manage_tickets')} className={`w-8 h-4 rounded-full transition-colors relative ${isTicketMgr ? 'bg-green-600' : 'bg-gray-600'}`}>
                                                         <span className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform ${isTicketMgr ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                    </button>
+                                                </td>
+                                                {/* Sync Column */}
+                                                <td className="py-3 px-4 text-center">
+                                                    <button
+                                                        onClick={() => handleSyncUser(u)}
+                                                        disabled={syncingUser === u.id}
+                                                        className="text-xs bg-cyan-900/50 hover:bg-cyan-800 text-cyan-300 border border-cyan-700/50 px-2 py-1 rounded transition-colors disabled:opacity-50"
+                                                        title="Force Sync Postgres -> Firestore"
+                                                    >
+                                                        {syncingUser === u.id ? 'Syncing...' : 'Push FS'}
                                                     </button>
                                                 </td>
                                                 <td className="py-3 px-4 text-right text-xs text-gray-500">

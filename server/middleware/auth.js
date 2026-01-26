@@ -1,21 +1,5 @@
-import admin from 'firebase-admin';
-import { createRequire } from 'module';
+import admin from '../firebaseAdmin.js';
 import { knex } from '../db.js';
-
-const require = createRequire(import.meta.url);
-const serviceAccount = require('../../serviceAccountKey.json');
-
-// Initialize Firebase admin if not already
-try {
-	if (!admin.apps || admin.apps.length === 0) {
-		admin.initializeApp({
-			credential: admin.credential.cert(serviceAccount)
-		});
-	}
-} catch (e) {
-	// If initialization fails, we still want middleware to throw useful errors
-	console.error('[auth] firebase-admin init error', e.message || e);
-}
 
 /**
  * Express middleware to verify Firebase ID token (Authorization: Bearer <token>)

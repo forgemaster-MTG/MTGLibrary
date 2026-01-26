@@ -1,9 +1,32 @@
 import express from 'express';
 import { knex } from '../db.js';
 
+import { syncUserToFirestore } from '../utils/firestoreSync.js';
+
 const router = express.Router();
 
 const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// POST /admin/sync-user
+// Body: { userId }
+// Syncs a specific user's collection to Firestore
+router.post('/sync-user', async (req, res) => {
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ error: 'UserID is required' });
+
+    try {
+        const result = await syncUserToFirestore(userId);
+        if (result.success) {
+            res.json(result);
+        } else {
+            res.status(500).json(result);
+        }
+    } catch (err) {
+        console.error('[Admin] Sync User Error', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 
 // GET /admin/sets
 // Returns list of sets from Scryfall

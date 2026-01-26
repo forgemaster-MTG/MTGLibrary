@@ -36,6 +36,7 @@ import ProfilePage from './pages/ProfilePage';
 import TournamentPage from './pages/TournamentPage';
 import TournamentJoinPage from './pages/TournamentJoinPage';
 import SolitairePage from './pages/SolitairePage';
+import AdminPage from './pages/AdminPage';
 import ChatWidget from './components/ChatWidget';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -108,7 +109,7 @@ function App() {
                                         <Route path="/sets" element={<SetsPage />} />
                                         <Route path="/sets/:setCode" element={<SetDetailsPage />} />
                                         <Route path="/wishlist" element={<WishlistPage />} />
-                                        <Route path="/settings/:tab?" element={<SettingsPage />} />
+                                        <Route path="/settings/*" element={<SettingsPage />} />
                                         <Route path="/vault" element={<TheVault />} />
                                         <Route path="/audit" element={<AuditHub />} />
                                         <Route path="/audit/complete" element={<AuditCompletion />} />
@@ -126,6 +127,7 @@ function App() {
                                         <Route path="/tournaments/:id" element={<TournamentPage />} />
                                         <Route path="/tournaments/:id/join" element={<TournamentJoinPage />} />
                                         <Route path="/solitaire/:deckId" element={<SolitairePage />} />
+                                        <Route path="/admin/*" element={<AdminPage />} />
                                     </Routes>
                                 </div>
                             </AuthGuard>
