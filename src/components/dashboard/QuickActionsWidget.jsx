@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import OrganizationWidget from './OrganizationWidget';
-import { TIER_CONFIG } from '../../config/tiers';
+import { getTierConfig } from '../../config/tiers';
 import { useToast } from '../../contexts/ToastContext';
 
 const QuickAction = ({ title, icon, color, onClick, compact }) => (
@@ -34,7 +34,7 @@ const QuickActionsWidget = ({ data, size }) => {
     const isXL = size === 'xlarge';
 
     const handleNewDeck = () => {
-        const limit = TIER_CONFIG[userProfile?.subscription_tier || 'free'].limits.decks;
+        const limit = getTierConfig(userProfile?.subscription_tier).limits.decks;
         const current = stats?.uniqueDecks || 0;
         if (limit !== Infinity && current >= limit) {
             addToast(`Deck limit reached (${current}/${limit}). Upgrade to create more!`, 'error');

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../contexts/ToastContext';
-import { TIER_CONFIG } from '../../config/tiers';
+import { getTierConfig } from '../../config/tiers';
 
 const ACTIONS = {
     'new_deck': {
@@ -9,7 +9,7 @@ const ACTIONS = {
         icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>,
         gradient: 'from-indigo-600 to-purple-600',
         action: ({ navigate, addToast, userProfile, stats }) => {
-            const limit = TIER_CONFIG[userProfile?.subscription_tier || 'free'].limits.decks;
+            const limit = getTierConfig(userProfile?.subscription_tier).limits.decks;
             const current = stats?.uniqueDecks || 0;
             if (limit !== Infinity && current >= limit) {
                 addToast(`Deck limit reached (${current}/${limit}).`, 'error');

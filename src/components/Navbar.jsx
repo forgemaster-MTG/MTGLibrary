@@ -174,11 +174,16 @@ const Navbar = () => {
                                             if (tier === TIERS.TIER_5) badgeColor = 'text-red-400 border-red-500/30 bg-red-500/10';
 
                                             return (
-                                                <span className={`border text - [9px] font - bold px - 1.5 py - 0.5 rounded leading - none uppercase w - fit ${badgeColor} `}>
-                                                    {config?.name || 'MEMBER'}
+                                                <span className={`border text-[9px] font-bold px-1.5 py-0.5 rounded leading-none uppercase w-fit ${badgeColor}`}>
+                                                    {config?.name || tier || 'MEMBER'}
                                                 </span>
                                             );
                                         })()}
+                                        {(userProfile?.override_tier || userProfile?.custom_limits) && (
+                                            <span className="bg-pink-500/10 border border-pink-500/30 text-pink-400 text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse w-fit leading-none uppercase">
+                                                CUSTOM
+                                            </span>
+                                        )}
                                     </div>
 
                                     {/* Desktop Title & Badges */}
@@ -220,10 +225,17 @@ const Navbar = () => {
 
                                                 return (
                                                     <span className={`border text-[9px] font-extrabold px-2 py-0.5 rounded-full leading-none uppercase tracking-widest ${badgeColor}`}>
-                                                        {config?.name || 'MEMBER'}
+                                                        {config?.name || tier || 'MEMBER'}
                                                     </span>
                                                 );
                                             })()}
+
+                                            {/* Custom Limits Badge */}
+                                            {(userProfile?.override_tier || userProfile?.custom_limits) && (
+                                                <span className="bg-pink-500/10 border border-pink-500/30 text-pink-400 text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse leading-none uppercase tracking-wider">
+                                                    CUSTOM
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
                                 </Link>

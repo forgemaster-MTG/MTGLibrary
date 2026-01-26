@@ -8,7 +8,7 @@ import { deckService } from '../services/deckService';
 import DeckRow from '../components/decks/DeckRow';
 import SharedDeckRow from '../components/decks/SharedDeckRow';
 import MarketTicker from '../components/dashboard/MarketTicker';
-import { TIER_CONFIG } from '../config/tiers';
+import { getTierConfig } from '../config/tiers';
 import DeckCard from '../components/decks/DeckCard';
 
 // DnD Kit
@@ -157,7 +157,7 @@ const DecksPage = () => {
     }, [user]);
 
     const handleCreateDeck = (e) => {
-        const limit = TIER_CONFIG[userProfile?.subscription_tier || 'free'].limits.decks;
+        const limit = getTierConfig(userProfile?.subscription_tier).limits.decks;
         const current = processedDecks.length || 0;
         if (limit !== Infinity && current >= limit) {
             e.preventDefault();
