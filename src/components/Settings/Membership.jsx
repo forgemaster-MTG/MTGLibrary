@@ -20,7 +20,8 @@ const Membership = () => {
     const { cards: collection } = useCollection();
     const { decks } = useDecks();
 
-    const currentTierId = userProfile?.override_tier || userProfile?.subscription_tier || TIERS.FREE;
+    // Use override_tier if present, otherwise subscription_tier, default to FREE
+    const currentTierId = userProfile?.override_tier || userProfile?.subscription_tier;
     const config = getTierConfig(currentTierId);
 
     // Fallback if subscription_status is missing but tier is not free (manual assignment)

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { TIER_CONFIG } from '../../config/tiers';
+import { getTierConfig } from '../../config/tiers';
 
 const SubscriptionWidget = ({ size, data }) => {
     const { userProfile, stats } = data || {};
@@ -10,7 +10,7 @@ const SubscriptionWidget = ({ size, data }) => {
     const isLargePlus = size === 'large' || size === 'xlarge';
 
     // Derive data safely
-    const tier = TIER_CONFIG[userProfile?.subscription_tier || 'free'];
+    const tier = getTierConfig(userProfile?.subscription_tier);
     const counts = {
         decks: stats?.uniqueDecks || 0,
         collection: stats?.collectionCount || 0,
