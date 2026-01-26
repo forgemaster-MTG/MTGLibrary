@@ -46,6 +46,7 @@ export const TIER_CONFIG = {
         prices: {
             //MTG-Forge Sandbox ID's
             monthly: 'price_1SnxT7RZLrZbIKATICyA3jfB', // $9.99
+            quarterly: 'price_1StfhDDBKqoK8H1RYlATyyeh',      // $8.99
             biannual: 'price_1SnxUeRZLrZbIKATlErTgHtz', // $49.99
             yearly: 'price_1SnxUuRZLrZbIKATm6nmPnUr'     // $99.99
         },
@@ -80,6 +81,7 @@ export const TIER_CONFIG = {
         name: 'Magician',
         prices: {
             monthly: 'price_1SnvK5DBKqoK8H1Rj7uSTSfw', // $4.99
+            quarterly: 'price_1StfgoDBKqoK8H1Rr5pIrd1o',      // $14.99
             biannual: 'price_1SnvVSDBKqoK8H1RFAqc0iIH', // $24.99
             yearly: 'price_1SnvVfDBKqoK8H1RryOTO2p8'     // $49.99
         },
@@ -114,6 +116,7 @@ export const TIER_CONFIG = {
         name: 'Wizard',
         prices: {
             monthly: 'price_1SnvKxDBKqoK8H1RXvh1VsT3', // $9.99
+            quarterly: 'price_1Stf5iDBKqoK8H1RMHbM4yzr',      // $29.99
             biannual: 'price_1SnvUkDBKqoK8H1RgX9mlcxs', // $49.99
             yearly: 'price_1SnvUwDBKqoK8H1RAUVYJtmM'     // $99.99
         },
@@ -148,6 +151,7 @@ export const TIER_CONFIG = {
         name: 'Archmage',
         prices: {
             monthly: 'price_1SnvMxDBKqoK8H1RVcOon0kC', // $14.99
+            quarterly: 'price_1Stf5GDBKqoK8H1RthB3bBDC',      // $44.99
             biannual: 'price_1SnvUSDBKqoK8H1RRAXjFJ1h', // $74.99
             yearly: 'price_1SnvUSDBKqoK8H1RBMhvTUZA'     // $149.99
         },
@@ -182,6 +186,7 @@ export const TIER_CONFIG = {
         name: 'Planeswalker',
         prices: {
             monthly: 'price_1SnvSmDBKqoK8H1RCezHNZSu', // $19.99
+            quarterly: 'price_1SteBkDBKqoK8H1RoXR18wB2',      // $59.99
             biannual: 'price_1SnvTcDBKqoK8H1RAmz1kB1d', // $99.99
             yearly: 'price_1SnvTcDBKqoK8H1Rn1rFWAws'     // $199.99
         },

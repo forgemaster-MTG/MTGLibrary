@@ -25,11 +25,11 @@ const SubscriptionSelection = ({
         const config = TIER_CONFIG[tier];
         if (!config.prices.monthly && !config.prices.biannual && !config.prices.yearly) return 'Free';
         const displayPrices = {
-            [TIERS.TIER_1]: { monthly: '$2.99', biannual: '$14.99', yearly: '$29.99' },
-            [TIERS.TIER_2]: { monthly: '$4.99', biannual: '$24.99', yearly: '$49.99' },
-            [TIERS.TIER_3]: { monthly: '$9.99', biannual: '$49.99', yearly: '$99.99' },
-            [TIERS.TIER_4]: { monthly: '$14.99', biannual: '$74.99', yearly: '$149.99' },
-            [TIERS.TIER_5]: { monthly: '$19.99', biannual: '$99.99', yearly: '$199.99' },
+            [TIERS.TIER_1]: { monthly: '$2.99', quarterly: '$8.99', biannual: '$14.99', yearly: '$29.99' },
+            [TIERS.TIER_2]: { monthly: '$4.99', quarterly: '$14.99', biannual: '$24.99', yearly: '$49.99' },
+            [TIERS.TIER_3]: { monthly: '$9.99', quarterly: '$29.99', biannual: '$49.99', yearly: '$99.99' },
+            [TIERS.TIER_4]: { monthly: '$14.99', quarterly: '$44.99', biannual: '$74.99', yearly: '$149.99' },
+            [TIERS.TIER_5]: { monthly: '$19.99', quarterly: '$59.99', biannual: '$99.99', yearly: '$199.99' },
         };
 
         // User Custom Override in TIER_CONFIG? The user edited TIER_CONFIG recently.
@@ -73,7 +73,7 @@ const SubscriptionSelection = ({
             {showIntervalSelector && (
                 <div className="flex justify-center mb-8">
                     <div className="flex bg-gray-800 p-1 rounded-xl">
-                        {['monthly', 'biannual', 'yearly'].map(interval => (
+                        {['monthly', 'quarterly', 'biannual', 'yearly'].map(interval => (
                             <button
                                 key={interval}
                                 onClick={() => setBillingInterval(interval)}
@@ -105,7 +105,7 @@ const SubscriptionSelection = ({
                                 <h3 className="text-xl font-bold text-gray-100">{config.name}</h3>
                                 <div className="flex items-baseline gap-1">
                                     <span className="text-2xl font-bold text-white">{getPriceDisplay(tierKey)}</span>
-                                    <span className="text-sm text-gray-500">/{billingInterval === 'monthly' ? 'mo' : (billingInterval === 'biannual' ? '6mo' : 'yr')}</span>
+                                    <span className="text-sm text-gray-500">/{billingInterval === 'monthly' ? 'mo' : (billingInterval === 'quarterly' ? 'qtr' : (billingInterval === 'biannual' ? '6mo' : 'yr'))}</span>
                                 </div>
                                 <p className="text-sm text-gray-400 mt-2 min-h-[48px]">{config.description}</p>
                             </div>
