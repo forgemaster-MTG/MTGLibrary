@@ -44,7 +44,7 @@ const updateUsageStats = (keyIndex, model, status, inputTokens, outputTokens) =>
     }
 };
 
-const DEFAULT_BOOTSTRAP_KEY = 'AIzaSyB_r0Nr9qdHS18XilRbQJ6g5oiFne6UxwE';
+const DEFAULT_BOOTSTRAP_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 const getKeys = (primaryKey, userProfile) => {
     const keys = [primaryKey];
@@ -63,18 +63,15 @@ const getKeys = (primaryKey, userProfile) => {
 };
 
 const PREFERRED_MODELS = [
-    "gemini-2.0-flash-lite-preview-02-05", // User requested "2.5-flash-lite", likely meaning 2.0 Flash Lite
-    "gemini-2.0-flash-lite",
-    "gemini-2.5-flash-lite", // Explicit user request (just in case)
+    "gemini-2.0-flash-lite-preview-02-05",
+    "gemini-2.5-flash-lite",
     "gemini-2.0-flash-exp",
-    "gemini-1.5-flash-8b",
     "gemini-1.5-flash",
+    "gemini-1.5-flash-8b",
     "gemini-1.5-pro",
     "gemini-1.5-flash-001",
     "gemini-1.5-flash-002",
-    "gemini-1.5-pro-latest",
-    "gemini-1.5-pro-latest",
-    "gemini-pro" // Classic fallback (1.0)
+    "gemini-1.5-pro-latest"
 ];
 
 const cleanResponse = (text) => {
@@ -104,19 +101,21 @@ const GeminiService = {
         if (payload.contents) {
             payload.contents.forEach(c => c.parts.forEach(p => { if (p.text) inputTokens += estimateTokens(p.text); }));
         }
-        if (payload.systemInstruction) {
-            payload.systemInstruction.parts.forEach(p => { if (p.text) inputTokens += estimateTokens(p.text); });
+        if (payload.systemInstruction || payload.system_instruction) {
+            const sysParts = (payload.systemInstruction || payload.system_instruction).parts;
+            sysParts.forEach(p => { if (p.text) inputTokens += estimateTokens(p.text); });
         }
-        if (payload.system_instruction) {
-            payload.system_instruction.parts.forEach(p => { if (p.text) inputTokens += estimateTokens(p.text); });
-        }
+
+        // Check compatibility
+        const requiresBeta = !!(payload.system_instruction || payload.systemInstruction || payload.generationConfig?.responseSchema || payload.generationConfig?.responseMimeType);
 
         for (let kIdx = 0; kIdx < keys.length; kIdx++) {
             const key = keys[kIdx];
             for (const model of models) {
                 // Try mostly v1beta first (better for new models), then v1 (better for stable/older)
-                // If the model is clearly experimental or 2.0, v1 is unlikely to work, but 404 is cheap.
-                const methods = ['v1beta', 'v1'];
+                // If the payload needs Beta features (JSON schema, system inst), skip v1.
+                const methods = ['v1beta'];
+                if (!requiresBeta) methods.push('v1');
 
                 for (const apiVer of methods) {
                     try {
@@ -152,8 +151,6 @@ const GeminiService = {
                             }
 
                             // Other errors (500, 403, 400 etc) -> fail this model/version.
-                            // Do NOT try v1 if v1beta failed with 400 (Bad Request), as the payload 
-                            // is likely optimized for beta features (schemas, system_inst) that v1 won't support.
                             failureSummary.push(`${model}@${apiVer} (Key ${kIdx}): ${errorMsg}`);
                             updateUsageStats(kIdx, model, response.status, 0, 0);
                             hitOverall429 = false;
@@ -600,7 +597,9 @@ const GeminiService = {
 
         const payload = {
             system_instruction: { parts: [{ text: systemPrompt }] },
-            contents: [...history.map(h => ({ role: h.role === 'user' ? 'user' : 'model', parts: [{ text: h.content }] }))],
+            contents: history.length > 0
+                ? [...history.map(h => ({ role: h.role === 'user' ? 'user' : 'model', parts: [{ text: h.content }] }))]
+                : [{ role: 'user', parts: [{ text: "Begin the session." }] }],
             generationConfig: {
                 responseMimeType: "application/json",
                 responseSchema: {
@@ -647,7 +646,9 @@ const GeminiService = {
 
         const payload = {
             system_instruction: { parts: [{ text: systemPrompt }] },
-            contents: [...history.map(h => ({ role: h.role === 'user' ? 'user' : 'model', parts: [{ text: h.content }] }))],
+            contents: history.length > 0
+                ? [...history.map(h => ({ role: h.role === 'user' ? 'user' : 'model', parts: [{ text: h.content }] }))]
+                : [{ role: 'user', parts: [{ text: "Initialize Forge." }] }],
             generationConfig: {
                 responseMimeType: "application/json",
                 responseSchema: {

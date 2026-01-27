@@ -60,7 +60,15 @@ export const HelperForgeStep = ({ onNext, onBack }) => {
 
         } catch (err) {
             console.error("Forge Error:", err);
-            setChatHistory(prev => [...prev, { role: 'model', content: "System Glitch. Please repeat." }]);
+            let errorMessage = "System Glitch. Please repeat.";
+
+            if (err.message.includes("Leaked") || err.message.includes("Exhausted") || err.message.includes("429")) {
+                errorMessage = "⚠️ ORACLE DISCONNECTED: The shared connection is exhausted or blocked. Please enter a custom Gemini API Key below to continue.";
+            } else if (err.message.includes("403")) {
+                errorMessage = "⚠️ ACCESS DENIED: The current key does not have permission. Please verify your API Key.";
+            }
+
+            setChatHistory(prev => [...prev, { role: 'model', content: errorMessage }]);
         } finally {
             setIsLoading(false);
         }

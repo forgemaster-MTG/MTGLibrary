@@ -189,6 +189,7 @@ const DeckBuildWizardPage = () => {
             if (deck.commander?.name) currentDeckNames.add(deck.commander.name);
             if (deck.commander_partner?.name) currentDeckNames.add(deck.commander_partner.name);
 
+            const strategyTargets = blueprint.layout?.functional || blueprint.suggestedCounts || {};
             const typeTargets = {
                 'Land': 36,
                 'Mana Ramp': 10,
@@ -196,7 +197,7 @@ const DeckBuildWizardPage = () => {
                 'Targeted Removal': 10,
                 'Board Wipes': 3,
                 'Synergy / Strategy': 30,
-                ...(blueprint.suggestedCounts || {})
+                ...strategyTargets
             };
 
             const allNewSuggestions = {};
@@ -393,15 +394,9 @@ const DeckBuildWizardPage = () => {
             const targetLands = typeTargets['Land'] || 36;
             let neededLands = Math.max(0, targetLands - (currentLands + suggestedLands));
 
-            // 2. Calculate how many cards total we are missing to hit a full 100-card deck
-            // AI might not have filled all non-land categories requested.
-            const totalInDeck = deckCards.length;
-            const totalSuggested = Object.keys(allNewSuggestions).length;
-            const totalGap = 100 - (totalInDeck + totalSuggested);
-
-            // If the total gap is larger than the needed lands, we should fill the entire gap with basics
-            // to ensure the deck is actually playable/valid at 100 cards.
-            const finalFillCount = Math.max(neededLands, totalGap);
+            // 2. Only fill the exact land slots required by the strategy.
+            // Do NOT overfill to force 100 cards if the AI missed some functional slots.
+            const finalFillCount = neededLands;
 
             if (finalFillCount > 0) {
                 addLog(`Balancing mana base and filling ${finalFillCount} remaining slots...`);

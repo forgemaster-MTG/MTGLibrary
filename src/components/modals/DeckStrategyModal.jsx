@@ -93,14 +93,18 @@ const DeckStrategyModal = ({ isOpen, onClose, deck, cards = [], onStrategyUpdate
         setIsRerunning(true);
         try {
             console.log('[DeckStrategy] requesting new strategy...');
+            const commanderName = deck.commander?.name || 'Unknown Commander';
+            const fullCommanderName = deck.commander_partner
+                ? `${commanderName} + ${deck.commander_partner.name}`
+                : commanderName;
+
             const newStrategy = await GeminiService.getDeckStrategy(
                 userProfile.settings.geminiApiKey,
-                deck.commander?.name || 'Unknown Commander',
+                fullCommanderName,
                 userProfile.playstyle,
                 cards,
-                deck.commander_partner?.name, // Pass partner if exists
-                null,
-                userProfile
+                userProfile?.settings?.helper, // Correct 5th arg
+                userProfile // Correct 6th arg
             );
             console.log('[DeckStrategy] new strategy received:', newStrategy);
 

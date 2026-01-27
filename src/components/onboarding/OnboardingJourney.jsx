@@ -105,8 +105,8 @@ const OnboardingJourney = () => {
         switch (step) {
             case 0: setStage(STAGES.FORGE); break;
             case 1: setStage(STAGES.CHOICE); break;
-            case 2: setStage(STAGES.ALIGNMENT); break;
-            case 3: setStage(STAGES.COMPANION); break;
+            case 2: setStage(STAGES.COMPANION); break;
+            case 3: setStage(STAGES.ALIGNMENT); break;
             case 4: setStage(STAGES.ORGANIZATION); break;
             case 5: setStage(STAGES.ASCENSION); break;
             case 6: setStage(STAGES.COLLECTION); break;
@@ -138,7 +138,7 @@ const OnboardingJourney = () => {
 
     const handleMaximize = async () => {
         await updateSettings({ onboarding_step: 2 });
-        setStage(STAGES.ALIGNMENT); // Do AI
+        setStage(STAGES.COMPANION); // Do AI Forge First
     };
 
     const handlePlaystyleRefusal = async () => {
@@ -149,7 +149,7 @@ const OnboardingJourney = () => {
     const handlePlaystyleComplete = async (profile) => {
         try {
             await updateSettings({
-                playstyle_profile: profile,
+                playstyle: profile,
                 onboarding_step: 4
             });
             setShowPlaystyleModal(false);
@@ -189,15 +189,15 @@ const OnboardingJourney = () => {
                     type: helperData.type || "Mystic Construct",
                     personality: helperData.personality || "Wise, Efficient, Slightly Mystical"
                 },
-                onboarding_step: 4
+                onboarding_step: 3
             });
 
 
             // Unlock AI Achievement
             achievementService.check({ ai_setup_complete: 1 });
 
-            // Go to Organization after AI
-            setStage(STAGES.ORGANIZATION);
+            // Go to Alignment (Playstyle) after AI
+            setStage(STAGES.ALIGNMENT);
         } catch (e) {
             console.error(e);
         } finally {
