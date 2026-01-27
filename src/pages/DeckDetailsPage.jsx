@@ -1386,15 +1386,26 @@ const DeckDetailsPage = () => {
                             <div className="space-y-3 relative z-10">
                                 <button
                                     onClick={() => {
+                                        const tierConfig = getTierConfig(userProfile?.subscription_tier);
+                                        if (!tierConfig.features.deckSuggestions) {
+                                            addToast('Deck Builder is available on Magician tier and above.', 'info');
+                                            return;
+                                        }
+
                                         if (deck.format?.toLowerCase() === 'standard') {
                                             addToast("Standard AI Deck Tech coming soon! Please verify on Discord to prioritize.", 'info', 0); // 0 = persistent
                                         } else {
                                             navigate(`/decks/${deckId}/build`);
                                         }
                                     }}
-                                    className="w-full py-4 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-300 rounded-xl border border-indigo-500/20 hover:border-indigo-500/40 transition-all font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3 group/btn"
+                                    className={`w-full py-4 rounded-xl border transition-all font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3 group/btn ${getTierConfig(userProfile?.subscription_tier).features.deckSuggestions
+                                        ? 'bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-300 border-indigo-500/20 hover:border-indigo-500/40'
+                                        : 'bg-gray-900/50 border-gray-800 text-gray-600 cursor-not-allowed hover:bg-gray-900/50'
+                                        }`}
                                 >
-                                    <span className="text-lg group-hover/btn:scale-110 transition-transform">✨</span>
+                                    <span className={`text-lg transition-transform ${getTierConfig(userProfile?.subscription_tier).features.deckSuggestions ? 'group-hover/btn:scale-110' : ''}`}>
+                                        {getTierConfig(userProfile?.subscription_tier).features.deckSuggestions ? '✨' : '🔒'}
+                                    </span>
                                     {helperName}'s Deck Builder
                                 </button>
                                 <button

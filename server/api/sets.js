@@ -4,10 +4,22 @@ import { cardService } from '../services/cardService.js';
 
 const router = express.Router();
 
+// Simple in-memory cache
+let setsCache = {
+    data: null,
+    lastFetched: 0
+};
+const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
+
 // Get all sets
 router.get('/', async (req, res) => {
     try {
-        console.log('[API] Fetching sets and calculating unique card counts...');
+        const now = Date.now();
+        if (setsCache.data && (now - setsCache.lastFetched < CACHE_DURATION)) {
+            return res.json({ data: setsCache.data });
+        }
+
+        console.log('[API] Fetching sets and calculating unique card counts (Cache Miss)...');
         const sets = await knex('sets').orderBy('releasedate', 'desc');
 
         if (sets && sets.length > 0) {
@@ -41,6 +53,12 @@ router.get('/', async (req, res) => {
                     digital: s.isonlineonly
                 };
             });
+
+            // Update cache
+            setsCache = {
+                data: mappedSets,
+                lastFetched: now
+            };
 
             return res.json({ data: mappedSets });
         }

@@ -93,18 +93,50 @@ const DeckStrategyModal = ({ isOpen, onClose, deck, cards = [], onStrategyUpdate
         setIsRerunning(true);
         try {
             console.log('[DeckStrategy] requesting new strategy...');
-            const commanderName = deck.commander?.name || 'Unknown Commander';
-            const fullCommanderName = deck.commander_partner
-                ? `${commanderName} + ${deck.commander_partner.name}`
-                : commanderName;
+            console.log('[DeckStrategy] Raw Deck:', deck);
+            console.log('[DeckStrategy] User Profile:', userProfile);
+
+            // Validate & Sanitize Commander Data
+            const rawCommanders = [deck.commander, deck.commander_partner].filter(Boolean);
+            const sanitizedCommanders = rawCommanders.map(c => {
+                // Fallback for flat structure vs nested data structure
+                const name = c.name || c.data?.name || 'Unknown';
+                const mana_cost = c.mana_cost || c.cmc || c.data?.mana_cost || c.data?.cmc || '0';
+                const type_line = c.type_line || c.data?.type_line || 'Legendary Creature';
+                const oracle_text = c.oracle_text || c.data?.oracle_text || '';
+
+                return { name, mana_cost, type_line, oracle_text };
+            });
+
+            console.log('[DeckStrategy] sanitizedCommanders:', sanitizedCommanders);
+
+            // Robust Playstyle Check with Deep Search
+            let activePlaystyle = userProfile.playstyle || userProfile.settings?.playstyle || userProfile.data?.playstyle || null;
+
+            // If still missing, check if it's nested in a 'data' field on the profile response
+            if (!activePlaystyle && userProfile.data && userProfile.data.playstyle) {
+                activePlaystyle = userProfile.data.playstyle;
+            }
+
+            if (!activePlaystyle) {
+                console.warn('[DeckStrategy] User playstyle NOT found. Profile keys:', Object.keys(userProfile));
+                // Fallback to avoid "undefined" in prompt, providing a generic profile if missing
+                activePlaystyle = {
+                    summary: "Balanced Magic player enjoying strategic depth and interaction.",
+                    archetypes: ["Midrange", "Control"],
+                    scores: { aggression: 5 }
+                };
+            } else {
+                console.log('[DeckStrategy] playstyle found:', activePlaystyle);
+            }
 
             const newStrategy = await GeminiService.getDeckStrategy(
                 userProfile.settings.geminiApiKey,
-                fullCommanderName,
-                userProfile.playstyle,
+                sanitizedCommanders,
+                activePlaystyle,
                 cards,
-                userProfile?.settings?.helper, // Correct 5th arg
-                userProfile // Correct 6th arg
+                userProfile?.settings?.helper,
+                userProfile
             );
             console.log('[DeckStrategy] new strategy received:', newStrategy);
 
@@ -127,7 +159,7 @@ const DeckStrategyModal = ({ isOpen, onClose, deck, cards = [], onStrategyUpdate
                 await onStrategyUpdate();
             }
         } catch (err) {
-            console.error(err);
+            console.error('[DeckStrategy] Rerun Error:', err);
             addToast("Failed to rerun strategy analysis.", "error");
         } finally {
             setIsRerunning(false);
@@ -323,11 +355,19 @@ const DeckStrategyModal = ({ isOpen, onClose, deck, cards = [], onStrategyUpdate
                                             <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
                                             Target Functional Needs
                                         </h4>
-                                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                                        <div className="gap-3 grid grid-cols-1">
                                             {Object.entries(functionalNeeds).map(([type, count]) => (
-                                                <div key={type} className="bg-white/5 p-5 rounded-2xl border border-white/5 text-center group hover:bg-white/10 hover:border-white/10 hover:-translate-y-1 transition-all duration-300 shadow-sm hover:shadow-xl">
-                                                    <div className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-2 group-hover:text-indigo-400 transition-colors h-8 flex items-center justify-center">{type}</div>
-                                                    <div className="text-3xl font-black text-white tracking-tighter group-hover:scale-110 transition-transform">{count}</div>
+                                                <div key={type} className="group relative h-8 bg-white/5 rounded-lg overflow-hidden flex items-center">
+                                                    {/* Bar Background */}
+                                                    <div
+                                                        className="absolute inset-y-0 left-0 bg-indigo-500/20 group-hover:bg-indigo-500/30 transition-all duration-1000 ease-out rounded-r-lg"
+                                                        style={{ width: `${Math.min(100, (count / 40) * 100)}%` }} // Normalized approx max 40 for functional
+                                                    />
+
+                                                    <div className="relative z-10 w-full flex justify-between px-4 text-xs font-bold items-center">
+                                                        <span className="uppercase tracking-wider text-gray-400 group-hover:text-white transition-colors">{type}</span>
+                                                        <span className="font-mono text-indigo-300">{count}</span>
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>
@@ -341,11 +381,19 @@ const DeckStrategyModal = ({ isOpen, onClose, deck, cards = [], onStrategyUpdate
                                             <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
                                             Target Type Distribution
                                         </h4>
-                                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+                                        <div className="gap-3 grid grid-cols-1">
                                             {Object.entries(typeDistribution).map(([type, count]) => (
-                                                <div key={type} className="bg-white/5 p-4 rounded-2xl border border-white/5 text-center group hover:bg-white/10 hover:border-white/10 hover:-translate-y-1 transition-all duration-300 shadow-sm hover:shadow-xl">
-                                                    <div className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-2 group-hover:text-purple-400 transition-colors h-8 flex items-center justify-center">{type}</div>
-                                                    <div className="text-2xl font-black text-white tracking-tighter group-hover:scale-110 transition-transform">{count}</div>
+                                                <div key={type} className="group relative h-8 bg-white/5 rounded-lg overflow-hidden flex items-center">
+                                                    {/* Bar Background */}
+                                                    <div
+                                                        className="absolute inset-y-0 left-0 bg-purple-500/20 group-hover:bg-purple-500/30 transition-all duration-1000 ease-out rounded-r-lg"
+                                                        style={{ width: `${Math.min(100, (count / 40) * 100)}%` }} // Normalized approx max 40 for types
+                                                    />
+
+                                                    <div className="relative z-10 w-full flex justify-between px-4 text-xs font-bold items-center">
+                                                        <span className="uppercase tracking-wider text-gray-400 group-hover:text-white transition-colors">{type}</span>
+                                                        <span className="font-mono text-purple-300">{count}</span>
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>

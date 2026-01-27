@@ -7,6 +7,7 @@ import { useCollection } from '../hooks/useCollection';
 import { GeminiService } from '../services/gemini';
 import { api } from '../services/api';
 import CardGridItem from '../components/common/CardGridItem';
+import { getTierConfig } from '../config/tiers';
 
 const STEPS = {
     ANALYSIS: 1,
@@ -21,6 +22,15 @@ const DeckBuildWizardPage = () => {
     const { addToast } = useToast();
     const { deck, cards: deckCards, loading: deckLoading, error: deckError } = useDeck(deckId);
     const { cards: collection } = useCollection();
+
+    useEffect(() => {
+        if (!userProfile) return;
+        const tier = getTierConfig(userProfile.subscription_tier);
+        if (!tier.features.deckSuggestions) {
+            addToast("Deck Builder requires Magician tier or higher.", "error");
+            navigate(`/decks/${deckId}`);
+        }
+    }, [userProfile, deckId]);
 
     // Wizard State
     const [step, setStep] = useState(STEPS.ANALYSIS);
@@ -216,8 +226,32 @@ const DeckBuildWizardPage = () => {
                 let needed = Math.max(0, target - currentTypeCount);
                 if (needed > 0) {
                     deckRequirements[type] = needed;
-                    totalNeeded += needed;
+                    totalNeeded += needed; // Initial sum
                 }
+            }
+
+            // --- CRITICAL FIX: Global Cap Enforceed ---
+            // Ensure we never request more cards than can fit in the deck (100 total)
+            const currentDeckCount = deckCards.length + (deck.commander ? 1 : 0) + (deck.commander_partner ? 1 : 0);
+            const maxSlotsAvailable = 100 - currentDeckCount;
+
+            if (totalNeeded > maxSlotsAvailable) {
+                let excess = totalNeeded - maxSlotsAvailable;
+                addLog(`Detected over-request (Needs ${totalNeeded} for slots, but only ${maxSlotsAvailable} available). Balancing...`);
+
+                // Strategy: Reduce 'Synergy / Strategy' first as it's the catch-all bucket for undefined cards
+                if (deckRequirements['Synergy / Strategy'] > 0) {
+                    const reduction = Math.min(deckRequirements['Synergy / Strategy'], excess);
+                    deckRequirements['Synergy / Strategy'] -= reduction;
+                    excess -= reduction;
+                }
+
+                // If still excess, reduce standard functional slots proportionally? 
+                // Alternatively, just shave off 'Card Draw' or 'Mana Ramp' slightly or stop. 
+                // For now, Synergy is usually the culprit for unclassified cards.
+
+                // Update totalNeeded to match the constrained sum
+                totalNeeded = Object.values(deckRequirements).reduce((a, b) => a + b, 0);
             }
 
             if (totalNeeded === 0) {
@@ -257,28 +291,62 @@ const DeckBuildWizardPage = () => {
                 addLog("Discovery Mode Active: Bypassing collection scan. AI will search global database.");
             }
 
+            // --- ROBUST DATA PREPARATION (Matches DeckStrategyModal) ---
+
+            // 1. Sanitize Commander Data
+            const rawCommanders = [deck.commander, deck.commander_partner].filter(Boolean);
+            const sanitizedCommanders = rawCommanders.map(c => ({
+                name: c.name || c.data?.name || 'Unknown',
+                mana_cost: c.mana_cost || c.cmc || c.data?.mana_cost || c.data?.cmc || '0',
+                type_line: c.type_line || c.data?.type_line || 'Legendary Creature',
+                oracle_text: c.oracle_text || c.data?.oracle_text || ''
+            }));
+
+            // Construct Commander String for Prompt
+            const commanderString = sanitizedCommanders.map(c => c.name).join(' & ');
+
+            // 2. Robust Playstyle Check
+            let activePlaystyle = userProfile.playstyle || userProfile.settings?.playstyle || userProfile.data?.playstyle || null;
+
+            // Deep check for "data" if it's a JSON string or nested
+            if (!activePlaystyle && userProfile.data && userProfile.data.playstyle) {
+                activePlaystyle = userProfile.data.playstyle;
+            }
+
+            if (!activePlaystyle) {
+                addLog("⚠️ Playstyle undefined in profile. Using generic fallback.");
+                activePlaystyle = {
+                    summary: "Balanced Magic player enjoying strategic depth and interaction.",
+                    archetypes: ["Midrange", "Control"],
+                    scores: { aggression: 5 }
+                };
+            }
+
             const promptData = {
                 deckName: deck.name,
-                commander: `${deck.commander?.name}${deck.commander_partner ? ' & ' + deck.commander_partner.name : ''}`,
-                playerProfile: JSON.stringify(userProfile?.playstyle || {}),
+                commander: commanderString,
                 strategyGuide: blueprint?.strategy || 'No specific strategy guide.',
                 helperPersona: userProfile?.settings?.helper,
                 instructions: `Fill the following deck slots: ${JSON.stringify(deckRequirements)}. 
-                    ${strategyInput ? `STRATEGY FOCUS: ${strategyInput}` : ''}
-                    IMPORTANT: For every card suggested, you MUST provide the specific 'set' code and 'collectorNumber' from Scryfall to ensure the correct printing is identified.`,
+                ${strategyInput ? `STRATEGY FOCUS: ${strategyInput}` : ''}
+                IMPORTANT: For every card suggested, you MUST provide the specific 'set' code and 'collectorNumber' from Scryfall to ensure the correct printing is identified.`,
                 deckRequirements: deckRequirements,
                 candidates: buildMode === 'collection' ? candidates.slice(0, 3500) : [],
                 buildMode: buildMode,
                 currentContext: Array.from(currentDeckNames),
                 neededCount: totalNeeded,
-                commanderColorIdentity: commanderColors.join('') || 'Colorless'
+                commanderColorIdentity: commanderColors.join('') || 'Colorless',
+                // Pass full commander objects for advanced parsing if needed by service
+                commanders: sanitizedCommanders
             };
 
-            setStatus(`Consulting ${helperName} for Holistic Analysis...`);
+            setStatus(`Consulting ${helperName} for a strategy centered around ${commanderString}...`);
+            addLog(`Core Directive: Synergize with ${commanderString}'s specific triggers and playstyle.`);
 
             const fetchAndResolveSuggestions = async (requirements, context) => {
-                const currentBatchSuggestions = {};
-                const currentBatchIds = new Set();
+                const finalSuggestions = {};
+                const finalIds = new Set();
+                const runningContext = new Set(context);
 
                 const LOADING_MESSAGES = ["Consulting the archives...", "Analysing mana curves...", "Simulating games...", "Searching for hidden gems...", "Optimizing synergy lines..."];
                 let loadingInterval = setInterval(() => {
@@ -286,17 +354,18 @@ const DeckBuildWizardPage = () => {
                     setStatus(`${helperName}: ${randomMsg}`);
                 }, 2500);
 
-                const currentPromptData = {
-                    ...promptData,
-                    deckRequirements: requirements,
-                    currentContext: context,
-                    neededCount: Object.values(requirements).reduce((a, b) => a + b, 0)
-                };
-
                 try {
-                    addLog(`Requesting ${currentPromptData.neededCount} cards from ${helperName}...`);
+                    const totalNeededForRequest = Object.values(requirements).reduce((a, b) => a + b, 0);
+                    addLog(`Requesting ${totalNeededForRequest} cards from ${helperName} for a cohesive deck strategy...`);
+
+                    const currentPromptData = {
+                        ...promptData,
+                        deckRequirements: requirements,
+                        currentContext: Array.from(runningContext),
+                        neededCount: totalNeededForRequest
+                    };
+
                     const result = await GeminiService.generateDeckSuggestions(userProfile.settings.geminiApiKey, currentPromptData, null, userProfile);
-                    if (loadingInterval) clearInterval(loadingInterval);
 
                     if (result?.suggestions) {
                         const sortedSuggestions = result.suggestions.sort((a, b) => (b.rating || 0) - (a.rating || 0));
@@ -310,6 +379,8 @@ const DeckBuildWizardPage = () => {
 
                         for (const s of cappedSuggestions) {
                             const role = s.role || 'Synergy / Strategy';
+                            runningContext.add(s.name);
+
                             if (buildMode === 'discovery' && (!s.firestoreId || s.firestoreId === 'discovery')) {
                                 await new Promise(r => setTimeout(r, 100)); // Throttle
                                 addLog(`Resolving "${s.name}"...`);
@@ -320,24 +391,24 @@ const DeckBuildWizardPage = () => {
                                 const scryData = (response.data || [])[0];
                                 if (scryData) {
                                     const id = scryData.uuid || scryData.id;
-                                    currentBatchSuggestions[id] = {
+                                    finalSuggestions[id] = {
                                         ...s, firestoreId: id, name: scryData.name,
                                         type_line: scryData.type_line || scryData.type,
                                         data: scryData, isDiscovery: true,
                                         is_wishlist: !collection.some(c => (c.scryfall_id || c.uuid) === id),
                                         suggestedType: role
                                     };
-                                    currentBatchIds.add(id);
+                                    finalIds.add(id);
                                 }
                             } else if (s.firestoreId) {
                                 const fullCard = collection.find(c => c.id === s.firestoreId);
                                 if (fullCard) {
-                                    currentBatchSuggestions[s.firestoreId] = {
+                                    finalSuggestions[s.firestoreId] = {
                                         ...s, firestoreId: s.firestoreId, name: fullCard.name,
                                         type_line: fullCard.data?.type_line || fullCard.type_line,
                                         data: fullCard.data || fullCard, suggestedType: role
                                     };
-                                    currentBatchIds.add(s.firestoreId);
+                                    finalIds.add(s.firestoreId);
                                 }
                             }
                         }
@@ -348,7 +419,7 @@ const DeckBuildWizardPage = () => {
                 } finally {
                     if (loadingInterval) clearInterval(loadingInterval);
                 }
-                return { suggestions: currentBatchSuggestions, ids: currentBatchIds };
+                return { suggestions: finalSuggestions, ids: finalIds };
             };
 
             // Pass 1
@@ -367,6 +438,10 @@ const DeckBuildWizardPage = () => {
             });
 
             if (badIds.length > 0) {
+                // Pacing Delay
+                addLog("Pacing AI for refinement...");
+                await delay(2000);
+
                 const refinementReqs = {};
                 badIds.forEach(id => {
                     const role = allNewSuggestions[id].suggestedType;
@@ -394,20 +469,80 @@ const DeckBuildWizardPage = () => {
             const targetLands = typeTargets['Land'] || 36;
             let neededLands = Math.max(0, targetLands - (currentLands + suggestedLands));
 
-            // 2. Only fill the exact land slots required by the strategy.
-            // Do NOT overfill to force 100 cards if the AI missed some functional slots.
-            const finalFillCount = neededLands;
-
-            if (finalFillCount > 0) {
-                addLog(`Balancing mana base and filling ${finalFillCount} remaining slots...`);
-                const basicLandSuggestions = generateBasicLands(finalFillCount, calculateManaStats(deckCards, allNewSuggestions), collection);
+            if (neededLands > 0) {
+                addLog(`Balancing mana base and filling ${neededLands} targeted land slots...`);
+                const basicLandSuggestions = generateBasicLands(neededLands, calculateManaStats(deckCards, allNewSuggestions), collection);
                 Object.assign(allNewSuggestions, basicLandSuggestions);
                 Object.keys(basicLandSuggestions).forEach(id => initialSelectedIds.add(id));
             }
 
+            // 2. GLOBAL RECONCILIATION - Iterative AI pass to reach 100 cards
+            const totalCount = deckCards.length + Object.keys(allNewSuggestions).length + (deck.commander ? 1 : 0) + (deck.commander_partner ? 1 : 0);
+            const finalDeficit = 100 - totalCount;
+
+            // Only reconcile if we are missing significant cards (threshold > 2)
+            // Minor gaps are usually handled by land balancing or can be left to the user
+            if (finalDeficit > 2) {
+                addLog("Pacing AI for reconciliation...");
+                await delay(2000);
+
+                addLog(`Final check: Deck is at ${totalCount}/100. Requesting ${finalDeficit} missing cards from ${helperName}...`);
+
+                // Determine which roles are still under-represented
+                const currentCounts = {};
+                [...deckCards, ...Object.values(allNewSuggestions)].forEach(c => {
+                    let role = c.suggestedType;
+                    if (!role) {
+                        const typeLine = (c.data?.type_line || c.type_line || '').toLowerCase();
+                        if (typeLine.includes('land')) role = 'Land';
+                        else role = 'Synergy / Strategy';
+                    }
+                    currentCounts[role] = (currentCounts[role] || 0) + (c.countInDeck || 1);
+                });
+
+                const reconciliationReqs = {};
+                let remainingDeficit = finalDeficit;
+
+                // Priority for reconciliation: Functional roles first, then Synergy
+                const roles = ['Mana Ramp', 'Card Draw', 'Targeted Removal', 'Board Wipes', 'Synergy / Strategy'];
+                for (const role of roles) {
+                    const target = typeTargets[role] || 0;
+                    const current = currentCounts[role] || 0;
+                    const needed = Math.max(0, target - current);
+                    if (needed > 0) {
+                        const count = Math.min(needed, remainingDeficit);
+                        reconciliationReqs[role] = count;
+                        remainingDeficit -= count;
+                    }
+                }
+
+                // If still deficit (e.g. all targets hit but sum < 100), dump into Synergy
+                if (remainingDeficit > 0) {
+                    reconciliationReqs['Synergy / Strategy'] = (reconciliationReqs['Synergy / Strategy'] || 0) + remainingDeficit;
+                }
+
+                try {
+                    const fullContext = [...Array.from(currentDeckNames), ...Object.values(allNewSuggestions).map(s => s.name)];
+                    const { suggestions: recS, ids: recI } = await fetchAndResolveSuggestions(reconciliationReqs, fullContext);
+                    Object.assign(allNewSuggestions, recS);
+                    recI.forEach(id => initialSelectedIds.add(id));
+
+                    const newTotal = totalCount + recI.size;
+                    addLog(`Reconciliation complete. Final deck size: ${newTotal}/100.`);
+                } catch (err) {
+                    addLog("Reconciliation AI pass failed. Filling remaining slots with basics as fallback.");
+                    const fallbackCount = 100 - (deckCards.length + Object.keys(allNewSuggestions).length + (deck.commander ? 1 : 0) + (deck.commander_partner ? 1 : 0));
+                    if (fallbackCount > 0) {
+                        const fallbackLands = generateBasicLands(fallbackCount, calculateManaStats(deckCards, allNewSuggestions), collection);
+                        Object.assign(allNewSuggestions, fallbackLands);
+                        Object.keys(fallbackLands).forEach(id => initialSelectedIds.add(id));
+                    }
+                }
+            }
+
             setSuggestions(allNewSuggestions);
             setSelectedCards(initialSelectedIds);
-            addLog("Analysis complete.");
+            addLog(`Analysis complete. Outputting ${Object.keys(allNewSuggestions).length} suggestions for a balanced 100-card deck.`);
             setStep(STEPS.ARCHITECT);
         } catch (err) {
             console.error(err);

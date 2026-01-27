@@ -8,6 +8,7 @@ import { communityService } from '../services/communityService';
 import { archetypeService } from '../services/ArchetypeService';
 import ArchetypeBadge from '../components/profile/ArchetypeBadge';
 import PlaystyleWidget from '../components/profile/PlaystyleWidget';
+import { getTierConfig } from '../config/tiers';
 
 const ProfilePage = () => {
     const { id } = useParams();
@@ -241,6 +242,7 @@ const ProfilePage = () => {
                             playstyle={profile.playstyle}
                             isOwnProfile={userProfile?.id === profile.id}
                             onRetake={() => navigate('/onboarding?step=5')}
+                            canRegenerate={getTierConfig(userProfile?.subscription_tier).features.customAiPersona}
                         />
 
                         {/* Public Decks */}

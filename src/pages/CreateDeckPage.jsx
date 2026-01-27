@@ -187,14 +187,35 @@ const CreateDeckPage = () => {
         setLoadingMessage(`${helperName} is analyzing ${selectedPartner ? 'your commanders' : 'your commander'}...`);
 
         try {
-            const commanderName = selectedPartner
-                ? `${selectedCommander.name} & ${selectedPartner.name}`
-                : selectedCommander.name;
+            // --- ROBUST DATA PREPARATION (Matches DeckStrategyModal & Wizard) ---
+            const rawCommanders = [selectedCommander, selectedPartner].filter(Boolean);
+            const sanitizedCommanders = rawCommanders.map(c => ({
+                name: c.name || c.data?.name || 'Unknown',
+                mana_cost: c.mana_cost || c.cmc || c.data?.mana_cost || c.data?.cmc || '0',
+                type_line: c.type_line || c.data?.type_line || 'Legendary Creature',
+                oracle_text: c.oracle_text || c.data?.oracle_text || ''
+            }));
+
+            // 2. Playstyle Fallback
+            let activePlaystyle = userProfile.playstyle || userProfile.settings?.playstyle || userProfile.data?.playstyle || null;
+
+            // Deep check for "data" if it's a JSON string or nested
+            if (!activePlaystyle && userProfile.data && userProfile.data.playstyle) {
+                activePlaystyle = userProfile.data.playstyle;
+            }
+            if (!activePlaystyle) {
+                console.warn("⚠️ Playstyle undefined in CreateDeck. Using generic fallback.");
+                activePlaystyle = {
+                    summary: "Balanced Magic player enjoying strategic depth and interaction.",
+                    archetypes: ["Midrange", "Control"],
+                    scores: { aggression: 5 }
+                };
+            }
 
             const data = await GeminiService.getDeckStrategy(
                 apiKey,
-                commanderName,
-                userProfile.playstyle,
+                sanitizedCommanders, // Pass ARRAY of objects now
+                activePlaystyle,
                 [],
                 userProfile?.settings?.helper,
                 userProfile

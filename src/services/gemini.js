@@ -47,43 +47,89 @@ const updateUsageStats = (keyIndex, model, status, inputTokens, outputTokens) =>
 const DEFAULT_BOOTSTRAP_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 const getKeys = (primaryKey, userProfile) => {
-    const keys = [primaryKey];
+    let rawKeys = [primaryKey];
     if (userProfile?.settings?.geminiApiKeys && Array.isArray(userProfile.settings.geminiApiKeys)) {
         userProfile.settings.geminiApiKeys.forEach(k => {
-            if (k && !keys.includes(k)) keys.push(k);
+            if (k && !rawKeys.includes(k)) rawKeys.push(k);
         });
     }
 
     // Fallback to bootstrap key if not present
-    if (!keys.includes(DEFAULT_BOOTSTRAP_KEY)) {
-        keys.push(DEFAULT_BOOTSTRAP_KEY);
+    if (!rawKeys.includes(DEFAULT_BOOTSTRAP_KEY)) {
+        rawKeys.push(DEFAULT_BOOTSTRAP_KEY);
     }
 
-    return keys.filter(Boolean).slice(0, 5);
+    // Harden: Split by space and trim to remove any shell redirection junk (like '>> .env')
+    const keys = rawKeys.filter(Boolean).map(k => k.split(' ')[0].trim());
+
+    return [...new Set(keys)].slice(0, 5);
 };
 
 const PREFERRED_MODELS = [
-    "gemini-2.0-flash-lite-preview-02-05",
     "gemini-2.5-flash-lite",
+    "gemini-2.5-flash",
+    "gemini-2.0-flash-lite-preview-02-05",
+    "gemini-2.0-flash",
     "gemini-2.0-flash-exp",
     "gemini-1.5-flash",
-    "gemini-1.5-flash-8b",
-    "gemini-1.5-pro",
-    "gemini-1.5-flash-001",
-    "gemini-1.5-flash-002",
-    "gemini-1.5-pro-latest"
+    "gemini-1.5-flash-latest"
 ];
 
 const cleanResponse = (text) => {
     if (!text) return "";
-    return text.replace(/```json/g, '').replace(/```html/g, '').replace(/```/g, '').trim();
+    let cleaned = text.replace(/```json/g, '').replace(/```html/g, '').replace(/```/g, '').trim();
+
+    // Enhanced Truncation Repair
+    if (cleaned.startsWith('{') && !cleaned.endsWith('}')) {
+        console.warn("AI response appears truncated. Implementing structural repair...");
+
+        // Strategy: 
+        // 1. If it ends inside a string (odd number of unescaped quotes), close the quote.
+        // 2. Walk backwards to find the last complete object in the array if possible.
+        // 3. Close the array and object.
+
+        // Fix open strings
+        const quotes = (cleaned.match(/"/g) || []).length;
+        if (quotes % 2 !== 0) {
+            cleaned += '"';
+        }
+
+        // Close common structures
+        if (cleaned.includes('"suggestions"')) {
+            // If it cut off inside an object in the suggestions array
+            if (cleaned.lastIndexOf('{') > cleaned.lastIndexOf('}')) {
+                // We are inside an incomplete object. We must close it or strip it.
+                // Stripping the last incomplete object is safer for a clean JSON parse.
+                cleaned = cleaned.substring(0, cleaned.lastIndexOf('{')).trim();
+                if (cleaned.endsWith(',')) cleaned = cleaned.slice(0, -1);
+            }
+
+            if (!cleaned.endsWith(']')) cleaned += ']';
+            if (!cleaned.endsWith('}')) cleaned += '}';
+        } else {
+            // General fallback
+            if (cleaned.lastIndexOf('[') > cleaned.lastIndexOf(']')) cleaned += ']';
+            if (cleaned.lastIndexOf('{') > cleaned.lastIndexOf('}')) cleaned += '}';
+        }
+
+        // Final sanity check: if it ends in a comma, remove it
+        cleaned = cleaned.trim().replace(/,$/, '');
+        if (!cleaned.endsWith('}')) cleaned += '}';
+    }
+    return cleaned;
 };
 
 const parseResponse = (text) => {
     try {
         return JSON.parse(cleanResponse(text));
     } catch (e) {
-        console.error("JSON Parse Error on:", text);
+        console.error("JSON Parse Error at position:", e.message.match(/position (\d+)/)?.[1] || "unknown");
+        // Log a snippet of where it failed
+        const posMatch = e.message.match(/position (\d+)/);
+        if (posMatch) {
+            const pos = parseInt(posMatch[1]);
+            console.error("Context around error:", text.substring(Math.max(0, pos - 50), pos + 50));
+        }
         throw new Error("Failed to parse AI response: " + e.message);
     }
 };
@@ -109,42 +155,87 @@ const GeminiService = {
         // Check compatibility
         const requiresBeta = !!(payload.system_instruction || payload.systemInstruction || payload.generationConfig?.responseSchema || payload.generationConfig?.responseMimeType);
 
+        const deadKeys = new Set();
+
         for (let kIdx = 0; kIdx < keys.length; kIdx++) {
             const key = keys[kIdx];
+            if (deadKeys.has(key)) continue;
+
+            let hit429ForKey = false;
             for (const model of models) {
+                if (hit429ForKey) break;
+
                 // Try mostly v1beta first (better for new models), then v1 (better for stable/older)
-                // If the payload needs Beta features (JSON schema, system inst), skip v1.
-                const methods = ['v1beta'];
-                if (!requiresBeta) methods.push('v1');
+                const methods = ['v1beta', 'v1']; // Always try both to be safe, unless specifically restricted
 
                 for (const apiVer of methods) {
                     try {
                         const url = `https://generativelanguage.googleapis.com/${apiVer}/models/${model}:generateContent?key=${key}`;
+
+                        // v1 (stable) does not support system_instruction or JSON schema in the same way as v1beta
+                        let finalPayload = { ...payload };
+                        if (apiVer === 'v1') {
+                            // Extract instruction text if it exists
+                            const systemText = (finalPayload.system_instruction || finalPayload.systemInstruction)?.parts?.[0]?.text;
+
+                            // Strip v1beta fields
+                            delete finalPayload.system_instruction;
+                            delete finalPayload.systemInstruction;
+
+                            if (finalPayload.generationConfig) {
+                                finalPayload.generationConfig = { ...finalPayload.generationConfig };
+                                delete finalPayload.generationConfig.responseMimeType;
+                                delete finalPayload.generationConfig.responseSchema;
+                            }
+
+                            // v1 fallback: Merge system instruction into contents as the first user message
+                            if (systemText) {
+                                finalPayload.contents = [
+                                    { role: 'user', parts: [{ text: `SYSTEM INSTRUCTION: ${systemText}\n\nUNDERSTOOD. I will follow those instructions exactly.` }] },
+                                    { role: 'model', parts: [{ text: "Understood. I am ready." }] },
+                                    ...(finalPayload.contents || [])
+                                ];
+                            }
+                        }
+
                         const response = await fetch(url, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(payload)
+                            body: JSON.stringify(finalPayload)
                         });
 
                         if (!response.ok) {
                             let errorMsg = response.status.toString();
+                            let isInvalidKey = false;
                             try {
                                 const errData = await response.json();
-                                if (errData.error?.message) errorMsg = errData.error.message;
+                                if (errData.error?.message) {
+                                    errorMsg = errData.error.message;
+                                    if (errorMsg.toLowerCase().includes('api key not valid') || errorMsg.toLowerCase().includes('invalid api key')) {
+                                        isInvalidKey = true;
+                                    }
+                                }
                             } catch (e) { /* ignore */ }
 
-                            // If 429, this Key + Model combo is exhausted. 
-                            // Don't try v1 for the same model; it shares quota/limits usually.
-                            // Break version loop -> try next model.
+                            if (isInvalidKey) {
+                                failureSummary.push(`Key ${kIdx}: Invalid/Expired`);
+                                deadKeys.add(key);
+                                hit429ForKey = true; // Use this to break models loop too
+                                break; // Skip all models for this key
+                            }
+
                             if (response.status === 429) {
                                 hitOverall429 = true;
                                 updateUsageStats(kIdx, model, 429, 0, 0);
                                 failureSummary.push(`${model}@${apiVer} (Key ${kIdx}): 429 Rate Limited`);
-                                break; // Break versions, try next model
+
+                                // INCREASED: Buffer delay to avoid hammering the next key/model immediately
+                                await new Promise(resolve => setTimeout(resolve, 3000));
+
+                                hit429ForKey = true;
+                                break; // Skip other versions and MODELS for this key
                             }
 
-                            // If 404, it might just be the wrong endpoint for this model.
-                            // Continue to 'v1' iteration.
                             if (response.status === 404) {
                                 failureSummary.push(`${model}@${apiVer}: 404 Not Found`);
                                 continue; // Try next version
@@ -183,8 +274,9 @@ const GeminiService = {
 
     async generateDeckSuggestions(apiKey, payload, helper = null, userProfile = null) {
         const {
-            deckName, commander, playerProfile, strategyGuide, helperPersona,
-            targetRole, candidates, currentContext, neededCount, buildMode
+            deckName, commander, strategyGuide, helperPersona,
+            targetRole, candidates, currentContext, neededCount, buildMode,
+            commanders, instructions
         } = payload;
 
         const helperName = helperPersona?.name || helper?.name || "The Oracle";
@@ -193,35 +285,33 @@ const GeminiService = {
         const systemMessage = `You are ${helperName}. Your personality is: ${helperTone}.
         VOICE: Strictly adhere to your personality. Address the user as an equal.
         CORE MISSION:
-        - Match a deck's mechanical soul to PLAYER PROFILE: ${playerProfile}
-        - Align with STRATEGY GUIDE: ${strategyGuide}
-        - Select EXACTLY THE REQUESTED NUMBER OF CARDS for each functional role. Avoid over-suggesting.
-        - SYNERGY OVER STAPLES: Prefer cards that enable the specific loops of the commander.
-        - COLOR IDENTITY: You MUST ONLY suggest cards that match the commander's color identity: ${payload.commanderColorIdentity}. This includes both casting cost and any mana symbols in the rules text (Oracle).
+        - Execute the DECK STRATEGY: ${strategyGuide}
+        - SPECIAL INSTRUCTIONS: ${instructions || 'None provided.'}
+        - EXPLICIT COUNT ENFORCEMENT: You MUST return EXACTLY the number of cards requested.
+        - SYNERGY PRIORITIZATION: Prioritize cards that enable triggers or mechanics mentioned in the commander's text. If the commander requires multiple different specific triggers (e.g., four different elements), ensure the suggestions include a balanced mix of all required triggers to enable transformation/activation.
+        - COLOR IDENTITY: Suggest cards matching: ${payload.commanderColorIdentity}.
+        - CONTEXT AWARENESS: DO NOT suggest cards already in deck: ${JSON.stringify(currentContext)}.
+        - TOKEN EFFICIENCY (CRITICAL): You are being asked for a large number of cards (~100). To fit in the output buffer, your 'reason' for each card MUST be a fragment of 5-8 words. No full sentences. Example: "Top-tier ramp for artifacts." or "Key combo piece for commander."
         
         ALLOWED ROLES:
-        You MUST assign every card one of these EXACT roles:
-        - 'Synergy / Strategy' (The core engine)
-        - 'Mana Ramp' (Artifacts/spells that accelerate mana)
-        - 'Card Draw' (Spells that net card advantage)
-        - 'Targeted Removal' (Single target interaction)
-        - 'Board Wipes' (Mass removal)
-        - 'Land' (Utility or mana-fixing lands)
+        Assign one of: 'Synergy / Strategy', 'Mana Ramp', 'Card Draw', 'Targeted Removal', 'Board Wipes', 'Land'.
 
         CRITICAL INSTRUCTIONS FOR DISCOVERY MODE:
-        When in DISCOVERY mode, you are not limited to the candidate pool. You must search the entire Magic: The Gathering card history.
-        Suggestions will be resolved PRIMARILY BY NAME. Focus on the best mechanical fit.
-        Providing 'set' and 'collectorNumber' is still recommended for a baseline printing, but robustness is prioritized via Name.
-        IMPORTANT: Use modern Scryfall set codes (e.g., 'cmd', 'mh1', 'tmkm').
+        Search entire MTG history. Resolve by Name. Recommend 'set' and 'collectorNumber'.
         
         CRITICAL INSTRUCTIONS FOR COLLECTION MODE:
-        Only suggest cards from the [CANDIDATE POOL]. Use the 'firestoreId' provided.`;
+        Only suggest from [CANDIDATE POOL]. Use 'firestoreId'.`;
+
+        const commanderDetail = (commanders || []).map(c => `[${c.name}] (${c.type_line}) - Oracle: ${c.oracle_text}`).join('\n');
 
         const userQuery = `
-            DECK: ${deckName} | COMMANDER: ${commander}
+            DECK: ${deckName}
+            [COMMANDER(S)]
+            ${commanderDetail || commander}
+            
             [COLOR IDENTITY] ${payload.commanderColorIdentity}
-            [PSYCHOGRAPHIC PROFILE] ${playerProfile}
             [STRATEGY] ${strategyGuide}
+            [SPECIAL FOCUS] ${instructions || 'None'}
             [STATUS] Current deck contains: ${JSON.stringify(currentContext)}
             [REQUEST] I need the following counts for these specific roles: ${JSON.stringify(payload.deckRequirements || { [targetRole]: neededCount })}
             [MODE] ${buildMode === 'discovery' ? 'DISCOVERY (Global Search)' : 'COLLECTION (Strict Pool)'}
@@ -234,6 +324,7 @@ const GeminiService = {
             contents: [{ role: 'user', parts: [{ text: userQuery }] }],
             generationConfig: {
                 responseMimeType: "application/json",
+                maxOutputTokens: 8192,
                 responseSchema: {
                     type: "OBJECT",
                     properties: {
@@ -245,7 +336,7 @@ const GeminiService = {
                                     firestoreId: { type: "STRING", description: "The ID from the pool, or 'discovery' for new cards" },
                                     name: { type: "STRING" },
                                     rating: { type: "NUMBER", description: "1-10 how well it fits" },
-                                    reason: { type: "STRING", description: "Detailed gameplay justification" },
+                                    reason: { type: "STRING", description: "Brief justification (max 12 words)" },
                                     set: { type: "STRING", description: "Scryfall set code (e.g. 'mkm')" },
                                     collectorNumber: { type: "STRING", description: "Scryfall collector number" },
                                     role: {
@@ -371,24 +462,64 @@ const GeminiService = {
         return result.replace(/```html/g, '').replace(/```/g, '').trim();
     },
 
-    async getDeckStrategy(apiKey, commanderName, playstyle = null, existingCards = [], helper = null, userProfile = null) {
+    async getDeckStrategy(apiKey, commanderInput, playstyle = null, existingCards = [], helper = null, userProfile = null) {
         const helperName = helper?.name || 'The Oracle';
-        const playstyleContext = playstyle ? `USER PLAYSTYLE: ${playstyle.summary}` : "";
+        const helperPersona = helper?.personality || 'Wise, mystical, and strategic.';
 
-        const systemPrompt = `You are ${helperName}. Generate a master strategy blueprint for a Commander deck led by ${commanderName}.
+        // Parse Commander Details
+        const commanders = Array.isArray(commanderInput) ? commanderInput : [commanderInput];
+        const commanderContext = commanders.map(c => {
+            const name = c.name || c.data?.name || "Unknown Commander";
+            const cost = c.mana_cost || c.cmc || c.data?.mana_cost || c.data?.cmc || "N/A";
+            const type = c.type_line || c.data?.type_line || "Legendary Creature";
+            const text = c.oracle_text || c.data?.oracle_text || "Refer to global knowledge";
+            return `NAME: ${name}\nMANA COST: ${cost}\nTYPE: ${type}\nTEXT: ${text}`;
+        }).join('\n---\n');
+
+        const playstyleContext = playstyle
+            ? `USER PLAYSTYLE PROFILE:\n- Summary: ${playstyle.summary}\n- Archetypes: ${playstyle.archetypes?.join(', ')}\n- Aggression: ${playstyle.scores?.aggression}/10`
+            : "USER PLAYSTYLE: Unknown, assume balanced competitive-casual.";
+
+        const systemPrompt = `You are ${helperName}. Your personality is: ${helperPersona}.
         
+        MISSION:
+        Generate a unique, high-level Commander STRATEGY BLUEPRINT for a deck led by:
+        ${commanderContext}
+
         ${playstyleContext}
         
+        CRITICAL RULES:
+        1. **100 CARDS TOTAL**: The 'layout' counts MUST sum up to exactly 100 cards when including the ${commanders.length} commander(s).
+        2. **DYNAMIC LAYOUT**: Tailor "Functional" and "Type" counts to the strategy.
+        3. **VISUAL AESTHETICS**: You are a UI Designer as much as a Strategist. Your output must be VISUALLY STUNNING.
+           - Use **EMOJIS** in every section header and list item. 🔮 ⚔️ 🛡️
+           - Use **BANNERS**: Wrap key concepts in styled divs.
+           - Use **COLORS**: specific tailwind text colors for types (e.g., text-green-400 for lands/ramp, text-red-400 for aggression).
+
         FORMAT INSTRUCTIONS:
-        - 'theme': A 3-5 word evocative title for the deck's specific strategy.
-        - 'strategy': High-level tactical advice in **Polished Modern HTML** format. Use <h4 class="text-white font-bold mt-4 mb-2"> for headings, <p class="text-gray-300 mb-4 leading-relaxed"> for body, <ul class="list-disc pl-5 text-gray-400 space-y-2 mb-4"> for lists, and <strong class="text-indigo-400"> for key terms. Use emojis 🔮 liberally to make it engaging.
-        - 'layout': Target counts for a 100-card deck (excluding the 1-2 commanders). 
-           - 'functional': { "Lands": 36, "Mana Ramp": 10, "Card Draw": 10, "Removal": 10, "Board Wipes": 3, "Synergy": 30 }
-           - 'types': { "Creatures": 30, "Instants": 10, "Sorceries": 10, "Artifacts": 10, "Enchantments": 4, "Planeswalkers": 0, "Lands": 36 }`;
+        - 'theme': A 3-5 word evocative title (e.g., "Eldritch Spellslinger Chaos").
+        - 'strategy': Tactical advice in **RICH HTML**. Do *not* use Markdown.
+           
+           Required HTML Elements & Styling:
+           - **Headers**: <h4 class="text-xl font-black text-white mt-6 mb-3 flex items-center gap-2"><span class="text-2xl">⚡</span> SECTION TITLE</h4>
+           - **Banners**: <div class="bg-indigo-500/10 border-l-4 border-indigo-500 p-4 rounded-r-lg my-4 text-gray-200">Content...</div>
+           - **Keywords**: <span class="font-bold text-indigo-400">Keyword</span>
+           - **Lists**: <ul class="space-y-2 mb-4"><li class="flex items-start gap-2"><span class="mt-1">🔹</span><span>Point...</span></li></ul>
+           
+           Required Sections:
+           1. **The Grand Vision** (Intro)
+           2. **The Game Plan** (Early/Mid/Late game - use a timeline or steps)
+           3. **Winning the Game** (Win Conditions)
+           4. **Secret Tech & Synergies** (Highlight specific interactions)
+           
+        - 'layout': Target counts for the remaining deck slots (Total 100 - Commanders).
+           - 'functional': { "Lands": N, "Mana Ramp": N, "Card Draw": N, "Removal": N, "Board Wipes": N, "Synergy/Core": N }
+           - 'types': { "Creatures": N, "Instants": N, "Sorceries": N, "Artifacts": N, "Enchantments": N, "Planeswalkers": N, "Lands": N }
+        `;
 
         const payload = {
             system_instruction: { parts: [{ text: systemPrompt }] },
-            contents: [{ role: 'user', parts: [{ text: `Generate strategy for commander: ${commanderName}` }] }],
+            contents: [{ role: 'user', parts: [{ text: `Generate unique strategy for this commander.` }] }],
             generationConfig: {
                 responseMimeType: "application/json",
                 responseSchema: {
@@ -409,7 +540,8 @@ const GeminiService = {
                                         "Removal": { type: "NUMBER" },
                                         "Board Wipes": { type: "NUMBER" },
                                         "Synergy": { type: "NUMBER" }
-                                    }
+                                    },
+                                    required: ["Lands", "Mana Ramp", "Card Draw", "Removal", "Board Wipes", "Synergy"]
                                 },
                                 types: {
                                     type: "OBJECT",
@@ -421,7 +553,8 @@ const GeminiService = {
                                         "Enchantments": { type: "NUMBER" },
                                         "Planeswalkers": { type: "NUMBER" },
                                         "Lands": { type: "NUMBER" }
-                                    }
+                                    },
+                                    required: ["Creatures", "Instants", "Sorceries", "Artifacts", "Enchantments", "Planeswalkers", "Lands"]
                                 }
                             },
                             required: ["functional", "types"]

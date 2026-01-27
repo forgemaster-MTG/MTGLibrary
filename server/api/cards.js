@@ -250,7 +250,7 @@ router.post('/search', async (req, res) => {
 			for (const url of attempts) {
 				try {
 					addLogSvr(`Scryfall fallback attempt: ${url}`);
-					const response = await axios.get(url, { headers, timeout: 5000 });
+					const response = await axios.get(url, { headers, timeout: 10000 });
 
 					if (response.status === 200) {
 						let scryfallCards = response.data.data ? response.data.data : [response.data];
@@ -288,7 +288,9 @@ router.post('/search', async (req, res) => {
 									number: cardData.collector_number
 								});
 								const updated = await knex('cards').where({ uuid: existingId }).first();
-								savedCards.push({ ...updated, ...updated.data });
+								if (updated) {
+									savedCards.push({ ...updated, ...updated.data });
+								}
 							} else {
 								const [inserted] = await knex('cards').insert({
 									name: cardData.name,
@@ -300,8 +302,11 @@ router.post('/search', async (req, res) => {
 									manacost: cardData.mana_cost,
 									text: cardData.oracle_text
 								}).returning('*');
-								await knex('cardidentifiers').insert({ uuid: inserted.uuid, scryfallid: scryfallId });
-								savedCards.push({ ...inserted, ...inserted.data });
+
+								if (inserted) {
+									await knex('cardidentifiers').insert({ uuid: inserted.uuid, scryfallid: scryfallId });
+									savedCards.push({ ...inserted, ...inserted.data });
+								}
 							}
 
 							// If we only need the top match for Resolution, we can break after one successful save

@@ -103,7 +103,10 @@ const PlaystyleWizardModal = ({ isOpen, onClose, onComplete, helperName = "The O
         try {
             const apiKey = userProfile?.settings?.geminiApiKey;
             const profile = await GeminiService.synthesizePlaystyle(apiKey, finalAnswers, userProfile);
-            if (onComplete) await onComplete(profile);
+
+            // Force refresh of user profile to pick up the new playstyle immediately
+            if (onComplete) await onComplete(profile); // This usually updates the backend
+
             onClose();
         } catch (err) {
             setError("Failed to synthesize your profile.");

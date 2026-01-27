@@ -1,6 +1,6 @@
 import React from 'react';
 
-const PlaystyleWidget = ({ playstyle, isOwnProfile, onRetake }) => {
+const PlaystyleWidget = ({ playstyle, isOwnProfile, onRetake, canRegenerate = true }) => {
     if (!playstyle) {
         if (isOwnProfile) {
             return (
@@ -10,10 +10,15 @@ const PlaystyleWidget = ({ playstyle, isOwnProfile, onRetake }) => {
                         Take the magical identity assessment to uncover your archetypes and get personalized recommendations.
                     </p>
                     <button
-                        onClick={onRetake}
-                        className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg shadow-lg hover:shadow-indigo-500/25 transition-all"
+                        onClick={canRegenerate ? onRetake : () => { }}
+                        disabled={!canRegenerate}
+                        className={`px-6 py-2 font-bold rounded-lg shadow-lg transition-all ${canRegenerate
+                            ? 'bg-indigo-600 hover:bg-indigo-500 text-white hover:shadow-indigo-500/25'
+                            : 'bg-gray-700 text-gray-500 cursor-not-allowed opacity-50'
+                            }`}
+                        title={canRegenerate ? "" : "Available on Tier 2 (Magician) and above"}
                     >
-                        Start Assessment
+                        {canRegenerate ? 'Start Assessment' : 'Locked (Tier 2+)'}
                     </button>
                 </div>
             );
@@ -38,12 +43,21 @@ const PlaystyleWidget = ({ playstyle, isOwnProfile, onRetake }) => {
                 </div>
 
                 {isOwnProfile && (
-                    <button
-                        onClick={onRetake}
-                        className="mt-auto text-xs text-gray-500 hover:text-white underline"
-                    >
-                        Retake Assessment
-                    </button>
+                    <div className="mt-auto flex flex-col items-center gap-2">
+                        <button
+                            onClick={canRegenerate ? onRetake : () => { }}
+                            disabled={!canRegenerate}
+                            className={`text-xs underline transition-colors ${canRegenerate ? 'text-gray-500 hover:text-white cursor-pointer' : 'text-gray-600 cursor-not-allowed hover:text-gray-600'}`}
+                            title={canRegenerate ? "Retake the assessment to update your profile" : "Available on Tier 2 (Magician) and above"}
+                        >
+                            Retake Assessment
+                        </button>
+                        {!canRegenerate && (
+                            <span className="text-[10px] text-indigo-500/80 font-medium bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
+                                Feature Locked
+                            </span>
+                        )}
+                    </div>
                 )}
             </div>
 

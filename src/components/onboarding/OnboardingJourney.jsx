@@ -152,6 +152,7 @@ const OnboardingJourney = () => {
                 playstyle: profile,
                 onboarding_step: 4
             });
+            await refreshUserProfile(); // Ensure global context has the new playstyle
             setShowPlaystyleModal(false);
             setStage(STAGES.ORGANIZATION);
         } catch (e) {
