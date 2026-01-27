@@ -66,13 +66,13 @@ const getKeys = (primaryKey, userProfile) => {
 };
 
 const PREFERRED_MODELS = [
-    "gemini-2.5-flash-lite",
+    "gemini-3-flash",
     "gemini-2.5-flash",
-    "gemini-2.0-flash-lite-preview-02-05",
+    "gemini-2.5-flash-lite",
     "gemini-2.0-flash",
-    "gemini-2.0-flash-exp",
+    "gemini-2.0-flash-lite-preview-02-05",
     "gemini-1.5-flash",
-    "gemini-1.5-flash-latest"
+    "gemini-1.5-flash-8b"
 ];
 
 const cleanResponse = (text) => {
@@ -285,13 +285,14 @@ const GeminiService = {
         const systemMessage = `You are ${helperName}. Your personality is: ${helperTone}.
         VOICE: Strictly adhere to your personality. Address the user as an equal.
         CORE MISSION:
-        - Execute the DECK STRATEGY: ${strategyGuide}
+        - EXECUTE THE DECK STRATEGY: ${strategyGuide}
         - SPECIAL INSTRUCTIONS: ${instructions || 'None provided.'}
-        - EXPLICIT COUNT ENFORCEMENT: You MUST return EXACTLY the number of cards requested.
-        - SYNERGY PRIORITIZATION: Prioritize cards that enable triggers or mechanics mentioned in the commander's text. If the commander requires multiple different specific triggers (e.g., four different elements), ensure the suggestions include a balanced mix of all required triggers to enable transformation/activation.
+        - STAMP OF COMPLETION (CRITICAL): You are being asked to provide a COMPLETE deck skeleton. You must return EXACTLY the number of cards requested in [REQUEST]. 
+        - UNDER-REPORTING IS A FAILURE: If I ask for 99 cards, returning 40 or 60 is a failure. You must fill the "suggestions" array until the requested count is met.
+        - SYNERGY PRIORITIZATION: Prioritize cards that enable triggers or mechanics mentioned in the commander's text.
         - COLOR IDENTITY: Suggest cards matching: ${payload.commanderColorIdentity}.
         - CONTEXT AWARENESS: DO NOT suggest cards already in deck: ${JSON.stringify(currentContext)}.
-        - TOKEN EFFICIENCY (CRITICAL): You are being asked for a large number of cards (~100). To fit in the output buffer, your 'reason' for each card MUST be a fragment of 5-8 words. No full sentences. Example: "Top-tier ramp for artifacts." or "Key combo piece for commander."
+        - TOKEN EFFICIENCY: Your 'reason' for each card MUST be a short fragment (3-6 words). Example: "Top-tier ramp." or "Key synergy piece." Do not waste tokens on full sentences.
         
         ALLOWED ROLES:
         Assign one of: 'Synergy / Strategy', 'Mana Ramp', 'Card Draw', 'Targeted Removal', 'Board Wipes', 'Land'.

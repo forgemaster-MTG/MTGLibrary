@@ -343,7 +343,7 @@ const DeckBuildWizardPage = () => {
             setStatus(`Consulting ${helperName} for a strategy centered around ${commanderString}...`);
             addLog(`Core Directive: Synergize with ${commanderString}'s specific triggers and playstyle.`);
 
-            const fetchAndResolveSuggestions = async (requirements, context) => {
+            const fetchAndResolveSuggestions = async (requirements, context, options = {}) => {
                 const finalSuggestions = {};
                 const finalIds = new Set();
                 const runningContext = new Set(context);
@@ -373,6 +373,16 @@ const DeckBuildWizardPage = () => {
                         const cappedSuggestions = sortedSuggestions.filter(s => {
                             const role = s.role || 'Synergy / Strategy';
                             const target = requirements[role] || 0;
+
+                            // reconciliation pass should be more flexible if role doesn't match exactly
+                            if (target === 0 && options.isReconciliation) {
+                                const currentTotal = Object.values(roleCounts).reduce((a, b) => a + b, 0);
+                                if (currentTotal < totalNeededForRequest) {
+                                    roleCounts[role] = (roleCounts[role] || 0) + 1;
+                                    return true;
+                                }
+                            }
+
                             roleCounts[role] = (roleCounts[role] || 0) + 1;
                             return roleCounts[role] <= target;
                         });
@@ -523,12 +533,12 @@ const DeckBuildWizardPage = () => {
 
                 try {
                     const fullContext = [...Array.from(currentDeckNames), ...Object.values(allNewSuggestions).map(s => s.name)];
-                    const { suggestions: recS, ids: recI } = await fetchAndResolveSuggestions(reconciliationReqs, fullContext);
+                    const { suggestions: recS, ids: recI } = await fetchAndResolveSuggestions(reconciliationReqs, fullContext, { isReconciliation: true });
                     Object.assign(allNewSuggestions, recS);
                     recI.forEach(id => initialSelectedIds.add(id));
 
-                    const newTotal = totalCount + recI.size;
-                    addLog(`Reconciliation complete. Final deck size: ${newTotal}/100.`);
+                    const newTotal = deckCards.length + Object.keys(allNewSuggestions).length + (deck.commander ? 1 : 0) + (deck.commander_partner ? 1 : 0);
+                    addLog(`Reconciliation complete. Added ${recI.size} cards. Final deck size: ${newTotal}/100.`);
                 } catch (err) {
                     addLog("Reconciliation AI pass failed. Filling remaining slots with basics as fallback.");
                     const fallbackCount = 100 - (deckCards.length + Object.keys(allNewSuggestions).length + (deck.commander ? 1 : 0) + (deck.commander_partner ? 1 : 0));
