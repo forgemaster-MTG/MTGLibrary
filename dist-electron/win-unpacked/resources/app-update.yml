@@ -1,0 +1,4 @@
+owner: TristinParker
+repo: MTGLibrary
+provider: github
+updaterCacheDirName: mtglibrary-updater

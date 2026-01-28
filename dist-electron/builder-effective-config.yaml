@@ -1,0 +1,20 @@
+directories:
+  output: dist-electron
+  buildResources: build
+appId: com.mtgforge.app
+productName: MTG Forge
+files:
+  - filter:
+      - dist/**/*
+      - electron/**/*
+      - '!**/node_modules/**/*'
+win:
+  target: nsis
+mac:
+  target: dmg
+linux:
+  target: AppImage
+npmRebuild: false
+extraMetadata:
+  dependencies: {}
+electronVersion: 40.0.0

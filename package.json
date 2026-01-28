@@ -1,9 +1,16 @@
 {
   "name": "mtglibrary",
   "version": "1.0.1",
+  "main": "electron/main.js",
+  "description": "Advanced MTG Collection Manager & Deck Builder",
+  "author": "MTG Forge",
   "private": true,
   "type": "module",
   "dependencies": {
+    "@capacitor/android": "^8.0.2",
+    "@capacitor/cli": "^8.0.2",
+    "@capacitor/core": "^8.0.2",
+    "@capacitor/ios": "^8.0.2",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
@@ -69,6 +76,40 @@
     "start:server": "node server/index.js",
     "migrate": "knex migrate:latest --knexfile knexfile.cjs",
     "import-precons": "node scripts/import-precons-to-pg.js",
-    "import-users": "node scripts/import-users-to-pg.js"
+    "import-users": "node scripts/import-users-to-pg.js",
+    "electron:dev": "wait-on http://localhost:5173 && electron .",
+    "electron:build": "vite build && electron-builder"
+  },
+  "build": {
+    "appId": "com.mtgforge.app",
+    "productName": "MTG Forge",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "!**/node_modules/**/*"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    },
+    "npmRebuild": false,
+    "extraMetadata": {
+      "dependencies": {}
+    }
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "electron": "^40.0.0",
+    "electron-builder": "^26.4.0",
+    "wait-on": "^9.0.3"
   }
 }
