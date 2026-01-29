@@ -45,10 +45,10 @@ export const TIER_CONFIG = {
         name: 'Apprentice',
         prices: {
             //MTG-Forge Sandbox ID's
-            monthly: 'price_1SnxT7RZLrZbIKATICyA3jfB', // $2.99
+            monthly: 'price_1SnvJZDBKqoK8H1Rck5qvWrD', // $2.99
             quarterly: 'price_1StfhDDBKqoK8H1RYlATyyeh',      // $8.99
-            biannual: 'price_1SnxUeRZLrZbIKATlErTgHtz', // $14.99
-            yearly: 'price_1SnxUuRZLrZbIKATm6nmPnUr'     // $29.99
+            biannual: 'price_1SnvRKDBKqoK8H1RKcYMRlz2', // $14.99
+            yearly: 'price_1SnvPsDBKqoK8H1RcxwM3gZJ'     // $29.99
         },
         description: 'Perfect for new potential. Store up to 10 decks and 1,000 cards.',
         limits: {

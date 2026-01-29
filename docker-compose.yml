@@ -16,7 +16,7 @@ services:
         - VITE_API_URL=${VITE_API_URL}
     container_name: mtg-library-prod
     ports:
-      - "${PORT}:${PORT}"
+      - "3002:3002"
     env_file:
       - .env.production
     environment:
