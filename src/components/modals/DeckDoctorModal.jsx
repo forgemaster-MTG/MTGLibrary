@@ -274,7 +274,10 @@ const DeckDoctorModal = ({ isOpen, onClose, deck, cards, isOwner }) => {
                             {/* Justification */}
                             <div className="bg-gray-800/30 p-6 rounded-2xl border border-white/5">
                                 <h4 className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-2">Bracket Justification</h4>
-                                <p className="text-gray-300 leading-relaxed italic">"{report.bracketJustification}"</p>
+                                <div
+                                    className="text-gray-300 leading-relaxed italic doctor-critique-content"
+                                    dangerouslySetInnerHTML={{ __html: report.bracketJustification }}
+                                />
                             </div>
 
                             {/* Clinical Critique */}

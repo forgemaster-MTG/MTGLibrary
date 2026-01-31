@@ -16,11 +16,14 @@ router.get('/', async (req, res) => {
     try {
         const now = Date.now();
         if (setsCache.data && (now - setsCache.lastFetched < CACHE_DURATION)) {
+            console.log(`[API] Sets Cache HIT (${setsCache.data.length} sets)`);
             return res.json({ data: setsCache.data });
         }
 
         console.log('[API] Fetching sets and calculating unique card counts (Cache Miss)...');
         const sets = await knex('sets').orderBy('releasedate', 'desc');
+        console.log(`[API] DB returned ${sets ? sets.length : 0} sets.`);
+        if (sets.length > 0) console.log(`[API] First 5 sets: ${sets.slice(0, 5).map(s => s.code).join(', ')}`);
 
         if (sets && sets.length > 0) {
             // Fetch unique card counts by name from cards table

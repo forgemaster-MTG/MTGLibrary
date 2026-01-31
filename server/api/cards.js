@@ -155,7 +155,10 @@ router.post('/search', async (req, res) => {
 			});
 		}
 		if (body.set) dbQuery.whereRaw("lower(setcode) = ?", [body.set.toLowerCase()]);
-		if (body.cn) dbQuery.where({ number: body.cn.toString() });
+		// Robust CN matching (handle leading zeros)
+		if (body.cn) {
+			dbQuery.whereRaw("ltrim(number, '0') = ltrim(?, '0')", [body.cn.toString()]);
+		}
 
 		if (body.type) dbQuery.whereRaw("data->>'type_line' ILIKE ?", [`%${body.type}%`]);
 		if (body.text) dbQuery.whereRaw("data->>'oracle_text' ILIKE ?", [`%${body.text}%`]);
@@ -210,8 +213,17 @@ router.post('/search', async (req, res) => {
 				mapped.sort((a, b) => {
 					const getP = (card) => {
 						const p = card.prices || {};
-						if (body.preferFinish === 'foil') return parseFloat(p.usd_foil) || 999999;
-						if (body.preferFinish === 'nonfoil') return parseFloat(p.usd) || 999999;
+						// If preferring foil, try foil price. If missing, use non-foil with penalty.
+						if (body.preferFinish === 'foil') {
+							const foilPrice = parseFloat(p.usd_foil);
+							return !isNaN(foilPrice) ? foilPrice : (parseFloat(p.usd) || 999999) + 1000;
+						}
+						// If preferring non-foil, try non-foil price. If missing, use foil with penalty.
+						if (body.preferFinish === 'nonfoil') {
+							const normalPrice = parseFloat(p.usd);
+							return !isNaN(normalPrice) ? normalPrice : (parseFloat(p.usd_foil) || 999999) + 1000;
+						}
+						// Default: cheapest of either
 						return Math.min(parseFloat(p.usd) || 999999, parseFloat(p.usd_foil) || 999999);
 					};
 					return getP(a) - getP(b);
@@ -239,7 +251,9 @@ router.post('/search', async (req, res) => {
 				const set = SET_MAP[rawSet] || rawSet;
 				const cn = body.cn.toString();
 				// PRIORITY 3: Try specific set/cn (If AI suggested it, user might want it)
-				attempts.push(`https://api.scryfall.com/cards/${set}/${cn}`);
+				// Strip leading zeros for Scryfall URL (Scryfall uses '69', not '069')
+				const cleanCn = cn.replace(/^0+/, '');
+				attempts.push(`https://api.scryfall.com/cards/${set}/${cleanCn}`);
 			}
 
 			const headers = {
@@ -260,8 +274,15 @@ router.post('/search', async (req, res) => {
 							scryfallCards.sort((a, b) => {
 								const getP = (card) => {
 									const p = card.prices || {};
-									if (pref === 'foil') return parseFloat(p.usd_foil) || 999999;
-									if (pref === 'nonfoil') return parseFloat(p.usd) || 999999;
+									// Soft Preference Logic
+									if (pref === 'foil') {
+										const foilPrice = parseFloat(p.usd_foil);
+										return !isNaN(foilPrice) ? foilPrice : (parseFloat(p.usd) || 999999) + 1000;
+									}
+									if (pref === 'nonfoil') {
+										const normalPrice = parseFloat(p.usd);
+										return !isNaN(normalPrice) ? normalPrice : (parseFloat(p.usd_foil) || 999999) + 1000;
+									}
 									return Math.min(parseFloat(p.usd) || 999999, parseFloat(p.usd_foil) || 999999);
 								};
 								return getP(a) - getP(b);

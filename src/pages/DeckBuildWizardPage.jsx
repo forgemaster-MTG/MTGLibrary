@@ -56,6 +56,80 @@ const DeckBuildWizardPage = () => {
     const [buildMode, setBuildMode] = useState('collection'); // 'collection' | 'discovery'
     const [strategyInput, setStrategyInput] = useState('');
 
+    const [deployAnalysis, setDeployAnalysis] = useState(null);
+    const [isDeployAnalyzing, setIsDeployAnalyzing] = useState(false);
+    const [allSets, setAllSets] = useState([]);
+
+    useEffect(() => {
+        api.get('/api/sets').then(res => {
+            // api.js returns the parsed JSON body directly.
+            // Server response structure: { data: [...] }
+            const sets = res.data || res;
+            if (Array.isArray(sets)) {
+                setAllSets(sets);
+                // console.debug(`DEBUG: Loaded ${sets.length} sets for restriction logic.`);
+            } else {
+                console.warn("DEBUG: API returned non-array for sets:", res);
+            }
+        }).catch(err => console.error("Failed to fetch sets for cohort analysis", err));
+    }, []);
+
+    const getRestrictedSets = () => {
+        // console.error("!!! getRestrictedSets CALLED !!!"); // ENTRY LOG
+
+        const cmdSetCode = (deck?.commander?.set || '').trim().toLowerCase();
+        const cmdSetName = (deck?.commander?.set_name || '').trim().toLowerCase();
+
+        // Helpers
+        const virtualSet = {
+            code: cmdSetCode || 'unk',
+            name: deck?.commander?.set_name || 'Current Set',
+            released_at: deck?.commander?.released_at || '2025-01-01',
+            virtual: true
+        };
+
+        if (!allSets.length) {
+            // console.warn("DEBUG: allSets is empty. Using virtual fallback.");
+            return (cmdSetCode || cmdSetName) ? [virtualSet] : [];
+        }
+
+        if (!cmdSetCode && !cmdSetName) {
+            console.warn("DEBUG: Commander missing set info:", deck?.commander);
+            return [];
+        }
+
+        // Robust Find
+        const cmdSet = allSets.find(s => s.code.toLowerCase() === cmdSetCode)
+            || allSets.find(s => s.name.toLowerCase() === cmdSetName);
+
+        if (!cmdSet) {
+            console.warn(`DEBUG: Set not found for '${cmdSetCode}' / '${cmdSetName}' in ${allSets.length} sets. Using virtual fallback.`);
+            // Log first few sets to check what IS there
+            if (allSets.length > 0) console.log("DEBUG: Available Sets (Sample):", allSets.slice(0, 5).map(s => `${s.code} (${s.released_at})`));
+
+            console.log(`DEBUG: Virtual Set Date: ${virtualSet.released_at}`);
+            return [virtualSet];
+        }
+
+        if (!cmdSet.released_at) {
+            console.warn("DEBUG: Found set but no release date:", cmdSet);
+            return [cmdSet];
+        }
+
+        // Parse date for comparison (handle strings vs Date objects if any)
+        const targetDate = new Date(cmdSet.released_at).toISOString().split('T')[0];
+        console.log(`DEBUG: Found Real Set '${cmdSet.code}'. Release Date: ${targetDate} (Raw: ${cmdSet.released_at})`);
+
+        const cohort = allSets.filter(s => {
+            if (!s.released_at) return false;
+            const sDate = new Date(s.released_at).toISOString().split('T')[0];
+            return sDate === targetDate;
+        });
+
+        console.log(`DEBUG: Cohort size: ${cohort.length} for date ${targetDate}. Matches:`, cohort.map(c => c.code));
+        return cohort;
+    };
+
     // Auto-scroll logs
     useEffect(() => {
         logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -71,6 +145,51 @@ const DeckBuildWizardPage = () => {
     const addLog = (msg) => {
         setLogs(prev => [...prev, `[${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}] ${msg}`]);
     };
+
+    // Trigger Deploy Analysis
+    useEffect(() => {
+        if (step === STEPS.DEPLOY && !deployAnalysis && !isDeployAnalyzing) {
+            const runAnalysis = async () => {
+                setIsDeployAnalyzing(true);
+                try {
+                    const cards = Array.from(selectedCards).map(id => suggestions[id]);
+                    const combinedCards = [...deckCards, ...cards];
+
+                    const gradePayload = {
+                        deckName: deck.name,
+                        commander: deck.commander?.name || 'Unknown Commander',
+                        cards: combinedCards,
+                        playerProfile: userProfile.settings?.playstyle || "Unknown",
+                        strategyGuide: strategyInput || "Balanced",
+                        helperPersona: userProfile.settings?.helper
+                    };
+
+                    // Run logic in parallel
+                    // getDeckStrategy(apiKey, commanderInput, playstyle, existingCards, helper, userProfile)
+                    // gradeDeck(apiKey, payload, userProfile)
+                    const [strat, grade] = await Promise.all([
+                        GeminiService.getDeckStrategy(
+                            userProfile.settings.geminiApiKey,
+                            deck.commander || { name: deck.commander?.name || 'Commander' },
+                            userProfile.settings?.playstyle,
+                            combinedCards,
+                            userProfile.settings?.helper,
+                            userProfile
+                        ),
+                        GeminiService.gradeDeck(userProfile.settings.geminiApiKey, gradePayload, userProfile)
+                    ]);
+
+                    setDeployAnalysis({ strategy: strat, grade: grade });
+                } catch (e) {
+                    console.error("Deploy analysis failed", e);
+                    addToast("Could not complete final analysis.", "error");
+                } finally {
+                    setIsDeployAnalyzing(false);
+                }
+            };
+            runAnalysis();
+        }
+    }, [step, deployAnalysis, isDeployAnalyzing, userProfile, deck, selectedCards, suggestions, deckCards]);
 
     // --- Helpers ---
 
@@ -194,8 +313,10 @@ const DeckBuildWizardPage = () => {
             const commanderColors = [...new Set([...(deck.commander?.color_identity || []), ...(deck.commander_partner?.color_identity || [])])];
             const blueprint = deck.aiBlueprint || {};
             const typesToFill = ['Synergy / Strategy', 'Mana Ramp', 'Card Draw', 'Targeted Removal', 'Board Wipes', 'Land'];
+            const DRAFT_ROLES = ['Mana Ramp', 'Card Draw', 'Targeted Removal', 'Board Wipes', 'Synergy / Strategy'];
 
             const currentDeckNames = new Set(deckCards.map(c => c.name));
+            const cmdCount = (deck.commander ? 1 : 0) + (deck.commander_partner ? 1 : 0);
             if (deck.commander?.name) currentDeckNames.add(deck.commander.name);
             if (deck.commander_partner?.name) currentDeckNames.add(deck.commander_partner.name);
 
@@ -210,6 +331,15 @@ const DeckBuildWizardPage = () => {
                 ...strategyTargets
             };
 
+            // Balance Spell counts to hit exactly 99 slots (100 - 1 cmd)
+            const totalSpellTarget = 100 - (typeTargets['Land'] || 36) - cmdCount;
+            const currentNonLandReqs = DRAFT_ROLES.reduce((sum, role) => sum + (typeTargets[role] || 0), 0);
+            const extraSynergyNeeded = totalSpellTarget - currentNonLandReqs;
+
+            if (extraSynergyNeeded > 0) {
+                typeTargets['Synergy / Strategy'] = (typeTargets['Synergy / Strategy'] || 30) + extraSynergyNeeded;
+            }
+
             const allNewSuggestions = {};
             const initialSelectedIds = new Set();
             const setFilterLower = (analysisSettings.setName || '').toLowerCase().trim();
@@ -219,38 +349,35 @@ const DeckBuildWizardPage = () => {
 
             for (const type of typesToFill) {
                 const currentTypeCount = deckCards
-                    .filter(c => (c.data?.type_line || c.type_line || '').includes(type))
+                    .filter(c => {
+                        const t = (c.data?.type_line || c.type_line || '').toLowerCase();
+                        if (type === 'Land') return t.includes('land');
+                        // Use reason or metadata for functional roles as type_line usually just says 'Instant', 'Creature'
+                        return t.includes(type.toLowerCase()) || (c.reason || '').toLowerCase().includes(type.toLowerCase());
+                    })
                     .reduce((acc, c) => acc + (c.countInDeck || 1), 0);
 
                 const target = typeTargets[type] || 0;
                 let needed = Math.max(0, target - currentTypeCount);
                 if (needed > 0) {
                     deckRequirements[type] = needed;
-                    totalNeeded += needed; // Initial sum
+                    totalNeeded += needed;
                 }
             }
 
-            // --- CRITICAL FIX: Global Cap Enforceed ---
-            // Ensure we never request more cards than can fit in the deck (100 total)
-            const currentDeckCount = deckCards.length + (deck.commander ? 1 : 0) + (deck.commander_partner ? 1 : 0);
+            // Global Cap Check
+            const currentDeckCount = deckCards.length + cmdCount;
             const maxSlotsAvailable = 100 - currentDeckCount;
 
             if (totalNeeded > maxSlotsAvailable) {
                 let excess = totalNeeded - maxSlotsAvailable;
-                addLog(`Detected over-request (Needs ${totalNeeded} for slots, but only ${maxSlotsAvailable} available). Balancing...`);
+                addLog(`Detected over-request (${totalNeeded} needed, ${maxSlotsAvailable} available). Balancing...`);
 
-                // Strategy: Reduce 'Synergy / Strategy' first as it's the catch-all bucket for undefined cards
                 if (deckRequirements['Synergy / Strategy'] > 0) {
                     const reduction = Math.min(deckRequirements['Synergy / Strategy'], excess);
                     deckRequirements['Synergy / Strategy'] -= reduction;
                     excess -= reduction;
                 }
-
-                // If still excess, reduce standard functional slots proportionally? 
-                // Alternatively, just shave off 'Card Draw' or 'Mana Ramp' slightly or stop. 
-                // For now, Synergy is usually the culprit for unclassified cards.
-
-                // Update totalNeeded to match the constrained sum
                 totalNeeded = Object.values(deckRequirements).reduce((a, b) => a + b, 0);
             }
 
@@ -260,6 +387,9 @@ const DeckBuildWizardPage = () => {
                 setStatus('Idle');
                 return;
             }
+
+            const restrictedCohort = analysisSettings.restrictSet ? getRestrictedSets() : [];
+            const restrictedSetCodes = restrictedCohort.map(s => s.code.toLowerCase());
 
             const candidates = [];
             if (buildMode === 'collection') {
@@ -272,11 +402,12 @@ const DeckBuildWizardPage = () => {
                     const identity = card.data?.color_identity || card.data?.colors || [];
                     if (!isColorIdentityValid(identity, commanderColors)) continue;
                     if (currentDeckNames.has(card.name)) continue;
-                    if (analysisSettings.restrictSet && setFilterLower) {
-                        const cardSet = (card.set_name || card.data?.set_name || '').toLowerCase();
+
+                    if (analysisSettings.restrictSet && restrictedSetCodes.length > 0) {
                         const cardSetCode = (card.set || card.data?.set || '').toLowerCase();
-                        if (!cardSet.includes(setFilterLower) && cardSetCode !== setFilterLower) continue;
+                        if (!restrictedSetCodes.includes(cardSetCode)) continue;
                     }
+
                     candidates.push({ firestoreId: card.id, name: card.name, type_line: card.data?.type_line || card.type_line });
                     seenNames.add(card.name);
                 }
@@ -327,9 +458,13 @@ const DeckBuildWizardPage = () => {
                 commander: commanderString,
                 strategyGuide: blueprint?.strategy || 'No specific strategy guide.',
                 helperPersona: userProfile?.settings?.helper,
+                restrictedSets: restrictedSetCodes.map(c => c.toUpperCase()),
                 instructions: `Fill the following deck slots: ${JSON.stringify(deckRequirements)}. 
                 ${strategyInput ? `STRATEGY FOCUS: ${strategyInput}` : ''}
-                IMPORTANT: For every card suggested, you MUST provide the specific 'set' code and 'collectorNumber' from Scryfall to ensure the correct printing is identified.`,
+                ${analysisSettings.restrictSet && restrictedCohort.length > 0
+                        ? `\nRESTRICTION: Only suggest cards from the following sets: ${restrictedCohort.map(s => `${s.name} (${s.code})`).join(', ')}. Do NOT suggest cards from any other sets.`
+                        : ''}
+                IMPORTANT: For non-land roles (Ramp, Draw, etc.), do NOT suggest basic lands. Only suggest non-land spells unless specifically asked for lands. For every card suggested, 'name' MUST be the English card name (e.g. "Sol Ring"). You MUST provide the specific 'set' code and 'collectorNumber' from Scryfall.`,
                 deckRequirements: deckRequirements,
                 candidates: buildMode === 'collection' ? candidates.slice(0, 3500) : [],
                 buildMode: buildMode,
@@ -345,8 +480,9 @@ const DeckBuildWizardPage = () => {
 
             const fetchAndResolveSuggestions = async (requirements, context, options = {}) => {
                 const finalSuggestions = {};
-                const finalIds = new Set();
                 const runningContext = new Set(context);
+                let attempts = 0;
+                const maxAttempts = options.noChunking ? 1 : 8; // If noChunking (Pro), we usually try once then fail fast to fallback
 
                 const LOADING_MESSAGES = ["Consulting the archives...", "Analysing mana curves...", "Simulating games...", "Searching for hidden gems...", "Optimizing synergy lines..."];
                 let loadingInterval = setInterval(() => {
@@ -355,72 +491,178 @@ const DeckBuildWizardPage = () => {
                 }, 2500);
 
                 try {
-                    const totalNeededForRequest = Object.values(requirements).reduce((a, b) => a + b, 0);
-                    addLog(`Requesting ${totalNeededForRequest} cards from ${helperName} for a cohesive deck strategy...`);
+                    while (attempts < maxAttempts) {
+                        attempts++;
 
-                    const currentPromptData = {
-                        ...promptData,
-                        deckRequirements: requirements,
-                        currentContext: Array.from(runningContext),
-                        neededCount: totalNeededForRequest
-                    };
+                        // Determine remaining deficit
+                        const currentDeficit = {};
+                        let totalDeficit = 0;
 
-                    const result = await GeminiService.generateDeckSuggestions(userProfile.settings.geminiApiKey, currentPromptData, null, userProfile);
-
-                    if (result?.suggestions) {
-                        const sortedSuggestions = result.suggestions.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-                        const roleCounts = {};
-                        const cappedSuggestions = sortedSuggestions.filter(s => {
-                            const role = s.role || 'Synergy / Strategy';
-                            const target = requirements[role] || 0;
-
-                            // reconciliation pass should be more flexible if role doesn't match exactly
-                            if (target === 0 && options.isReconciliation) {
-                                const currentTotal = Object.values(roleCounts).reduce((a, b) => a + b, 0);
-                                if (currentTotal < totalNeededForRequest) {
-                                    roleCounts[role] = (roleCounts[role] || 0) + 1;
-                                    return true;
+                        if (typeof requirements === 'object' && !requirements.count) {
+                            // Multi-role mode (e.g. Support Batch)
+                            for (const role in requirements) {
+                                if (role === 'count') continue;
+                                const currentFound = Object.values(finalSuggestions).filter(s => s.role === role || s.suggestedType === role).length;
+                                const stillNeeded = Math.max(0, (requirements[role] || 0) - currentFound);
+                                if (stillNeeded > 0) {
+                                    currentDeficit[role] = stillNeeded;
+                                    totalDeficit += stillNeeded;
                                 }
                             }
+                        } else {
+                            // Single role or count-based mode
+                            const target = requirements.count || Object.values(requirements)[0] || 0;
+                            const stillNeeded = Math.max(0, target - Object.keys(finalSuggestions).length);
+                            if (stillNeeded > 0) {
+                                // If it's count-based, we keep the original roles or use options.role
+                                currentDeficit[options.role || 'Synergy / Strategy'] = stillNeeded;
+                                totalDeficit = stillNeeded;
+                            }
+                        }
 
-                            roleCounts[role] = (roleCounts[role] || 0) + 1;
-                            return roleCounts[role] <= target;
-                        });
+                        if (totalDeficit <= 0) break; // We are done!
 
-                        for (const s of cappedSuggestions) {
-                            const role = s.role || 'Synergy / Strategy';
-                            runningContext.add(s.name);
+                        addLog(`[Drafting] Deficit: ${totalDeficit} cards remaining to fulfill reqs.`);
 
-                            if (buildMode === 'discovery' && (!s.firestoreId || s.firestoreId === 'discovery')) {
-                                await new Promise(r => setTimeout(r, 100)); // Throttle
-                                addLog(`Resolving "${s.name}"...`);
-                                const response = await api.post(`/api/cards/search`, {
-                                    query: s.name, set: s.set, cn: s.collectorNumber,
-                                    preferFinish: analysisSettings.finishPreference
-                                });
-                                const scryData = (response.data || [])[0];
+                        // CHUNKING: Pro models handle 100 cards easily. Flash needs chunks.
+                        const CHUNK_SIZE = options.noChunking ? 99 : 15;
+                        const chunkDeficit = {};
+                        let chunkTotal = 0;
+
+                        for (const role in currentDeficit) {
+                            const take = Math.min(currentDeficit[role], CHUNK_SIZE - chunkTotal);
+                            if (take > 0) {
+                                chunkDeficit[role] = take;
+                                chunkTotal += take;
+                            }
+                            if (chunkTotal >= CHUNK_SIZE) break;
+                        }
+
+                        const currentPromptData = {
+                            ...promptData,
+                            deckRequirements: chunkDeficit,
+                            currentContext: Array.from(runningContext),
+                            neededCount: chunkTotal
+                        };
+
+                        try {
+                            const result = await GeminiService.generateDeckSuggestions(
+                                userProfile.settings.geminiApiKey,
+                                currentPromptData,
+                                null,
+                                userProfile,
+                                { models: options.modelList } // Explicitly pass the tier
+                            );
+
+                            if (!result?.suggestions || result.suggestions.length === 0) {
+                                if (attempts < maxAttempts) {
+                                    addLog(`[WARNING] AI returned 0 results. Waiting and retrying...`);
+                                    await new Promise(r => setTimeout(r, 4000));
+                                    continue;
+                                }
+                                break;
+                            }
+
+                            let foundInThisBatch = 0;
+
+                            for (const s of result.suggestions) {
+                                // 1. MATCHING
+                                let scryData = null;
+                                let isFromCollection = false;
+
+                                if (s.firestoreId && s.firestoreId !== 'discovery') {
+                                    const inColl = collection.find(c => c.id === s.firestoreId);
+                                    if (inColl) {
+                                        scryData = inColl.data || inColl;
+                                        isFromCollection = true;
+                                    }
+                                }
+
+                                if (!scryData) {
+                                    const resp = await api.post('/api/cards/search', { query: s.name });
+                                    const results = resp.data || resp.data?.data || [];
+                                    scryData = results.find(card => {
+                                        const cardSet = (card.set || '').toLowerCase();
+                                        const aiSet = (s.set || '').toLowerCase();
+                                        return cardSet === aiSet || (restrictedSetCodes.length > 0 && restrictedSetCodes.includes(cardSet));
+                                    }) || results[0];
+
+                                    if (scryData) {
+                                        const inColl = collection.find(c => (c.scryfall_id || c.uuid) === (scryData.uuid || scryData.id));
+                                        if (inColl) {
+                                            scryData = inColl.data || inColl;
+                                            isFromCollection = true;
+                                        }
+                                    }
+                                }
+
+                                // 2. ELIGIBILITY
                                 if (scryData) {
                                     const id = scryData.uuid || scryData.id;
+                                    if (finalSuggestions[id] || runningContext.has(scryData.name)) continue;
+
+                                    const globalTotal = deckCards.length + Object.keys(allNewSuggestions).length + Object.keys(finalSuggestions).length + cmdCount;
+                                    if (globalTotal >= 100) break;
+
+                                    const typeStr = (scryData.type_line || scryData.type || '').toLowerCase();
+                                    const isLand = typeStr.includes('land');
+                                    const roleIsLand = options.role === 'Land' || options.role === 'Non-Basic Lands' || requirements['Land'] || requirements['Non-Basic Lands'] || chunkDeficit['Land'] || chunkDeficit['Non-Basic Lands'];
+
+                                    let resolvedType = options.role || s.role || 'Synergy';
+
+                                    if (isLand && !roleIsLand) {
+                                        // Land leaked into a spell role
+                                        const targetLands = typeTargets['Land'] || 36;
+                                        const currLands = Object.values(allNewSuggestions).filter(ls => (ls.data?.type_line || '').toLowerCase().includes('land')).length
+                                            + deckCards.filter(dc => (dc.type_line || '').toLowerCase().includes('land')).length
+                                            + Object.values(finalSuggestions).filter(fs => (fs.data?.type_line || '').toLowerCase().includes('land')).length;
+
+                                        if (currLands < targetLands) {
+                                            const isBasic = ['Plains', 'Island', 'Swamp', 'Mountain', 'Forest'].some(bn => scryData.name.includes(bn));
+                                            if (isBasic) continue;
+                                            console.log(`[DEBUG] Role Integrity: Re-categorizing leaked utility land "${scryData.name}" as Land`);
+                                            resolvedType = 'Land';
+                                            // Leakage doesn't count towards foundInThisBatch if we want a spell
+                                        } else {
+                                            continue;
+                                        }
+                                    } else {
+                                        foundInThisBatch++;
+                                    }
+
+                                    const isOwned = isFromCollection || collection.some(c => (c.scryfall_id || c.uuid) === id);
+                                    if (buildMode === 'collection' && analysisSettings.ownedOnly && !isOwned) continue;
+
                                     finalSuggestions[id] = {
                                         ...s, firestoreId: id, name: scryData.name,
                                         type_line: scryData.type_line || scryData.type,
-                                        data: scryData, isDiscovery: true,
-                                        is_wishlist: !collection.some(c => (c.scryfall_id || c.uuid) === id),
-                                        suggestedType: role
+                                        data: scryData,
+                                        isDiscovery: !isOwned,
+                                        is_wishlist: !isOwned,
+                                        suggestedType: resolvedType
                                     };
-                                    finalIds.add(id);
-                                }
-                            } else if (s.firestoreId) {
-                                const fullCard = collection.find(c => c.id === s.firestoreId);
-                                if (fullCard) {
-                                    finalSuggestions[s.firestoreId] = {
-                                        ...s, firestoreId: s.firestoreId, name: fullCard.name,
-                                        type_line: fullCard.data?.type_line || fullCard.type_line,
-                                        data: fullCard.data || fullCard, suggestedType: role
-                                    };
-                                    finalIds.add(s.firestoreId);
+                                    runningContext.add(scryData.name);
                                 }
                             }
+
+                            // If we got some results but not enough, the next loop iteration will try again for the remainder
+                            if (foundInThisBatch < chunkTotal && !options.noChunking) {
+                                addLog(`[Attempt ${attempts}] Yielded ${foundInThisBatch}/${chunkTotal} cards. Retrying for remainder...`);
+                            }
+
+                            // Small delay between successful attempts to avoid rate limit spikes
+                            await new Promise(r => setTimeout(r, 1000));
+
+                        } catch (apiErr) {
+                            console.warn(`[Attempt ${attempts}] API call failed:`, apiErr.message);
+                            if (apiErr.reason === 'rate_limit') {
+                                // Only fail-fast (skip current pass) if explicitly requested (e.g. for Elite pass)
+                                if (options.failFast) throw apiErr;
+
+                                addLog(`Rate limit hit. Waiting for backoff...`);
+                                await new Promise(r => setTimeout(r, 6000));
+                            }
+                            if (attempts >= maxAttempts) throw apiErr;
                         }
                     }
                 } catch (err) {
@@ -429,130 +671,221 @@ const DeckBuildWizardPage = () => {
                 } finally {
                     if (loadingInterval) clearInterval(loadingInterval);
                 }
-                return { suggestions: finalSuggestions, ids: finalIds };
+                return { suggestions: finalSuggestions, ids: new Set(Object.keys(finalSuggestions)) };
             };
 
-            // Pass 1
-            const { suggestions: p1S, ids: p1I } = await fetchAndResolveSuggestions(deckRequirements, Array.from(currentDeckNames));
-            Object.assign(allNewSuggestions, p1S);
-            p1I.forEach(id => initialSelectedIds.add(id));
+            // --- ELITE DRAFTING PASS (PRO-TIER) ---
+            let elitePassActive = true;
+            try {
+                addLog(`[Elite Pass] Attempting high-quality drafting with Pro-tier models...`);
+                setStatus(`Consulting the Elite archives with Pro models...`);
 
-            // Check for color identity violations
-            const badIds = [];
-            Object.entries(allNewSuggestions).forEach(([id, s]) => {
-                const identity = s.data?.color_identity || [];
-                if (!isColorIdentityValid(identity, commanderColors)) {
-                    addLog(`⚠️ "${s.name}" violates color identity. Discarding.`);
-                    badIds.push(id);
+                const { suggestions: eliteS } = await fetchAndResolveSuggestions(
+                    deckRequirements,
+                    currentDeckNames,
+                    { modelList: GeminiService.PRO_MODELS, noChunking: true, failFast: true }
+                );
+
+                Object.assign(allNewSuggestions, eliteS);
+                addLog(`[Elite Pass] Successfully drafted ${Object.keys(eliteS).length} cards.`);
+            } catch (err) {
+                if (err.reason === 'rate_limit' || err.reason === 'exhausted') {
+                    addToast("Pro Tier limit hit. Falling back to High-Speed Flash drafting...", "warning");
+                    addLog(`[Elite Pass] Pro-Tier unavailable (${err.reason}). Switching to robust fallback...`);
+                } else {
+                    console.warn("[Elite Pass] Non-rate-limit error:", err);
                 }
-            });
+                elitePassActive = false;
+            }
 
-            if (badIds.length > 0) {
-                // Pacing Delay
-                addLog("Pacing AI for refinement...");
-                await delay(2000);
-
-                const refinementReqs = {};
-                badIds.forEach(id => {
-                    const role = allNewSuggestions[id].suggestedType;
-                    refinementReqs[role] = (refinementReqs[role] || 0) + 1;
-                    delete allNewSuggestions[id];
-                    initialSelectedIds.delete(id);
-                });
-
-                addLog(`Detected ${badIds.length} illegal cards. Refining...`);
-                const fullContext = [...Array.from(currentDeckNames), ...Object.values(allNewSuggestions).map(s => s.name)];
-
+            // --- ROBUST LAYERED DRAFTING (FALLBACK / FLASH) ---
+            // 1. CONSOLIDATED DRAFTING PASS
+            const supportRoles = ['Mana Ramp', 'Card Draw', 'Targeted Removal', 'Board Wipes'];
+            const supportReqs = {};
+            let supportTotal = 0;
+            for (const r of supportRoles) {
+                const currentInAll = Object.values(allNewSuggestions).filter(s => s.role === r || s.suggestedType === r).length;
+                const n = Math.max(0, (deckRequirements[r] || 0) - currentInAll);
+                if (n > 0) {
+                    supportReqs[r] = n;
+                    supportTotal += n;
+                }
+            }
+            if (supportTotal > 0) {
+                supportReqs.count = supportTotal;
+                setStatus(`Drafting Support Spells (${supportTotal})...`);
                 try {
-                    const { suggestions: refS, ids: refI } = await fetchAndResolveSuggestions(refinementReqs, fullContext);
-                    Object.assign(allNewSuggestions, refS);
-                    refI.forEach(id => initialSelectedIds.add(id));
-                } catch (err) {
-                    addLog("Refinement unsuccessful. Proceeding.");
-                }
+                    const { suggestions: supportS } = await fetchAndResolveSuggestions(
+                        supportReqs,
+                        [...currentDeckNames, ...Object.keys(allNewSuggestions)],
+                        { modelList: GeminiService.FLASH_MODELS }
+                    );
+                    Object.assign(allNewSuggestions, supportS);
+                    await new Promise(r => setTimeout(r, 1500));
+                } catch (e) { console.warn("Support pass failed", e); }
             }
 
-
-            // 1. Calculate how many lands we need to hit the SPECIFIC land target
-            const currentLands = deckCards.filter(c => (c.data?.type_line || c.type_line || '').includes('Land')).length;
-            const suggestedLands = Object.values(allNewSuggestions).filter(s => s.suggestedType === 'Land').length;
-            const targetLands = typeTargets['Land'] || 36;
-            let neededLands = Math.max(0, targetLands - (currentLands + suggestedLands));
-
-            if (neededLands > 0) {
-                addLog(`Balancing mana base and filling ${neededLands} targeted land slots...`);
-                const basicLandSuggestions = generateBasicLands(neededLands, calculateManaStats(deckCards, allNewSuggestions), collection);
-                Object.assign(allNewSuggestions, basicLandSuggestions);
-                Object.keys(basicLandSuggestions).forEach(id => initialSelectedIds.add(id));
-            }
-
-            // 2. GLOBAL RECONCILIATION - Iterative AI pass to reach 100 cards
-            const totalCount = deckCards.length + Object.keys(allNewSuggestions).length + (deck.commander ? 1 : 0) + (deck.commander_partner ? 1 : 0);
-            const finalDeficit = 100 - totalCount;
-
-            // Only reconcile if we are missing significant cards (threshold > 2)
-            // Minor gaps are usually handled by land balancing or can be left to the user
-            if (finalDeficit > 2) {
-                addLog("Pacing AI for reconciliation...");
-                await delay(2000);
-
-                addLog(`Final check: Deck is at ${totalCount}/100. Requesting ${finalDeficit} missing cards from ${helperName}...`);
-
-                // Determine which roles are still under-represented
-                const currentCounts = {};
-                [...deckCards, ...Object.values(allNewSuggestions)].forEach(c => {
-                    let role = c.suggestedType;
-                    if (!role) {
-                        const typeLine = (c.data?.type_line || c.type_line || '').toLowerCase();
-                        if (typeLine.includes('land')) role = 'Land';
-                        else role = 'Synergy / Strategy';
-                    }
-                    currentCounts[role] = (currentCounts[role] || 0) + (c.countInDeck || 1);
-                });
-
-                const reconciliationReqs = {};
-                let remainingDeficit = finalDeficit;
-
-                // Priority for reconciliation: Functional roles first, then Synergy
-                const roles = ['Mana Ramp', 'Card Draw', 'Targeted Removal', 'Board Wipes', 'Synergy / Strategy'];
-                for (const role of roles) {
-                    const target = typeTargets[role] || 0;
-                    const current = currentCounts[role] || 0;
-                    const needed = Math.max(0, target - current);
-                    if (needed > 0) {
-                        const count = Math.min(needed, remainingDeficit);
-                        reconciliationReqs[role] = count;
-                        remainingDeficit -= count;
-                    }
-                }
-
-                // If still deficit (e.g. all targets hit but sum < 100), dump into Synergy
-                if (remainingDeficit > 0) {
-                    reconciliationReqs['Synergy / Strategy'] = (reconciliationReqs['Synergy / Strategy'] || 0) + remainingDeficit;
-                }
-
+            // 1.2 CORE STRATEGY PASS
+            const currentSynergy = Object.values(allNewSuggestions).filter(s => s.role === 'Synergy / Strategy' || s.suggestedType === 'Synergy / Strategy').length;
+            const synergyTarget = Math.max(0, (deckRequirements['Synergy / Strategy'] || 0) - currentSynergy);
+            if (synergyTarget > 0) {
+                setStatus(`Drafting Core Strategy (${synergyTarget})...`);
                 try {
-                    const fullContext = [...Array.from(currentDeckNames), ...Object.values(allNewSuggestions).map(s => s.name)];
-                    const { suggestions: recS, ids: recI } = await fetchAndResolveSuggestions(reconciliationReqs, fullContext, { isReconciliation: true });
-                    Object.assign(allNewSuggestions, recS);
-                    recI.forEach(id => initialSelectedIds.add(id));
-
-                    const newTotal = deckCards.length + Object.keys(allNewSuggestions).length + (deck.commander ? 1 : 0) + (deck.commander_partner ? 1 : 0);
-                    addLog(`Reconciliation complete. Added ${recI.size} cards. Final deck size: ${newTotal}/100.`);
-                } catch (err) {
-                    addLog("Reconciliation AI pass failed. Filling remaining slots with basics as fallback.");
-                    const fallbackCount = 100 - (deckCards.length + Object.keys(allNewSuggestions).length + (deck.commander ? 1 : 0) + (deck.commander_partner ? 1 : 0));
-                    if (fallbackCount > 0) {
-                        const fallbackLands = generateBasicLands(fallbackCount, calculateManaStats(deckCards, allNewSuggestions), collection);
-                        Object.assign(allNewSuggestions, fallbackLands);
-                        Object.keys(fallbackLands).forEach(id => initialSelectedIds.add(id));
-                    }
-                }
+                    const { suggestions: synergyS } = await fetchAndResolveSuggestions(
+                        { 'Synergy / Strategy': synergyTarget, count: synergyTarget },
+                        [...Array.from(currentDeckNames), ...Object.keys(allNewSuggestions)],
+                        { role: 'Synergy / Strategy', modelList: GeminiService.FLASH_MODELS }
+                    );
+                    Object.assign(allNewSuggestions, synergyS);
+                    await new Promise(r => setTimeout(r, 1500));
+                } catch (e) { console.warn("Synergy pass failed", e); }
             }
 
+            // 1.5 NON-BASIC LAND PASS
+            const landTarget = deckRequirements['Land'] || 36;
+            const currentLandCount = Object.values(allNewSuggestions).filter(s => (s.data?.type_line || '').toLowerCase().includes('land')).length
+                + deckCards.filter(c => (c.type_line || '').toLowerCase().includes('land')).length;
+
+            let neededLands = Math.max(0, landTarget - currentLandCount);
+            if (neededLands > 10) {
+                const nonBasicRequest = Math.floor(neededLands * 0.5); // Asking for half non-basics
+                setStatus(`Requesting ${nonBasicRequest} non-basic lands...`);
+                try {
+                    const { suggestions: landS } = await fetchAndResolveSuggestions(
+                        { 'Non-Basic Lands': nonBasicRequest, count: nonBasicRequest },
+                        [...Array.from(currentDeckNames), ...Object.keys(allNewSuggestions)],
+                        { role: 'Land' }
+                    );
+                    Object.assign(allNewSuggestions, landS);
+                } catch (e) { console.warn("Non-basic pass failed", e); }
+            }
+
+            // 2. INTEGRITY CHECK - Fill to 100 with Synergy prioritization
+            const ensureCountIntegrity = async () => {
+                let currentTotal = deckCards.length + Object.keys(allNewSuggestions).length + cmdCount;
+                if (currentTotal >= 100) return;
+
+                const getLandCount = () => {
+                    return Object.values(allNewSuggestions).filter(s => (s.data?.type_line || s.suggestedType === 'Land' || '').toLowerCase().includes('land')).length
+                        + deckCards.filter(c => (c.type_line || '').toLowerCase().includes('land')).length;
+                };
+
+                const targetLands = typeTargets['Land'] || 36;
+                const totalGap = 100 - currentTotal;
+                const landGap = Math.max(0, targetLands - getLandCount());
+
+                // 1. Fill with basics ONLY up to the land goal
+                const basicsToFill = Math.min(landGap, totalGap);
+                if (basicsToFill > 0) {
+                    setStatus(`Filling ${basicsToFill} basics to meet land cap...`);
+                    const stats = calculateManaStats(deckCards, allNewSuggestions);
+                    const basics = generateBasicLands(basicsToFill, stats, collection);
+                    Object.assign(allNewSuggestions, basics);
+                    currentTotal = deckCards.length + Object.keys(allNewSuggestions).length + cmdCount;
+                }
+
+                // 2. If still short, get more Synergy cards from AI (Catch-up pass)
+                let catchupDeficit = 100 - currentTotal;
+                if (catchupDeficit > 0) {
+                    setStatus(`Synergy Catch-up: Requesting ${catchupDeficit} strategy cards...`);
+                    try {
+                        // Attempt Pro first for catch-up too
+                        const { suggestions: extraS } = await fetchAndResolveSuggestions(
+                            { 'Synergy / Strategy': catchupDeficit, count: catchupDeficit },
+                            [...Array.from(currentDeckNames), ...Object.keys(allNewSuggestions)],
+                            { role: 'Synergy / Strategy', modelList: GeminiService.PRO_MODELS, noChunking: true, failFast: true }
+                        );
+                        Object.assign(allNewSuggestions, extraS);
+                        currentTotal = deckCards.length + Object.keys(allNewSuggestions).length + cmdCount;
+                    } catch (e) {
+                        console.warn("Synergy catch-up (Pro) failed, trying Flash...", e);
+                        try {
+                            const { suggestions: extraS } = await fetchAndResolveSuggestions(
+                                { 'Synergy / Strategy': catchupDeficit, count: catchupDeficit },
+                                [...Array.from(currentDeckNames), ...Object.keys(allNewSuggestions)],
+                                { role: 'Synergy / Strategy', modelList: GeminiService.FLASH_MODELS }
+                            );
+                            Object.assign(allNewSuggestions, extraS);
+                            currentTotal = deckCards.length + Object.keys(allNewSuggestions).length + cmdCount;
+                        } catch (e2) {
+                            console.error("Synergy catch-up (Flash) also failed", e2);
+                        }
+                    }
+                }
+
+                // 3. Absolute Final Fallback (Basics) - Respecting Land Cap
+                currentTotal = deckCards.length + Object.keys(allNewSuggestions).length + cmdCount;
+                if (currentTotal < 100) {
+                    const finalGap = 100 - currentTotal;
+                    const capGap = Math.max(0, targetLands - getLandCount());
+                    const safeBasics = Math.min(finalGap, capGap);
+
+                    if (safeBasics > 0) {
+                        addLog(`AI catch-up incomplete. Filling ${safeBasics} slots with basics to meet land cap.`);
+                        const stats = calculateManaStats(deckCards, allNewSuggestions);
+                        const basics = generateBasicLands(safeBasics, stats, collection);
+                        Object.assign(allNewSuggestions, basics);
+                    } else {
+                        addLog(`Deck complete at ${currentTotal} cards (Land cap reached).`);
+                    }
+                }
+            };
+
+            await ensureCountIntegrity();
+
+            console.log(`[DEBUG] Drafting Complete. Total: ${deckCards.length + Object.keys(allNewSuggestions).length + cmdCount}`);
+
+            // 3. REFINEMENT
+            setStatus("Optimizing deck synergy...");
+            try {
+                const refineResult = await GeminiService.refineDeckBuild(
+                    userProfile.settings.geminiApiKey,
+                    Array.from(currentDeckNames),
+                    Object.values(allNewSuggestions).map(s => s.name),
+                    strategyInput || blueprint?.strategy,
+                    null,
+                    userProfile
+                );
+
+                if (refineResult?.swaps?.length > 0) {
+                    for (const swap of refineResult.swaps) {
+                        try {
+                            if (!swap.remove || !swap.add) continue;
+                            const targetToRemove = allNewSuggestions[swap.remove] ? swap.remove : Object.keys(allNewSuggestions).find(k => allNewSuggestions[k].name === swap.remove);
+                            if (!targetToRemove) continue;
+
+                            // Resolve ADD
+                            const resp = await api.post('/api/cards/search', { query: swap.add });
+                            const resolved = resp.data.data?.[0] || resp.data?.[0];
+                            if (resolved) {
+                                const ident = resolved.color_identity || [];
+                                if (isColorIdentityValid(ident, commanderColors)) {
+                                    const uuid = resolved.uuid || resolved.id;
+                                    // ONLY remove if add is successful
+                                    delete allNewSuggestions[targetToRemove];
+                                    allNewSuggestions[uuid] = {
+                                        ...resolved,
+                                        firestoreId: uuid,
+                                        suggestedType: (resolved.type_line || '').includes('Land') ? 'Land' : 'Synergy',
+                                        reason: swap.reason || "Refinement Swap",
+                                        is_wishlist: !collection.some(c => (c.scryfall_id || c.uuid) === uuid)
+                                    };
+                                    console.log(`[DEBUG] Refined: Swapped ${swap.remove} -> ${swap.add}`);
+                                }
+                            }
+                        } catch (e) { console.error("Swap failed", e); }
+                    }
+                }
+            } catch (err) { console.error("Refinement failed", err); }
+
+            // Re-verify integrity if refinement dropped any cards
+            await ensureCountIntegrity();
+
+            initialSelectedIds.clear();
+            Object.keys(allNewSuggestions).forEach(id => initialSelectedIds.add(id));
             setSuggestions(allNewSuggestions);
-            setSelectedCards(initialSelectedIds);
-            addLog(`Analysis complete. Outputting ${Object.keys(allNewSuggestions).length} suggestions for a balanced 100-card deck.`);
+            setTimeout(() => setSelectedCards(new Set(initialSelectedIds)), 0);
+            setStatus('Ready.');
             setStep(STEPS.ARCHITECT);
         } catch (err) {
             console.error(err);
@@ -572,178 +905,330 @@ const DeckBuildWizardPage = () => {
         setSelectedCards(newSet);
     };
 
-    const renderAnalysis = () => (
-        <div className="max-w-4xl mx-auto space-y-12 py-12">
-            <div className="text-center space-y-4">
-                <div className="inline-block p-4 rounded-3xl bg-indigo-500/10 border border-indigo-500/20 mb-4 animate-bounce">
-                    <span className="text-4xl">✨</span>
-                </div>
-                <h1 className="text-5xl font-black text-white tracking-tighter uppercase italic">{helperName} Deck Architect</h1>
-                <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-                    {helperName} will analyze your collection and current deck composition to architect the perfect additions for <span className="text-indigo-400 font-bold">{deck?.name}</span>.
-                </p>
-            </div>
+    const handleDeploy = async () => {
+        if (isProcessing) return;
+        setIsProcessing(true);
+        try {
+            const cards = Array.from(selectedCards).map(id => suggestions[id]).filter(Boolean);
+            if (cards.length === 0) {
+                console.warn("No valid cards found in selection", selectedCards, suggestions);
+                addToast("No valid cards selected to deploy.", "error");
+                setIsProcessing(false);
+                return;
+            }
+            const cardsToApply = [];
+            const availabilityMap = new Map();
+            collection.forEach(c => {
+                const sid = c.scryfall_id || c.data?.scryfall_id;
+                if (sid && !c.deck_id) availabilityMap.set(sid, (availabilityMap.get(sid) || 0) + 1);
+            });
 
-            <div className="bg-gray-900/40 backdrop-blur-xl rounded-3xl border border-white/10 p-6 space-y-6">
-                <div className="flex items-center gap-3 mb-2">
-                    <div className="bg-indigo-500/20 p-2 rounded-lg">
-                        <svg className="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>
+            const existingDeckNames = new Set(deckCards.map(c => c.name));
+            const processingNames = new Set();
+
+            for (const s of cards) {
+                const data = s.data || s;
+                const scryfallId = data.scryfall_id || data.id;
+                if (!scryfallId) continue;
+
+                const isBasicLand = s.name.includes('Plains') || s.name.includes('Island') || s.name.includes('Swamp') || s.name.includes('Mountain') || s.name.includes('Forest');
+
+                if (!isBasicLand && (processingNames.has(s.name) || existingDeckNames.has(s.name))) continue;
+
+                processingNames.add(s.name);
+                const isDiscovery = s.isDiscovery || buildMode === 'discovery';
+                let markAsWishlist = isDiscovery;
+
+                if (scryfallId && availabilityMap.has(scryfallId) && availabilityMap.get(scryfallId) > 0) {
+                    markAsWishlist = false;
+                    availabilityMap.set(scryfallId, availabilityMap.get(scryfallId) - 1);
+                }
+
+                cardsToApply.push({
+                    scryfall_id: scryfallId,
+                    name: s.name,
+                    set_code: data.set || data.set_code || '???',
+                    collector_number: data.collector_number || '0',
+                    finish: 'nonfoil',
+                    image_uri: data.image_uris?.normal || null,
+                    data: data,
+                    count: 1,
+                    is_wishlist: markAsWishlist
+                });
+            }
+
+            await api.post(`/api/decks/${deckId}/cards/batch`, { cards: cardsToApply });
+            addToast(`Successfully added ${cardsToApply.length} cards to ${deck.name}!`, 'success');
+            navigate(`/decks/${deckId}`);
+        } catch (err) {
+            console.error("Deployment failed:", err);
+            addToast("Failed to deploy cards. Please try again.", "error");
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    const handleDeployTransition = () => {
+        // PERMISSIONS CHECK
+        const currentTier = userProfile.override_tier || userProfile.subscription_tier || 'free';
+        const isTrial = userProfile.subscription_status === 'trial';
+
+        // Magician (tier_2) and above get the Analysis step
+        const isHighTier = ['tier_2', 'tier_3', 'tier_4', 'tier_5'].includes(currentTier);
+
+        const allowed = isHighTier || isTrial;
+
+        if (allowed) {
+            setStep(STEPS.DEPLOY);
+        } else {
+            handleDeploy();
+        }
+    };
+
+    const renderAnalysis = () => {
+        // State to track if we have started (to switch views)
+        const hasStarted = isProcessing || logs.length > 0;
+
+        // Configuration View
+        if (!hasStarted) {
+            return (
+                <div className="max-w-5xl mx-auto py-12 space-y-10 animate-fade-in">
+                    {/* Header */}
+                    <div className="text-center space-y-4">
+                        <h1 className="text-6xl font-black text-white tracking-tighter uppercase italic drop-shadow-2xl">
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">{helperName}</span> Architect
+                        </h1>
+                        <p className="text-gray-400 text-lg max-w-2xl mx-auto font-medium">
+                            Configure how the Oracle should construct your <span className="text-white font-bold">{deck?.name}</span>.
+                        </p>
                     </div>
-                    <h3 className="text-lg font-bold text-white uppercase tracking-wider">Builder Configuration</h3>
-                </div>
 
-                {/* Mode Switcher */}
-                <div className="bg-gray-950/50 p-1 rounded-xl flex mb-6">
-                    <button
-                        onClick={() => setBuildMode('collection')}
-                        className={`flex-1 py-3 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${buildMode === 'collection' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}
-                    >
-                        Collection Mode
-                    </button>
-                    <button
-                        onClick={() => setBuildMode('discovery')}
-                        className={`flex-1 py-3 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${buildMode === 'discovery' ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}
-                    >
-                        Discovery Mode
-                    </button>
-                </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                        {/* Left Col: Mode Selection */}
+                        <div className="lg:col-span-7 space-y-6">
+                            <div className="bg-gray-900/40 backdrop-blur-xl rounded-[2.5rem] border border-white/10 p-8 space-y-8">
+                                <div className="space-y-4">
+                                    <h3 className="text-xs font-black text-gray-500 uppercase tracking-[0.2em] flex items-center gap-2">
+                                        <div className="w-8 h-[1px] bg-gray-700"></div> STEP 01: SOURCE MATERIAL
+                                    </h3>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {buildMode === 'discovery' && (
-                        <div className="md:col-span-2 space-y-4 animate-fade-in">
-                            <label className="text-xs font-black text-purple-400 uppercase tracking-widest flex items-center gap-2">
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
-                                Strategy Focus / Specific Requests
-                            </label>
-                            <textarea
-                                value={strategyInput}
-                                onChange={(e) => setStrategyInput(e.target.value)}
-                                placeholder="E.g. 'I want a Dinosaur tribal theme with aggressive ramp'..."
-                                className="w-full h-32 bg-gray-950/50 border border-purple-500/30 rounded-2xl p-4 text-sm text-white placeholder-gray-600 focus:ring-2 focus:ring-purple-500/50 outline-none resize-none shadow-inner"
-                            />
-                            <p className="text-[10px] text-gray-500 italic">
-                                Note: Discovery Mode searches the entire Magic history. Cards you don't own will be marked as <strong>Wishlist</strong> items.
-                            </p>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <button
+                                            onClick={() => setBuildMode('collection')}
+                                            className={`relative group p-6 rounded-3xl border-2 text-left transition-all duration-300 ${buildMode === 'collection' ? 'bg-indigo-600/10 border-indigo-500 shadow-xl shadow-indigo-500/10' : 'bg-gray-950/50 border-white/5 hover:border-white/20 hover:bg-white/5'}`}
+                                        >
+                                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 transition-colors ${buildMode === 'collection' ? 'bg-indigo-500 text-white' : 'bg-gray-800 text-gray-400 group-hover:bg-gray-700'}`}>
+                                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                                            </div>
+                                            <h4 className={`text-lg font-black uppercase italic mb-2 ${buildMode === 'collection' ? 'text-white' : 'text-gray-300'}`}>My Collection</h4>
+                                            <p className="text-xs text-gray-500 leading-relaxed font-medium">Build strictly from cards you own. Best for paper decks and budget builds.</p>
+                                            {buildMode === 'collection' && <div className="absolute top-4 right-4 w-3 h-3 bg-indigo-500 rounded-full shadow-[0_0_10px_rgba(99,102,241,0.5)]" />}
+                                        </button>
+
+                                        <button
+                                            onClick={() => setBuildMode('discovery')}
+                                            className={`relative group p-6 rounded-3xl border-2 text-left transition-all duration-300 ${buildMode === 'discovery' ? 'bg-purple-600/10 border-purple-500 shadow-xl shadow-purple-500/10' : 'bg-gray-950/50 border-white/5 hover:border-white/20 hover:bg-white/5'}`}
+                                        >
+                                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 transition-colors ${buildMode === 'discovery' ? 'bg-purple-500 text-white' : 'bg-gray-800 text-gray-400 group-hover:bg-gray-700'}`}>
+                                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                            </div>
+                                            <h4 className={`text-lg font-black uppercase italic mb-2 ${buildMode === 'discovery' ? 'text-white' : 'text-gray-300'}`}>Global Discovery</h4>
+                                            <p className="text-xs text-gray-500 leading-relaxed font-medium">Search the entire MTG history. Finds the absolute best cards for your strategy.</p>
+                                            {buildMode === 'discovery' && <div className="absolute top-4 right-4 w-3 h-3 bg-purple-500 rounded-full shadow-[0_0_10px_rgba(168,85,247,0.5)]" />}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Divider */}
+                                <div className="w-full h-px bg-white/5"></div>
+
+                                {/* Shared Settings */}
+                                <div className="space-y-6">
+                                    <h3 className="text-xs font-black text-gray-500 uppercase tracking-[0.2em] flex items-center gap-2">
+                                        <div className="w-8 h-[1px] bg-gray-700"></div> STEP 02: PARAMETERS
+                                    </h3>
+
+                                    {buildMode === 'collection' && (
+                                        <div className="space-y-4 animate-fade-in">
+                                            <div className="flex items-center justify-between p-4 bg-gray-950/30 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
+                                                <div className="space-y-1">
+                                                    <span className="block text-sm font-bold text-gray-200">Only Owned Cards</span>
+                                                    <span className="block text-xs text-gray-500">Hide wishlist items from suggestions</span>
+                                                </div>
+                                                <button
+                                                    onClick={() => setAnalysisSettings(s => ({ ...s, ownedOnly: !s.ownedOnly }))}
+                                                    className={`w-14 h-8 rounded-full p-1 transition-colors ${analysisSettings.ownedOnly ? 'bg-indigo-600' : 'bg-gray-800'}`}
+                                                >
+                                                    <div className={`w-6 h-6 rounded-full bg-white shadow-md transition-transform ${analysisSettings.ownedOnly ? 'translate-x-6' : 'translate-x-0'}`} />
+                                                </button>
+                                            </div>
+                                            <div className="flex items-center justify-between p-4 bg-gray-950/30 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
+                                                <div className="space-y-1">
+                                                    <span className="block text-sm font-bold text-gray-200">Exclude Assigned</span>
+                                                    <span className="block text-xs text-gray-500">Skip cards already used in other decks</span>
+                                                </div>
+                                                <button
+                                                    onClick={() => setAnalysisSettings(s => ({ ...s, excludeAssigned: !s.excludeAssigned }))}
+                                                    className={`w-14 h-8 rounded-full p-1 transition-colors ${analysisSettings.excludeAssigned ? 'bg-indigo-600' : 'bg-gray-800'}`}
+                                                >
+                                                    <div className={`w-6 h-6 rounded-full bg-white shadow-md transition-transform ${analysisSettings.excludeAssigned ? 'translate-x-6' : 'translate-x-0'}`} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {buildMode === 'discovery' && (
+                                        <div className="animate-fade-in">
+                                            <textarea
+                                                value={strategyInput}
+                                                onChange={(e) => setStrategyInput(e.target.value)}
+                                                placeholder={`Tell ${helperName} specifically what you're looking for... (e.g. 'Aggressive dinosaur ramp', 'Blue/Black control with mill finisher')`}
+                                                className="w-full h-32 bg-gray-950/50 border border-purple-500/20 rounded-2xl p-5 text-sm text-white placeholder-gray-600 focus:ring-2 focus:ring-purple-500/30 outline-none resize-none shadow-inner"
+                                            />
+                                        </div>
+                                    )}
+
+                                    {/* Set Restriction - Available in both? Yes, Discovery can be set restricted too logically */}
+                                    <div className="p-4 bg-gray-950/30 rounded-2xl border border-white/5 space-y-3">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm font-bold text-gray-200">Set Restriction</span>
+                                            <button
+                                                onClick={() => setAnalysisSettings(s => ({ ...s, restrictSet: !s.restrictSet }))}
+                                                className={`w-10 h-6 rounded-full p-1 transition-colors ${analysisSettings.restrictSet ? 'bg-indigo-600' : 'bg-gray-800'}`}
+                                            >
+                                                <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${analysisSettings.restrictSet ? 'translate-x-4' : 'translate-x-0'}`} />
+                                            </button>
+                                        </div>
+
+                                        {/* Cohort Display */}
+                                        <div className={`transition-all duration-300 ${analysisSettings.restrictSet ? 'opacity-100 max-h-40' : 'opacity-50 max-h-12'}`}>
+                                            {analysisSettings.restrictSet ? (
+                                                <div className="bg-black/20 border border-indigo-500/30 rounded-xl p-3 space-y-2">
+                                                    <p className="text-[10px] text-indigo-300 font-bold uppercase tracking-wider">
+                                                        Allowed Sets ({getRestrictedSets().length})
+                                                    </p>
+                                                    <div className="flex flex-wrap gap-1.5 h-full overflow-y-auto max-h-20 custom-scrollbar">
+                                                        {getRestrictedSets().map(s => (
+                                                            <span key={s.code} className="inline-flex items-center px-1.5 py-0.5 rounded bg-indigo-500/20 border border-indigo-500/30 text-[9px] text-indigo-200 font-mono">
+                                                                {s.name} ({s.code.toUpperCase()})
+                                                            </span>
+                                                        ))}
+                                                        {getRestrictedSets().length === 0 && <span className="text-[10px] text-gray-500 italic">Finding cohort...</span>}
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="bg-black/20 border border-white/5 rounded-xl p-3">
+                                                    <p className="text-xs text-gray-600 italic">Enable to restrict cards to the Commander's release window.</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    )}
 
-                    {buildMode === 'collection' && (
-                        <>
-                            <div className="space-y-4">
-                                <label className="text-xs font-black text-gray-500 uppercase tracking-widest">Candidate Pool</label>
+                        {/* Right Col: Preferences & Action */}
+                        <div className="lg:col-span-5 space-y-6">
+                            <div className="bg-gray-900/40 backdrop-blur-xl rounded-[2.5rem] border border-white/10 p-8 space-y-8 h-full flex flex-col">
+                                <h3 className="text-xs font-black text-gray-500 uppercase tracking-[0.2em] flex items-center gap-2">
+                                    <div className="w-8 h-[1px] bg-gray-700"></div> PREFERENCES
+                                </h3>
 
-                                <div className="flex items-center justify-between p-3 bg-gray-950/30 rounded-xl border border-white/5">
-                                    <div className="flex flex-col">
-                                        <span className="text-sm font-bold text-gray-200">Owned Cards Only</span>
-                                        <span className="text-[10px] text-gray-500">Hide wishlist items</span>
-                                    </div>
-                                    <div
-                                        onClick={() => setAnalysisSettings(s => ({ ...s, ownedOnly: !s.ownedOnly }))}
-                                        className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors ${analysisSettings.ownedOnly ? 'bg-indigo-600' : 'bg-gray-700'}`}
-                                    >
-                                        <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${analysisSettings.ownedOnly ? 'translate-x-6' : 'translate-x-0'}`} />
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center justify-between p-3 bg-gray-950/30 rounded-xl border border-white/5">
-                                    <div className="flex flex-col">
-                                        <span className="text-sm font-bold text-gray-200">Exclude Assigned</span>
-                                        <span className="text-[10px] text-gray-500">Skip cards in other decks</span>
-                                    </div>
-                                    <div
-                                        onClick={() => setAnalysisSettings(s => ({ ...s, excludeAssigned: !s.excludeAssigned }))}
-                                        className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors ${analysisSettings.excludeAssigned ? 'bg-indigo-600' : 'bg-gray-700'}`}
-                                    >
-                                        <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${analysisSettings.excludeAssigned ? 'translate-x-6' : 'translate-x-0'}`} />
+                                <div className="space-y-3">
+                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Printing Preference</label>
+                                    <div className="grid grid-cols-1 gap-2">
+                                        {[
+                                            { id: 'cheapest', label: 'Cheapest', sub: 'Best Value' },
+                                            { id: 'nonfoil', label: 'Standard', sub: 'Prefer Non-Foil' },
+                                            { id: 'foil', label: 'Premium', sub: 'Prefer Foil' },
+                                        ].map(opt => (
+                                            <button
+                                                key={opt.id}
+                                                onClick={() => setAnalysisSettings(s => ({ ...s, finishPreference: opt.id }))}
+                                                className={`flex items-center justify-between px-5 py-3 rounded-xl border transition-all ${analysisSettings.finishPreference === opt.id ? 'bg-indigo-600/20 border-indigo-500 text-white' : 'bg-gray-950/30 border-white/5 text-gray-500 hover:bg-white/5'}`}
+                                            >
+                                                <span className="font-bold text-sm">{opt.label}</span>
+                                                <span className="text-[10px] opacity-60 uppercase tracking-wider">{opt.sub}</span>
+                                            </button>
+                                        ))}
                                     </div>
                                 </div>
-                            </div>
 
-                            <div className="space-y-3">
-                                <div className="flex justify-between items-center">
-                                    <label className="text-xs font-black text-gray-500 uppercase tracking-widest">Set Priority</label>
-                                    <div className="flex items-center gap-2">
-                                        <input
-                                            type="checkbox"
-                                            id="restrictSet"
-                                            checked={analysisSettings.restrictSet}
-                                            onChange={(e) => setAnalysisSettings(s => ({ ...s, restrictSet: e.target.checked }))}
-                                            className="rounded bg-gray-800 border-gray-700 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-gray-900"
-                                        />
-                                        <label htmlFor="restrictSet" className="text-xs text-indigo-300 font-bold cursor-pointer select-none">Restrict to Set</label>
-                                    </div>
-                                </div>
-                                <input
-                                    type="text"
-                                    disabled={!analysisSettings.restrictSet}
-                                    value={analysisSettings.setName}
-                                    onChange={(e) => setAnalysisSettings(s => ({ ...s, setName: e.target.value }))}
-                                    placeholder="e.g. Avatar, KTK, Khans..."
-                                    className={`w-full bg-gray-950/50 border rounded-xl px-4 py-2.5 text-sm transition-all focus:ring-2 focus:ring-indigo-500/50 outline-none ${!analysisSettings.restrictSet ? 'border-white/5 text-gray-600 cursor-not-allowed' : 'border-indigo-500/30 text-white placeholder-gray-600'}`}
-                                />
-                                {analysisSettings.restrictSet && (
-                                    <p className="text-[10px] text-yellow-500/80 font-medium animate-fade-in">
-                                        ⚠️ Only cards matching "{analysisSettings.setName}" will be suggested.
-                                    </p>
-                                )}
-                            </div>
+                                <div className="flex-1"></div>
 
-                            <div className="space-y-3">
-                                <label className="text-xs font-black text-gray-500 uppercase tracking-widest">Finish / Price Preference</label>
-                                <select
-                                    value={analysisSettings.finishPreference}
-                                    onChange={(e) => setAnalysisSettings(s => ({ ...s, finishPreference: e.target.value }))}
-                                    className="w-full bg-gray-950/50 border border-white/5 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all"
-                                >
-                                    <option value="cheapest">Cheapest Version (Any)</option>
-                                    <option value="nonfoil">Normal (Non-Foil)</option>
-                                    <option value="foil">Premium (Foil Only)</option>
-                                </select>
-                                <p className="text-[10px] text-gray-500 italic">
-                                    Determines which printing {helperName} selects when resolving suggestions.
-                                </p>
-                            </div>
-                        </>
-                    )}
-                </div>
-
-                <div className="bg-gray-950/40 backdrop-blur-3xl rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl">
-                    <div className="p-8 border-b border-white/5 bg-white/5 flex justify-between items-center">
-                        <div className="flex items-center gap-4">
-                            <div className={`w-3 h-3 rounded-full ${isProcessing ? 'bg-yellow-500 animate-pulse' : 'bg-green-500'}`} />
-                            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-500">{status}</span>
-                        </div>
-                        <div className="flex gap-4">
-                            {(currentUser?.uid === 'Kyrlwz6G6NWICCEPYbXtFfyLzWI3' || userProfile?.firestore_id === 'Kyrlwz6G6NWICCEPYbXtFfyLzWI3') && (
-                                <button
-                                    onClick={handleQuickSkip}
-                                    className="bg-amber-600/20 hover:bg-amber-600/40 text-amber-500 font-black px-6 py-3 rounded-2xl transition-all uppercase tracking-widest text-[10px] border border-amber-500/20"
-                                >
-                                    Quick Skip (Dev)
-                                </button>
-                            )}
-                            {!isProcessing && (
+                                {/* CTA */}
                                 <button
                                     onClick={startAnalysis}
-                                    className="bg-indigo-600 hover:bg-indigo-500 text-white font-black px-8 py-3 rounded-2xl transition-all shadow-lg shadow-indigo-500/20 uppercase tracking-widest text-xs border border-white/10"
+                                    className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-black text-lg py-6 rounded-2xl shadow-2xl shadow-indigo-500/30 border border-white/10 uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-[0.98] group"
                                 >
-                                    Start Architecture
+                                    <span className="flex items-center justify-center gap-3">
+                                        INITIALIZE ARCHITECT
+                                        <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                                    </span>
                                 </button>
-                            )}
+                                <p className="text-center text-[10px] text-gray-600 font-mono">
+                                    Aetherius v2.5-Lite • {deckCards.length} Cards Loaded
+                                </p>
+                            </div>
                         </div>
                     </div>
-                    <div className="p-8 h-[400px] overflow-y-auto font-mono text-xs space-y-3 custom-scrollbar bg-black/40 backdrop-blur-inner shadow-inner border-t border-white/5 leading-relaxed">
-                        {logs.length === 0 ? (
-                            <div className="text-gray-600 italic animate-pulse">Waiting for architecture to start...</div>
-                        ) : (
-                            logs.map((log, i) => <div key={i} className="text-gray-300 animate-fade-in pl-4 border-l-2 border-indigo-500/40 py-1 hover:bg-white/5 transition-colors rounded-r">{log}</div>)
-                        )}
+                </div>
+            );
+        }
+
+        // Execution View (Terminal)
+        return (
+            <div className="max-w-4xl mx-auto py-12 space-y-8 h-full flex flex-col animate-fade-in">
+                <div className="text-center space-y-4">
+                    <div className="inline-block p-4 rounded-full bg-indigo-500/10 border border-indigo-500/20 animate-pulse">
+                        <div className="w-4 h-4 bg-indigo-500 rounded-full shadow-[0_0_15px_rgba(99,102,241,1)]" />
+                    </div>
+                    <h2 className="text-3xl font-black text-white uppercase italic tracking-widest">
+                        Architecting Interface
+                    </h2>
+                    <p className="text-indigo-400 font-mono text-sm tracking-widest">{status}</p>
+                </div>
+
+                <div className="flex-1 bg-black/80 backdrop-blur-xl rounded-[2rem] border border-white/10 overflow-hidden shadow-2xl flex flex-col relative">
+                    {/* Terminal Header */}
+                    <div className="h-10 bg-gray-900 border-b border-white/10 flex items-center px-4 justify-between">
+                        <div className="flex gap-2">
+                            <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50" />
+                            <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50" />
+                            <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50" />
+                        </div>
+                        <div className="text-[10px] text-gray-600 font-mono uppercase">root@aetherius:~</div>
+                        <div className="w-10" />
+                    </div>
+
+                    {/* Terminal Body */}
+                    <div className="flex-1 p-6 overflow-y-auto font-mono text-xs space-y-2 custom-scrollbar">
+                        {logs.map((log, i) => (
+                            <div key={i} className="text-gray-300 animate-fade-in pl-2 border-l-2 border-indigo-500/30">
+                                <span className="text-indigo-500 mr-2">➜</span>
+                                {log}
+                            </div>
+                        ))}
                         <div ref={logsEndRef} />
                     </div>
+
+                    {/* Progress Bar overlay at bottom */}
+                    <div className="h-1 bg-gray-800 w-full">
+                        <div className="h-full bg-indigo-500 animate-progress-indeterminate opacity-50" />
+                    </div>
+                </div>
+
+                {/* Controls */}
+                <div className="flex justify-center gap-4">
+                    {(currentUser?.uid === 'Kyrlwz6G6NWICCEPYbXtFfyLzWI3' || userProfile?.firestore_id === 'Kyrlwz6G6NWICCEPYbXtFfyLzWI3') && (
+                        <button onClick={handleQuickSkip} className="text-[10px] text-amber-500 uppercase tracking-widest hover:text-amber-400">
+                            [DEV] Bypass Sequence
+                        </button>
+                    )}
                 </div>
             </div>
-        </div>
-    );
+        );
+    };
 
     const renderArchitect = () => {
         const displayedSuggestions = Object.values(suggestions).filter(s => selectedTab === 'All' || s.suggestedType === selectedTab);
@@ -774,7 +1259,6 @@ const DeckBuildWizardPage = () => {
                     </div>
                 </div>
 
-                {/* Categories Scrollable */}
                 <div className="flex bg-gray-950/50 p-1.5 rounded-2xl border border-white/5 backdrop-blur-md overflow-x-auto no-scrollbar mx-4">
                     {tabs.map(tab => {
                         const count = Object.values(suggestions).filter(s => tab === 'All' || s.suggestedType === tab).length;
@@ -791,7 +1275,7 @@ const DeckBuildWizardPage = () => {
                     })}
                 </div>
 
-                <div className="flex-1 overflow-y-auto px-4 custom-scrollbar">
+                <div className="flex-1 overflow-y-auto px-4 custom-scrollbar min-h-0">
                     {viewMode === 'list' && (
                         <div className="space-y-4">
                             {displayedSuggestions.map((card) => (
@@ -956,7 +1440,7 @@ const DeckBuildWizardPage = () => {
                     </div>
                     <div className="flex gap-4">
                         <button onClick={() => setStep(STEPS.ANALYSIS)} className="px-8 py-3.5 bg-white/5 hover:bg-white/10 text-white font-black rounded-2xl border border-white/5 uppercase tracking-widest text-[11px] transition-all">Re-Analyze</button>
-                        <button onClick={() => setStep(STEPS.DEPLOY)} className="px-10 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-2xl shadow-xl shadow-indigo-500/20 uppercase tracking-widest text-[11px] border border-white/10 transition-all">Review & Deploy</button>
+                        <button onClick={handleDeployTransition} className="px-10 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-2xl shadow-xl shadow-indigo-500/20 uppercase tracking-widest text-[11px] border border-white/10 transition-all">Review & Deploy</button>
                     </div>
                 </div>
             </div>
@@ -966,94 +1450,72 @@ const DeckBuildWizardPage = () => {
     const renderDeploy = () => {
         const cards = Array.from(selectedCards).map(id => suggestions[id]);
 
-        const handleDeploy = async () => {
-            if (isProcessing) return;
-            setIsProcessing(true);
-            try {
-                const cardsToApply = [];
-                const availabilityMap = new Map();
-                collection.forEach(c => {
-                    const sid = c.scryfall_id || c.data?.scryfall_id;
-                    if (sid && !c.deck_id) availabilityMap.set(sid, (availabilityMap.get(sid) || 0) + 1);
-                });
-
-                const existingDeckNames = new Set(deckCards.map(c => c.name));
-                const processingNames = new Set();
-
-                for (const s of cards) {
-                    const data = s.data || s;
-                    const scryfallId = data.scryfall_id || data.id;
-                    if (!scryfallId) continue;
-
-                    const isBasicLand = s.name.includes('Plains') || s.name.includes('Island') || s.name.includes('Swamp') || s.name.includes('Mountain') || s.name.includes('Forest');
-
-                    if (!isBasicLand && (processingNames.has(s.name) || existingDeckNames.has(s.name))) continue;
-
-                    processingNames.add(s.name);
-                    const isDiscovery = s.isDiscovery || buildMode === 'discovery';
-                    let markAsWishlist = isDiscovery;
-
-                    if (scryfallId && availabilityMap.has(scryfallId) && availabilityMap.get(scryfallId) > 0) {
-                        markAsWishlist = false;
-                        availabilityMap.set(scryfallId, availabilityMap.get(scryfallId) - 1);
-                    }
-
-                    cardsToApply.push({
-                        scryfall_id: scryfallId,
-                        name: s.name,
-                        set_code: data.set || data.set_code || '???',
-                        collector_number: data.collector_number || '0',
-                        finish: 'nonfoil',
-                        image_uri: data.image_uris?.normal || null,
-                        data: data,
-                        count: 1,
-                        is_wishlist: markAsWishlist
-                    });
-                }
-
-                await api.post(`/api/decks/${deckId}/cards/batch`, { cards: cardsToApply });
-                addToast(`Successfully added ${cardsToApply.length} cards to ${deck.name}!`, 'success');
-                navigate(`/decks/${deckId}`);
-            } catch (err) {
-                console.error("Deployment failed:", err);
-                addToast("Failed to deploy cards. Please try again.", "error");
-            } finally {
-                setIsProcessing(false);
-            }
-        };
-
         return (
-            <div className="max-w-5xl mx-auto space-y-12 py-12">
-                <div className="text-center space-y-4">
+            <div className="max-w-5xl mx-auto space-y-8 py-8 h-full flex flex-col">
+                <div className="text-center space-y-2">
                     <h2 className="text-4xl font-black text-white italic tracking-tighter uppercase">Final Deployment</h2>
-                    <p className="text-gray-500 font-medium">Review your selected additions before applying them to your deck.</p>
+                    <p className="text-gray-500 font-medium">Review your deck's final verified state.</p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {cards.map(card => (
-                        <div key={card.firestoreId} className="bg-gray-950/40 p-6 rounded-[2rem] border border-white/10 space-y-3 relative overflow-hidden group">
-                            <div className="flex justify-between items-start">
-                                <span className="font-black text-white uppercase italic text-lg truncate block flex-1">{card.name}</span>
-                                <span className={`text-[9px] font-black uppercase px-2 py-1 rounded ${card.is_wishlist ? 'bg-purple-500/20 text-purple-400' : 'bg-green-500/20 text-green-400'}`}>
-                                    {card.is_wishlist ? 'Wishlist' : 'Owned'}
-                                </span>
-                            </div>
-                            <div className="text-xs text-indigo-400/60 font-black uppercase tracking-widest">{card.suggestedType}</div>
-                            <div className="text-xs text-gray-400 leading-relaxed italic line-clamp-3">"{card.reason}"</div>
-
-                            {/* Hover Image Preview */}
-                            <div className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity pointer-events-none">
-                                <img
-                                    src={card.data?.image_uris?.art_crop || card.data?.image_uris?.normal}
-                                    className="w-full h-full object-cover"
-                                    alt=""
-                                />
+                {/* Analysis Section */}
+                <div className="flex-1 bg-gray-950/40 backdrop-blur-xl rounded-[2.5rem] border border-white/10 p-8 overflow-y-auto custom-scrollbar shadow-2xl">
+                    {isDeployAnalyzing ? (
+                        <div className="h-full flex flex-col items-center justify-center space-y-6 animate-pulse">
+                            <div className="w-20 h-20 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                            <div className="text-center space-y-2">
+                                <h3 className="text-2xl font-black text-white uppercase italic tracking-widest">Analysing Synergy...</h3>
+                                <p className="text-indigo-400 font-mono text-sm">Running 10,000 simulations against meta decks...</p>
                             </div>
                         </div>
-                    ))}
+                    ) : deployAnalysis ? (
+                        <div className="space-y-10 animate-fade-in">
+                            {/* Grade Header */}
+                            <div className="flex items-center justify-between border-b border-white/10 pb-8">
+                                <div className="space-y-1">
+                                    <h3 className="text-xl font-black text-gray-400 uppercase tracking-[0.2em]">Power Level</h3>
+                                    <div className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400 italic font-mono">
+                                        {deployAnalysis.grade?.grade || '7'}
+                                        <span className="text-lg text-gray-500 ml-4 not-italic">/ 10</span>
+                                    </div>
+                                </div>
+                                <div className="text-right space-y-1">
+                                    <div className="text-xs font-black text-indigo-400 uppercase tracking-widest">Est. Win Rate</div>
+                                    <div className="text-3xl font-black text-white">{deployAnalysis.grade?.winRate || '25%'}</div>
+                                </div>
+                            </div>
+
+                            {/* Strategy Summary */}
+                            <div className="space-y-6">
+                                <h3 className="text-xl font-black text-white uppercase italic tracking-tight flex items-center gap-3">
+                                    <svg className="w-6 h-6 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+                                    Strategic Analysis
+                                </h3>
+                                <div className="prose prose-invert prose-indigo max-w-none">
+                                    <div className="bg-black/20 p-6 rounded-2xl border border-white/5 text-gray-300 leading-relaxed whitespace-pre-line font-medium shadow-inner">
+                                        {deployAnalysis.strategy?.summary || deployAnalysis.strategy || "Analysis complete."}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* New Additions Preview */}
+                            <div className="space-y-4">
+                                <h3 className="text-sm font-black text-gray-500 uppercase tracking-widest">Adding {cards.length} Cards</h3>
+                                <div className="flex gap-2 overflow-x-auto pb-4 custom-scrollbar">
+                                    {cards.map(c => (
+                                        <div key={c.id || c.name} className="w-24 h-32 flex-shrink-0 rounded-lg overflow-hidden relative group border border-white/10 hover:border-indigo-500/50 transition-all">
+                                            <img src={c.data?.image_uris?.normal || c.image_uri} className="w-full h-full object-cover" alt={c.name} />
+                                            <div className="absolute inset-x-0 bottom-0 bg-black/80 p-1 text-[8px] truncate text-center text-white font-bold">{c.name}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="text-center text-gray-500">Initializing analysis module...</div>
+                    )}
                 </div>
 
-                <div className="flex gap-6 justify-center pt-8">
+                <div className="flex gap-6 justify-center pt-4">
                     <button
                         onClick={() => setStep(STEPS.ARCHITECT)}
                         className="px-12 py-4 bg-gray-900/50 hover:bg-gray-800 text-white font-black rounded-2xl border border-white/5 uppercase tracking-widest text-xs transition-all shadow-xl"
@@ -1062,15 +1524,15 @@ const DeckBuildWizardPage = () => {
                     </button>
                     <button
                         onClick={handleDeploy}
-                        disabled={isProcessing}
-                        className="px-16 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-2xl shadow-2xl shadow-indigo-500/40 uppercase tracking-widest text-xs border border-white/10 transition-all flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={isProcessing || isDeployAnalyzing}
+                        className="px-16 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-2xl shadow-2xl shadow-indigo-500/40 uppercase tracking-widest text-xs border border-white/10 transition-all flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed group"
                     >
                         {isProcessing ? (
                             <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
                         ) : (
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                            <svg className="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
                         )}
-                        Apply to "{deck?.name}"
+                        Confirm & Deploy
                     </button>
                 </div>
             </div>
@@ -1082,7 +1544,7 @@ const DeckBuildWizardPage = () => {
     const commanderArt = getArtCrop(deck?.commander) || getArtCrop(deck?.commander_partner);
 
     return (
-        <div className="min-h-screen bg-gray-950 text-gray-200 font-sans relative flex flex-col pt-16">
+        <div className="h-screen bg-gray-950 text-gray-200 font-sans relative flex flex-col pt-16 overflow-hidden">
             {/* Immersive Background */}
             <div
                 className="fixed inset-0 z-0 transition-all duration-1000 ease-in-out"
@@ -1117,7 +1579,8 @@ const DeckBuildWizardPage = () => {
                 <div className="w-32" /> {/* Spacer */}
             </div>
 
-            <main className="flex-1 relative z-10 px-4 max-w-7xl mx-auto w-full">
+            {/* Content using flex-1 and min-h-0 to force internal scrolling */}
+            <main className="flex-1 relative z-10 px-4 max-w-7xl mx-auto w-full min-h-0 flex flex-col">
                 {step === STEPS.ANALYSIS && renderAnalysis()}
                 {step === STEPS.ARCHITECT && renderArchitect()}
                 {step === STEPS.DEPLOY && renderDeploy()}

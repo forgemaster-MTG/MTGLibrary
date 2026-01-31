@@ -65,56 +65,52 @@ const getKeys = (primaryKey, userProfile) => {
     return [...new Set(keys)].slice(0, 5);
 };
 
-const PREFERRED_MODELS = [
-    "gemini-3-flash",
-    "gemini-2.5-flash",
-    "gemini-2.5-flash-lite",
-    "gemini-2.0-flash",
-    "gemini-2.0-flash-lite-preview-02-05",
-    "gemini-1.5-flash",
-    "gemini-1.5-flash-8b"
+const PRO_MODELS = [
+    "gemini-2.5-pro",            // Verified Available
+    "gemini-exp-1206",           // Verified Strong Experimental
+    "gemini-pro-latest"          // Verified Alias
 ];
+
+const FLASH_MODELS = [
+    "gemini-2.5-flash",          // Verified Available
+    "gemini-2.0-flash",          // Verified Available
+    "gemini-flash-latest"        // Verified Alias
+];
+
+const PREFERRED_MODELS = [...PRO_MODELS, ...FLASH_MODELS];
 
 const cleanResponse = (text) => {
     if (!text) return "";
+    console.log("DEBUG: Raw AI Response:", text); // Debugging truncation
     let cleaned = text.replace(/```json/g, '').replace(/```html/g, '').replace(/```/g, '').trim();
 
     // Enhanced Truncation Repair
     if (cleaned.startsWith('{') && !cleaned.endsWith('}')) {
-        console.warn("AI response appears truncated. Implementing structural repair...");
-
-        // Strategy: 
-        // 1. If it ends inside a string (odd number of unescaped quotes), close the quote.
-        // 2. Walk backwards to find the last complete object in the array if possible.
-        // 3. Close the array and object.
-
-        // Fix open strings
+        // 1. Fix open strings (unbalanced unescaped quotes)
         const quotes = (cleaned.match(/"/g) || []).length;
         if (quotes % 2 !== 0) {
             cleaned += '"';
         }
 
-        // Close common structures
         if (cleaned.includes('"suggestions"')) {
-            // If it cut off inside an object in the suggestions array
-            if (cleaned.lastIndexOf('{') > cleaned.lastIndexOf('}')) {
-                // We are inside an incomplete object. We must close it or strip it.
-                // Stripping the last incomplete object is safer for a clean JSON parse.
-                cleaned = cleaned.substring(0, cleaned.lastIndexOf('{')).trim();
-                if (cleaned.endsWith(',')) cleaned = cleaned.slice(0, -1);
+            const lastBracket = cleaned.lastIndexOf('[');
+            const lastCloseBracket = cleaned.lastIndexOf(']');
+            if (lastBracket > lastCloseBracket) {
+                const lastCommaObj = cleaned.lastIndexOf('},');
+                if (lastCommaObj !== -1) {
+                    cleaned = cleaned.substring(0, lastCommaObj + 1).trim();
+                    if (cleaned.endsWith(',')) cleaned = cleaned.slice(0, -1);
+                    cleaned += ' ]';
+                } else {
+                    cleaned += ' ]';
+                }
             }
-
-            if (!cleaned.endsWith(']')) cleaned += ']';
-            if (!cleaned.endsWith('}')) cleaned += '}';
-        } else {
-            // General fallback
-            if (cleaned.lastIndexOf('[') > cleaned.lastIndexOf(']')) cleaned += ']';
-            if (cleaned.lastIndexOf('{') > cleaned.lastIndexOf('}')) cleaned += '}';
         }
-
-        // Final sanity check: if it ends in a comma, remove it
-        cleaned = cleaned.trim().replace(/,$/, '');
-        if (!cleaned.endsWith('}')) cleaned += '}';
+        if (cleaned.lastIndexOf('{') > cleaned.lastIndexOf('}')) {
+            cleaned = cleaned.trim();
+            if (cleaned.endsWith(',')) cleaned = cleaned.slice(0, -1);
+            cleaned += ' }';
+        }
     }
     return cleaned;
 };
@@ -134,8 +130,24 @@ const parseResponse = (text) => {
     }
 };
 
+// Diagnostic: List models for a key to verify what it can see
+const verifyModels = async (key) => {
+    try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
+        if (response.ok) {
+            const data = await response.json();
+            const names = data.models?.map(m => m.name.replace('models/', '')) || [];
+            console.log(`[GeminiService] DIAGNOSTIC: Available Models for key ...${key.slice(-4)}:`, names.join(', '));
+        } else {
+            console.warn(`[GeminiService] DIAGNOSTIC: Failed to list models for key ...${key.slice(-4)}`, response.status);
+        }
+    } catch (e) {
+        console.error(`[GeminiService] DIAGNOSTIC: Network error listing models`, e);
+    }
+};
+
 const GeminiService = {
-    async executeWithFallback(payload, userProfile, options = {}) {
+    async executeWithFallback(payload, userProfile = null, options = {}) {
         const primaryKey = options.apiKey;
         const keys = getKeys(primaryKey, userProfile);
         const models = options.models || PREFERRED_MODELS;
@@ -152,49 +164,47 @@ const GeminiService = {
             sysParts.forEach(p => { if (p.text) inputTokens += estimateTokens(p.text); });
         }
 
-        // Check compatibility
         const requiresBeta = !!(payload.system_instruction || payload.systemInstruction || payload.generationConfig?.responseSchema || payload.generationConfig?.responseMimeType);
-
         const deadKeys = new Set();
 
-        for (let kIdx = 0; kIdx < keys.length; kIdx++) {
-            const key = keys[kIdx];
-            if (deadKeys.has(key)) continue;
+        for (const model of models) {
+            let hit429ForAllKeysThisModel = true; // Assume throttled until we see success or non-429
 
-            let hit429ForKey = false;
-            for (const model of models) {
-                if (hit429ForKey) break;
+            for (let kIdx = 0; kIdx < keys.length; kIdx++) {
+                const key = keys[kIdx];
+                if (deadKeys.has(key)) continue;
 
-                // Try mostly v1beta first (better for new models), then v1 (better for stable/older)
-                const methods = ['v1beta', 'v1']; // Always try both to be safe, unless specifically restricted
-
+                const methods = ['v1beta', 'v1'];
                 for (const apiVer of methods) {
                     try {
                         const url = `https://generativelanguage.googleapis.com/${apiVer}/models/${model}:generateContent?key=${key}`;
 
-                        // v1 (stable) does not support system_instruction or JSON schema in the same way as v1beta
-                        let finalPayload = { ...payload };
-                        if (apiVer === 'v1') {
-                            // Extract instruction text if it exists
-                            const systemText = (finalPayload.system_instruction || finalPayload.systemInstruction)?.parts?.[0]?.text;
+                        // Deep copy to prevent reference pollution across versions/models
+                        let finalPayload = JSON.parse(JSON.stringify(payload));
 
-                            // Strip v1beta fields
-                            delete finalPayload.system_instruction;
-                            delete finalPayload.systemInstruction;
+                        if (apiVer === 'v1' && requiresBeta) {
+                            // STRICT V1 COMPATIBILITY:
+                            // The v1 endpoint DOES NOT support system_instruction or responseSchema, 
+                            // even for newer models (as verified by logs). We must strip them.
 
-                            if (finalPayload.generationConfig) {
-                                finalPayload.generationConfig = { ...finalPayload.generationConfig };
-                                delete finalPayload.generationConfig.responseMimeType;
-                                delete finalPayload.generationConfig.responseSchema;
-                            }
+                            const systemParts = (finalPayload.systemInstruction || finalPayload.system_instruction)?.parts;
+                            const systemText = systemParts?.[0]?.text;
 
-                            // v1 fallback: Merge system instruction into contents as the first user message
                             if (systemText) {
+                                // Move system instruction to a fake user message
                                 finalPayload.contents = [
                                     { role: 'user', parts: [{ text: `SYSTEM INSTRUCTION: ${systemText}\n\nUNDERSTOOD. I will follow those instructions exactly.` }] },
                                     { role: 'model', parts: [{ text: "Understood. I am ready." }] },
                                     ...(finalPayload.contents || [])
                                 ];
+                                delete finalPayload.system_instruction;
+                                delete finalPayload.systemInstruction;
+                            }
+
+                            // Strip beta generation config fields
+                            if (finalPayload.generationConfig) {
+                                delete finalPayload.generationConfig.responseSchema;
+                                delete finalPayload.generationConfig.responseMimeType;
                             }
                         }
 
@@ -207,49 +217,55 @@ const GeminiService = {
                         if (!response.ok) {
                             let errorMsg = response.status.toString();
                             let isInvalidKey = false;
+                            let errData = null;
                             try {
-                                const errData = await response.json();
+                                errData = await response.json();
                                 if (errData.error?.message) {
                                     errorMsg = errData.error.message;
-                                    if (errorMsg.toLowerCase().includes('api key not valid') || errorMsg.toLowerCase().includes('invalid api key')) {
-                                        isInvalidKey = true;
-                                    }
+                                    const lower = errorMsg.toLowerCase();
+                                    if (lower.includes('api key not valid') || lower.includes('invalid api key') || lower.includes('expired') || lower.includes('deleted')) isInvalidKey = true;
                                 }
                             } catch (e) { /* ignore */ }
 
-                            if (isInvalidKey) {
-                                failureSummary.push(`Key ${kIdx}: Invalid/Expired`);
+                            if (isInvalidKey || response.status === 403) {
+                                const reasonLabel = isInvalidKey ? 'Invalid' : '403';
+                                failureSummary.push(`Key ${kIdx}: ${reasonLabel}`);
+                                console.warn(`[GeminiService] Killing Key ${kIdx}. Reason: ${reasonLabel} (${errorMsg || 'No detail'})`);
                                 deadKeys.add(key);
-                                hit429ForKey = true; // Use this to break models loop too
-                                break; // Skip all models for this key
+                                continue; // Try next key
                             }
 
                             if (response.status === 429) {
                                 hitOverall429 = true;
                                 updateUsageStats(kIdx, model, 429, 0, 0);
-                                failureSummary.push(`${model}@${apiVer} (Key ${kIdx}): 429 Rate Limited`);
-
-                                // INCREASED: Buffer delay to avoid hammering the next key/model immediately
-                                await new Promise(resolve => setTimeout(resolve, 3000));
-
-                                hit429ForKey = true;
-                                break; // Skip other versions and MODELS for this key
+                                failureSummary.push(`Key ${kIdx}: 429`);
+                                console.warn(`[GeminiService] 429 for ${model}@${apiVer}. Key ${kIdx}. Trying next key...`);
+                                break; // Break versions, try next KEY for the SAME model
                             }
 
                             if (response.status === 404) {
-                                failureSummary.push(`${model}@${apiVer}: 404 Not Found`);
-                                continue; // Try next version
+                                failureSummary.push(`${model}@${apiVer}: 404 (Not Found)`);
+                                console.warn(`[GeminiService] 404 Not Found: ${model}@${apiVer}. URL: ${url}`);
+                                hitOverall429 = false;
+                                hit429ForAllKeysThisModel = false;
+
+                                // Run diagnostic ONCE per key if we hit a 404 
+                                if (!deadKeys.has(key)) { // Re-using deadKeys set just to debounce the diagnostic check per key
+                                    verifyModels(key).catch(e => console.error(e));
+                                }
+                                continue;
                             }
 
-                            // Other errors (500, 403, 400 etc) -> fail this model/version.
-                            failureSummary.push(`${model}@${apiVer} (Key ${kIdx}): ${errorMsg}`);
+                            // 400 Bad Request or 500
+                            console.error(`[GeminiService] ${model}@${apiVer} error ${response.status}:`, errorMsg, errData);
+                            failureSummary.push(`${model}@${apiVer}: ${errorMsg}`);
                             updateUsageStats(kIdx, model, response.status, 0, 0);
                             hitOverall429 = false;
-
-                            break; // Break versions, try next model
+                            hit429ForAllKeysThisModel = false; // Not a 429, so this model isn't fully throttled
+                            break; // Try next key
                         }
 
-                        // SUCCESS
+                        // Success
                         const data = await response.json();
                         const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
                         if (text) {
@@ -258,25 +274,34 @@ const GeminiService = {
                             return text;
                         }
                     } catch (e) {
-                        // Network error?
                         failureSummary.push(`${model}@${apiVer} Error: ${e.message}`);
+                        hit429ForAllKeysThisModel = false; // Not a 429, so this model isn't fully throttled
                     }
                 }
+            }
+
+            // If we got here, this model tier failed across all keys. 
+            // If it was mostly 429s, pause a second to let quota breathe before trying next model.
+            if (hitOverall429 && hit429ForAllKeysThisModel) {
+                console.warn(`[GeminiService] All keys 429'd for ${model}. Pausing 2s...`);
+                await new Promise(r => setTimeout(r, 2000));
             }
         }
 
         if (hitOverall429 && typeof window !== 'undefined' && window.addToast) {
-            window.addToast("All free tiers of Gemini have been used today across all provided keys.", "warning");
+            window.addToast("Gemini rate limit reached across all keys.", "warning");
         }
 
-        throw new Error(`Oracle Exhausted: ${failureSummary.join(' | ')}`);
+        const finalErr = new Error(`Oracle Exhausted: ${failureSummary.join(' | ')}`);
+        finalErr.reason = hitOverall429 ? "rate_limit" : "exhausted";
+        throw finalErr;
     },
 
-    async generateDeckSuggestions(apiKey, payload, helper = null, userProfile = null) {
+    async generateDeckSuggestions(apiKey, payload, helper = null, userProfile = null, options = {}) {
         const {
             deckName, commander, strategyGuide, helperPersona,
             targetRole, candidates, currentContext, neededCount, buildMode,
-            commanders, instructions
+            commanders, instructions, restrictedSets
         } = payload;
 
         const helperName = helperPersona?.name || helper?.name || "The Oracle";
@@ -287,6 +312,7 @@ const GeminiService = {
         CORE MISSION:
         - EXECUTE THE DECK STRATEGY: ${strategyGuide}
         - SPECIAL INSTRUCTIONS: ${instructions || 'None provided.'}
+        - SET RESTRICTION: ${restrictedSets && restrictedSets.length > 0 ? `Only suggest cards from the following set codes: ${restrictedSets.join(', ')}. PROHIBITION: Do NOT suggest any card from any other set.` : 'None.'}
         - STAMP OF COMPLETION (CRITICAL): You are being asked to provide a COMPLETE deck skeleton. You must return EXACTLY the number of cards requested in [REQUEST]. 
         - UNDER-REPORTING IS A FAILURE: If I ask for 99 cards, returning 40 or 60 is a failure. You must fill the "suggestions" array until the requested count is met.
         - SYNERGY PRIORITIZATION: Prioritize cards that enable triggers or mechanics mentioned in the commander's text.
@@ -312,6 +338,7 @@ const GeminiService = {
             
             [COLOR IDENTITY] ${payload.commanderColorIdentity}
             [STRATEGY] ${strategyGuide}
+            [RESTRICTED SETS] ${restrictedSets && restrictedSets.length > 0 ? restrictedSets.join(', ') : 'Global Search (No Restriction)'}
             [SPECIAL FOCUS] ${instructions || 'None'}
             [STATUS] Current deck contains: ${JSON.stringify(currentContext)}
             [REQUEST] I need the following counts for these specific roles: ${JSON.stringify(payload.deckRequirements || { [targetRole]: neededCount })}
@@ -345,7 +372,7 @@ const GeminiService = {
                                         description: "MUST be one of: 'Synergy / Strategy', 'Mana Ramp', 'Card Draw', 'Targeted Removal', 'Board Wipes', 'Land'"
                                     }
                                 },
-                                required: ["name", "rating", "reason", "set", "collectorNumber", "role"]
+                                required: ["firestoreId", "name", "rating", "reason", "set", "collectorNumber", "role"]
                             }
                         }
                     }
@@ -353,7 +380,7 @@ const GeminiService = {
             }
         };
 
-        const result = await this.executeWithFallback(payload_obj, userProfile, { apiKey });
+        const result = await this.executeWithFallback(payload_obj, userProfile, { apiKey, ...options });
         return parseResponse(result);
     },
 
@@ -468,7 +495,7 @@ const GeminiService = {
         const helperPersona = helper?.personality || 'Wise, mystical, and strategic.';
 
         // Parse Commander Details
-        const commanders = Array.isArray(commanderInput) ? commanderInput : [commanderInput];
+        const commanders = Array.isArray(commanderInput) ? commanderInput : (typeof commanderInput === 'string' ? [{ name: commanderInput }] : [commanderInput]);
         const commanderContext = commanders.map(c => {
             const name = c.name || c.data?.name || "Unknown Commander";
             const cost = c.mana_cost || c.cmc || c.data?.mana_cost || c.data?.cmc || "N/A";
@@ -569,6 +596,68 @@ const GeminiService = {
         return parseResponse(result);
     },
 
+    async refineDeckBuild(apiKey, deckContext, draftPool, strategy, instructions, userProfile = null) {
+        const systemPrompt = `You are a Tier-1 Competitive Deck Consultant.
+        
+        MISSION:
+        Review a "DRAFT POOL" of cards being considered for a deck.
+        The goal is to finalize a cohesive 100-card Commander deck.
+        
+        YOU MUST:
+        1. Identify "OUTLIERS": Cards in the draft pool that are weak, non-synergistic, or redundant.
+        2. Suggest "REPLACEMENTS": Better cards that fit the strategy/curve.
+        3. Ensuring the FINAL count reaches exactly 100 is NOT your job here; your job is QUALITY control.
+        
+        CONTEXT:
+        - COMMANDER & CORE: ${deckContext.length} cards (immutable).
+        - DRAFT POOL: ${draftPool.length} cards (candidates).
+        - STRATEGY: ${strategy?.theme || 'General Synergy'}
+        `;
+
+        const userQuery = `
+            [EXISTING DECK CORE]
+            ${deckContext.slice(0, 100).join(', ')}... (and more)
+
+            [DRAFT CANDIDATES TO REVIEW]
+            ${draftPool.join('\n')}
+
+            [INSTRUCTIONS]
+            Identify up to 5 weak links in the Draft Candidates and provide better alternatives.
+            If the draft look solid, return an empty change list.
+        `;
+
+        const payload = {
+            system_instruction: { parts: [{ text: systemPrompt }] },
+            contents: [{ role: 'user', parts: [{ text: userQuery }] }],
+            generationConfig: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: "OBJECT",
+                    properties: {
+                        analysis: { type: "STRING" },
+                        swaps: {
+                            type: "ARRAY",
+                            items: {
+                                type: "OBJECT",
+                                properties: {
+                                    remove: { type: "STRING", description: "Exact name of card to remove from DRAFT POOL" },
+                                    add: { type: "STRING", description: "Exact name of better card to add" },
+                                    reason: { type: "STRING" },
+                                    set: { type: "STRING" },
+                                    collectorNumber: { type: "STRING" }
+                                },
+                                required: ["remove", "add", "reason", "set", "collectorNumber"]
+                            }
+                        }
+                    },
+                    required: ["analysis", "swaps"]
+                }
+            }
+        };
+        const result = await this.executeWithFallback(payload, userProfile, { apiKey });
+        return parseResponse(result);
+    },
+
     async gradeDeck(apiKey, payload, userProfile = null) {
         const { deckName, commander, cards, playerProfile, strategyGuide, helperPersona } = payload;
         const helperName = helperPersona?.name || "The Oracle";
@@ -602,7 +691,7 @@ const GeminiService = {
             STRATEGY: ${strategyGuide}
             USER PROFILE: ${playerProfile}
             DECKLIST:
-            ${cards.map(c => `- ${c.name}`).join('\n')}
+            ${(cards || []).map(c => `- ${c.name}`).join('\n')}
         `;
 
         const body = {
@@ -821,5 +910,12 @@ const GeminiService = {
     }
 };
 
-export { GeminiService, PRICING, getModelTier };
-export default GeminiService;
+// Consolidated object with tiers
+const GeminiServiceFinal = {
+    ...GeminiService,
+    PRO_MODELS,
+    FLASH_MODELS
+};
+
+export { GeminiServiceFinal as GeminiService, PRICING, getModelTier, PRO_MODELS, FLASH_MODELS };
+export default GeminiServiceFinal;
