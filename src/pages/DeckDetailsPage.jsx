@@ -112,20 +112,24 @@ const DeckDetailsPage = () => {
         if (!window.confirm(`Are you sure you want to ${action === 'delete' ? 'delete' : 'remove'} ${count} cards?`)) return;
 
         try {
+            // 1. Optimistic Update (Immediate Feedback)
+            const idsToRemove = new Set(selectedCardIds);
+            setCards(prev => prev.filter(c => !idsToRemove.has(c.id)));
+
+            // 2. Perform API Action
             await deckService.batchRemoveCards(currentUser.uid, deckId, Array.from(selectedCardIds), action);
             addToast(`Successfully removed ${count} cards`, 'success');
+
+            // 3. Reset UI State
             setIsManageMode(false);
             setSelectedCardIds(new Set());
-            // Ideally refetch deck or optimistic update. 
-            // Trigger refresh via some method if available, or just reload page?
-            // Existing `useDeck` hook poll? Or force update.
-            // Let's assume the mutation triggers re-render if we update local state?
-            // We need to invalidate query or update local list.
-            // For now, reload window is safest or refetch.
-            window.location.reload();
+
+            // 4. Background Verification
+            refreshDeck();
         } catch (err) {
             console.error(err);
             addToast('Failed to remove cards', 'error');
+            refreshDeck(); // Revert on error
         }
     };
     const [flippedCards, setFlippedCards] = useState({}); // { [id]: boolean }
@@ -184,7 +188,7 @@ const DeckDetailsPage = () => {
         updateSettings({ deckViewMode: mode });
     };
 
-    const { deck, cards: deckCards, loading: deckLoading, error: deckError, refresh: refreshDeck } = useDeck(deckId);
+    const { deck, cards: deckCards, setCards, loading: deckLoading, error: deckError, refresh: refreshDeck } = useDeck(deckId);
     const { decks } = useDecks();
     const { cards: collection } = useCollection();
 

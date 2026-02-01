@@ -67,14 +67,13 @@ const getKeys = (primaryKey, userProfile) => {
 
 const PRO_MODELS = [
     "gemini-2.5-pro",            // Verified Available
-    "gemini-exp-1206",           // Verified Strong Experimental
-    "gemini-pro-latest"          // Verified Alias
+    "gemini-2.0-flash-exp",      // Fallback High Intelligence
 ];
 
 const FLASH_MODELS = [
-    "gemini-2.5-flash",          // Verified Available
-    "gemini-2.0-flash",          // Verified Available
-    "gemini-flash-latest"        // Verified Alias
+    "gemini-2.5-flash-lite",     // Primary High-Speed
+    "gemini-1.5-flash",          // Stable Fallback
+    "gemini-1.5-flash-8b",       // Super Fast Fallback
 ];
 
 const PREFERRED_MODELS = [...PRO_MODELS, ...FLASH_MODELS];
@@ -92,24 +91,32 @@ const cleanResponse = (text) => {
             cleaned += '"';
         }
 
+        // 2. Fix specific known array truncation patterns
         if (cleaned.includes('"suggestions"')) {
             const lastBracket = cleaned.lastIndexOf('[');
             const lastCloseBracket = cleaned.lastIndexOf(']');
+
+            // If we have an open array that hasn't closed
             if (lastBracket > lastCloseBracket) {
-                const lastCommaObj = cleaned.lastIndexOf('},');
-                if (lastCommaObj !== -1) {
-                    cleaned = cleaned.substring(0, lastCommaObj + 1).trim();
-                    if (cleaned.endsWith(',')) cleaned = cleaned.slice(0, -1);
-                    cleaned += ' ]';
-                } else {
-                    cleaned += ' ]';
+                // Check if we are mid-object
+                const lastOpenCurly = cleaned.lastIndexOf('{');
+                const lastCloseCurly = cleaned.lastIndexOf('}');
+
+                if (lastOpenCurly > lastCloseCurly) {
+                    // We are inside an object that isn't closed. Close it first.
+                    cleaned += ' }';
                 }
+
+                // Now close the array
+                cleaned += ' ]';
             }
         }
-        if (cleaned.lastIndexOf('{') > cleaned.lastIndexOf('}')) {
-            cleaned = cleaned.trim();
+
+        // 3. Final safety net: Close the main object if needed
+        cleaned = cleaned.trim();
+        if (!cleaned.endsWith('}')) {
             if (cleaned.endsWith(',')) cleaned = cleaned.slice(0, -1);
-            cleaned += ' }';
+            cleaned += '}';
         }
     }
     return cleaned;
@@ -228,10 +235,9 @@ const GeminiService = {
                             } catch (e) { /* ignore */ }
 
                             if (isInvalidKey || response.status === 403) {
-                                const reasonLabel = isInvalidKey ? 'Invalid' : '403';
-                                failureSummary.push(`Key ${kIdx}: ${reasonLabel}`);
-                                console.warn(`[GeminiService] Killing Key ${kIdx}. Reason: ${reasonLabel} (${errorMsg || 'No detail'})`);
+                                console.warn(`[GeminiService] Killing Key ${kIdx}. Reason: ${errorMsg}`);
                                 deadKeys.add(key);
+                                failureSummary.push(`Key ${kIdx}: ${isInvalidKey ? 'Invalid' : response.status}`);
                                 continue; // Try next key
                             }
 
@@ -250,11 +256,24 @@ const GeminiService = {
                                 hit429ForAllKeysThisModel = false;
 
                                 // Run diagnostic ONCE per key if we hit a 404 
-                                if (!deadKeys.has(key)) { // Re-using deadKeys set just to debounce the diagnostic check per key
+                                if (!deadKeys.has(key)) {
                                     verifyModels(key).catch(e => console.error(e));
                                 }
                                 continue;
                             }
+
+                            // Other errors (400, 500, etc)
+                            console.warn(`[GeminiService] ${response.status} for ${model}@${apiVer}. Key ${kIdx}. Msg: ${errorMsg}`);
+                            if (response.status === 400 && errData) {
+                                console.warn(`[GeminiService] 400 Error Body:`, JSON.stringify(errData, null, 2));
+                            }
+
+                            failureSummary.push(`Key ${kIdx}: ${response.status}`);
+                            updateUsageStats(kIdx, model, 'failure', 0, 0);
+
+                            // For v1beta 400s, maybe v1 works? For v1 400s, maybe next key?
+                            // Default behavior: continue to next version (v1beta -> v1) or next loop
+                            continue;
 
                             // 400 Bad Request or 500
                             console.error(`[GeminiService] ${model}@${apiVer} error ${response.status}:`, errorMsg, errData);
@@ -297,6 +316,187 @@ const GeminiService = {
         throw finalErr;
     },
 
+    // --- BLUEPRINT ARCHITECTURE METHODS ---
+
+    /**
+     * PHASE 1: THE ARCHITECT
+     * Generates a high-level strategy blueprint with specific card packages and dynamic ratios.
+     */
+    async generateDeckBlueprint(apiKey, commander, userProfile, collectionMode = false) {
+        const systemMessage = `You are a Master Deck Architect for Magic: The Gathering.
+        GOAL: Create a high-power, cohesive deck blueprint for [${commander.name}].
+        PHILOSOPHY: Do not build a "pile of staples". Build an ENGINE.
+        
+        TASK:
+        1. Define a creative Strategy Name (e.g. "Aristocrats of the Ghost Council").
+        2. Define 3-5 specific "Card Packages" that form the engine (e.g. "Sacrifice Outlets", "Death Trigger Payoffs", "Recursion Loop").
+        3. Assign target card counts to each package.
+        4. Define the "Vegetable" targets (Lands, Ramp, Interaction) based on the specific mana curve of this strategy.
+           - Aggro might need 33 lands. Control might need 38. YOU DECIDE.
+           - Ensure the total of Packages + Vegetables = ~63 (assuming 36 lands + 1 commander, but adjust lands as needed).
+        
+        OUTPUT JSON:
+        {
+            "strategyName": "String",
+            "description": "Short description of the game plan.",
+            "packages": [
+                { "name": "Package Name", "description": "Specific search criteria", "count": 8, "type": "Synergy" }
+            ],
+            "foundation": {
+                "lands": 36,
+                "ramp": 10,
+                "draw": 10,
+                "interaction": 10,
+                "wipes": 3
+            }
+        }`;
+
+        const userQuery = `Commander: ${commander.name} (${commander.oracle_text})
+        Mode: ${collectionMode ? "Collection Restricted (Be flexible)" : "Discovery (Ideal Build)"}
+        Output the Blueprint in JSON.`;
+
+        // Use Pro model for the Architect phase if possible
+        const models = this.PRO_MODELS;
+
+        // ... (Re-use existing retry logic wrapped in a simplified call or inline it)
+        // For simplicity reusing the logic from generateDeckSuggestions but simplified for single text prompt
+        // In a real refactor we'd abstract the "callAI" primitive, but for now we inline the prompt construction.
+
+        // We'll use the first available Pro model
+        for (const model of models) {
+            // Proactive Rate Limiting: Wait 2s
+            await new Promise(r => setTimeout(r, 2000));
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        contents: [{ role: "user", parts: [{ text: systemMessage + "\n\n" + userQuery }] }],
+                        generationConfig: { responseMimeType: "application/json" }
+                    })
+                });
+
+                if (!response.ok) {
+                    if (response.status === 429) continue; // Try next model
+                    throw new Error(`API Error ${response.status}`);
+                }
+
+                const data = await response.json();
+                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                return parseResponse(text);
+            } catch (e) {
+                console.warn(`Blueprint generation failed on ${model}:`, e);
+            }
+        }
+
+        console.warn("Pro models exhausted. Falling back to Flash models for Blueprint...");
+
+        // Fallback to Flash models if Pro fails
+        for (const model of this.FLASH_MODELS) {
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        contents: [{ role: "user", parts: [{ text: systemMessage + "\n\n" + userQuery }] }],
+                        generationConfig: { responseMimeType: "application/json" }
+                    })
+                });
+
+                if (!response.ok) {
+                    if (response.status === 429) continue;
+                    // 404 means model not found, try next
+                    if (response.status === 404) continue;
+                    throw new Error(`API Error ${response.status}`);
+                }
+
+                const data = await response.json();
+                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                return parseResponse(text);
+            } catch (e) {
+                console.warn(`Blueprint fallback failed on ${model}:`, e);
+            }
+        }
+
+        throw new Error("Failed to generate Blueprint. All models exhausted.");
+    },
+
+    /**
+     * PHASE 2: THE CONTRACTOR
+     * Fetches a specific package of cards, respecting collection constraints if needed.
+     */
+    async fetchPackage(apiKey, packageDef, currentDeck, userProfile, candidates = []) {
+        const isCollectionMode = candidates && candidates.length > 0;
+
+        const systemMessage = `You are a Deck Contractor.
+        MISSION: Find exactly ${packageDef.count} cards for the package: "${packageDef.name}".
+        DESCRIPTION: ${packageDef.description}
+        COMMANDER: ${currentDeck.commander?.name}
+        
+        ${isCollectionMode
+                ? `CONSTRAINT: You MUST select cards from the provided [CANDIDATE POOL] below. 
+               - If perfect matches aren't found, choose the best available functional substitutes from the pool.
+               - Do NOT suggest cards not in the pool.`
+                : `CONSTRAINT: Search the entire MTG history for the absolute best synergies.`}
+            
+        OUTPUT JSON:
+        { "suggestions": [ { "name": "Card Name", "reason": "Why it fits", "role": "Synergy" } ] }
+        `;
+
+        const candidateText = isCollectionMode
+            ? `[CANDIDATE POOL (Filtered by Color)]\n${candidates.slice(0, 800).map(c => `- ${c.name} (${c.type_line})`).join('\n')}` // Cap at 800 to fit context
+            : "";
+
+        const userQuery = `Fetch ${packageDef.count} cards for "${packageDef.name}".\n${candidateText}`;
+
+        // Use Flash models for bulk drafting
+        const models = this.FLASH_MODELS;
+
+        // ... Reuse retry logic ...
+        for (const model of models) {
+            let retries = 0;
+            const maxRetries = 3;
+
+            while (retries <= maxRetries) {
+                // Proactive Rate Limiting: Wait 2s before EVERY attempt to respect global RPM limits
+                await new Promise(r => setTimeout(r, 2000));
+
+                try {
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            contents: [{ role: "user", parts: [{ text: systemMessage + "\n\n" + userQuery }] }],
+                            generationConfig: { responseMimeType: "application/json" }
+                        })
+                    });
+
+                    if (!response.ok) {
+                        if (response.status === 429) {
+                            console.warn(`[Gemini] 429 on ${model}. Retrying (${retries + 1}/${maxRetries})...`);
+                            await new Promise(r => setTimeout(r, 2000 * Math.pow(2, retries))); // 2s, 4s, 8s
+                            retries++;
+                            continue;
+                        }
+                        if (response.status === 404) break; // Model not found, try next model immediately
+                        throw new Error(`API Error ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                    return parseResponse(text);
+                } catch (e) {
+                    console.warn(`Package fetch failed on ${model}:`, e);
+                    if (e.message.includes('429')) {
+                        retries++;
+                        continue;
+                    }
+                    break; // Non-retryable error, try next model
+                }
+            }
+        }
+        throw new Error(`Failed to fetch package ${packageDef.name}`);
+    },
     async generateDeckSuggestions(apiKey, payload, helper = null, userProfile = null, options = {}) {
         const {
             deckName, commander, strategyGuide, helperPersona,

@@ -795,7 +795,7 @@ const CreateDeckPage = () => {
                                     {Object.entries(functional).map(([key, val]) => (
                                         <div key={key} className="flex justify-between items-center bg-gray-900/50 px-3 py-2 rounded-lg border border-white/5">
                                             <span className="text-sm text-gray-300">{key}</span>
-                                            <span className="font-mono font-bold text-indigo-400">{val}</span>
+                                            <span className="font-mono font-bold text-indigo-400">{Math.round(val)}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -808,7 +808,7 @@ const CreateDeckPage = () => {
                                     {Object.entries(types).map(([key, val]) => (
                                         <div key={key} className="flex justify-between items-center bg-gray-900/50 px-3 py-2 rounded-lg border border-white/5">
                                             <span className="text-sm text-gray-300">{key}</span>
-                                            <span className="font-mono font-bold text-emerald-400">{val}</span>
+                                            <span className="font-mono font-bold text-emerald-400">{Math.round(val)}</span>
                                         </div>
                                     ))}
                                 </div>
