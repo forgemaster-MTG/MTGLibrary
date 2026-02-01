@@ -297,9 +297,9 @@ const Dashboard = () => {
 
     const TOUR_STEPS = [
         { title: "Welcome to Dashboard", content: "This is your command center. Get a quick overview of your collection and decks here.", target: "h1" },
-        { title: "Customize", content: "Toggle this switch to enter Edit Mode. In Edit Mode, you can add, remove, and resize widgets.", target: "#customize-toggle" },
-        // Dynamic step: only if layout menu button exists
-        { title: "Load & Save", content: "Use this menu to load presets, save your layout, or share it with others.", target: "#layout-menu-btn" },
+        { title: "Customize", content: "Toggle this switch to enter Edit Mode. In Edit Mode, you can add, remove, and resize widgets.", target: "#customize-toggle, #layout-menu-btn-mobile" }, // Fallback or multi-target logic might be needed in Tour component, or just target the visible one
+        // Better approach: Use a class that exists on both or conditional steps
+        { title: "Load & Save", content: "Use this menu to load presets, save your layout, or share it with others.", target: "#layout-menu-btn, #layout-menu-btn-mobile" },
     ];
 
     // Migration helper: Convert old zone-based layout to new unified grid

@@ -495,9 +495,13 @@ const OnboardingJourney = () => {
                 </motion.div>
 
                 <h1 className="text-5xl font-serif text-amber-500 mb-4 tracking-tight">Ascension Complete</h1>
-                <p className="text-xl text-gray-400 max-w-lg mx-auto mb-12">
+                <p className="text-xl text-gray-400 max-w-lg mx-auto mb-6">
                     Your spark burns bright, Planeswalker.
                 </p>
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 max-w-md mx-auto mb-10 text-sm text-amber-200/80">
+                    <p className="font-bold text-amber-400 mb-1">14-Day Free Trial Unlocked</p>
+                    <p>You will have full access to all Wizard-tier features. No credit card required. Your trial begins immediately upon entry.</p>
+                </div>
 
                 <button
                     onClick={activateTrial}

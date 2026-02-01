@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, forwardRef } from 'react';
 import { VirtuosoGrid } from 'react-virtuoso';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { useCollection } from '../hooks/useCollection';
 import { useDecks } from '../hooks/useDecks';
 import { useBinders } from '../hooks/useBinders';
@@ -32,7 +32,23 @@ const CollectionPage = () => {
     const { addToast } = useToast();
     // Parse query params for wishlist mode
     const location = useLocation();
-    const searchParams = new URLSearchParams(location.search);
+
+    // searchParams declared later via useSearchParams hook
+    // const searchParams = new URLSearchParams(location.search); <-- REMOVED
+
+    // We can access params from the hook result directly
+    // Wait, the hook returns [searchParams, setSearchParams] which I declared later.
+    // So I can just use that variable.
+    // But I need to move the hook call up or use the variable down here?
+    // Actually I already added the hook call in the previous step (Step 273) around line 297.
+    // It is cleaner to declare it at the top.
+
+    // Let's consolidate.
+    // I will replace the top section to include the hook call HERE and remove the later one?
+    // OR just remove the manual `new URLSearchParams` strict usage and use the hook.
+
+    const [searchParams, setSearchParams] = useSearchParams();
+
     const isWishlistMode = searchParams.get('wishlist') === 'true';
     const isOnboarding = searchParams.get('onboarding') === 'true';
     const shouldOpenAdd = searchParams.get('openAdd') === 'true';
@@ -293,11 +309,57 @@ const CollectionPage = () => {
         };
     };
 
+    // URL Params for Deep Linking (Declared at top of component)
+    // const [searchParams, setSearchParams] = useSearchParams(); <-- Removed duplicate
+
     const [viewMode, setViewMode] = useState(() => getInitState('viewMode', 'grid'));
-    const [groupingMode, setGroupingMode] = useState(() => getInitState('groupingMode', 'binders')); // 'smart' | 'custom' | 'binders'
-    const [activeFolder, setActiveFolder] = useState(null); // ID of open folder
+    const [groupingMode, setGroupingMode] = useState(() => {
+        // Override if folder param exists (force 'binders' or 'smart' depending on folder?)
+        // Actually, if deep linking to a binder, we likely want 'binders' grouping mode?
+        // Or just set activeFolder?
+        if (searchParams.get('folder')) return 'binders';
+        return getInitState('groupingMode', 'binders');
+    }); // 'smart' | 'custom' | 'binders'
+
+    // Initialize activeFolder from URL
+    const [activeFolder, setActiveFolder] = useState(() => searchParams.get('folder') || null);
     const [binderCards, setBinderCards] = useState([]);
     const [binderLoading, setBinderLoading] = useState(false);
+
+    // Sync URL with Active Folder
+    useEffect(() => {
+        const folderParam = searchParams.get('folder');
+        if (folderParam && folderParam !== activeFolder) {
+            setActiveFolder(folderParam);
+            // Ensure grouping is 'binders' if we are looking at a binder
+            if (folderParam.startsWith('binder-') && groupingMode !== 'binders') {
+                setGroupingMode('binders');
+            }
+        } else if (!folderParam && activeFolder) {
+            // If URL cleared but state has folder? (Back button?)
+            // We should sync state -> URL or URL -> state? 
+            // Usually URL -> State is source of truth.
+            setActiveFolder(null);
+        }
+    }, [searchParams]);
+
+    // When ActiveFolder changes (by user click), update URL
+    useEffect(() => {
+        if (activeFolder) {
+            setSearchParams(params => {
+                params.set('folder', activeFolder);
+                return params;
+            }, { replace: true });
+        } else {
+            // Only remove if it exists to avoid loops?
+            if (searchParams.get('folder')) {
+                setSearchParams(params => {
+                    params.delete('folder');
+                    return params;
+                }, { replace: true });
+            }
+        }
+    }, [activeFolder]);
 
     // Modals
     const [isAddCardOpen, setIsAddCardOpen] = useState(false);

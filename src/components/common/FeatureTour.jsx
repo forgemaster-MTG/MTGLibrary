@@ -20,7 +20,18 @@ const FeatureTour = ({ steps, isOpen, onClose, onComplete, tourId }) => {
 
         const handleResize = () => {
             const step = steps[currentStep];
-            const element = document.querySelector(step.target);
+            // Handle multiple selectors (comma separated) - find the first visible one
+            const targets = document.querySelectorAll(step.target);
+            let element = null;
+
+            for (const el of targets) {
+                // Check if element is visible (has size and is in DOM)
+                const rect = el.getBoundingClientRect();
+                if (rect.width > 0 && rect.height > 0 && window.getComputedStyle(el).display !== 'none') {
+                    element = el;
+                    break;
+                }
+            }
 
             if (element) {
                 const rect = element.getBoundingClientRect();

@@ -205,11 +205,16 @@ const Navbar = () => {
                                             )}
 
 
-                                            {userProfile?.subscription_status === 'trial' && (
-                                                <span className="bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse leading-none uppercase">
-                                                    TRIAL
-                                                </span>
-                                            )}
+                                            {userProfile?.subscription_status === 'trial' && (() => {
+                                                const endDate = userProfile?.trial_end_date ? new Date(userProfile.trial_end_date) : null;
+                                                const daysLeft = endDate ? Math.ceil((endDate - new Date()) / (1000 * 60 * 60 * 24)) : 0;
+                                                return (
+                                                    <span className="bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse leading-none uppercase flex items-center gap-1">
+                                                        <span>TRIAL:</span>
+                                                        <span className={daysLeft <= 3 ? "text-red-400" : "text-amber-400"}>{Math.max(0, daysLeft)} DAYS</span>
+                                                    </span>
+                                                );
+                                            })()}
 
                                             {/* Tier Badge */}
                                             {tier && tier !== 'free' && (() => {

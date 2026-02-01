@@ -215,11 +215,36 @@ const GeminiService = {
                             }
                         }
 
-                        const response = await fetch(url, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(finalPayload)
-                        });
+                        const isProxyKey = key === DEFAULT_BOOTSTRAP_KEY;
+                        let response;
+
+                        if (isProxyKey) {
+                            // PROXY ROUTE (Secure)
+                            // We don't send the key; the server handles it.
+                            response = await fetch('/api/ai/generate', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    // Include auth headers if needed, but this is a public/bootstrap key path
+                                    // If strict auth is required on server, we need to pass headers. 
+                                    // Currently /api/ai/generate is not behind 'auth' middleware in example, but server implementation should check.
+                                    // For now, allow public access or rely on implicit session cookies if any.
+                                },
+                                body: JSON.stringify({
+                                    model,
+                                    method: 'generateContent', // Default
+                                    apiVersion: apiVer,
+                                    data: finalPayload
+                                })
+                            });
+                        } else {
+                            // DIRECT ROUTE (User's Custom Key)
+                            response = await fetch(url, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(finalPayload)
+                            });
+                        }
 
                         if (!response.ok) {
                             let errorMsg = response.status.toString();

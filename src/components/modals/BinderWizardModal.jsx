@@ -66,6 +66,10 @@ const BinderWizardModal = ({ isOpen, onClose, selectedCards = [], editingBinder 
     const [rules, setRules] = useState([]);
     const [isSmartBinder, setIsSmartBinder] = useState(false);
 
+    // New Flags
+    const [isPublic, setIsPublic] = useState(false);
+    const [isTrade, setIsTrade] = useState(false);
+
 
     // Initial Setup
     useEffect(() => {
@@ -86,6 +90,8 @@ const BinderWizardModal = ({ isOpen, onClose, selectedCards = [], editingBinder 
                 }
                 setRules(initialRules);
                 setIsSmartBinder(!!editingBinder.rules);
+                setIsPublic(!!editingBinder.is_public);
+                setIsTrade(!!editingBinder.is_trade);
                 setCardsToAdd([]);
             } else {
                 setStep(STEPS.METHOD);
@@ -97,6 +103,8 @@ const BinderWizardModal = ({ isOpen, onClose, selectedCards = [], editingBinder 
                 setCardsToAdd(selectedCards || []);
                 setRules([]);
                 setIsSmartBinder(false);
+                setIsPublic(false);
+                setIsTrade(false);
             }
             setSmartSuggestions([]);
         }
@@ -140,7 +148,9 @@ const BinderWizardModal = ({ isOpen, onClose, selectedCards = [], editingBinder 
                 icon_type: iconType,
                 icon_value: iconValue,
                 color_preference: color,
-                rules: isSmartBinder ? rules : null
+                rules: isSmartBinder ? rules : null,
+                is_public: isPublic,
+                is_trade: isTrade
             };
 
             let binderId;
@@ -405,6 +415,37 @@ const BinderWizardModal = ({ isOpen, onClose, selectedCards = [], editingBinder 
                     </div>
                 )}
             </div>
+
+            {/* Visibility Settings */}
+            <div className="grid grid-cols-2 gap-4">
+                {/* Public Toggle */}
+                <div
+                    onClick={() => setIsPublic(!isPublic)}
+                    className={`p-4 rounded-3xl border border-white/5 cursor-pointer transition-all ${isPublic ? 'bg-green-900/20 border-green-500/30' : 'bg-gray-950/40 hover:bg-gray-900'}`}
+                >
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isPublic ? 'bg-green-500/20 text-green-400' : 'bg-gray-800 text-gray-600'}`}>
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                        </div>
+                        <span className={`text-sm font-bold ${isPublic ? 'text-green-400' : 'text-gray-400'}`}>Public</span>
+                    </div>
+                    <p className="text-[10px] text-gray-500 leading-tight">Visible to anyone viewing your profile.</p>
+                </div>
+
+                {/* Trade Toggle */}
+                <div
+                    onClick={() => setIsTrade(!isTrade)}
+                    className={`p-4 rounded-3xl border border-white/5 cursor-pointer transition-all ${isTrade ? 'bg-amber-900/20 border-amber-500/30' : 'bg-gray-950/40 hover:bg-gray-900'}`}
+                >
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isTrade ? 'bg-amber-500/20 text-amber-400' : 'bg-gray-800 text-gray-600'}`}>
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
+                        </div>
+                        <span className={`text-sm font-bold ${isTrade ? 'text-amber-400' : 'text-gray-400'}`}>Trade Binder</span>
+                    </div>
+                    <p className="text-[10px] text-gray-500 leading-tight">Marked for trading in your Pod.</p>
+                </div>
+            </div>
         </div>
     );
 
@@ -448,24 +489,47 @@ const BinderWizardModal = ({ isOpen, onClose, selectedCards = [], editingBinder 
                 ) : (
                     <div className="space-y-4">
                         <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-gray-500">
-                            <span>Manifest</span>
-                            <span>{cardsToAdd.length} Cards</span>
+                            <span>Selected Cards</span>
+                            <span>{cardsToAdd.length}</span>
                         </div>
-                        <div className="flex justify-center -space-x-4 pl-4 h-24 items-end pb-2">
-                            {cardsToAdd.length > 0 ? cardsToAdd.slice(0, 5).map((c, i) => (
-                                <div key={i} className="w-16 h-20 bg-gray-800 rounded-lg border-2 border-white/10 shadow-2xl relative transition-transform hover:-translate-y-2 overflow-hidden" style={{ transform: `rotate(${(i - 2) * 8}deg)` }}>
-                                    {c.data?.image_uris?.small || c.image_uris?.small ? <img src={c.data?.image_uris?.small || c.image_uris.small} className="w-full h-full object-cover" alt="" /> : null}
-                                </div>
-                            )) : (
-                                <div className="text-gray-700 italic text-xs">Empty binder (add cards later)</div>
-                            )}
-                        </div>
-                        {cardsToAdd.length > 5 && <div className="text-[10px] text-gray-600 font-bold">+ {cardsToAdd.length - 5} more items</div>}
+                        {cardsToAdd.length > 0 ? (
+                            <div className="flex -space-x-3 overflow-hidden py-2 justify-center">
+                                {cardsToAdd.slice(0, 5).map(c => (
+                                    <img key={c.id} src={c.image_uris?.small} alt="" className="w-12 h-16 rounded-lg border-2 border-gray-900 object-cover shadow-lg" />
+                                ))}
+                                {cardsToAdd.length > 5 && (
+                                    <div className="w-12 h-16 rounded-lg border-2 border-gray-900 bg-gray-800 flex items-center justify-center text-xs font-bold text-gray-500">
+                                        +{cardsToAdd.length - 5}
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="text-center py-4 text-xs text-gray-500 italic border border-dashed border-gray-800 rounded-xl">
+                                Empty Binder
+                            </div>
+                        )}
                     </div>
+                )}
+            </div>
+
+            {/* Visibility Settings Verification */}
+            <div className="flex justify-center gap-4">
+                {isPublic && (
+                    <span className="text-[10px] bg-green-900/30 text-green-400 px-3 py-1 rounded-full border border-green-900/50 flex items-center gap-1.5">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                        Public Visible
+                    </span>
+                )}
+                {isTrade && (
+                    <span className="text-[10px] bg-amber-900/30 text-amber-400 px-3 py-1 rounded-full border border-amber-900/50 flex items-center gap-1.5">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
+                        Trade Binder
+                    </span>
                 )}
             </div>
         </div>
     );
+
 
     // --- MAIN RENDER ---
     if (!isOpen) return null;

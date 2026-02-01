@@ -108,3 +108,4 @@ serviceAccountKey.json
 mtglibrary-70b46-firebase-adminsdk-fbsvc-febf529fa8.json
 dist-electron/MTG Forge Setup 1.0.1.exe
 dist-electron/win-unpacked/MTG Forge.exe
+.env.backup
