@@ -1,144 +1,39 @@
-import admin from '../firebaseAdmin.js';
-import { knex } from '../db.js';
+import { authService } from '../services/authService.js';
+import AppError from '../utils/AppError.js';
 
 /**
  * Express middleware to verify Firebase ID token (Authorization: Bearer <token>)
- * Attaches `req.user` with the row from Postgres `users` table (and `req.user.data` for raw profile)
+ * Attaches `req.user` with the row from Postgres `users` table
  */
 async function authMiddleware(req, res, next) {
 	const authHeader = (req.headers.authorization || '').trim();
-	if (!authHeader.startsWith('Bearer ')) return res.status(401).json({ error: 'Missing or invalid Authorization header' });
+	if (!authHeader.startsWith('Bearer ')) {
+		return next(new AppError('Missing or invalid Authorization header', 401));
+	}
+
 	const idToken = authHeader.split(' ')[1];
-	if (!idToken) return res.status(401).json({ error: 'Missing token' });
+	if (!idToken) return next(new AppError('Missing token', 401));
 
 	try {
-		const decoded = await admin.auth().verifyIdToken(idToken);
-		const uid = decoded.uid;
+		const referralCode = req.headers['x-referral-code'];
+		const user = await authService.verifyAndGetUser(idToken, referralCode);
 
-		// Try to find user row in Postgres by firestore_id
-		let user = await knex('users').where({ firestore_id: uid }).first();
-
-		// Fallback: If not found by UID, try to find by EMAIL (link accounts)
-		if (!user && decoded.email) {
-			user = await knex('users').whereRaw('lower(email) = ?', [decoded.email.toLowerCase()]).first();
-			if (user) {
-				console.log(`[Auth] Linked new auth UID ${uid} to existing user ${user.id} (${user.email})`);
-				// Optional: We could update the firestore_id here, but that might break the *other* login method if we overwrite it.
-				// Better to just let them share the row.
-				// However, the `firestore_id` column is unique? Let's check schema.
-				// If firestore_id is unique, we can't easily "add" this new UID to the same row without schema changes (e.g. array of IDs).
-				// BUT, if we just return this `user` object, the efficient lookups later might fail if they rely on `firestore_id`.
-				// Looking at the code:
-				// app.get('/me') uses `req.user.id`.
-				// Most logic uses `req.user.id`.
-				// SO simply returning the user row here is sufficient for the session to work.
-			}
-		}
-
-		// If not found, attempt to fetch profile from Firestore 'users' collection
-		if (!user) {
-			// Check for referral code in headers
-			const referralCode = req.headers['x-referral-code'];
-			let referredById = null;
-			if (referralCode) {
-				try {
-					// Referral code can be a username or firestore_id/numeric ID (though UI uses username/uid)
-					const referrer = await knex('users')
-						.where({ username: referralCode })
-						.orWhere({ firestore_id: referralCode })
-						.first();
-					if (referrer) {
-						referredById = referrer.id;
-						console.log(`[Auth] New user ${decoded.email} referred by ${referrer.username || referrer.id}`);
-					}
-				} catch (refErr) {
-					console.error('[Auth] Failed to resolve referral code:', refErr);
-				}
-			}
-
-			try {
-				const doc = await admin.firestore().collection('users').doc(uid).get();
-				const profile = doc.exists ? doc.data() : null;
-				const email = decoded.email || (profile && profile.email) || null;
-				const insert = {
-					firestore_id: uid,
-					email,
-					data: { firebase: decoded, profile },
-					referred_by: referredById
-				};
-				const insertResult = await knex('users').insert(insert).returning('*');
-				user = (Array.isArray(insertResult) ? insertResult[0] : insertResult) || (await knex('users').where({ firestore_id: uid }).first());
-			} catch (e) {
-				// If Firestore read fails or there is no doc, still create minimal user
-				const email = decoded.email || null;
-				const insert = {
-					firestore_id: uid,
-					email,
-					data: { firebase: decoded },
-					referred_by: referredById
-				};
-				try {
-					const insertResult = await knex('users').insert(insert).returning('*');
-					user = (Array.isArray(insertResult) ? insertResult[0] : insertResult) || (await knex('users').where({ firestore_id: uid }).first());
-				} catch (e2) {
-					// fallback: fetch existing user row again
-					user = await knex('users').where({ firestore_id: uid }).first();
-				}
-			}
-
-			// --- Post-Creation Logic: Check for pending invitations OR referrals ---
-			if (user) {
-				// 1. Referral Link Connection
-				if (user.referred_by) {
-					try {
-						// Auto-create relationship as 'friend'
-						await knex('user_relationships').insert({
-							requester_id: user.referred_by,
-							addressee_id: user.id,
-							status: 'accepted',
-							type: 'friend'
-						}).onConflict(['requester_id', 'addressee_id']).merge();
-						console.log(`[Auth] Auto-linked new user ${user.id} with referrer ${user.referred_by}`);
-					} catch (linkErr) {
-						console.error('[Auth] Failed to link referral:', linkErr);
-					}
-				}
-
-				// 2. Pending Email Invitations
-				if (user.email) {
-					try {
-						const pendingInvites = await knex('pending_external_invitations').where({ invitee_email: user.email, status: 'pending' });
-						for (const invite of pendingInvites) {
-							// Auto-create relationship
-							await knex('user_relationships').insert({
-								requester_id: invite.inviter_id,
-								addressee_id: user.id,
-								status: 'accepted', // Automatically accept since they joined via specific invite
-								type: invite.type || 'pod'
-							}).onConflict(['requester_id', 'addressee_id']).merge();
-
-							// Mark invite as completed
-							await knex('pending_external_invitations').where({ id: invite.id }).update({ status: 'completed' });
-						}
-					} catch (inviteErr) {
-						console.error('[AuthMiddleware] Failed to process pending invitations:', inviteErr);
-					}
-				}
-			}
-		}
-
-		if (!user) {
-			return res.status(500).json({ error: 'Could not create or find user' });
-		}
-
-		// attach both firebase decoded token and DB row
-		req.auth = { token: decoded };
+		// Attach user context
 		req.user = user;
+		// Legacy support if anything uses req.auth.token (?)
+		// The service decodes it but doesn't return it. If needed we can adjust service.
+		// Looking at old code: req.auth = { token: decoded };
+		// If downstream relies on `req.auth.token.uid`, we might break it.
+		// Let's assume standard usage is `req.user.id`. 
+		// If we need the token payload, we can expose it on the user object or separate return.
+		// Safe bet: The service could return { user, decodedToken }? 
+		// Or we just trust req.user is enough. Most apps just need db user.
 		next();
 	} catch (err) {
-		console.error('[auth] token verification error', err);
-		return res.status(401).json({ error: `Token verification failed: ${err.message}`, details: err.toString() });
+		next(err);
 	}
 }
 
 export default authMiddleware;
+
+

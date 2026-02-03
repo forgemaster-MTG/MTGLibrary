@@ -111,7 +111,7 @@ const CollectionPage = () => {
     const isSharedView = selectedSource !== 'me' && selectedSource !== 'all';
     const isMixedView = selectedSource === 'all';
 
-    const { cards, loading, error, refresh } = useCollection({
+    const { cards, loading, error, refresh, batchRemoveCards } = useCollection({
         wishlist: isWishlistMode,
         userId: selectedSource === 'me' ? null : selectedSource
     });
@@ -218,11 +218,10 @@ const CollectionPage = () => {
         if (!window.confirm(`Are you sure you want to delete ${selectedCardIds.size} cards? This cannot be undone.`)) return;
 
         try {
-            await api.batchDeleteCollection(Array.from(selectedCardIds));
+            await batchRemoveCards(Array.from(selectedCardIds));
             addToast(`Successfully deleted ${selectedCardIds.size} cards.`, 'success');
             setSelectedCardIds(new Set());
             setIsSelectionMode(false);
-            refresh();
         } catch (err) {
             console.error('Bulk delete failed', err);
             addToast('Failed to delete cards', 'error');

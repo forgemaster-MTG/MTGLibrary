@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../services/api';
 
@@ -52,5 +52,73 @@ export function useDeck(deckId) {
         loading,
         error,
         refresh: refetch
+    };
+    // Mutations
+    const removeCardMutation = useMutation({
+        mutationFn: async (cardId) => {
+            await api.put(`/api/collection/${cardId}`, { deck_id: null });
+        },
+        onMutate: async (cardId) => {
+            await queryClient.cancelQueries({ queryKey });
+            const previousData = queryClient.getQueryData(queryKey);
+
+            // Optimistically remove
+            if (previousData) {
+                queryClient.setQueryData(queryKey, (old) => ({
+                    ...old,
+                    cards: old.cards.filter(c => c.managedId !== cardId && c.id !== cardId)
+                }));
+            }
+
+            return { previousData };
+        },
+        onError: (err, cardId, context) => {
+            queryClient.setQueryData(queryKey, context.previousData);
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey });
+        }
+    });
+
+    const batchRemoveCardsMutation = useMutation({
+        mutationFn: async ({ cardIds, action }) => {
+            await api.delete(`/api/decks/${deckId}/cards?action=${action}`, { cardIds });
+        },
+        onMutate: async ({ cardIds }) => {
+            await queryClient.cancelQueries({ queryKey });
+            const previousData = queryClient.getQueryData(queryKey);
+            const idsToRemove = new Set(cardIds);
+
+            // Optimistically remove
+            if (previousData) {
+                queryClient.setQueryData(queryKey, (old) => ({
+                    ...old,
+                    cards: old.cards.filter(c => !idsToRemove.has(c.managedId) && !idsToRemove.has(c.id))
+                }));
+            }
+
+            return { previousData };
+        },
+        onError: (err, vars, context) => {
+            queryClient.setQueryData(queryKey, context.previousData);
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey });
+        }
+    });
+
+    const removeCard = (cardId) => removeCardMutation.mutateAsync(cardId);
+    const batchRemoveCards = (cardIds, action = 'remove') => batchRemoveCardsMutation.mutateAsync({ cardIds, action });
+
+    return {
+        deck,
+        cards,
+        setDeck,
+        setCards,
+        loading,
+        error,
+        refresh: refetch,
+        removeCard,
+        batchRemoveCards
     };
 }

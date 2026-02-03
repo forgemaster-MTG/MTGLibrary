@@ -24,6 +24,7 @@ const rawEnv = (process.env.NODE_ENV || 'development').trim().toLowerCase();
 const envMap = {
     'dev': 'development',
     'development': 'development',
+    'test': 'development',
     'production': 'production',
     'staging': 'staging'
 };

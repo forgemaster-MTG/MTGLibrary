@@ -42,7 +42,19 @@ export function useCollection(options = {}) {
         mutationFn: async (id) => {
             await api.delete(`/api/collection/${id}`);
         },
-        onSuccess: () => {
+        onMutate: async (id) => {
+            await queryClient.cancelQueries({ queryKey });
+            const previousCards = queryClient.getQueryData(queryKey);
+
+            // Optimistically remove
+            queryClient.setQueryData(queryKey, (old) => old.filter(c => c.id !== id));
+
+            return { previousCards };
+        },
+        onError: (err, newTodo, context) => {
+            queryClient.setQueryData(queryKey, context.previousCards);
+        },
+        onSettled: () => {
             queryClient.invalidateQueries({ queryKey });
         }
     });
@@ -51,7 +63,26 @@ export function useCollection(options = {}) {
         mutationFn: async ({ id, data }) => {
             await api.put(`/api/collection/${id}`, data);
         },
-        onSuccess: () => {
+        onMutate: async ({ id, data }) => {
+            await queryClient.cancelQueries({ queryKey });
+            const previousCards = queryClient.getQueryData(queryKey);
+
+            // Optimistically update
+            queryClient.setQueryData(queryKey, (old) => {
+                return old.map(c => {
+                    if (c.id === id) {
+                        return { ...c, ...data };
+                    }
+                    return c;
+                });
+            });
+
+            return { previousCards };
+        },
+        onError: (err, newTodo, context) => {
+            queryClient.setQueryData(queryKey, context.previousCards);
+        },
+        onSettled: () => {
             queryClient.invalidateQueries({ queryKey });
         }
     });
@@ -74,6 +105,39 @@ export function useCollection(options = {}) {
         }
     };
 
+    const batchRemoveCardsMutation = useMutation({
+        mutationFn: async (ids) => {
+            await api.batchDeleteCollection(ids);
+        },
+        onMutate: async (ids) => {
+            await queryClient.cancelQueries({ queryKey });
+            const previousCards = queryClient.getQueryData(queryKey);
+            const idsToRemove = new Set(ids);
+
+            // Optimistically remove
+            if (previousCards) {
+                queryClient.setQueryData(queryKey, (old) => old.filter(c => !idsToRemove.has(c.id)));
+            }
+
+            return { previousCards };
+        },
+        onError: (err, newTodo, context) => {
+            queryClient.setQueryData(queryKey, context.previousCards);
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey });
+        }
+    });
+
+    const batchRemoveCards = async (ids) => {
+        try {
+            await batchRemoveCardsMutation.mutateAsync(ids);
+        } catch (err) {
+            console.error("Error removing cards:", err);
+            throw err;
+        }
+    };
+
     // Maintain API compatibility
     return {
         cards,
@@ -82,6 +146,7 @@ export function useCollection(options = {}) {
         refresh: refetch,
         removeCard,
         updateCard,
+        batchRemoveCards,
         setCards: (newCards) => queryClient.setQueryData(queryKey, newCards) // Allow manual optimistic updates if needed
     };
 }

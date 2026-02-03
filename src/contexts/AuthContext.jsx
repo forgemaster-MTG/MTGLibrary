@@ -56,8 +56,7 @@ export const AuthProvider = ({ children }) => {
                 // Existing logic had complex checks. 
                 // For simplicity in this caching refactor, we retain core flow but use invalidation.
                 // We might need to manually ensure profile exists first.
-                await refetchProfile();
-                const fresh = await api.get('/api/users/me'); // Direct call to avoid cache delay if critical
+                const { data: fresh } = await refetchProfile();
                 if (fresh?.id) {
                     await api.updateUser(fresh.id, finalProfileData);
                     queryClient.invalidateQueries(['userProfile', userCredential.user.uid]);
@@ -188,7 +187,13 @@ export const AuthProvider = ({ children }) => {
 
     return (
         <AuthContext.Provider value={value}>
-            {!firebaseLoading && (!currentUser || !profileLoading) && children}
+            {(firebaseLoading || (!!currentUser && profileLoading)) ? (
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#121212', color: '#fff' }}>
+                    Loading Ecosystem...
+                </div>
+            ) : (
+                children
+            )}
         </AuthContext.Provider>
     );
 };

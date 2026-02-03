@@ -112,24 +112,14 @@ const DeckDetailsPage = () => {
         if (!window.confirm(`Are you sure you want to ${action === 'delete' ? 'delete' : 'remove'} ${count} cards?`)) return;
 
         try {
-            // 1. Optimistic Update (Immediate Feedback)
-            const idsToRemove = new Set(selectedCardIds);
-            setCards(prev => prev.filter(c => !idsToRemove.has(c.id)));
-
-            // 2. Perform API Action
-            await deckService.batchRemoveCards(currentUser.uid, deckId, Array.from(selectedCardIds), action);
+            await batchRemoveCards(Array.from(selectedCardIds), action);
             addToast(`Successfully removed ${count} cards`, 'success');
 
-            // 3. Reset UI State
             setIsManageMode(false);
             setSelectedCardIds(new Set());
-
-            // 4. Background Verification
-            refreshDeck();
         } catch (err) {
             console.error(err);
             addToast('Failed to remove cards', 'error');
-            refreshDeck(); // Revert on error
         }
     };
     const [flippedCards, setFlippedCards] = useState({}); // { [id]: boolean }
@@ -188,7 +178,7 @@ const DeckDetailsPage = () => {
         updateSettings({ deckViewMode: mode });
     };
 
-    const { deck, cards: deckCards, setCards, loading: deckLoading, error: deckError, refresh: refreshDeck } = useDeck(deckId);
+    const { deck, cards: deckCards, setCards, loading: deckLoading, error: deckError, refresh: refreshDeck, batchRemoveCards, removeCard } = useDeck(deckId);
     const { decks } = useDecks();
     const { cards: collection } = useCollection();
 
@@ -465,7 +455,7 @@ const DeckDetailsPage = () => {
             message: `Are you sure you want to remove ${cardName} from this deck?`,
             onConfirm: async () => {
                 try {
-                    await deckService.removeCardFromDeck(currentUser.uid, deckId, cardId); // cardId is managedId
+                    await removeCard(cardId);
                     addToast(`Removed ${cardName} from deck`, 'success');
                 } catch (err) {
                     console.error(err);

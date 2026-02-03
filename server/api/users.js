@@ -2,6 +2,10 @@ import express from 'express';
 import { knex } from '../db.js';
 import authMiddleware from '../middleware/auth.js';
 
+import { validate } from '../middleware/validate.js';
+import { userUpdateSchema, userPermissionsSchema, bulkDeleteSchema } from '../schemas/userSchemas.js';
+import { userService } from '../services/userService.js';
+
 const router = express.Router();
 
 // List users (admin use) - protected
@@ -66,118 +70,19 @@ router.get('/:id', authMiddleware, async (req, res) => {
 });
 
 // Update user (protected, user can update their own row)
-router.put('/:id', authMiddleware, async (req, res) => {
+// Update user (protected, user can update their own row)
+router.put('/:id', authMiddleware, validate({ body: userUpdateSchema }), async (req, res, next) => {
   try {
     const userId = parseInt(req.params.id, 10);
-    // User can update self, ADMIN can update anyone
-    const isSelf = req.user.id === userId;
-    const isAdmin = req.user.settings?.isAdmin || req.user.firestore_id === 'Kyrlwz6G6NWICCEPYbXtFfyLzWI3';
-
-    if (!isSelf && !isAdmin) return res.status(403).json({ error: 'not allowed' });
-
-    const { email, username, first_name, last_name, is_public_library, settings, data } = req.body;
-
-    // Fetch current user to safely merge settings if needed,
-    // although client usually sends full settings or we patch.
-    // But since we are moving a root prop to settings, we need to be careful.
-    // Ideally we just patch what we have.
-
-    // We need to ensure 'is_public_library' goes into settings.
-    // If settings is provided, use it, else empty object.
-    let newSettings = settings ? { ...settings } : {};
-
-
-
-    // --- PROMOTION LOGIC: Extract root columns from settings ---
-    // This allows clients (like OnboardingPage) to send these in 'settings' via updateSettings()
-    // and have them correctly applied to the root user columns.
-    const { subscription_status, subscription_tier, trial_start_date, trial_end_date } = newSettings;
-    const updateData = {};
-
-    if (subscription_status !== undefined) {
-      updateData.subscription_status = subscription_status;
-      delete newSettings.subscription_status;
-    }
-    if (subscription_tier !== undefined) {
-      updateData.subscription_tier = subscription_tier;
-      delete newSettings.subscription_tier;
-    }
-    if (trial_start_date !== undefined) {
-      updateData.trial_start_date = trial_start_date;
-      delete newSettings.trial_start_date;
-    }
-    if (trial_end_date !== undefined) {
-      updateData.trial_end_date = trial_end_date;
-      delete newSettings.trial_end_date;
-    }
-    // -------------------------------------------------------------
-
-    if (is_public_library !== undefined) {
-      newSettings.is_public_library = is_public_library;
-    }
-
-    if (email !== undefined) updateData.email = email;
-    if (username !== undefined) updateData.username = username;
-    if (first_name !== undefined) updateData.first_name = first_name;
-    if (last_name !== undefined) updateData.last_name = last_name;
-
-    // Only Admin can update settings directly here (which includes permissions)
-    // Or self can update generic settings if we allow it, but let's be safe.
-    // Assuming 'settings' passed here merges or replaces. 
-    // For specific permission updates, we prefer a dedicated endpoint, but this general update is fine for admin too.
-    if (settings !== undefined || is_public_library !== undefined) {
-      // Safe update: deep merge or careful replacement recommended.
-      // If regular user, maybe prevent overwriting isAdmin/permissions?
-      if (!isAdmin && isSelf) {
-        // Protect critical fields if user is updating self
-        // Logic: Existing settings + new keys, but preventing privilege escalation
-        const existing = await knex('users').where({ id: userId }).first();
-        const existingSettings = existing.settings || {};
-        const safeSettings = { ...existingSettings, ...newSettings };
-
-        // Restore protected fields from existing to ensure no tampering
-        safeSettings.isAdmin = existingSettings.isAdmin || false;
-        safeSettings.permissions = existingSettings.permissions || [];
-        updateData.settings = safeSettings;
-      } else {
-        updateData.settings = newSettings;
-      }
-    }
-
-    // Check for referral code application
-    if (data && data.referral_code) {
-      const { processReferralSignup } = await import('../utils/referrals.js');
-      await processReferralSignup(userId, data.referral_code);
-
-      // Remove from data so we don't save the code itself into the generic 'data' json column if likely invalid or just meta
-      delete data.referral_code;
-    }
-
-    if (data !== undefined) updateData.data = data;
-    if (req.body.lfg_status !== undefined) {
-      updateData.lfg_status = req.body.lfg_status;
-      updateData.lfg_last_updated = knex.fn.now();
-    }
-
-    const result = await knex('users')
-      .where({ id: userId })
-      .update(updateData)
-      .returning('*');
-
-    const row = Array.isArray(result) ? result[0] : result;
-
-
-    if (!row) return res.status(404).json({ error: 'User not found after update' });
-
-    res.json(row);
+    const updatedUser = await userService.updateUserProfile(userId, req.body, req.user);
+    res.json(updatedUser);
   } catch (err) {
-    console.error('[users] update error', err);
-    res.status(500).json({ error: 'db error' });
+    next(err);
   }
 });
 
 // Update Permissions & Subscription (Admin Only)
-router.put('/:id/permissions', authMiddleware, async (req, res) => {
+router.put('/:id/permissions', authMiddleware, validate({ body: userPermissionsSchema }), async (req, res) => {
   try {
     const adminUser = req.user;
     const isRoot = adminUser.firestore_id === 'Kyrlwz6G6NWICCEPYbXtFfyLzWI3';
@@ -339,43 +244,16 @@ router.get('/public/:id', authMiddleware, async (req, res) => {
 // (though delete is specific verb)
 
 // Bulk Data Deletion (Protected, Danger Zone)
-router.delete('/me/data', authMiddleware, async (req, res) => {
+// Bulk Data Deletion (Protected, Danger Zone)
+router.delete('/me/data', authMiddleware, validate({ body: bulkDeleteSchema }), async (req, res, next) => {
   try {
     const { target } = req.body; // 'decks', 'collection', 'wishlist', 'all'
-    const userId = req.user.id;
+    const userId = req.user.id; // Corrected: was req.user.id in original but userId sometimes parsed. Auth middleware guarantees req.user.id is integer.
 
-    if (!['decks', 'collection', 'wishlist', 'all'].includes(target)) {
-      return res.status(400).json({ error: 'Invalid target' });
-    }
-
-    await knex.transaction(async (trx) => {
-      if (target === 'decks') {
-        // Delete all decks. Cards in them lose their deck link (return to binder) or are deleted?
-        // Logic: "Delete Decks" usually implies deleting the lists. Cards remain in collection.
-        // We will set deck_id = NULL for all cards in these decks first to be safe (though ON DELETE SET NULL might exist)
-        // Actually, if we delete the deck, we want cards to stay in collection ("Binder").
-        await trx('user_cards').where({ user_id: userId }).whereNotNull('deck_id').update({ deck_id: null });
-        await trx('user_decks').where({ user_id: userId }).del();
-      }
-      else if (target === 'collection') {
-        // Delete all cards. Decks become empty.
-        await trx('user_cards').where({ user_id: userId }).del();
-      }
-      else if (target === 'wishlist') {
-        // Delete only wishlist items
-        await trx('user_cards').where({ user_id: userId, is_wishlist: true }).del();
-      }
-      else if (target === 'all') {
-        // Wipe everything
-        await trx('user_cards').where({ user_id: userId }).del();
-        await trx('user_decks').where({ user_id: userId }).del();
-      }
-    });
-
+    await userService.bulkDeleteData(userId, target);
     res.json({ success: true });
   } catch (err) {
-    console.error('[users] delete data error', err);
-    res.status(500).json({ error: 'db error' });
+    next(err);
   }
 });
 

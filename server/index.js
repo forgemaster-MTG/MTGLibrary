@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
@@ -13,6 +14,7 @@ import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+import errorHandler from './middleware/errorHandler.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -62,6 +64,13 @@ const io = new Server(httpServer, {
   }
 });
 
+// CORS Config (Permissive for local/personal usage)
+app.use(cors({
+  origin: true, // Reflects the request origin, functionality allowing any origin
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+}));
+
 // Trust Proxy (Required for rate limiting behind Cloudflare/Docker)
 app.set('trust proxy', 1);
 
@@ -85,18 +94,13 @@ app.use(helmet({
 // Rate Limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 300, // Limit each IP to 300 requests per windowMs (adjusted for API usage)
+  max: 5000, // Limit each IP to 5000 requests per windowMs (approx 5.5 req/sec sustained)
   standardHeaders: true,
   legacyHeaders: false,
 });
 app.use(limiter);
 
-// CORS Config (Permissive for local/personal usage)
-app.use(cors({
-  origin: true, // Reflects the request origin, functionality allowing any origin
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
-}));
+
 
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
@@ -279,12 +283,19 @@ io.on('connection', (socket) => {
   });
 });
 
-const port = process.env.PORT || 3000;
+
+const port = process.env.PORT || 3004; // Updated prompt said 3004 in logs
+
+// Global Error Handler (Must be before the SPA catch-all to catch API errors correctly)
+app.use(errorHandler);
 
 // Catch-All Handler for SPA (Must be last)
-// For any request that doesn't match an API route or static file, send index.html
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../dist/index.html'));
 });
 
-httpServer.listen(port, () => console.log(`Server listening on ${port}`));
+if (process.env.NODE_ENV !== 'test') {
+  httpServer.listen(port, () => console.log(`Server listening on ${port}`));
+}
+
+export { app, httpServer as server };

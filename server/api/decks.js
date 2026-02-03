@@ -498,7 +498,7 @@ router.post('/:id/cards/batch', async (req, res) => {
           .first();
 
         // Tier A: Scryfall ID Match (Legacy/Migration support)
-        if (!existing) {
+        if (!existing && scryfallId) {
           existing = await trx('user_cards')
             .where({ user_id: userId, scryfall_id: scryfallId, finish: c.finish || 'nonfoil' })
             .whereNull('deck_id')
@@ -506,7 +506,7 @@ router.post('/:id/cards/batch', async (req, res) => {
         }
 
         // Tier B: Loose ID Match (Same Card, Any Finish) -> Prefer Foil
-        if (!existing) {
+        if (!existing && scryfallId) {
           existing = await trx('user_cards')
             .where({ user_id: userId, scryfall_id: scryfallId })
             .whereNull('deck_id')
