@@ -1,8 +1,9 @@
 import React, { useState, memo } from 'react';
+import { Share2 } from 'lucide-react';
 import { useCardModal } from '../../contexts/CardModalContext';
 import LazyImage from './LazyImage';
 
-const CardGridItem = memo(function CardGridItem({ card, availableFoils, onRemove, showQuantity = true, onClick, decks = [], ownerName, currentUser, showOwnerTag = false, hideDeckTag = false, hideOwnerTag = false, selectMode = false, isSelected = false, onToggleSelect }) {
+const CardGridItem = memo(function CardGridItem({ card, availableFoils, onRemove, onShare, showQuantity = true, onClick, decks = [], ownerName, currentUser, showOwnerTag = false, hideDeckTag = false, hideOwnerTag = false, selectMode = false, isSelected = false, onToggleSelect }) {
     const [isFlipped, setIsFlipped] = useState(false);
     const { openCardModal } = useCardModal();
 
@@ -172,6 +173,14 @@ const CardGridItem = memo(function CardGridItem({ card, availableFoils, onRemove
                                             </svg>
                                         </button>
                                     )}
+
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); onShare && onShare(card); }}
+                                        className="bg-purple-600/90 hover:bg-purple-500 text-white p-2 rounded-lg transition-all duration-200 shadow-lg hover:shadow-purple-500/50 active:scale-95"
+                                        title="Share Card"
+                                    >
+                                        <Share2 className="w-3.5 h-3.5" />
+                                    </button>
                                 </div>
                             </div>
                         </div>

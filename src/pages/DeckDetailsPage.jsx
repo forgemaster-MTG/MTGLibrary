@@ -16,8 +16,8 @@ import DeckStatsModal from '../components/modals/DeckStatsModal';
 import DeckStrategyModal from '../components/modals/DeckStrategyModal';
 import StartAuditModal from '../components/Audit/StartAuditModal';
 import { api } from '../services/api';
-import ShareModal from '../components/modals/ShareModal';
 import DeckDoctorModal from '../components/modals/DeckDoctorModal';
+import SocialShareHub from '../components/Social/SocialShareHub';
 import DeckAI from '../components/DeckAI';
 import CardGridItem from '../components/common/CardGridItem';
 import StartAuditButton from '../components/Audit/StartAuditButton';
@@ -25,6 +25,7 @@ import StartAuditButton from '../components/Audit/StartAuditButton';
 import ForgeLensModal from '../components/modals/ForgeLensModal';
 import PrintSettingsModal from '../components/printing/PrintSettingsModal';
 import FeatureTour from '../components/common/FeatureTour';
+import { Share2 } from 'lucide-react';
 
 
 const MTG_IDENTITY_REGISTRY = [
@@ -139,6 +140,7 @@ const DeckDetailsPage = () => {
     const [isDoctorOpen, setIsDoctorOpen] = useState(false);
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
     const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
+    const [sharingCard, setSharingCard] = useState(null);
     const toolsMenuRef = useRef(null);
 
     const [showStats, setShowStats] = useState(true);
@@ -896,8 +898,8 @@ const DeckDetailsPage = () => {
 
                                 {/* Grouped Action Menu */}
                                 {isToolsMenuOpen && (
-                                    <div className="absolute right-0 top-full mt-3 w-72 md:w-80 bg-gray-950/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden z-[60] animate-in fade-in zoom-in-95 duration-200 origin-top-right">
-                                        <div className="p-4 space-y-6">
+                                    <div className="absolute right-0 top-full mt-3 w-[calc(100vw-2rem)] sm:w-80 bg-gray-950/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[60] animate-in fade-in zoom-in-95 duration-200 origin-top-right flex flex-col max-h-[calc(100vh-120px)] overflow-hidden">
+                                        <div className="p-4 space-y-4 overflow-y-auto custom-scrollbar">
                                             {/* Section: Building */}
                                             <div className="space-y-2">
                                                 <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] px-2">Deck Building</h3>
@@ -1026,15 +1028,15 @@ const DeckDetailsPage = () => {
                                             </div>
 
                                             {/* Section: Management */}
-                                            <div className="space-y-2">
+                                            <div className="space-y-2 pb-2">
                                                 <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] px-2">Management</h3>
-                                                <div className="bg-white/5 rounded-xl border border-white/5 divide-y divide-white/5">
+                                                <div className="bg-white/5 rounded-xl border border-white/5 divide-y divide-white/5 overflow-hidden">
                                                     <button
                                                         onClick={(e) => { e.stopPropagation(); setIsShareModalOpen(true); setIsToolsMenuOpen(false); }}
                                                         className="w-full text-left px-4 py-3 text-xs flex items-center justify-between hover:bg-indigo-500/10 transition-colors group"
                                                     >
                                                         <div className="flex items-center gap-3">
-                                                            <svg className="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                                                            <Share2 className="w-4 h-4 text-indigo-400" />
                                                             <span className="font-bold text-gray-300">Share Deck</span>
                                                         </div>
                                                         <svg className="w-3 h-3 text-gray-600 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
@@ -1229,6 +1231,7 @@ const DeckDetailsPage = () => {
                                                         card={card}
                                                         availableFoils={availableFoils}
                                                         onRemove={handleRemoveFromDeck}
+                                                        onShare={(c) => setSharingCard(c)}
                                                         decks={decks}
                                                         currentUser={userProfile}
                                                         showOwnerTag={true}
@@ -1448,131 +1451,162 @@ const DeckDetailsPage = () => {
 
 
 
-                {/* Modals moved outside to prevent transform context issues */}
-                {/* Mobile FAB / Action Bar if needed */}
+            </div>
 
-                {/* Share Modal */}
-                < ShareModal
+            {/* Modals moved outside to prevent transform context issues */}
+            {/* Share Modal */}
+            {isShareModalOpen && (
+                <SocialShareHub
                     isOpen={isShareModalOpen}
                     onClose={() => setIsShareModalOpen(false)}
-                    deck={deck}
-                    onUpdateDeck={(updated) => Object.assign(deck, updated)}
-                />
-
-                {/* Doctor Modal */}
-                <DeckDoctorModal
-                    isOpen={isDoctorOpen}
-                    onClose={() => setIsDoctorOpen(false)}
-                    deck={deck}
-                    cards={deckCards}
-                    isOwner={canEdit}
-                />
-
-                {/* Moved Modals */}
-                {/* Search Modal */}
-                <CardSearchModal
-                    isOpen={isSearchOpen}
-                    onClose={() => setIsSearchOpen(false)}
-                    onAddCard={handleAddToDeck}
-                />
-
-                {/* Confirmation Modal */}
-                <ConfirmationModal
-                    isOpen={confirmModal.isOpen}
-                    onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
-                    onConfirm={confirmModal.onConfirm}
-                    title={confirmModal.title}
-                    message={confirmModal.message}
-                    isDanger={true}
-                    confirmText="Remove"
-                    isLoading={isDeleting}
-                >
-                    {renderDeleteCheckbox && (
-                        <div className="flex items-center gap-2 mb-4 bg-white/5 p-3 rounded-lg border border-white/10">
-                            <input
-                                type="checkbox"
-                                id="deleteCardsCheckbox"
-                                className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-red-600 focus:ring-red-500"
-                                onChange={(e) => deleteCardsRef.current = e.target.checked}
-                            />
-                            <label htmlFor="deleteCardsCheckbox" className="text-gray-300 text-sm select-none">
-                                Also remove these cards from my {deck.is_mockup ? 'wishlist' : 'collection binder'}
-                            </label>
-                        </div>
-                    )}
-                </ConfirmationModal>
-
-                {/* Strategy Blueprint Modal */}
-                <DeckStrategyModal
-                    isOpen={isStrategyModalOpen}
-                    onClose={() => setIsStrategyModalOpen(false)}
-                    deck={deck}
-                    cards={deckCards}
-                    onStrategyUpdate={() => refreshDeck(true)}
-                />
-                {/* Add From Collection Modal */}
-                <AddFromCollectionModal
-                    isOpen={isAddCollectionOpen}
-                    onClose={() => setIsAddCollectionOpen(false)}
-                    deck={deck}
-                    deckCards={deckCards}
-                    onCardAdded={() => refreshDeck()} // FIX: Live update on add
-                />
-                {/* Stats Modal */}
-                <DeckStatsModal
-                    isOpen={isStatsModalOpen}
-                    onClose={() => setIsStatsModalOpen(false)}
-                    cards={deckCards}
-                    deckName={deck.name}
-                />
-
-                <ForgeLensModal
-                    isOpen={isForgeLensOpen}
-                    onClose={() => setIsForgeLensOpen(false)}
-                    onFinish={async (scannedBatch) => {
-                        if (!scannedBatch.length) return;
-                        try {
-                            const payload = scannedBatch.map(item => ({
-                                name: item.name,
-                                scryfall_id: item.scryfall_id,
-                                set_code: item.set_code,
-                                collector_number: item.collector_number,
-                                image_uri: item.data.image_uris?.normal || item.data.card_faces?.[0]?.image_uris?.normal,
-                                count: item.quantity,
-                                data: item.data,
-                                finish: item.finish || 'nonfoil',
-                                is_wishlist: item.is_wishlist,
-                                tags: []
-                            }));
-
-                            await deckService.batchAddCardsToDeck(currentUser.uid, deckId, payload);
-                            addToast(`Successfully added ${scannedBatch.length} cards to deck!`, 'success');
-                            refreshDeck();
-                        } catch (err) {
-                            console.error("Forge Lens Add Failed", err);
-                            addToast("Failed to add scanned cards.", "error");
-                        }
+                    type="deck"
+                    shareUrl={deck?.shareSlug ? `${window.location.origin}/share/${deck.shareSlug}` : `${window.location.origin}/public/deck/${deckId}`}
+                    data={{
+                        title: deck.name,
+                        win: deck.is_mockup ? "Dream Build" : (deck.stats?.winRate > 60 ? "Dominant Force" : "Battle Ready"),
+                        commander: deck.commander?.name,
+                        commanderImage: deck.commander?.image_uris?.art_crop || deck.commander?.image_uris?.normal,
+                        stats: [
+                            { label: "Format", value: deck.format || 'Commander' },
+                            { label: "Cards", value: deckCards.length },
+                            { label: "Value", value: `$${totalValue.toFixed(0)}`, highlight: true }
+                        ]
                     }}
                 />
+            )}
 
-                <PrintSettingsModal
-                    isOpen={isPrintModalOpen}
-                    onClose={() => setIsPrintModalOpen(false)}
-                    cards={deckCards}
+            {sharingCard && (
+                <SocialShareHub
+                    isOpen={!!sharingCard}
+                    onClose={() => setSharingCard(null)}
+                    type="card"
+                    shareUrl={`${window.location.origin}/card/${sharingCard.id || sharingCard.card_id}`}
+                    data={{
+                        title: sharingCard.name,
+                        win: (sharingCard.rarity || 'Common').toUpperCase() + " Rarity",
+                        cardImage: sharingCard.image_uris?.normal || sharingCard.image_uri || sharingCard.data?.image_uris?.normal,
+                        stats: [
+                            { label: "Type", value: sharingCard.type_line?.split('—')?.[0]?.trim() || 'Spell' },
+                            { label: "Cost", value: sharingCard.mana_cost || '0', highlight: true },
+                            { label: "Price", value: `$${Number(sharingCard.prices?.usd || 0).toFixed(2)}` }
+                        ]
+                    }}
                 />
+            )}
 
-                {/* Audit Modal */}
-                <StartAuditModal
-                    isOpen={isAuditOpen}
-                    onClose={() => setIsAuditOpen(false)}
-                    onConfirm={handleAuditConfirm}
-                    type="deck"
-                    targetId={deckId}
-                    loading={auditLoading}
-                    activeSession={activeAuditSession}
-                    deckName={deck?.name}
-                />
-            </div>
+            {/* Doctor Modal */}
+            <DeckDoctorModal
+                isOpen={isDoctorOpen}
+                onClose={() => setIsDoctorOpen(false)}
+                deck={deck}
+                cards={deckCards}
+                isOwner={canEdit}
+            />
+
+            {/* Moved Modals */}
+            {/* Search Modal */}
+            <CardSearchModal
+                isOpen={isSearchOpen}
+                onClose={() => setIsSearchOpen(false)}
+                onAddCard={handleAddToDeck}
+            />
+
+            {/* Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+                onConfirm={confirmModal.onConfirm}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                isDanger={true}
+                confirmText="Remove"
+                isLoading={isDeleting}
+            >
+                {renderDeleteCheckbox && (
+                    <div className="flex items-center gap-2 mb-4 bg-white/5 p-3 rounded-lg border border-white/10">
+                        <input
+                            type="checkbox"
+                            id="deleteCardsCheckbox"
+                            className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-red-600 focus:ring-red-500"
+                            onChange={(e) => deleteCardsRef.current = e.target.checked}
+                        />
+                        <label htmlFor="deleteCardsCheckbox" className="text-gray-300 text-sm select-none">
+                            Also remove these cards from my {deck.is_mockup ? 'wishlist' : 'collection binder'}
+                        </label>
+                    </div>
+                )}
+            </ConfirmationModal>
+
+            {/* Strategy Blueprint Modal */}
+            <DeckStrategyModal
+                isOpen={isStrategyModalOpen}
+                onClose={() => setIsStrategyModalOpen(false)}
+                deck={deck}
+                cards={deckCards}
+                onStrategyUpdate={() => refreshDeck(true)}
+            />
+            {/* Add From Collection Modal */}
+            <AddFromCollectionModal
+                isOpen={isAddCollectionOpen}
+                onClose={() => setIsAddCollectionOpen(false)}
+                deck={deck}
+                deckCards={deckCards}
+                onCardAdded={() => refreshDeck()} // FIX: Live update on add
+            />
+            {/* Stats Modal */}
+            <DeckStatsModal
+                isOpen={isStatsModalOpen}
+                onClose={() => setIsStatsModalOpen(false)}
+                cards={deckCards}
+                deckName={deck.name}
+            />
+
+            <ForgeLensModal
+                isOpen={isForgeLensOpen}
+                onClose={() => setIsForgeLensOpen(false)}
+                onFinish={async (scannedBatch) => {
+                    if (!scannedBatch.length) return;
+                    try {
+                        const payload = scannedBatch.map(item => ({
+                            name: item.name,
+                            scryfall_id: item.scryfall_id,
+                            set_code: item.set_code,
+                            collector_number: item.collector_number,
+                            image_uri: item.data.image_uris?.normal || item.data.card_faces?.[0]?.image_uris?.normal,
+                            count: item.quantity,
+                            data: item.data,
+                            finish: item.finish || 'nonfoil',
+                            is_wishlist: item.is_wishlist,
+                            tags: []
+                        }));
+
+                        await deckService.batchAddCardsToDeck(currentUser.uid, deckId, payload);
+                        addToast(`Successfully added ${scannedBatch.length} cards to deck!`, 'success');
+                        refreshDeck();
+                    } catch (err) {
+                        console.error("Forge Lens Add Failed", err);
+                        addToast("Failed to add scanned cards.", "error");
+                    }
+                }}
+            />
+
+            <PrintSettingsModal
+                isOpen={isPrintModalOpen}
+                onClose={() => setIsPrintModalOpen(false)}
+                cards={deckCards}
+            />
+
+            {/* Audit Modal */}
+            <StartAuditModal
+                isOpen={isAuditOpen}
+                onClose={() => setIsAuditOpen(false)}
+                onConfirm={handleAuditConfirm}
+                type="deck"
+                targetId={deckId}
+                loading={auditLoading}
+                activeSession={activeAuditSession}
+                deckName={deck?.name}
+            />
             {/* Render Feature Tour */}
             <FeatureTour
                 steps={TOUR_STEPS}

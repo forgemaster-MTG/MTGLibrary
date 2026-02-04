@@ -9,7 +9,9 @@ import BinderWizardModal from '../components/modals/BinderWizardModal';
 import { api } from '../services/api';
 import { communityService } from '../services/communityService';
 import CardGridItem from '../components/common/CardGridItem';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
+import { Share2 } from 'lucide-react';
+import SocialShareHub from '../components/Social/SocialShareHub';
 
 
 
@@ -186,6 +188,9 @@ const BinderDetailView = ({ binderId, onBack, currentUserId }) => {
     const [cards, setCards] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [isShareOpen, setIsShareOpen] = useState(false);
+    const [sharingCard, setSharingCard] = useState(null);
+    const { addToast } = useToast();
 
     useEffect(() => {
         const load = async () => {
@@ -255,11 +260,33 @@ const BinderDetailView = ({ binderId, onBack, currentUserId }) => {
                     </div>
                 </div>
 
-                {/* Actions (if owner?) */}
+                {/* Actions */}
                 <div className="ml-auto">
-                    {/* Placeholder for future actions like 'Edit Binder' from here */}
+                    <button
+                        onClick={() => setIsShareOpen(true)}
+                        className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-indigo-400 hover:text-white transition-all active:scale-95 border border-white/5 hover:border-indigo-500/30 shadow-xl"
+                        title="Share Binder"
+                    >
+                        <Share2 className="w-5 h-5" />
+                    </button>
                 </div>
             </div>
+
+            <SocialShareHub
+                isOpen={isShareOpen}
+                onClose={() => setIsShareOpen(false)}
+                type="binder"
+                shareUrl={`${window.location.origin}/share/binder?id=${binderId}`}
+                data={{
+                    title: binder.name,
+                    win: binder.is_trade ? "Ready to Trade" : (binder.is_public ? "Showcase Curator" : "Master Collector"),
+                    stats: [
+                        { label: "Total Cards", value: cards.length },
+                        { label: "Visibility", value: binder.is_public ? "Public" : "Private", highlight: true },
+                        { label: "Purpose", value: binder.is_trade ? "Trading" : "Collection" }
+                    ]
+                }}
+            />
 
             {/* Cards Grid */}
             {cards.length > 0 ? (
@@ -269,6 +296,7 @@ const BinderDetailView = ({ binderId, onBack, currentUserId }) => {
                             key={card.id || card.firestoreId}
                             card={card}
                             currentUser={{ id: currentUserId }} // For ownership badges
+                            onShare={(c) => setSharingCard(c)}
                         // Basic props for now, no complex selection logic yet
                         />
                     ))}
@@ -277,6 +305,25 @@ const BinderDetailView = ({ binderId, onBack, currentUserId }) => {
                 <div className="text-center py-24 bg-gray-900/30 rounded-3xl border border-dashed border-gray-700/50">
                     <p className="text-gray-500 italic">This binder is empty.</p>
                 </div>
+            )}
+
+            {sharingCard && (
+                <SocialShareHub
+                    isOpen={!!sharingCard}
+                    onClose={() => setSharingCard(null)}
+                    type="card"
+                    shareUrl={`${window.location.origin}/card/${sharingCard.id || sharingCard.card_id}`}
+                    data={{
+                        title: sharingCard.name,
+                        win: (sharingCard.rarity || 'Common').toUpperCase() + " Rarity",
+                        cardImage: sharingCard.image_uris?.normal || sharingCard.image_uri || sharingCard.data?.image_uris?.normal,
+                        stats: [
+                            { label: "Type", value: sharingCard.type_line?.split('—')?.[0]?.trim() || 'Spell' },
+                            { label: "Cost", value: sharingCard.mana_cost || '0', highlight: true },
+                            { label: "Price", value: `$${Number(sharingCard.prices?.usd || 0).toFixed(2)}` }
+                        ]
+                    }}
+                />
             )}
         </div>
     );

@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, Medal, Crown } from 'lucide-react';
+import { Trophy, Medal, Crown, Share2 } from 'lucide-react';
 import { api } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
+import SocialShareHub from './SocialShareHub';
 
 const Leaderboard = () => {
+    const { userProfile } = useAuth();
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isShareOpen, setIsShareOpen] = useState(false);
+    const [shareData, setShareData] = useState(null);
 
     useEffect(() => {
         const fetchLeaderboard = async () => {
@@ -43,16 +48,17 @@ const Leaderboard = () => {
                             <th className="p-4 text-center">Wins</th>
                             <th className="p-4 text-center">Games</th>
                             <th className="p-4 text-center">Win Rate</th>
+                            <th className="p-4 text-center w-16">Share</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-800">
                         {loading ? (
                             <tr>
-                                <td colSpan={5} className="p-8 text-center text-gray-500">Loading leaderboard...</td>
+                                <td colSpan={6} className="p-8 text-center text-gray-500">Loading leaderboard...</td>
                             </tr>
                         ) : data.length === 0 ? (
                             <tr>
-                                <td colSpan={5} className="p-8 text-center text-gray-500">No games played this week yet. Get out there!</td>
+                                <td colSpan={6} className="p-8 text-center text-gray-500">No games played this week yet. Get out there!</td>
                             </tr>
                         ) : (
                             data.map((row, index) => {
@@ -60,9 +66,10 @@ const Leaderboard = () => {
                                 const winRate = row.games_played > 0
                                     ? Math.round((row.wins / row.games_played) * 100)
                                     : 0;
+                                const isMe = userProfile?.id === row.user_id;
 
                                 return (
-                                    <tr key={row.user_id} className={`hover:bg-gray-800/30 transition-colors ${index < 3 ? 'bg-gray-800/10' : ''}`}>
+                                    <tr key={row.user_id} className={`hover:bg-gray-800/30 transition-colors ${index < 3 ? 'bg-gray-800/10' : ''} ${isMe ? 'ring-1 ring-inset ring-indigo-500/50' : ''}`}>
                                         <td className="p-4 text-center">
                                             <div className="flex justify-center items-center">
                                                 {style.icon}
@@ -73,10 +80,12 @@ const Leaderboard = () => {
                                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs bg-gray-700 text-gray-200 border border-gray-600`}>
                                                     {row.username ? row.username[0].toUpperCase() : '?'}
                                                 </div>
-                                                <span className={`font-bold ${index === 0 ? 'text-yellow-400' : 'text-gray-200'}`}>
-                                                    {row.username}
-                                                </span>
-                                                {index === 0 && <Crown size={14} className="text-yellow-500" />}
+                                                <div className="flex flex-col">
+                                                    <span className={`font-bold ${index === 0 ? 'text-yellow-400' : 'text-gray-200'}`}>
+                                                        {row.username} {isMe && <span className="text-[10px] text-indigo-400 ml-1">(You)</span>}
+                                                    </span>
+                                                    {index === 0 && <Crown size={14} className="text-yellow-500" />}
+                                                </div>
                                             </div>
                                         </td>
                                         <td className="p-4 text-center font-bold text-green-400 text-lg">{row.wins}</td>
@@ -89,6 +98,26 @@ const Leaderboard = () => {
                                                 {winRate}%
                                             </span>
                                         </td>
+                                        <td className="p-4 text-center">
+                                            <button
+                                                onClick={() => {
+                                                    setShareData({
+                                                        title: `${row.username}'s Weekly Stats`,
+                                                        win: index === 0 ? "Tournament King" : (winRate > 70 ? "Unstoppable" : "Battle Hardened"),
+                                                        stats: [
+                                                            { label: "Rank", value: `#${index + 1}` },
+                                                            { label: "Wins", value: row.wins, highlight: true },
+                                                            { label: "Win Rate", value: `${winRate}%` }
+                                                        ]
+                                                    });
+                                                    setIsShareOpen(true);
+                                                }}
+                                                className="p-2 text-gray-500 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-all"
+                                                title="Share Stats"
+                                            >
+                                                <Share2 size={16} />
+                                            </button>
+                                        </td>
                                     </tr>
                                 );
                             })
@@ -96,6 +125,16 @@ const Leaderboard = () => {
                     </tbody>
                 </table>
             </div>
+
+            {isShareOpen && shareData && (
+                <SocialShareHub
+                    isOpen={isShareOpen}
+                    onClose={() => setIsShareOpen(false)}
+                    type="stats"
+                    shareUrl={`${window.location.origin}/social?tab=leaderboard`}
+                    data={shareData}
+                />
+            )}
         </div>
     );
 };

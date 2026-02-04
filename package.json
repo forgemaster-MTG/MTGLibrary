@@ -42,6 +42,7 @@
     "jspdf": "^4.0.0",
     "knex": "^2.5.1",
     "lucide-react": "^0.562.0",
+    "mana-font": "^1.18.0",
     "multer": "^2.0.2",
     "nodemailer": "^7.0.12",
     "objection": "^3.0.2",

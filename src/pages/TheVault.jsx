@@ -1,7 +1,8 @@
 
 import React, { useMemo, useState } from 'react';
 import { useCollection } from '../hooks/useCollection';
-import { Shield, Sparkles, TrendingUp, Gem, Lock, RefreshCw } from 'lucide-react';
+import { Shield, Sparkles, TrendingUp, Gem, Lock, RefreshCw, Share2 } from 'lucide-react';
+import SocialShareHub from '../components/Social/SocialShareHub';
 
 // Specialized Card Component with Tilt Effect
 const VaultCard = ({ card, rank }) => {
@@ -150,6 +151,16 @@ const VaultCard = ({ card, rank }) => {
                         ${price.toFixed(2)}
                     </span>
                 </div>
+
+                {/* Share Button (Floating) */}
+                <button
+                    onClick={(e) => { e.stopPropagation(); card.onShare && card.onShare(card); }}
+                    className="absolute -top-3 -right-3 w-10 h-10 bg-gray-900 rounded-full flex items-center justify-center shadow-lg border border-white/20 z-50 text-indigo-400 hover:text-white transition-all hover:scale-110 active:scale-95"
+                    title="Share Asset"
+                    style={{ transform: 'translateZ(30px)' }}
+                >
+                    <Share2 className="w-5 h-5" />
+                </button>
             </div>
 
             <style jsx>{`
@@ -164,26 +175,54 @@ const VaultCard = ({ card, rank }) => {
 
 export default function TheVault() {
     const { cards, loading } = useCollection();
+    const [isShareOpen, setIsShareOpen] = useState(false);
+    const [sharingCard, setSharingCard] = useState(null);
 
     const stats = useMemo(() => {
-        if (!cards) return { topCards: [], totalValue: 0 };
+        if (!cards) return { topCards: [], totalValue: 0, totalCount: 0, rarityLevel: 'Commoner', percentile: 'Top 100%' };
 
-        const ownedCards = cards.filter(c => !c.is_wishlist && !c.deck_id); // Only collection
+        const ownedCards = cards.filter(c => !c.is_wishlist && !c.deck_id);
+        const totalCount = ownedCards.reduce((acc, c) => acc + (c.count || 1), 0);
 
-        // Calculate sorting key (Price)
-        const sorted = [...ownedCards].sort((a, b) => {
+        // Calculate total value
+        const fullSorted = [...ownedCards].sort((a, b) => {
             const priceA = Number((a.finish === 'foil' ? a.prices?.usd_foil : a.prices?.usd) || 0);
             const priceB = Number((b.finish === 'foil' ? b.prices?.usd_foil : b.prices?.usd) || 0);
             return priceB - priceA;
         });
 
-        const top10 = sorted.slice(0, 10);
-        const totalVal = top10.reduce((acc, c) => {
+        const totalVal = ownedCards.reduce((acc, c) => {
             const price = Number((c.finish === 'foil' ? c.prices?.usd_foil : c.prices?.usd) || 0);
-            return acc + price;
+            return acc + (price * (c.count || 1));
         }, 0);
 
-        return { topCards: top10, totalValue: totalVal };
+        // Top 10 for display
+        const top10 = fullSorted.slice(0, 10);
+
+        // Calculate Rarity Level
+        const highRarityCount = ownedCards.filter(c => ['rare', 'mythic'].includes(c.rarity?.toLowerCase())).length;
+        const rarityPercent = (highRarityCount / ownedCards.length) * 100;
+        let rarityLevel = 'Initiate';
+        if (rarityPercent > 60) rarityLevel = 'Archivist';
+        else if (rarityPercent > 40) rarityLevel = 'Curator';
+        else if (rarityPercent > 20) rarityLevel = 'Collector';
+
+        // Calculate Percentile (Simulated MTF-Bench)
+        let percentile = 'Top 90%';
+        if (totalVal > 50000) percentile = 'Top 0.1%';
+        else if (totalVal > 25000) percentile = 'Top 1%';
+        else if (totalVal > 10000) percentile = 'Top 5%';
+        else if (totalVal > 5000) percentile = 'Top 10%';
+        else if (totalVal > 2500) percentile = 'Top 25%';
+        else if (totalVal > 1000) percentile = 'Top 50%';
+
+        return {
+            topCards: top10,
+            totalValue: totalVal,
+            totalCount,
+            rarityLevel,
+            percentile
+        };
     }, [cards]);
 
     if (loading) return <div className="min-h-screen bg-black flex items-center justify-center text-yellow-600 font-mono animate-pulse">ACCESSING VAULT...</div>;
@@ -211,14 +250,40 @@ export default function TheVault() {
                         </div>
                     </div>
 
-                    <div className="text-right">
-                        <div className="text-xs text-gray-500 font-bold uppercase tracking-widest mb-1">Vault Asset Value</div>
-                        <div className="text-4xl font-black text-white font-mono flex items-center gap-2 justify-end">
-                            <span className="text-yellow-500">$</span>
-                            {stats.totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    <div className="flex items-center gap-6">
+                        <div className="text-right">
+                            <div className="text-xs text-gray-500 font-bold uppercase tracking-widest mb-1">Vault Asset Value</div>
+                            <div className="text-4xl font-black text-white font-mono flex items-center gap-2 justify-end">
+                                <span className="text-yellow-500">$</span>
+                                {stats.totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </div>
                         </div>
+
+                        <button
+                            onClick={() => setIsShareOpen(true)}
+                            className="w-14 h-14 bg-white/5 hover:bg-white/10 text-yellow-500 rounded-2xl flex items-center justify-center border border-white/5 hover:border-yellow-500/50 transition-all group shadow-xl"
+                            title="Share Vault"
+                        >
+                            <Share2 className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                        </button>
                     </div>
                 </div>
+
+                <SocialShareHub
+                    isOpen={isShareOpen}
+                    onClose={() => setIsShareOpen(false)}
+                    type="vault"
+                    shareUrl={`${window.location.origin}/share/vault/${cards?.[0]?.user_id || 'player'}`}
+                    data={{
+                        title: "Asset Vault",
+                        win: stats.percentile + " Collector",
+                        stats: [
+                            { label: "Assets", value: stats.totalCount },
+                            { label: "Total Value", value: `$${stats.totalValue.toLocaleString()}`, highlight: true },
+                            { label: "Rarity", value: stats.rarityLevel }
+                        ]
+                    }}
+                />
 
                 {/* The Grid - Isometric-ish layout or just a nice grid? Let's do a nice flex wrap with centering */}
                 {stats.topCards.length === 0 ? (
@@ -231,12 +296,34 @@ export default function TheVault() {
                     <div className="flex flex-wrap justify-center gap-12 perspective-2000">
                         {stats.topCards.map((card, i) => (
                             <div key={card.id || i} className="transform hover:z-50 transition-all duration-300">
-                                <VaultCard card={card} rank={i + 1} />
+                                <VaultCard
+                                    card={{ ...card, onShare: (c) => setSharingCard(c) }}
+                                    rank={i + 1}
+                                />
                             </div>
                         ))}
                     </div>
                 )}
             </div>
+
+            {sharingCard && (
+                <SocialShareHub
+                    isOpen={!!sharingCard}
+                    onClose={() => setSharingCard(null)}
+                    type="card"
+                    shareUrl={`${window.location.origin}/card/${sharingCard.id || sharingCard.card_id}`}
+                    data={{
+                        title: sharingCard.name,
+                        win: (sharingCard.rarity || 'Common').toUpperCase() + " Rarity",
+                        cardImage: sharingCard.image_uris?.normal || sharingCard.image_uri || sharingCard.data?.image_uris?.normal,
+                        stats: [
+                            { label: "Type", value: sharingCard.type_line?.split('—')?.[0]?.trim() || 'Spell' },
+                            { label: "Cost", value: sharingCard.mana_cost || '0', highlight: true },
+                            { label: "Price", value: `$${Number(sharingCard.prices?.usd || 0).toFixed(2)}` }
+                        ]
+                    }}
+                />
+            )}
 
             <style>{`
                 .perspective-1000 { perspective: 1000px; }
