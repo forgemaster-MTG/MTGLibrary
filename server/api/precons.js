@@ -32,8 +32,8 @@ router.get('/', async (req, res) => {
     const { type, set_code, search } = req.query;
     let query = knex('precons').select(
       'id', 'name', 'set_code', 'type',
-      'colors', 'image_uri', 'card_count', 'commander_name'
-    );
+      'colors', 'image_uri', 'card_count', 'commander_name', 'release_date'
+    ).orderBy('release_date', 'desc');
 
     if (type) {
       query = query.where({ type });
@@ -51,7 +51,7 @@ router.get('/', async (req, res) => {
       });
     }
 
-    const rows = await query.limit(200);
+    const rows = await query.limit(1000);
 
     // Calculate prices efficiently
     const ids = rows.map(r => r.id);
@@ -88,6 +88,7 @@ router.get('/', async (req, res) => {
       },
       type: r.type,
       set_code: r.set_code,
+      release_date: r.release_date,
       image_uri: r.image_uri,
       colors: r.colors,
       card_count: r.card_count,
@@ -168,6 +169,7 @@ router.get('/:id', async (req, res) => {
       data: {
         code: precon.set_code,
         type: precon.type,
+        release_date: precon.release_date,
         commander,
         mainBoard,
         sideBoard

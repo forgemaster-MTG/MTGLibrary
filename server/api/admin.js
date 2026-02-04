@@ -235,6 +235,20 @@ router.post('/precons/upload', upload.single('file'), async (req, res) => {
         // Generate stable ID
         const firestoreId = `precon_${setCode}_${name.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()}`;
 
+        // Determine Release Date
+        let releaseDate = deckPayload.releaseDate || (rawData.meta && rawData.meta.date) || null;
+        if (releaseDate) {
+            // Ensure YYYY-MM-DD format if possible
+            try {
+                const d = new Date(releaseDate);
+                if (!isNaN(d.getTime())) {
+                    releaseDate = d.toISOString().split('T')[0];
+                }
+            } catch (e) {
+                console.warn('[Admin] Failed to parse release date:', releaseDate);
+            }
+        }
+
         // Aggregate Cards to calculate stats and prepare for insert
         const allCards = [];
         const processCards = (list, zone) => {
@@ -289,6 +303,7 @@ router.post('/precons/upload', upload.single('file'), async (req, res) => {
                 card_count: cardCount,
                 colors: JSON.stringify(colors),
                 commander_name: commanderName,
+                release_date: releaseDate,
                 data: JSON.stringify(deckPayload), // Store original full data
                 created_at: new Date(),
                 updated_at: new Date()
