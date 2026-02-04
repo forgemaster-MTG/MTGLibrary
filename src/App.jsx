@@ -13,6 +13,7 @@ import CreateDeckPage from './pages/CreateDeckPage';
 import DeckDetailsPage from './pages/DeckDetailsPage';
 import SetsPage from './pages/SetsPage';
 import SetDetailsPage from './pages/SetDetailsPage';
+import ProductsPage from './pages/ProductsPage';
 import SettingsPage from './pages/SettingsPage';
 import WishlistPage from './pages/WishlistPage';
 import PreconPage from './pages/PreconPage';
@@ -128,6 +129,7 @@ function App() {
                                         <Route path="/tournaments/:id" element={<TournamentPage />} />
                                         <Route path="/tournaments/:id/join" element={<TournamentJoinPage />} />
                                         <Route path="/solitaire/:deckId" element={<SolitairePage />} />
+                                        <Route path="/products" element={<ProductsPage />} />
                                         <Route path="/admin/*" element={<AdminPage />} />
                                     </Routes>
                                 </div>

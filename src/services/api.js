@@ -163,5 +163,12 @@ export const api = {
     cancelAudit: (id) => request('POST', `/api/audit/${id}/cancel`),
     finalizeAudit: (id) => request('POST', `/api/audit/${id}/finalize`),
     reviewAuditSection: (id, data) => request('POST', `/api/audit/${id}/section/review`, data),
-    batchUpdateAuditItems: (id, updates) => request('POST', `/api/audit/${id}/items/batch-update`, { updates })
+    batchUpdateAuditItems: (id, updates) => request('POST', `/api/audit/${id}/items/batch-update`, { updates }),
+
+    // Featured Products (Store)
+    getFeaturedProducts: (admin = false) => request('GET', admin ? '/api/featured/all' : '/api/featured'),
+    createFeaturedProduct: (data) => request('POST', '/api/featured', data),
+    updateFeaturedProduct: (id, data) => request('PUT', `/api/featured/${id}`, data),
+    deleteFeaturedProduct: (id) => request('DELETE', `/api/featured/${id}`),
+    reorderFeaturedProducts: (order) => request('PUT', '/api/featured/reorder/batch', { order })
 };

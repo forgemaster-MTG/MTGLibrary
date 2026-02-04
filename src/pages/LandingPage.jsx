@@ -1,6 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import FeaturesSection from '../components/FeaturesSection';
+import StoreSection from '../components/StoreSection';
+import LatestReleasesSection from '../components/LatestReleasesSection';
 
 // Note: In a real app, you might lazily load the image or use an optimized version.
 // For now, we assume the artifact image is placed in/mapped to public or src/assets.
@@ -107,6 +109,8 @@ const LandingPage = () => {
             {/* Features & Content (Scrolls over background) */}
             <div className="relative z-10">
                 <FeaturesSection />
+                <LatestReleasesSection />
+                <StoreSection />
             </div>
 
             {/* Footer */}

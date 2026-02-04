@@ -257,6 +257,7 @@ const Navbar = () => {
                                             { path: '/decks', label: 'Decks' },
                                             { path: '/binders', label: 'Binders' },
                                             { path: '/social', label: 'Social' },
+                                            { path: '/products', label: 'Store' },
                                             { path: '/precons', label: 'Precons' },
                                             { path: '/sets', label: 'Sets' },
                                             { path: '/vault', label: 'The Vault', className: 'text-yellow-400 hover:text-yellow-200' }
@@ -605,6 +606,7 @@ const Navbar = () => {
                                             { path: '/wishlist', label: 'Wishlist', iconPath: 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z', color: 'orange' },
                                             { path: '/binders', label: 'Binders', iconPath: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10', color: 'blue' },
                                             { path: '/precons', label: 'Precons', iconPath: 'M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4', color: 'purple' },
+                                            { path: '/products', label: 'Store', iconPath: 'M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z', color: 'pink' },
                                             { path: '/sets', label: 'Sets', iconPath: 'M4 6h16M4 10h16M4 14h16M4 18h16', color: 'green' },
                                             { path: '/vault', label: 'Vault', iconPath: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z', color: 'yellow' }
                                         ].map(item => (

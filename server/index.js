@@ -41,6 +41,7 @@ import friendsApi from './api/friends.js';
 import socialApi from './api/social.js';
 import tournamentsApi from './api/tournaments.js';
 import aiApi from './api/ai.js';
+import featuredApi from './api/featured.js';
 
 
 const require = createRequire(import.meta.url);
@@ -208,6 +209,7 @@ app.use('/api/friends', friendsApi);
 app.use('/api/social', socialApi);
 app.use('/api/tournaments', tournamentsApi);
 app.use('/api/ai', aiApi);
+app.use('/api/featured', featuredApi);
 
 
 // Health endpoint
