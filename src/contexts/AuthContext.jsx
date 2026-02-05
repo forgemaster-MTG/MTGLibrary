@@ -188,8 +188,20 @@ export const AuthProvider = ({ children }) => {
     return (
         <AuthContext.Provider value={value}>
             {(firebaseLoading || (!!currentUser && profileLoading)) ? (
-                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#121212', color: '#fff' }}>
-                    Loading Ecosystem...
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    height: '100vh',
+                    background: 'radial-gradient(circle at center, #2b0505 0%, #000000 100%)',
+                    color: '#ff4d00',
+                    fontFamily: 'system-ui, sans-serif',
+                    fontWeight: '800',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.1em',
+                    textShadow: '0 0 20px rgba(255, 77, 0, 0.5)'
+                }}>
+                    Igniting The Forge...
                 </div>
             ) : (
                 children
