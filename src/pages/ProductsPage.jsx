@@ -51,11 +51,21 @@ const ProductsPage = () => {
 
     const allProducts = [...normalizedFeatured, ...normalizedStatic];
 
+    // Helper to normalize to Title Case to prevent duplicates
+    const toTitleCase = (str) => {
+        if (!str) return '';
+        return str.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
+    };
+
     // Dynamically derive categories from distinct values in logic + generic fallbacks
-    // We prioritize specific order: Sealed, Commander, Bundle, Accessories
-    // Then any others found in the data.
+    // We prioritize specific order: Sealed, Commander, Bundle
+    // Then any others found in the data (Normalized to Title Case).
     const knownCategories = ['Sealed', 'Commander', 'Bundle'];
-    const dataCategories = [...new Set(normalizedFeatured.map(p => p.category))].filter(c => !knownCategories.includes(c));
+
+    // Get unique categories via Set + Normalization
+    const dataCategories = [...new Set(normalizedFeatured.map(p => toTitleCase(p.category)))]
+        .filter(c => c && !knownCategories.includes(c));
+
     // Accessories is manually added to the filter list, but handled separately in render
     const categories = ['All', ...knownCategories, ...dataCategories, 'Accessories'];
 
@@ -69,9 +79,11 @@ const ProductsPage = () => {
             if (selectedCategory !== 'All') {
                 if (selectedCategory === 'Accessories') {
                     // Catch variations like "Accessory" if they exist
-                    matchesCategory = item.category.toLowerCase().includes('access') || item.category === 'Accessories';
+                    matchesCategory = item.category.toLowerCase().includes('access') ||
+                        item.category === 'Accessories';
                 } else {
-                    matchesCategory = item.category === selectedCategory;
+                    // Normalize item category for robust matching
+                    matchesCategory = toTitleCase(item.category) === selectedCategory;
                 }
             }
 
@@ -218,7 +230,8 @@ const ProductsPage = () => {
             <div className="space-y-24">
                 {/* Main Dynamic Sections */}
                 {mainCategories.map(category => {
-                    const categoryItems = normalizedFeatured.filter(p => p.category === category);
+                    // Match against normalized category
+                    const categoryItems = normalizedFeatured.filter(p => toTitleCase(p.category) === category);
                     if (categoryItems.length === 0) return null;
 
                     return (
@@ -295,7 +308,7 @@ const ProductsPage = () => {
                         </div>
 
                         {/* Categories */}
-                        <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 w-full md:w-auto scrollbar-hide">
+                        <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 w-full md:w-auto scrollbar-hide [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
                             {categories.map(cat => (
                                 <button
                                     key={cat}
