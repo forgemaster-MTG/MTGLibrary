@@ -212,9 +212,15 @@ app.use('/api/ai', aiApi);
 app.use('/api/featured', featuredApi);
 
 
-// Health endpoint
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date() });
+// Health endpoint with DB check
+app.get('/api/health', async (req, res) => {
+  try {
+    await knex.raw('SELECT 1');
+    res.json({ status: 'ok', db: 'connected', timestamp: new Date() });
+  } catch (err) {
+    console.error('Health check DB error:', err);
+    res.status(503).json({ status: 'error', db: 'disconnected', timestamp: new Date() });
+  }
 });
 
 // Community Routes
