@@ -20,6 +20,7 @@ const TradeDetail = () => {
     const [modalSource, setModalSource] = useState(null); // 'my' or 'partner'
     const [confirmation, setConfirmation] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
     const [activeTab, setActiveTab] = useState('chat'); // 'my', 'chat', 'their'
+    const [isMenuOpen, setIsMenuOpen] = useState(false); // Header menu state
 
     // Auto-scroll chat
     const chatEndRef = useRef(null);
@@ -173,7 +174,7 @@ const TradeDetail = () => {
     const diff = myTotal - partnerTotal;
 
     return (
-        <div className="max-w-7xl mx-auto px-2 lg:px-4 py-4 lg:py-8 h-[calc(100dvh-140px)] xl:h-[calc(100vh-80px)] flex flex-col">
+        <div className="max-w-7xl mx-auto px-2 lg:px-4 py-4 lg:py-8 h-[calc(100dvh-140px)] xl:h-[calc(100dvh-80px)] flex flex-col overflow-hidden overscroll-none">
             <AddTradeItemModal
                 isOpen={isAddModalOpen}
                 onClose={() => setIsAddModalOpen(false)}
@@ -196,13 +197,13 @@ const TradeDetail = () => {
             />
 
             {/* Header / Value Summary */}
-            <div className="mb-4 bg-gray-800 p-3 xl:p-4 rounded-xl border border-gray-700 flex flex-col gap-3 shrink-0">
+            <div className="mb-4 bg-gray-800 p-3 xl:p-4 rounded-xl border border-gray-700 flex flex-col gap-3 shrink-0 relative z-20">
                 <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-3 xl:gap-4">
-                        <button onClick={() => navigate('/trades')} className="p-1.5 xl:p-2 hover:bg-gray-700 rounded-lg text-gray-400">
+                    <div className="flex items-center gap-3 xl:gap-4 flex-1">
+                        <button onClick={() => navigate('/trades')} className="p-1.5 xl:p-2 hover:bg-gray-700 rounded-lg text-gray-400 shrink-0">
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                         </button>
-                        <div className="flex-1 min-w-0">
+                        <div className="flex-1 min-w-0 mr-2">
                             <h1 className="text-lg xl:text-xl font-bold text-white flex items-center flex-wrap gap-2">
                                 <span className="truncate">Trade w/ {partner.username}</span>
                                 <span className={`text-[10px] xl:text-xs px-2 py-0.5 rounded-full uppercase ${trade.status === 'completed' ? 'bg-green-500/20 text-green-500' :
@@ -212,6 +213,47 @@ const TradeDetail = () => {
                                     }`}>{trade.status}</span>
                             </h1>
                             <div className="text-[10px] xl:text-xs text-gray-400 font-mono hidden xl:block">ID: #{trade.id} • {new Date(trade.created_at).toLocaleDateString()}</div>
+                        </div>
+
+                        {/* Meatball Menu */}
+                        <div className="relative">
+                            <button
+                                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                                className="p-2 hover:bg-gray-700 rounded-lg text-gray-400"
+                            >
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" /></svg>
+                            </button>
+
+                            {isMenuOpen && (
+                                <>
+                                    <div className="fixed inset-0 z-10" onClick={() => setIsMenuOpen(false)}></div>
+                                    <div className="absolute right-0 mt-2 w-48 bg-gray-900 border border-gray-700 rounded-lg shadow-xl z-20 py-1 overflow-hidden">
+                                        {trade.status === 'pending' && (
+                                            <button
+                                                onClick={() => { setIsMenuOpen(false); handleStatusUpdate('cancelled'); }}
+                                                className="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-gray-800 flex items-center gap-2"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                                Cancel Trade
+                                            </button>
+                                        )}
+                                        {((isInitiator && trade.status !== 'accepted') ||
+                                            (!isInitiator && ['cancelled', 'rejected', 'completed'].includes(trade.status))) && (
+                                                <button
+                                                    onClick={() => { setIsMenuOpen(false); handleDeleteTrade(); }}
+                                                    className="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-gray-800 flex items-center gap-2 border-t border-gray-800"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                    Delete Trade
+                                                </button>
+                                            )}
+                                        {!((trade.status === 'pending') || ((isInitiator && trade.status !== 'accepted') ||
+                                            (!isInitiator && ['cancelled', 'rejected', 'completed'].includes(trade.status)))) && (
+                                                <div className="px-4 py-2 text-xs text-gray-500 italic text-center">No actions available</div>
+                                            )}
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -308,11 +350,11 @@ const TradeDetail = () => {
                 </div>
 
                 {/* Center: Barter Controls */}
-                <div className={`xl:col-span-4 xl:flex flex-col gap-4 xl:gap-6 ${activeTab === 'chat' ? 'flex h-full' : 'hidden'}`}>
+                <div className={`xl:col-span-4 xl:flex flex-col gap-4 xl:gap-6 overflow-y-auto ${activeTab === 'chat' ? 'flex h-full' : 'hidden'}`}>
                     {/* Chat Area (Compressed) */}
-                    <div className="flex-1 bg-gray-800 border border-gray-700 rounded-xl flex flex-col overflow-hidden min-h-[300px]">
+                    <div className="flex-1 bg-gray-800 border border-gray-700 rounded-xl flex flex-col overflow-hidden min-h-[120px] shrink-0 relative">
                         <div className="p-3 border-b border-gray-700 font-bold text-white text-sm bg-gray-900/30">Negotiation</div>
-                        <div className="flex-1 overflow-y-auto p-3 space-y-3">
+                        <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar overscroll-contain">
                             {messages.map(msg => (
                                 <div key={msg.id} className={`flex ${msg.user_id === myId ? 'justify-end' : 'justify-start'}`}>
                                     <div className={`max-w-[90%] rounded-lg p-2 text-xs ${msg.user_id === myId
@@ -389,33 +431,10 @@ const TradeDetail = () => {
                                 >
                                     {myAccepted ? 'Cancel Readiness' : 'Accept Trade'}
                                 </button>
-
-                                <div className="flex justify-center mt-2">
-                                    <button
-                                        onClick={() => handleStatusUpdate('cancelled')}
-                                        className="text-xs text-red-500 hover:underline"
-                                    >
-                                        Cancel Trade Entirely
-                                    </button>
-                                </div>
                             </>
                         ) : (
                             <div className="text-center text-red-500 font-bold">Trade {trade.status}</div>
                         )}
-
-                        {/* Delete Option */}
-                        {((isInitiator && trade.status !== 'accepted') ||
-                            (!isInitiator && ['cancelled', 'rejected', 'completed'].includes(trade.status))) && (
-                                <div className="border-t border-gray-700 pt-3 mt-2 text-center">
-                                    <button
-                                        onClick={handleDeleteTrade}
-                                        className="text-xs text-red-500 hover:text-red-400 hover:underline flex items-center justify-center gap-1 mx-auto"
-                                    >
-                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                        Delete Trade
-                                    </button>
-                                </div>
-                            )}
                     </div>
                 </div>
 
