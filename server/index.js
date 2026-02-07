@@ -42,6 +42,7 @@ import socialApi from './api/social.js';
 import tournamentsApi from './api/tournaments.js';
 import aiApi from './api/ai.js';
 import featuredApi from './api/featured.js';
+import tradesApi from './api/trades.js';
 
 
 const require = createRequire(import.meta.url);
@@ -210,6 +211,7 @@ app.use('/api/social', socialApi);
 app.use('/api/tournaments', tournamentsApi);
 app.use('/api/ai', aiApi);
 app.use('/api/featured', featuredApi);
+app.use('/api/trades', tradesApi);
 
 
 // Health endpoint with DB check

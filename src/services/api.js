@@ -20,6 +20,12 @@ async function getHeaders() {
         headers['X-Referral-Code'] = referralCode;
     }
 
+    // Impersonation Header
+    const impersonateId = localStorage.getItem('impersonate_user_id');
+    if (impersonateId) {
+        headers['x-impersonate-user-id'] = impersonateId;
+    }
+
     return headers;
 }
 

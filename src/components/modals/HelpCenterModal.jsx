@@ -126,7 +126,7 @@ const HelpCenterModal = ({ isOpen, onClose, onStartTour, onOpenChat }) => {
                                                         { id: '/precons', label: '📦 Precons' },
                                                         { id: '/strategy', label: '🧠 Strategy' },
                                                         { id: '/play', label: '🃏 Play' },
-                                                        { id: '/armory', label: '🛡️ Armory' },
+                                                        { id: '/trades', label: '🛡️ Armory' },
                                                         { id: '/tournaments', label: '🏆 Tourneys' },
                                                         { id: '/settings', label: '⚙️ Settings' }
                                                     ].map(item => (

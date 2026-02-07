@@ -2,6 +2,7 @@ import { useEffect, useCallback } from 'react';
 
 // Key Combo Helper
 const matchKey = (e, key, modifiers = []) => {
+    if (!key) return false;
     if (e.key.toLowerCase() !== key.toLowerCase()) return false;
 
     const hasCtrl = modifiers.includes('ctrl') || modifiers.includes('meta'); // Treat meta (cmd) like ctrl for mac

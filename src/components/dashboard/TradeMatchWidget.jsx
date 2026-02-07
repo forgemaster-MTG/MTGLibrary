@@ -45,7 +45,7 @@ const TradeMatchWidget = ({ size = 'medium' }) => {
     );
 
     return (
-        <Link to="/armory" className="block h-full w-full group">
+        <Link to="/trades" className="block h-full w-full group">
             <div className="h-full w-full bg-gradient-to-br from-indigo-900/50 to-gray-900 border border-indigo-500/30 hover:border-indigo-400 rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden transition-all hover:shadow-[0_0_20px_rgba(99,102,241,0.3)]">
 
                 {/* Background Decor */}

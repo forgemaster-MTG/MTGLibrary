@@ -33,6 +33,7 @@ import Lobby from './pages/LiveSession/Lobby';
 import GameRoom from './pages/LiveSession/GameRoom';
 import SocialPage from './pages/SocialPage';
 import TradeDashboard from './pages/TradeDashboard';
+import TradeDetail from './pages/TradeDetail';
 import ProfilePage from './pages/ProfilePage';
 import TournamentPage from './pages/TournamentPage';
 import TournamentJoinPage from './pages/TournamentJoinPage';
@@ -55,6 +56,8 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 
 import OfflineNotifier from './components/OfflineNotifier';
 import AchievementMonitor from './components/common/AchievementMonitor';
+
+import ImpersonationBanner from './components/Admin/ImpersonationBanner';
 
 function App() {
     // Global Shortcuts
@@ -86,6 +89,7 @@ function App() {
                         <div className="bg-gray-900 text-gray-200 font-sans min-h-screen flex flex-col">
                             <ScrollToTop />
                             <ReferralTracker />
+                            <ImpersonationBanner />
                             {/* Navbar is now always rendered but handles its own restriction logic */}
                             <Navbar />
                             <AuthGuard>
@@ -124,7 +128,8 @@ function App() {
                                         <Route path="/play/room/:id" element={<GameRoom />} />
                                         <Route path="/social" element={<SocialPage />} />
                                         <Route path="/profile/:id" element={<ProfilePage />} />
-                                        <Route path="/armory" element={<TradeDashboard />} />
+                                        <Route path="/trades" element={<TradeDashboard />} />
+                                        <Route path="/trades/:id" element={<TradeDetail />} />
                                         <Route path="/tournaments" element={<TournamentPage />} />
                                         <Route path="/tournaments/:id" element={<TournamentPage />} />
                                         <Route path="/tournaments/:id/join" element={<TournamentJoinPage />} />

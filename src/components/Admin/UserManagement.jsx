@@ -169,6 +169,17 @@ const UserManagement = () => {
                                     <td className="py-3 px-4 text-right">
                                         <div className="flex items-center justify-end gap-2">
                                             <button
+                                                onClick={() => {
+                                                    if (window.confirm(`View as ${u.username}? You will see the site as they do (Read-Only).`)) {
+                                                        localStorage.setItem('impersonate_user_id', u.id);
+                                                        window.location.href = '/dashboard';
+                                                    }
+                                                }}
+                                                className="text-[10px] bg-amber-900/30 hover:bg-amber-800 text-amber-400 border border-amber-700/50 px-2 py-1 rounded transition-colors"
+                                            >
+                                                View
+                                            </button>
+                                            <button
                                                 onClick={() => handleSyncUser(u)}
                                                 disabled={syncingUser === u.id}
                                                 className="text-[10px] bg-cyan-900/30 hover:bg-cyan-800 text-cyan-400 border border-cyan-700/50 px-2 py-1 rounded transition-colors disabled:opacity-50"

@@ -73,5 +73,17 @@ export const tradeService = {
         // Similar logic, but fetching friends' wishlists vs my public collection.
         // Implementation deferred for MVP.
         return [];
-    }
+    },
+
+    // API Integration
+    getTrades: () => api.get('/api/trades'),
+    createTrade: (data) => api.post('/api/trades', data),
+    getTradeDetails: (id) => api.get(`/api/trades/${id}`),
+    updateStatus: (id, status) => api.put(`/api/trades/${id}/status`, { status }),
+    toggleAccept: (id) => api.post(`/api/trades/${id}/toggle_accept`),
+    completeTrade: (id) => api.post(`/api/trades/${id}/complete`),
+    sendMessage: (id, content) => api.post(`/api/trades/${id}/messages`, { content }),
+    addItems: (id, items) => api.post(`/api/trades/${id}/items`, { items }),
+    removeItem: (id, itemId) => api.delete(`/api/trades/${id}/items/${itemId}`),
+    deleteTrade: (id) => api.delete(`/api/trades/${id}`)
 };

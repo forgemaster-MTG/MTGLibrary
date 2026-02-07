@@ -364,7 +364,7 @@ export const HELP_DOCS = {
         footer: { text: "Enter Lobby" }
     },
 
-    '/armory': {
+    '/trades': {
         title: "The Armory",
         subtitle: "Trade and manage your physical stock.",
         icon: "🛡️",
