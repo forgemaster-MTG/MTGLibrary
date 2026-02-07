@@ -149,17 +149,17 @@ const Navbar = () => {
                                     <img src="/logo.png" alt="MTG Forge Logo" className="h-10 w-auto" />
 
                                     {/* Mobile Badges (Right of Logo) */}
-                                    <div className="flex flex-col gap-1 sm:hidden">
-                                        <span className="bg-orange-500/10 border border-orange-500/30 text-orange-400 text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse w-fit leading-none">
+                                    <div className="grid grid-cols-2 gap-x-2 gap-y-1 sm:hidden">
+                                        <span className="bg-orange-500/10 border border-orange-500/30 text-orange-400 text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse w-fit leading-none flex items-center justify-center">
                                             ALPHA
                                         </span>
                                         {!userProfile?.settings?.onboarding_complete && (
-                                            <span className="bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse w-fit leading-none uppercase">
+                                            <span className="bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse w-fit leading-none uppercase flex items-center justify-center">
                                                 SETUP
                                             </span>
                                         )}
                                         {userProfile?.subscription_status === 'trial' && (
-                                            <span className="bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse w-fit leading-none uppercase">
+                                            <span className="bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse w-fit leading-none uppercase flex items-center justify-center">
                                                 TRIAL
                                             </span>
                                         )}
@@ -174,13 +174,13 @@ const Navbar = () => {
                                             if (tier === TIERS.TIER_5) badgeColor = 'text-red-400 border-red-500/30 bg-red-500/10';
 
                                             return (
-                                                <span className={`border text-[9px] font-bold px-1.5 py-0.5 rounded leading-none uppercase w-fit ${badgeColor}`}>
+                                                <span className={`border text-[9px] font-bold px-1.5 py-0.5 rounded leading-none uppercase w-fit flex items-center justify-center ${badgeColor}`}>
                                                     {config?.name || tier || 'MEMBER'}
                                                 </span>
                                             );
                                         })()}
                                         {(userProfile?.override_tier || userProfile?.custom_limits) && (
-                                            <span className="bg-pink-500/10 border border-pink-500/30 text-pink-400 text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse w-fit leading-none uppercase">
+                                            <span className="bg-pink-500/10 border border-pink-500/30 text-pink-400 text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse w-fit leading-none uppercase flex items-center justify-center">
                                                 CUSTOM
                                             </span>
                                         )}
@@ -247,7 +247,7 @@ const Navbar = () => {
                             </div>
 
                             {/* Desktop Nav Links */}
-                            <div className="hidden lg:ml-6 lg:flex lg:items-baseline lg:space-x-1">
+                            <div className="hidden xl:ml-6 xl:flex xl:items-baseline xl:space-x-1">
                                 {currentUser ? (
                                     <>
                                         {[
@@ -552,7 +552,7 @@ const Navbar = () => {
             {
                 !isLanding && (
                     <>
-                        <div className="md:hidden fixed bottom-0 left-0 w-full bg-gray-900/95 backdrop-blur-xl border-t border-gray-800 z-50 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+                        <div className="xl:hidden fixed bottom-0 left-0 w-full bg-gray-900/95 backdrop-blur-xl border-t border-gray-800 z-50 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
                             <div className="flex justify-around items-center h-16">
                                 <Link to="/dashboard" className={`flex flex-col items-center justify-center w-full h-full ${location.pathname === '/dashboard' ? 'text-indigo-400' : 'text-gray-400 hover:text-gray-200'} `}>
                                     <svg className="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
@@ -587,7 +587,7 @@ const Navbar = () => {
 
                         {/* Mobile More Menu Overlay */}
                         {isMobileMenuOpen && (
-                            <div className="fixed inset-0 z-[60] md:hidden">
+                            <div className="fixed inset-0 z-[60] xl:hidden">
                                 {/* Backdrop */}
                                 <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
 

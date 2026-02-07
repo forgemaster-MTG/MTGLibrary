@@ -46,16 +46,16 @@ const ActionLogWidget = ({ size }) => {
 
     return (
         <div className="h-full flex flex-col bg-gray-900/40 backdrop-blur-md rounded-3xl overflow-hidden border border-white/5">
-            <div className="p-4 border-b border-white/5 flex justify-between items-center bg-black/20">
-                <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+            <div className={`border-b border-white/5 flex justify-between items-center bg-black/20 ${isSmall ? 'p-3' : 'p-4'}`}>
+                <h3 className={`${isSmall ? 'text-[10px]' : 'text-xs'} font-black text-gray-400 uppercase tracking-widest flex items-center gap-2`}>
                     <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />
-                    Session History
+                    {isSmall ? 'History' : 'Session History'}
                 </h3>
                 <span className="text-[10px] text-gray-600 font-mono">{history.length} Actions</span>
             </div>
 
             <div className={`flex-grow overflow-y-auto custom-scrollbar ${isSmall ? 'p-2' : 'p-4'}`}>
-                <div className="space-y-2">
+                <div className={`${isSmall ? 'space-y-1.5' : 'space-y-2'}`}>
                     {history.map((item, index) => {
                         // Calculate actual index in timeline (reversed)
                         const isCurrent = (history.length - 1 - index) === historyData.pointer;
@@ -64,8 +64,8 @@ const ActionLogWidget = ({ size }) => {
                             <div
                                 key={item.timestamp}
                                 className={`flex items-start gap-3 p-3 rounded-xl transition-all border ${isCurrent
-                                        ? 'bg-cyan-500/10 border-cyan-500/30'
-                                        : 'bg-black/20 border-white/5 hover:bg-white/5'
+                                    ? 'bg-cyan-500/10 border-cyan-500/30'
+                                    : 'bg-black/20 border-white/5 hover:bg-white/5'
                                     }`}
                             >
                                 <div className={`mt-0.5 p-1.5 rounded-lg ${isCurrent ? 'bg-cyan-500/20 text-cyan-400' : 'bg-gray-800 text-gray-500'}`}>

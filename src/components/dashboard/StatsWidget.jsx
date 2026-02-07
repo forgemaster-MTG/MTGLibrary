@@ -8,7 +8,7 @@ const DashboardKPI = ({ title, value, icon, color, to, children, size }) => {
     const isLargePlus = size === 'large' || size === 'xlarge';
 
     const content = (
-        <div className={`bg-gray-900/60 border border-gray-800 rounded-2xl ${isXS ? 'px-4 py-2' : 'p-4 md:p-5'} backdrop-blur-sm hover:border-gray-700 transition-all group relative h-full flex flex-col justify-center`}>
+        <div className={`bg-gray-900/60 border border-gray-800 rounded-2xl ${isXS ? 'px-3 py-2' : 'p-3 md:p-5'} backdrop-blur-sm hover:border-gray-700 transition-all group relative h-full flex flex-col ${size === 'xlarge' ? 'justify-start md:justify-center gap-2' : 'justify-center'} text-left`}>
             {children}
             <div className={`relative z-20 ${isXS ? 'flex items-center justify-between w-full' : ''}`}>
                 {!isXS && (
@@ -24,7 +24,7 @@ const DashboardKPI = ({ title, value, icon, color, to, children, size }) => {
                             {title}
                         </div>
                     )}
-                    <div className={`${isXS ? 'text-base' : 'text-3xl'} font-black text-white tracking-tight`}>
+                    <div className={`${isXS ? 'text-base' : 'text-2xl md:text-3xl'} font-black text-white tracking-tight leading-none`}>
                         {value}
                     </div>
                 </div>
@@ -92,22 +92,22 @@ export const TotalCardsWidget = ({ data, size }) => {
 
                 {/* XL Tier: Comprehensive Horizontal Spread */}
                 {size === 'xlarge' && (
-                    <div className="absolute inset-y-0 right-0 w-[70%] flex items-center justify-around border-l border-white/5 bg-gray-950/20 px-8">
+                    <div className="md:absolute md:inset-y-0 md:right-0 md:w-[70%] w-full mt-4 md:mt-0 h-auto md:h-full flex items-center justify-around md:border-l border-t md:border-t-0 border-white/5 bg-gray-950/20 px-2 md:px-8 py-3 md:py-0 order-last">
                         <div className="flex flex-col items-center">
-                            <span className="text-xl font-black text-indigo-400">{collection?.length || 0}</span>
-                            <span className="text-[9px] font-bold text-gray-500 uppercase tracking-tighter">Distinct</span>
+                            <span className="text-lg md:text-xl font-black text-indigo-400">{collection?.length || 0}</span>
+                            <span className="text-[8px] md:text-[9px] font-bold text-gray-500 uppercase tracking-tighter">Distinct</span>
                         </div>
                         <div className="flex flex-col items-center">
-                            <span className="text-xl font-black text-yellow-400">{collection?.filter(c => c.val_foil).length || 0}</span>
-                            <span className="text-[9px] font-bold text-gray-500 uppercase tracking-tighter">Foils</span>
+                            <span className="text-lg md:text-xl font-black text-yellow-400">{collection?.filter(c => c.val_foil).length || 0}</span>
+                            <span className="text-[8px] md:text-[9px] font-bold text-gray-500 uppercase tracking-tighter">Foils</span>
                         </div>
                         <div className="flex flex-col items-center">
-                            <span className="text-xl font-black text-green-400">{collection?.filter(c => c.val_signed).length || 0}</span>
-                            <span className="text-[9px] font-bold text-gray-500 uppercase tracking-tighter">Signed</span>
+                            <span className="text-lg md:text-xl font-black text-green-400">{collection?.filter(c => c.val_signed).length || 0}</span>
+                            <span className="text-[8px] md:text-[9px] font-bold text-gray-500 uppercase tracking-tighter">Signed</span>
                         </div>
                         <div className="flex flex-col items-center">
-                            <span className="text-xl font-black text-gray-400">{collection?.filter(c => c.val_alt_art).length || 0}</span>
-                            <span className="text-[9px] font-bold text-gray-500 uppercase tracking-tighter">Alt Art</span>
+                            <span className="text-lg md:text-xl font-black text-gray-400">{collection?.filter(c => c.val_alt_art).length || 0}</span>
+                            <span className="text-[8px] md:text-[9px] font-bold text-gray-500 uppercase tracking-tighter">Alt Art</span>
                         </div>
                     </div>
                 )}
@@ -122,8 +122,9 @@ export const UniqueDecksWidget = ({ data, size }) => {
     return <DashboardKPI to="/decks" title="Unique Decks" value={stats.uniqueDecks} icon="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" color="purple" size={size} />;
 };
 
-const FlippableAsset = ({ card }) => {
+const FlippableAsset = ({ card, onViewDetails }) => {
     const [isFlipped, setIsFlipped] = useState(false);
+    const [isTouched, setIsTouched] = useState(false); // New state for touch interaction
     const hasFaces = card.card_faces?.length > 1;
 
     const currentImage = useMemo(() => {
@@ -142,10 +143,31 @@ const FlippableAsset = ({ card }) => {
         return raw ? parseFloat(raw).toFixed(2) : '0.00';
     })();
 
+    const tcgLink = `https://www.tcgplayer.com/search/magic/product?productLineName=magic&q=${encodeURIComponent(card.name)}&view=grid&partner=MTGLibrary&utm_campaign=affiliate&utm_medium=mtglibrary&utm_source=MTGLibrary`;
+
+    // Handle card click: Touch devices need to tap once to show overlay, tap again to interact/flip?
+    // Actually, user wants: Select -> Show Buttons -> Press Buttons.
+    // So: Tap 1 = Show Overlay. Tap 2 (on overlay) = Handled by buttons.
+    // Tap 2 (not on buttons) = Flip?
+    const handleCardClick = (e) => {
+        // If we are on desktop (hover capable), we might not need this if we rely on CSS hover.
+        // But for hybrid/touch:
+        if (!isTouched) {
+            setIsTouched(true);
+            return; // Don't flip yet, just show overlay
+        }
+
+        // If already touched/selected, then flip
+        if (hasFaces) {
+            setIsFlipped(!isFlipped);
+        }
+    };
+
     return (
         <div
-            className="group/card flex flex-col cursor-pointer"
-            onClick={() => hasFaces && setIsFlipped(!isFlipped)}
+            className="group/card flex flex-col cursor-pointer relative"
+            onClick={handleCardClick}
+            onMouseLeave={() => setIsTouched(false)} // Reset on mouse leave (desktop)
         >
             <div className="aspect-[2.5/3.5] rounded-lg overflow-hidden border border-white/10 mb-2 relative bg-gray-900 shadow-lg group-hover/card:shadow-indigo-500/20 transition-all">
                 {currentImage ? (
@@ -157,15 +179,50 @@ const FlippableAsset = ({ card }) => {
                 )}
 
                 {hasFaces && (
-                    <div className="absolute top-1 right-1 p-1 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 text-white/70">
+                    <div className="absolute top-1 right-1 p-1 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 text-white/70 z-10">
                         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
                     </div>
                 )}
 
-                <div className="absolute bottom-0 inset-x-0 bg-gray-950/90 py-1 px-2 text-center border-t border-white/10 backdrop-blur-sm">
+                <div className="absolute bottom-0 inset-x-0 bg-gray-950/90 py-1 px-2 text-center border-t border-white/10 backdrop-blur-sm z-10">
                     <span className="text-xs font-mono font-bold text-green-400 block">${displayPrice}</span>
+                </div>
+
+                {/* Hover Overlay with Actions */}
+                <div
+                    className={`absolute inset-0 bg-black/60 backdrop-blur-[2px] transition-opacity flex flex-col items-center justify-center gap-2 p-2 z-30
+                        ${isTouched
+                            ? 'opacity-100 pointer-events-auto'
+                            : 'opacity-0 pointer-events-none group-hover/card:opacity-100 group-hover/card:pointer-events-auto'
+                        }
+                    `}
+                >
+                    <a
+                        href={tcgLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className={`w-full py-1.5 bg-green-600 hover:bg-green-500 text-white text-[9px] font-black uppercase tracking-wider rounded shadow-lg text-center transform transition-all duration-300
+                            ${isTouched ? 'translate-y-0' : 'translate-y-2 group-hover/card:translate-y-0'}
+                        `}
+                    >
+                        Buy/Sell TCG
+                    </a>
+                    {onViewDetails && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onViewDetails(card);
+                            }}
+                            className={`w-full py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[9px] font-black uppercase tracking-wider rounded shadow-lg transform transition-all duration-300 delay-75
+                                ${isTouched ? 'translate-y-0' : 'translate-y-2 group-hover/card:translate-y-0'}
+                            `}
+                        >
+                            View Details
+                        </button>
+                    )}
                 </div>
             </div>
             <div className="text-[10px] font-bold text-gray-400 line-clamp-1 text-center group-hover/card:text-white transition-colors">{card.name}</div>
@@ -175,7 +232,7 @@ const FlippableAsset = ({ card }) => {
 
 export const CollectionValueWidget = ({ data, actions, size }) => {
     const { stats, syncLoading, collection } = data;
-    const { handleSyncPrices } = actions;
+    const { handleSyncPrices, viewCard } = actions;
     if (!stats) return null;
 
     const isXS = size === 'xs';
@@ -244,7 +301,7 @@ export const CollectionValueWidget = ({ data, actions, size }) => {
 
                 {/* XL Tier: Grid View of Top Assets */}
                 {size === 'xlarge' && collection && (
-                    <div className="absolute inset-y-0 right-0 w-[75%] border-l border-white/5 bg-gray-950/20 px-6 py-4 flex flex-col">
+                    <div className="hidden md:flex absolute inset-y-0 right-0 w-[75%] border-l border-white/5 bg-gray-950/20 px-6 py-4 flex-col">
                         <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4 flex-shrink-0">Highest Collection Assets</div>
                         <div className="grid grid-cols-4 gap-4 overflow-y-auto pr-2 custom-scrollbar">
                             {collection
@@ -252,7 +309,25 @@ export const CollectionValueWidget = ({ data, actions, size }) => {
                                 .sort((a, b) => getPrice(b) - getPrice(a))
                                 .slice(0, 12)
                                 .map((card, i) => (
-                                    <FlippableAsset key={i} card={card} />
+                                    <FlippableAsset key={i} card={card} onViewDetails={viewCard} />
+                                ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Mobile XL Fallback: Stacks below content using order-last */}
+                {size === 'xlarge' && collection && (
+                    <div className="md:hidden w-full mt-2 border-t border-white/5 bg-gray-950/20 px-4 py-3 flex flex-col order-last flex-grow min-h-0">
+                        <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 flex-shrink-0">Top Assets</div>
+                        <div className="grid grid-cols-3 gap-2 overflow-y-auto h-full scrollbar-thin scrollbar-thumb-gray-700 pr-1">
+                            {collection
+                                .filter(c => !c.is_wishlist && getPrice(c) > 0)
+                                .sort((a, b) => getPrice(b) - getPrice(a))
+                                .slice(0, 12)
+                                .map((card, i) => (
+                                    <div key={i} className="w-full">
+                                        <FlippableAsset card={card} onViewDetails={viewCard} />
+                                    </div>
                                 ))}
                         </div>
                     </div>

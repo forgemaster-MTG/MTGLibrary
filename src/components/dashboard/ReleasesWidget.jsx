@@ -121,13 +121,15 @@ const ReleasesWidget = ({ size }) => {
                 {loading ? (
                     <div className="text-gray-500 text-[10px] font-black uppercase tracking-widest animate-pulse">Loading updates...</div>
                 ) : isXL && releases[0] ? (
-                    <div className="flex gap-8 h-full">
+                    <div className="flex flex-col md:flex-row gap-4 md:gap-8 h-full">
                         {/* Latest Summary & Stats */}
-                        <div className="min-w-[180px] flex flex-col justify-center">
-                            <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Newest Version</span>
-                            <div className="text-2xl lg:text-3xl font-black text-white mb-2 break-all leading-tight">{releases[0].version}</div>
-                            <div className="text-[10px] text-gray-400 font-mono mb-4">{format(new Date(releases[0].released_at), 'MMMM yyyy')}</div>
-                            <div className="flex flex-col gap-2">
+                        <div className="w-full md:min-w-[180px] flex flex-row md:flex-col justify-between md:justify-center items-center md:items-start gap-4 flex-shrink-0">
+                            <div>
+                                <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1 block">Newest Version</span>
+                                <div className="text-2xl lg:text-3xl font-black text-white mb-2 break-all leading-tight">{releases[0].version}</div>
+                                <div className="text-[10px] text-gray-400 font-mono mb-2 md:mb-4">{format(new Date(releases[0].released_at), 'MMMM yyyy')}</div>
+                            </div>
+                            <div className="flex flex-col gap-2 flex-shrink-0">
                                 <div className="flex items-center gap-2 group/stat">
                                     <div className="w-8 h-1 bg-emerald-500 rounded-full group-hover:w-10 transition-all" />
                                     <span className="text-[10px] font-black text-emerald-400 uppercase">{releases[0].stats?.features || 0} Features</span>
@@ -140,22 +142,22 @@ const ReleasesWidget = ({ size }) => {
                         </div>
 
                         {/* Notes Snippet */}
-                        <div className="flex-grow bg-gray-950/40 rounded-2xl p-6 border border-white/5 relative group/notes overflow-hidden flex flex-col">
-                            <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <div className="flex-grow bg-gray-950/40 rounded-2xl p-4 md:p-6 border border-white/5 relative group/notes overflow-hidden flex flex-col min-h-0">
+                            <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 md:mb-4 flex items-center gap-2 flex-shrink-0">
                                 <div className="w-1 h-3 bg-indigo-500" /> Highlights
                             </div>
-                            <div className="space-y-3 overflow-hidden text-xs text-gray-400 line-clamp-4" dangerouslySetInnerHTML={{ __html: releases[0].notes }} />
-                            <button onClick={() => setSelectedRelease(releases[0])} className="mt-auto pt-4 text-[10px] font-black text-indigo-400 uppercase tracking-wider hover:text-white transition-colors flex items-center gap-1 group/btn">
+                            <div className="space-y-3 overflow-hidden text-xs text-gray-400 line-clamp-4 md:line-clamp-6" dangerouslySetInnerHTML={{ __html: releases[0].notes }} />
+                            <button onClick={() => setSelectedRelease(releases[0])} className="mt-auto pt-4 text-[10px] font-black text-indigo-400 uppercase tracking-wider hover:text-white transition-colors flex items-center gap-1 group/btn shrink-0">
                                 Open Changelog <svg className="w-3 h-3 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                             </button>
                         </div>
 
                         {/* History Vert List */}
-                        <div className="min-w-[150px] border-l border-white/5 pl-8 flex flex-col">
-                            <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4">Past Updates</span>
-                            <div className="space-y-4">
+                        <div className="w-full md:w-auto md:min-w-[150px] border-t md:border-t-0 md:border-l border-white/5 pt-4 md:pt-0 md:pl-8 flex flex-col flex-shrink-0">
+                            <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 md:mb-4">Past Updates</span>
+                            <div className="flex md:flex-col gap-4 overflow-x-auto md:overflow-visible pb-2 md:pb-0">
                                 {releases.slice(1, 4).map((r) => (
-                                    <div key={r.id} onClick={() => setSelectedRelease(r)} className="cursor-pointer group/hist">
+                                    <div key={r.id} onClick={() => setSelectedRelease(r)} className="cursor-pointer group/hist min-w-[100px] md:min-w-0">
                                         <div className="text-xs font-black text-gray-300 group-hover/hist:text-white transition-colors">{r.version}</div>
                                         <div className="text-[9px] text-gray-600 font-mono mt-0.5">{format(new Date(r.released_at), 'MMM d, yyyy')}</div>
                                     </div>

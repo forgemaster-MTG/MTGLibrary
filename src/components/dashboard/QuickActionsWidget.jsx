@@ -7,17 +7,17 @@ import { useToast } from '../../contexts/ToastContext';
 const QuickAction = ({ title, icon, color, onClick, compact }) => (
     <button
         onClick={onClick}
-        className={`group relative overflow-hidden rounded-2xl ${compact ? 'p-2' : 'p-4 md:p-6'} text-left transition-all hover:-translate-y-1 hover:shadow-xl border border-white/5 h-full w-full`}
+        className={`group relative overflow-hidden rounded-2xl ${compact ? 'p-1.5' : 'p-4 md:p-6'} text-left transition-all hover:-translate-y-1 hover:shadow-xl border border-white/5 h-full w-full`}
     >
         <div className={`absolute inset-0 bg-gradient-to-br ${color} opacity-0 group-hover:opacity-10 transition-opacity duration-300`} />
         {/* Default darker BG */}
         <div className="absolute inset-0 bg-gray-800/50 group-hover:opacity-0 transition-opacity" />
 
         <div className="relative z-10 flex flex-col items-center justify-center gap-2 text-gray-300 group-hover:text-white transition-colors h-full">
-            <div className={`${compact ? 'p-1.5' : 'p-3'} bg-gray-900/50 rounded-full backdrop-blur-sm group-hover:scale-110 transition-transform group-hover:bg-white/20`}>
+            <div className={`${compact ? 'p-1' : 'p-3'} bg-gray-900/50 rounded-full backdrop-blur-sm group-hover:scale-110 transition-transform group-hover:bg-white/20`}>
                 {icon}
             </div>
-            <span className={`font-bold ${compact ? 'text-[10px]' : 'text-sm'} tracking-wide text-center leading-tight`}>{title}</span>
+            <span className={`font-bold ${compact ? 'text-[9px]' : 'text-sm'} tracking-wide text-center leading-tight`}>{title}</span>
         </div>
     </button>
 );

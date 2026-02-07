@@ -7,7 +7,7 @@ import { communityService } from '../services/communityService';
 import { deckService } from '../services/deckService';
 import DeckRow from '../components/decks/DeckRow';
 import SharedDeckRow from '../components/decks/SharedDeckRow';
-import MarketTicker from '../components/dashboard/MarketTicker';
+// import MarketTicker from '../components/dashboard/MarketTicker';
 import { getTierConfig } from '../config/tiers';
 import DeckCard from '../components/decks/DeckCard';
 
@@ -221,11 +221,11 @@ const DecksPage = () => {
                 {/* Header & Toolbar */}
                 <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end mb-12 gap-8">
                     <div>
-                        <h1 className="text-4xl font-black text-white tracking-tight mb-2">My Strategies</h1>
+                        <h1 className="text-4xl font-black text-white tracking-tight mb-2">My Decks</h1>
                         <p className="text-gray-400 font-medium">Manage your collection and view shared decks.</p>
                     </div>
 
-                    <div className="flex flex-col md:flex-row gap-4 w-full xl:w-auto items-center">
+                    <div className="hidden md:flex flex-col md:flex-row gap-4 w-full xl:w-auto items-center">
                         {/* Toggle Reorder Lock */}
                         <button
                             onClick={toggleReorder}
@@ -319,9 +319,7 @@ const DecksPage = () => {
                     </div>
                 )}
 
-                <div className="mb-8">
-                    <MarketTicker />
-                </div>
+                {/* MarketTicker Removed per user request */}
 
                 {/* My Decks */}
                 {myLoading ? (
@@ -390,7 +388,7 @@ const DecksPage = () => {
 
                 {/* Shared Decks Section */}
                 {availableSources.length > 0 && (
-                    <div className="mt-16 border-t border-white/5 pt-12">
+                    <div className="mt-16 border-t border-white/5 pt-12 pb-32">
                         <h2 className="text-xl font-bold text-gray-500 uppercase tracking-widest mb-8 flex items-center gap-4">
                             <span className="h-px bg-gray-800 flex-1" />
                             Shared Libraries
@@ -403,6 +401,64 @@ const DecksPage = () => {
                         </div>
                     </div>
                 )}
+            </div>
+
+            {/* Mobile Actions Footer */}
+            <div className="fixed bottom-16 inset-x-0 bg-gray-900/95 backdrop-blur-xl border-t border-white/10 z-40 p-4 md:hidden pb-safe pr-24">
+                <div className="flex flex-col gap-3">
+                    {/* Search */}
+                    <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                        <input
+                            type="text"
+                            className="block w-full pl-10 pr-3 py-2 border border-gray-700 rounded-lg bg-gray-800 text-gray-300 placeholder-gray-500 focus:outline-none focus:border-indigo-500 text-sm"
+                            placeholder="Search decks..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-5 gap-2">
+                        <div className="col-span-2 relative">
+                            <select
+                                value={sortMode}
+                                onChange={(e) => setSortMode(e.target.value)}
+                                className="appearance-none block w-full pl-2 pr-6 py-2 border border-gray-700 rounded-lg bg-gray-800 text-gray-300 text-xs font-bold focus:outline-none focus:border-indigo-500"
+                            >
+                                <option value="custom">Custom</option>
+                                <option value="name">A-Z</option>
+                                <option value="updated">Recent</option>
+                                <option value="created">New</option>
+                                <option value="color">Color</option>
+                            </select>
+                        </div>
+
+                        <div className="col-span-1 relative">
+                            <select
+                                className="appearance-none block w-full px-2 py-2 border border-gray-700 rounded-lg bg-gray-800 text-gray-300 text-xs font-bold focus:outline-none focus:border-indigo-500 text-center"
+                                onChange={(e) => e.target.value && toggleTag(e.target.value)}
+                                value=""
+                            >
+                                <option value="">Tag</option>
+                                {availableTags.map(tag => (
+                                    <option key={tag} value={tag} disabled={filterTags.includes(tag)}>{tag}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <Link
+                            to="/decks/new"
+                            onClick={handleCreateDeck}
+                            className="col-span-2 bg-indigo-600 active:bg-indigo-700 text-white flex items-center justify-center rounded-lg font-bold text-xs shadow-lg shadow-indigo-500/20"
+                        >
+                            + New Deck
+                        </Link>
+                    </div>
+                </div>
             </div>
         </div>
     );

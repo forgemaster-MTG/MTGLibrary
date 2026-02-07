@@ -36,8 +36,8 @@ const OrganizationWidget = ({ size }) => {
     return (
         <div className={`bg-gray-900/60 border border-white/5 rounded-3xl backdrop-blur-md overflow-hidden h-full flex flex-col relative group transition-all hover:border-white/10`}>
             {/* Header / Main Info */}
-            <div className={`flex items-center gap-4 ${isXL ? 'p-8 pb-4' : 'p-6'}`}>
-                <div className={`aspect-square ${isSmall ? 'w-10 h-10 text-xl' : 'w-14 h-14 text-3xl'} flex items-center justify-center bg-gray-950 rounded-2xl shadow-inner border border-white/5 group-hover:scale-110 transition-transform`}>
+            <div className={`flex items-center gap-3 ${isXL ? 'p-8 pb-4' : isSmall ? 'p-4' : 'p-6'}`}>
+                <div className={`aspect-square ${isSmall ? 'w-8 h-8 text-lg' : 'w-14 h-14 text-3xl'} flex items-center justify-center bg-gray-950 rounded-2xl shadow-inner border border-white/5 group-hover:scale-110 transition-transform`}>
                     {meta.icon}
                 </div>
                 <div className="flex flex-col">
@@ -46,14 +46,14 @@ const OrganizationWidget = ({ size }) => {
                         <span className={`w-1.5 h-1.5 rounded-full bg-${meta.color}-500 animate-pulse`} />
                     </h3>
                     <div className="flex items-baseline gap-2">
-                        <span className={`text-xl font-black text-${meta.color}-400`}>{meta.label}</span>
+                        <span className={`${isSmall ? 'text-lg' : 'text-xl'} font-black text-${meta.color}-400`}>{meta.label}</span>
                         {!isSmall && <span className="text-[10px] text-gray-500 font-bold uppercase tracking-tight">{meta.desc}</span>}
                     </div>
                 </div>
             </div>
 
             {/* Comprehensive Detail Views */}
-            <div className="flex-grow px-6 pb-6 overflow-hidden">
+            <div className={`flex-grow px-6 ${isSmall ? 'pb-4 px-4' : 'pb-6'} overflow-hidden`}>
                 {isXL ? (
                     <div className="flex gap-4 h-full">
                         <div className="flex-grow grid grid-cols-4 gap-3">

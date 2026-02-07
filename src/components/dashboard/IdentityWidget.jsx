@@ -24,10 +24,10 @@ const IdentityWidget = ({ data, size }) => {
         .slice(0, 3) : [];
 
     return (
-        <div className={`bg-gray-900/60 border border-gray-800 rounded-3xl ${isXS ? 'p-3' : 'p-5'} backdrop-blur-sm hover:border-gray-700 transition-all group relative overflow-hidden h-full flex flex-col justify-center`}>
+        <div className={`bg-gray-900/60 border border-gray-800 rounded-3xl ${isXS ? 'p-3' : 'p-3 md:p-5'} backdrop-blur-sm hover:border-gray-700 transition-all group relative overflow-hidden h-full flex flex-col justify-center`}>
             <div className={`absolute top-0 right-0 w-32 h-32 opacity-10 rounded-bl-full ${stats.topColor.bg} z-0`} />
 
-            <div className={`flex relative z-10 h-full ${isLargePlus ? 'flex-row items-center gap-8' : 'flex-col justify-between'}`}>
+            <div className={`flex relative z-10 h-full ${isLargePlus ? 'flex-col md:flex-row items-start md:items-center gap-4 md:gap-8' : 'flex-col justify-between'}`}>
                 {isXS ? (
                     <div className="flex items-center justify-between w-full px-4">
                         <div className="flex items-center gap-3">
@@ -59,15 +59,15 @@ const IdentityWidget = ({ data, size }) => {
                                         key={i}
                                         src={`https://svgs.scryfall.io/card-symbols/${pip}.svg`}
                                         alt={pip}
-                                        className="w-7 h-7 shadow-lg transform group-hover:scale-110 transition-transform"
+                                        className="w-5 h-5 md:w-7 md:h-7 shadow-lg transform group-hover:scale-110 transition-transform"
                                     />
                                 ))}
                             </div>
                         </div>
 
                         {/* Text Analysis Section */}
-                        <div className={`flex-grow ${isLargePlus ? '' : 'mt-4'}`}>
-                            <div className={`text-2xl font-black tracking-tighter mb-1 ${stats.topColor.color || 'text-white'}`}>{stats.topColor.name}</div>
+                        <div className={`flex-grow ${isLargePlus ? '' : 'mt-2 md:mt-4'}`}>
+                            <div className={`text-xl md:text-2xl font-black tracking-tighter mb-0.5 md:mb-1 ${stats.topColor.color || 'text-white'}`}>{stats.topColor.name}</div>
                             <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Top Color Identity</div>
 
                             {(isMedium || isLargePlus) && (
@@ -81,13 +81,13 @@ const IdentityWidget = ({ data, size }) => {
 
                 {/* XL Analysis: Commanders & Assets */}
                 {isXL && (
-                    <div className="flex-grow flex gap-8 items-center border-l border-white/5 pl-8 h-full">
+                    <div className="flex-grow flex flex-col md:flex-row gap-4 md:gap-8 items-start md:items-center md:border-l border-t md:border-t-0 border-white/5 pt-4 md:pt-0 md:pl-8 w-full md:w-auto h-auto md:h-full">
                         {/* Commanders Column */}
-                        <div className="flex flex-col gap-2 min-w-[160px]">
-                            <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1 text-center">Top Commanders</div>
-                            <div className="space-y-2">
+                        <div className="flex flex-col gap-2 w-full md:w-auto md:min-w-[160px]">
+                            <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1 text-left md:text-center">Top Commanders</div>
+                            <div className="flex md:flex-col gap-2 overflow-x-auto md:overflow-visible pb-2 md:pb-0">
                                 {(topCommanders.length > 0 ? topCommanders : decks.slice(0, 3)).map(deck => (
-                                    <div key={deck.id} className="flex items-center gap-2 group/cmd p-1 rounded-lg hover:bg-white/5 transition-colors">
+                                    <div key={deck.id} className="flex items-center gap-2 group/cmd p-1 rounded-lg hover:bg-white/5 transition-colors min-w-[140px] md:min-w-0">
                                         {deck.commander?.image_uris?.art_crop && (
                                             <img src={deck.commander.image_uris.art_crop} className="w-8 h-6 object-cover rounded border border-white/10" alt="" />
                                         )}
@@ -98,7 +98,7 @@ const IdentityWidget = ({ data, size }) => {
                         </div>
 
                         {/* Signature Asset Spotlight */}
-                        <div className="flex-grow bg-gray-950/40 rounded-2xl p-4 border border-white/5 flex items-center gap-4 group/asset relative overflow-hidden">
+                        <div className="w-full md:flex-grow bg-gray-950/40 rounded-2xl p-4 border border-white/5 flex items-center gap-4 group/asset relative overflow-hidden mt-2 md:mt-0">
                             <div className="flex-grow">
                                 <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1">Signature Asset</span>
                                 <div className="text-sm font-black text-white group-hover/asset:text-indigo-300 transition-colors line-clamp-1">Ragavan, Nimble Pilferer</div>

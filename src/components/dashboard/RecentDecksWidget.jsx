@@ -136,9 +136,9 @@ const RecentDecksWidget = ({ data, size }) => {
 
     return (
         <div className={`bg-gray-950/40 border border-white/5 rounded-3xl ${isSmall ? 'p-4' : 'p-6'} backdrop-blur-md shadow-xl h-full flex flex-col`}>
-            <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-3 shrink-0">
+            <h2 className="text-lg md:text-xl font-bold text-white mb-2 md:mb-4 flex items-center gap-2 md:gap-3 shrink-0">
                 <span className="p-2 bg-indigo-500/20 rounded-lg text-indigo-400">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 </span>
                 <span className={isSmall ? 'hidden' : 'inline'}>Recent Decks</span>
                 {isSmall && <span>Recent</span>}

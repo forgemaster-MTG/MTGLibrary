@@ -40,6 +40,7 @@ import QuickActionsWidget from '../components/dashboard/QuickActionsWidget';
 import WidgetSidebar from '../components/dashboard/WidgetSidebar';
 import DeleteConfirmationModal from '../components/modals/DeleteConfirmationModal';
 import { LayoutImportModal, LayoutShareModal, LayoutSaveModal } from '../components/modals/DashboardLayoutModals';
+import CardDetailsModal from '../components/modals/CardDetailsModal';
 
 // Modals
 import IssueTrackerModal from '../components/modals/IssueTrackerModal';
@@ -68,10 +69,10 @@ const SortableWidget = ({ id, widgetKey, editMode, data, actions, containerId, s
     // Grid Spans (Top Zone) - Now with Row Spans for Dense Packing
     const gridSpans = {
         xs: 'col-span-6 md:col-span-2 row-span-2 md:row-span-1', // Half-width on mobile, 2 cols on desktop
-        small: 'col-span-12 md:col-span-4 row-span-4 md:row-span-3', // Full width mobile
+        small: 'col-span-6 md:col-span-4 row-span-4 md:row-span-3', // Half-width mobile (2 per row)
         medium: 'col-span-12 md:col-span-4 row-span-6 md:row-span-5', // Full width mobile
-        large: 'col-span-12 md:col-span-6 row-span-8', // Full width mobile
-        xlarge: 'col-span-12 md:col-span-8 row-span-8' // Full width mobile
+        large: 'col-span-12 md:col-span-6 row-span-6 md:row-span-8', // Reduced height on mobile
+        xlarge: 'col-span-12 md:col-span-8 row-span-6 md:row-span-8' // Reduced height on mobile
     };
 
     // Width mappings for non-grid containers (Main/Sidebar)
@@ -264,6 +265,7 @@ const Dashboard = () => {
     const [showPodGuide, setShowPodGuide] = useState(false);
     const [showAuditGuide, setShowAuditGuide] = useState(false);
     const [isDonationModalOpen, setIsDonationModalOpen] = useState(false);
+    const [selectedCard, setSelectedCard] = useState(null); // For CardDetailsModal
 
     const [syncLoading, setSyncLoading] = useState(false);
 
@@ -515,7 +517,11 @@ const Dashboard = () => {
 
     // --- DnD Logic ---
     const sensors = useSensors(
-        useSensor(PointerSensor),
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8,
+            },
+        }),
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     );
 
@@ -631,7 +637,8 @@ const Dashboard = () => {
         setIsDonationModalOpen,
         setShowBinderGuide,
         setShowPodGuide,
-        setShowAuditGuide
+        setShowAuditGuide,
+        viewCard: (card) => setSelectedCard(card)
     }), [handleSyncPrices]);
 
     return (
@@ -1063,55 +1070,11 @@ const Dashboard = () => {
                 </DndContext>
             </div>
 
-            {/* Context Modals */}
-            <IssueTrackerModal
-                isOpen={isIssueModalOpen}
-                onClose={() => setIsIssueModalOpen(false)}
-            />
-
-            <DonationModal
-                isOpen={isDonationModalOpen}
-                onClose={() => setIsDonationModalOpen(false)}
-            />
-
-            <BinderGuideModal
-                isOpen={showBinderGuide}
-                onClose={() => setShowBinderGuide(false)}
-            />
-
-            <PodGuideModal
-                isOpen={showPodGuide}
-                onClose={() => setShowPodGuide(false)}
-            />
-
-            <AuditGuideModal
-                isOpen={showAuditGuide}
-                onClose={() => setShowAuditGuide(false)}
-            />
-            {/* Layout Modals */}
-            <LayoutImportModal
-                isOpen={importModalOpen}
-                onClose={() => setImportModalOpen(false)}
-                onImport={onImportLayout}
-            />
-            <LayoutSaveModal
-                isOpen={saveModalOpen}
-                onClose={() => setSaveModalOpen(false)}
-                onSave={onSaveNewLayout}
-            />
-            <LayoutShareModal
-                isOpen={shareModalData.isOpen}
-                onClose={() => setShareModalData({ ...shareModalData, isOpen: false })}
-                layoutCode={shareModalData.code}
-                layoutName={shareModalData.name}
-            />
             <DeleteConfirmationModal
                 isOpen={deleteModalData.isOpen}
-                onClose={() => setDeleteModalData({ isOpen: false, name: '' })}
+                onClose={() => setDeleteModalData({ ...deleteModalData, isOpen: false })}
                 onConfirm={confirmDeleteLayout}
-                title="Delete Layout"
-                message={`Are you sure you want to delete the layout "${deleteModalData.name}"? This cannot be undone.`}
-                targetName={deleteModalData.name}
+                layoutName={deleteModalData.name}
             />
         </div>
     );

@@ -43,10 +43,10 @@ const SystemStatusWidget = ({ size, actions }) => {
     }
 
     return (
-        <div className={`bg-gray-900/40 border border-white/5 rounded-3xl ${isSmall ? 'p-4' : 'p-6'} backdrop-blur-md h-full flex flex-col`}>
-            <div className="flex justify-between items-start mb-4">
+        <div className={`bg-gray-900/40 border border-white/5 rounded-3xl ${isSmall ? 'p-3' : 'p-6'} backdrop-blur-md h-full flex flex-col`}>
+            <div className={`flex justify-between items-start ${isSmall ? 'mb-2' : 'mb-4'}`}>
                 <div className="flex flex-col">
-                    <h2 className="font-bold text-white flex items-center gap-2">
+                    <h2 className={`${isSmall ? 'text-sm' : 'text-base'} font-bold text-white flex items-center gap-2`}>
                         <span className="text-indigo-500">⚡</span>
                         Support Hub
                     </h2>
@@ -106,7 +106,7 @@ const SystemStatusWidget = ({ size, actions }) => {
 
             <button
                 onClick={() => setIsIssueModalOpen(true)}
-                className={`w-full ${isSmall ? 'h-10 text-xs' : 'h-12 text-sm'} bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-2xl shadow-lg hover:shadow-indigo-500/20 transition-all flex items-center justify-center gap-2 mt-4 shrink-0`}
+                className={`w-full ${isSmall ? 'h-8 text-[10px]' : 'h-12 text-sm'} bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-lg hover:shadow-indigo-500/20 transition-all flex items-center justify-center gap-2 mt-2 shrink-0`}
             >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                 Report Issue

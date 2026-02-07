@@ -59,6 +59,8 @@ const VaultCard = ({ card, rank }) => {
             className="relative group w-[300px] h-[480px] select-none cursor-pointer"
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
+            onTouchEnd={handleMouseLeave} // Reset tilt on touch release (mobile fix)
+            onTouchCancel={handleMouseLeave} // Reset tilt on touch cancel
             onClick={() => isDoubleSided && setIsFlipped(!isFlipped)}
             style={{ zIndex: style.transform?.includes('rotate') ? 50 : 1 }}
         >
@@ -155,11 +157,14 @@ const VaultCard = ({ card, rank }) => {
                 {/* Share Button (Floating) */}
                 <button
                     onClick={(e) => { e.stopPropagation(); card.onShare && card.onShare(card); }}
-                    className="absolute -top-3 -right-3 w-10 h-10 bg-gray-900 rounded-full flex items-center justify-center shadow-lg border border-white/20 z-50 text-indigo-400 hover:text-white transition-all hover:scale-110 active:scale-95"
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onTouchStart={(e) => e.stopPropagation()}
+                    onTouchEnd={(e) => e.stopPropagation()}
+                    className="absolute -top-3 -right-3 w-12 h-12 md:w-10 md:h-10 bg-gray-900 rounded-full flex items-center justify-center shadow-lg border border-white/20 z-[60] text-indigo-400 hover:text-white transition-all hover:scale-110 active:scale-95"
                     title="Share Asset"
-                    style={{ transform: 'translateZ(30px)' }}
+                    style={{ transform: 'translateZ(50px)' }}
                 >
-                    <Share2 className="w-5 h-5" />
+                    <Share2 className="w-6 h-6 md:w-5 md:h-5" />
                 </button>
             </div>
 
