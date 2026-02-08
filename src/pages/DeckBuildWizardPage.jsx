@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -20,6 +21,7 @@ const DeckBuildWizardPage = () => {
     const navigate = useNavigate();
     const { userProfile, currentUser } = useAuth();
     const { addToast } = useToast();
+    const queryClient = useQueryClient();
     const { deck, cards: deckCards, loading: deckLoading, error: deckError } = useDeck(deckId);
     const { cards: collection } = useCollection();
 
@@ -660,6 +662,11 @@ const DeckBuildWizardPage = () => {
             }
 
             await api.post(`/api/decks/${deckId}/cards/batch`, { cards: cardsToApply });
+
+            // Invalidate caches
+            await queryClient.invalidateQueries({ queryKey: ['decks'] });
+            await queryClient.invalidateQueries({ queryKey: ['deck', deckId] });
+
             addToast(`Successfully added ${cardsToApply.length} cards to ${deck.name}!`, 'success');
             navigate(`/decks/${deckId}`);
         } catch (err) {

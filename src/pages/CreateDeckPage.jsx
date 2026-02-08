@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -23,6 +24,7 @@ const CreateDeckPage = () => {
     const navigate = useNavigate();
     const { userProfile } = useAuth();
     const { addToast } = useToast();
+    const queryClient = useQueryClient();
 
     // Wizard State
     const [step, setStep] = useState(STEPS.BASICS);
@@ -263,6 +265,7 @@ const CreateDeckPage = () => {
             };
 
             const newDeck = await api.post('/api/decks', payload);
+            await queryClient.invalidateQueries({ queryKey: ['decks'] });
             addToast('Deck created successfully!', 'success');
             navigate(`/decks/${newDeck.id}`);
 
@@ -319,7 +322,9 @@ const CreateDeckPage = () => {
             };
 
             // 3. Send to Backend
+            // 3. Send to Backend
             const res = await api.post('/api/decks/import', payload);
+            await queryClient.invalidateQueries({ queryKey: ['decks'] });
 
             addToast(`Deck imported! ${res.missingCards?.length ? `(${res.missingCards.length} missing)` : ''}`, 'success');
             navigate(`/decks/${res.deckId}`);

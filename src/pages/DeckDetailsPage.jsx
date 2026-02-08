@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useDeck } from '../hooks/useDeck';
 import { useDecks } from '../hooks/useDecks';
@@ -68,6 +69,7 @@ const DeckDetailsPage = () => {
     const navigate = useNavigate();
     const { currentUser, userProfile, updateSettings } = useAuth();
     const { addToast } = useToast();
+    const queryClient = useQueryClient();
     const helperName = userProfile?.settings?.helper?.name || 'The Oracle';
 
     const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -456,12 +458,16 @@ const DeckDetailsPage = () => {
             title: 'Remove Card',
             message: `Are you sure you want to remove ${cardName} from this deck?`,
             onConfirm: async () => {
+                setIsDeleting(true);
                 try {
                     await removeCard(cardId);
                     addToast(`Removed ${cardName} from deck`, 'success');
+                    setConfirmModal(prev => ({ ...prev, isOpen: false }));
                 } catch (err) {
                     console.error(err);
                     addToast('Failed to remove card', 'error');
+                } finally {
+                    setIsDeleting(false);
                 }
             }
         });
@@ -601,6 +607,8 @@ const DeckDetailsPage = () => {
 
         try {
             await deckService.deleteDeck(currentUser.uid, deckId, { deleteCards: deleteCardsRef.current });
+            await queryClient.invalidateQueries({ queryKey: ['decks'] });
+
             addToast('Deck deleted successfully', 'success');
             navigate('/decks');
         } catch (err) {

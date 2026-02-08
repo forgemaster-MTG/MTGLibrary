@@ -44,15 +44,7 @@ export function useDeck(deckId) {
         queryClient.setQueryData(queryKey, (old) => ({ ...old, cards: typeof newCards === 'function' ? newCards(old.cards) : newCards }));
     };
 
-    return {
-        deck,
-        cards,
-        setDeck,
-        setCards,
-        loading,
-        error,
-        refresh: refetch
-    };
+
     // Mutations
     const removeCardMutation = useMutation({
         mutationFn: async (cardId) => {
