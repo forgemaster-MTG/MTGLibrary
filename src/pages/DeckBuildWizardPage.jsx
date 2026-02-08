@@ -310,21 +310,29 @@ const DeckBuildWizardPage = () => {
             return;
         }
 
-        const isAdmin = userProfile?.roles?.includes('admin') || userProfile?.role === 'admin' || userProfile?.email === 'parkertristin@gmail.com';
+        // Admin Check (Roles + Specific IDs)
+        const isAdmin = userProfile?.roles?.includes('admin') ||
+            userProfile?.role === 'admin' ||
+            userProfile?.email === 'parkertristin@gmail.com' ||
+            userProfile?.id === 8 ||
+            userProfile?.id === 4;
 
         setIsProcessing(true);
         setStatus(`Preparing ${buildMode === 'discovery' ? 'Global Analysis' : 'Collection Analysis'}...`);
         const cmdCount = (deck.commander ? 1 : 0) + (deck.commander_partner ? 1 : 0);
         addLog(`Starting analysis (Mode: ${buildMode.toUpperCase()})...`);
+
         const updateStats = (suggestionsMap) => {
             const drafted = Object.keys(suggestionsMap).length;
             const syn = Object.values(suggestionsMap).filter(s => s.role === 'Synergy / Strategy' || s.suggestedType === 'Synergy / Strategy').length;
             const currentTotal = deckCards.length + drafted + cmdCount;
+
             setAnalysisStats({
                 drafted: currentTotal,
                 synergy: syn,
                 deficit: Math.max(0, 100 - currentTotal)
             });
+
             const allVals = Object.values(suggestionsMap);
             setLatestDrafts(allVals.slice(-4).reverse());
         };
@@ -333,6 +341,7 @@ const DeckBuildWizardPage = () => {
         const commander = deck.commander;
         const commanderColors = [...new Set([...(deck.commander?.color_identity || []), ...(deck.commander_partner?.color_identity || [])])];
         let allNewSuggestions = {};
+        let tokenUsage = { total: 0 }; // Initialize token tracking
 
         const helperName = userProfile?.settings?.helper?.name || "The Oracle";
 
@@ -360,10 +369,16 @@ const DeckBuildWizardPage = () => {
 
             blueprint = blueprintResponse.result;
             const meta = blueprintResponse.meta;
+            console.log("DEBUG: Blueprint Meta:", meta);
 
             // ADMIN TELEMETRY
-            if (isAdmin && meta) {
-                addToast(`BLUEPRINT: Used ${meta.model} (${meta.tokens} tokens)`, 'info');
+            if (meta) {
+                const usage = meta.tokens || 0;
+                tokenUsage.total += usage;
+                tokenUsage[meta.model] = (tokenUsage[meta.model] || 0) + usage;
+                if (isAdmin) {
+                    addToast(`BLUEPRINT: Used ${meta.model} (${usage} tokens)`, 'info');
+                }
             }
 
             addLog(`[Architect] Blueprint Created: "${blueprint.strategyName}"`);
@@ -439,8 +454,13 @@ const DeckBuildWizardPage = () => {
                 const meta = response.meta;
 
                 // ADMIN TELEMETRY
-                if (isAdmin && meta) {
-                    addToast(`PACKAGE (${pkg.name}): Used ${meta.model} (${meta.tokens} tokens)`, 'info');
+                if (meta) {
+                    const usage = meta.tokens || 0;
+                    tokenUsage.total += usage;
+                    tokenUsage[meta.model] = (tokenUsage[meta.model] || 0) + usage;
+                    if (isAdmin) {
+                        addToast(`PACKAGE (${pkg.name}): Used ${meta.model} (${usage} tokens)`, 'info');
+                    }
                 }
 
                 if (result?.suggestions) {
@@ -482,7 +502,7 @@ const DeckBuildWizardPage = () => {
                                 is_wishlist: !isFromCollection
                             };
                             added++;
-                            if (typeof updateProgress === 'function') updateProgress(allNewSuggestions);
+                            if (typeof updateStats === 'function') updateStats(allNewSuggestions); // LIVE FEED FIX
                         }
                     }
                     addLog(`[Contractor] Acquired ${added} cards for ${pkg.name}.`);
@@ -600,6 +620,16 @@ const DeckBuildWizardPage = () => {
                 );
 
                 if (result?.suggestions) {
+                    // ADMIN TELEMETRY
+                    if (meta) {
+                        const usage = meta.tokens || 0;
+                        tokenUsage.total += usage;
+                        tokenUsage[meta.model] = (tokenUsage[meta.model] || 0) + usage;
+                        if (isAdmin) {
+                            addToast(`FOUNDATION (${role}): Used ${meta.model} (${usage} tokens)`, 'info');
+                        }
+                    }
+
                     for (const s of result.suggestions) {
                         // ... (Same resolving logic as above - refactor to helper in future)
                         let scryData = null;
@@ -625,7 +655,7 @@ const DeckBuildWizardPage = () => {
                                                     'Targeted Removal',
                                 is_wishlist: !isFromCollection
                             };
-                            if (typeof updateProgress === 'function') updateProgress(allNewSuggestions);
+                            if (typeof updateStats === 'function') updateStats(allNewSuggestions); // LIVE FEED FIX
                         }
                     }
                 }
@@ -707,6 +737,23 @@ const DeckBuildWizardPage = () => {
         setStatus('Ready.');
         setStep(STEPS.ARCHITECT);
         setIsProcessing(false);
+        setLatestDrafts([]); // Clear feed
+
+        // ADMIN SUMMARY LOG
+        if (isAdmin) {
+            console.group("🔮 The Oracle - Admin Summary");
+            console.log("Total Tokens Used:", tokenUsage.total);
+            let estimatedCost = 0;
+            // Approximate pricing (USD per 1M input tokens - Input dominant)
+            if (tokenUsage['gemini-1.5-pro']) estimatedCost += (tokenUsage['gemini-1.5-pro'] / 1000000) * 3.50;
+            if (tokenUsage['gemini-1.5-flash']) estimatedCost += (tokenUsage['gemini-1.5-flash'] / 1000000) * 0.075;
+
+            console.table(tokenUsage);
+            console.log(`Estimated Cost: $${estimatedCost.toFixed(4)}`);
+            console.groupEnd();
+
+            addToast(`Generation Complete. Total: ${tokenUsage.total} tokens (~$${estimatedCost.toFixed(4)})`, 'success');
+        }
     };
 
     const handleQuickSkip = () => setStep(STEPS.ARCHITECT);

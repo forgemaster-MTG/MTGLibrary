@@ -533,7 +533,16 @@ const GeminiService = {
 
                     const data = await response.json();
                     const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                    return parseResponse(text);
+                    const usage = data.usageMetadata;
+                    return {
+                        result: parseResponse(text),
+                        meta: {
+                            model: model,
+                            tokens: usage?.totalTokenCount || 0,
+                            promptTokens: usage?.promptTokenCount || 0,
+                            candidatesTokens: usage?.candidatesTokenCount || 0
+                        }
+                    };
                 } catch (e) {
                     console.warn(`Package fetch failed on ${model}:`, e);
                     if (e.message.includes('429')) {
