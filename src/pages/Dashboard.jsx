@@ -1070,6 +1070,11 @@ const Dashboard = () => {
                 </DndContext>
             </div>
 
+            <IssueTrackerModal
+                isOpen={isIssueModalOpen}
+                onClose={() => setIsIssueModalOpen(false)}
+            />
+
             <DeleteConfirmationModal
                 isOpen={deleteModalData.isOpen}
                 onClose={() => setDeleteModalData({ ...deleteModalData, isOpen: false })}

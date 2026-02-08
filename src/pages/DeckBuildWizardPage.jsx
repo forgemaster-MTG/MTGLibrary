@@ -383,13 +383,34 @@ const DeckBuildWizardPage = () => {
 
             try {
                 // Prepare candidate context for collection mode
+                // Prepare Constraints (Contractor)
+                const restrictedSetCodes = getRestrictedSets().map(s => s.code.toLowerCase());
+                const constraints = {
+                    restrictedSets: analysisSettings.restrictSet ? restrictedSetCodes : []
+                };
+
                 let pool = [];
                 if (buildMode === 'collection') {
-                    pool = collection.filter(c =>
-                        isColorIdentityValid(c.color_identity || [], commanderColors) &&
-                        !deckCards.some(d => d.name === c.name) &&
-                        !Object.values(allNewSuggestions).some(n => n.name === c.name)
-                    ).map(c => c.data || c);
+                    pool = collection.filter(c => {
+                        const data = c.data || c;
+
+                        // 1. Basic Validity
+                        if (!isColorIdentityValid(c.color_identity || [], commanderColors)) return false;
+                        if (deckCards.some(d => d.name === c.name)) return false;
+                        if (Object.values(allNewSuggestions).some(n => n.name === c.name)) return false;
+
+                        // 2. User Filters
+                        if (analysisSettings.ownedOnly && (c.is_wishlist || c.quantity === 0)) return false;
+                        if (analysisSettings.excludeAssigned && c.deck_id) return false;
+
+                        // 3. Set Restriction
+                        if (analysisSettings.restrictSet) {
+                            const setCode = (data.set || data.set_code || '').toLowerCase();
+                            if (!restrictedSetCodes.includes(setCode)) return false;
+                        }
+
+                        return true;
+                    }).map(c => c.data || c);
                 }
 
                 const result = await GeminiService.fetchPackage(
@@ -397,7 +418,8 @@ const DeckBuildWizardPage = () => {
                     pkg,
                     { commander }, // Context
                     userProfile,
-                    pool
+                    pool,
+                    constraints
                 );
 
                 if (result?.suggestions) {
@@ -466,13 +488,34 @@ const DeckBuildWizardPage = () => {
             // Simpler approach: Just draft the foundation as a separate package.
 
             try {
+                // Prepare Constraints (Foundation)
+                const restrictedSetCodes = getRestrictedSets().map(s => s.code.toLowerCase());
+                const constraints = {
+                    restrictedSets: analysisSettings.restrictSet ? restrictedSetCodes : []
+                };
+
                 let pool = [];
                 if (buildMode === 'collection') {
-                    pool = collection.filter(c =>
-                        isColorIdentityValid(c.color_identity || [], commanderColors) &&
-                        !deckCards.some(d => d.name === c.name) &&
-                        !Object.values(allNewSuggestions).some(n => n.name === c.name)
-                    ).map(c => c.data || c);
+                    pool = collection.filter(c => {
+                        const data = c.data || c;
+
+                        // 1. Basic Validity
+                        if (!isColorIdentityValid(c.color_identity || [], commanderColors)) return false;
+                        if (deckCards.some(d => d.name === c.name)) return false;
+                        if (Object.values(allNewSuggestions).some(n => n.name === c.name)) return false;
+
+                        // 2. User Filters
+                        if (analysisSettings.ownedOnly && (c.is_wishlist || c.quantity === 0)) return false;
+                        if (analysisSettings.excludeAssigned && c.deck_id) return false;
+
+                        // 3. Set Restriction
+                        if (analysisSettings.restrictSet) {
+                            const setCode = (data.set || data.set_code || '').toLowerCase();
+                            if (!restrictedSetCodes.includes(setCode)) return false;
+                        }
+
+                        return true;
+                    }).map(c => c.data || c);
                 }
 
                 const result = await GeminiService.fetchPackage(
@@ -480,7 +523,8 @@ const DeckBuildWizardPage = () => {
                     { name: role, count: target, description: `Efficient ${role} spells for this deck.` },
                     { commander },
                     userProfile,
-                    pool
+                    pool,
+                    constraints
                 );
 
                 if (result?.suggestions) {

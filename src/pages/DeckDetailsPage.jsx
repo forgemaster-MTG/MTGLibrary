@@ -1280,7 +1280,7 @@ const DeckDetailsPage = () => {
                                                             <span className="font-mono w-16 text-right text-green-400/80 text-xs">${(parseFloat(card.prices?.[card.finish === 'foil' ? 'usd_foil' : 'usd']) || 0).toFixed(2)}</span>
                                                             {canEdit && !isManageMode && (
                                                                 <button
-                                                                    onClick={() => handleRemoveFromDeck(card.firestoreId || card.id, card.name)}
+                                                                    onClick={() => handleRemoveFromDeck(card.managedId || card.id, card.name)}
                                                                     className="text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
                                                                 >
                                                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>

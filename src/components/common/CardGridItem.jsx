@@ -164,7 +164,7 @@ const CardGridItem = memo(function CardGridItem({ card, availableFoils, onRemove
 
                                     {onRemove && (
                                         <button
-                                            onClick={(e) => { e.stopPropagation(); onRemove(card.firestoreId || card.id, card.name); }}
+                                            onClick={(e) => { e.stopPropagation(); onRemove(card.managedId || card.id, card.name); }}
                                             className="bg-red-600/90 hover:bg-red-500 text-white p-2 rounded-lg transition-all duration-200 shadow-lg hover:shadow-red-500/50 active:scale-95"
                                             title="Remove"
                                         >

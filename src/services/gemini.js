@@ -450,13 +450,17 @@ const GeminiService = {
      * PHASE 2: THE CONTRACTOR
      * Fetches a specific package of cards, respecting collection constraints if needed.
      */
-    async fetchPackage(apiKey, packageDef, currentDeck, userProfile, candidates = []) {
+    async fetchPackage(apiKey, packageDef, currentDeck, userProfile, candidates = [], constraints = {}) {
         const isCollectionMode = candidates && candidates.length > 0;
+        const setRestriction = constraints?.restrictedSets?.length > 0
+            ? `RESTRICTION: You MUST ONLY suggest cards from these set codes: ${constraints.restrictedSets.join(', ')}. Do NOT suggest cards from any other sets.`
+            : '';
 
         const systemMessage = `You are a Deck Contractor.
         MISSION: Find exactly ${packageDef.count} cards for the package: "${packageDef.name}".
         DESCRIPTION: ${packageDef.description}
         COMMANDER: ${currentDeck.commander?.name}
+        ${setRestriction}
         
         ${isCollectionMode
                 ? `CONSTRAINT: You MUST select cards from the provided [CANDIDATE POOL] below. 

@@ -121,9 +121,9 @@ const ReleasesWidget = ({ size }) => {
                 {loading ? (
                     <div className="text-gray-500 text-[10px] font-black uppercase tracking-widest animate-pulse">Loading updates...</div>
                 ) : isXL && releases[0] ? (
-                    <div className="flex flex-col md:flex-row gap-4 md:gap-8 h-full">
+                    <div className="flex flex-col md:flex-row gap-4 md:gap-6 h-full font-sans">
                         {/* Latest Summary & Stats */}
-                        <div className="w-full md:min-w-[180px] flex flex-row md:flex-col justify-between md:justify-center items-center md:items-start gap-4 flex-shrink-0">
+                        <div className="w-full md:w-[160px] flex flex-row md:flex-col justify-between md:justify-start items-center md:items-start gap-4 flex-shrink-0">
                             <div>
                                 <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1 block">Newest Version</span>
                                 <div className="text-2xl lg:text-3xl font-black text-white mb-2 break-all leading-tight">{releases[0].version}</div>
@@ -142,18 +142,16 @@ const ReleasesWidget = ({ size }) => {
                         </div>
 
                         {/* Notes Snippet */}
-                        <div className="flex-grow bg-gray-950/40 rounded-2xl p-4 md:p-6 border border-white/5 relative group/notes overflow-hidden flex flex-col min-h-0">
+                        <div className="flex-1 bg-gray-950/40 rounded-2xl p-4 border border-white/5 relative group/notes overflow-hidden flex flex-col min-h-0 min-w-0">
                             <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 md:mb-4 flex items-center gap-2 flex-shrink-0">
                                 <div className="w-1 h-3 bg-indigo-500" /> Highlights
                             </div>
-                            <div className="space-y-3 overflow-hidden text-xs text-gray-400 line-clamp-4 md:line-clamp-6" dangerouslySetInnerHTML={{ __html: releases[0].notes }} />
-                            <button onClick={() => setSelectedRelease(releases[0])} className="mt-auto pt-4 text-[10px] font-black text-indigo-400 uppercase tracking-wider hover:text-white transition-colors flex items-center gap-1 group/btn shrink-0">
-                                Open Changelog <svg className="w-3 h-3 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-                            </button>
+                            <div className="prose prose-invert prose-sm max-w-none prose-headings:text-indigo-300 prose-a:text-indigo-400 prose-strong:text-white prose-headings:mb-2 prose-p:my-1 prose-li:my-0.5 overflow-y-auto custom-scrollbar pr-2 h-full" dangerouslySetInnerHTML={{ __html: releases[0].notes }} />
+                            <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-gray-900/40 to-transparent pointer-events-none" />
                         </div>
 
                         {/* History Vert List */}
-                        <div className="w-full md:w-auto md:min-w-[150px] border-t md:border-t-0 md:border-l border-white/5 pt-4 md:pt-0 md:pl-8 flex flex-col flex-shrink-0">
+                        <div className="w-full md:w-[120px] border-t md:border-t-0 md:border-l border-white/5 pt-4 md:pt-0 md:pl-4 flex flex-col flex-shrink-0">
                             <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 md:mb-4">Past Updates</span>
                             <div className="flex md:flex-col gap-4 overflow-x-auto md:overflow-visible pb-2 md:pb-0">
                                 {releases.slice(1, 4).map((r) => (
