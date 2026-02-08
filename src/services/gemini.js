@@ -489,7 +489,8 @@ const GeminiService = {
                 : `CONSTRAINT: Search the entire MTG history for the absolute best synergies.`}
             
         OUTPUT JSON:
-        { "suggestions": [ { "name": "Card Name", "reason": "Why it fits", "role": "Synergy" } ] }
+        { "suggestions": [ { "name": "Card Name", "reason": "Why it fits", "role": "Synergy", "rating": 1-10 } ] }
+        CRITICAL: You MUST provide a 'rating' (integer 1-10) for every card, representing its power level/synergy in this deck. 10=Perfect, 1=Weak.
         `;
 
         const candidateText = isCollectionMode

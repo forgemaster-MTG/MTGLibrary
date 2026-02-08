@@ -465,6 +465,7 @@ const DeckBuildWizardPage = () => {
 
                 if (result?.suggestions) {
                     let added = 0;
+                    console.log(`DEBUG: [Contractor] ${pkg.name} candidate count: ${result.suggestions.length}`);
                     for (const s of result.suggestions) {
                         if (added >= pkg.count) break;
 
@@ -499,6 +500,7 @@ const DeckBuildWizardPage = () => {
                                 data: scryData,
                                 suggestedType: pkg.name, // Tag it with the package name!
                                 role: pkg.type || 'Synergy',
+                                rating: s.rating || 5, // Capture rating
                                 is_wishlist: !isFromCollection
                             };
                             added++;
@@ -610,7 +612,7 @@ const DeckBuildWizardPage = () => {
                     wipes: "Board wipes and mass removal."
                 };
 
-                const result = await GeminiService.fetchPackage(
+                const response = await GeminiService.fetchPackage(
                     userProfile.settings.geminiApiKey,
                     { name: role, count: target, description: roleDescriptions[role] || `Efficient ${role} spells.` },
                     { commander },
@@ -618,6 +620,12 @@ const DeckBuildWizardPage = () => {
                     pool,
                     constraints
                 );
+
+                const result = response.result;
+                const meta = response.meta;
+
+                // DEBUG
+                console.log(`DEBUG: [Foundation] ${role} Result:`, result);
 
                 if (result?.suggestions) {
                     // ADMIN TELEMETRY
@@ -653,6 +661,7 @@ const DeckBuildWizardPage = () => {
                                             role === 'creatures' ? 'Synergy / Strategy' :
                                                 role === 'nonBasicLands' ? 'Land' :
                                                     'Targeted Removal',
+                                rating: s.rating || 5, // Capture rating
                                 is_wishlist: !isFromCollection
                             };
                             if (typeof updateStats === 'function') updateStats(allNewSuggestions); // LIVE FEED FIX
