@@ -358,7 +358,7 @@ const DeckBuildWizardPage = () => {
             addLog(`[Architect] Blueprint Created: "${blueprint.strategyName}"`);
             addLog(`[Architect] Plan: ${blueprint.description}`);
             // Safely handle if AI didn't return a perfect structure
-            if (!blueprint.foundation) blueprint.foundation = { lands: 36, ramp: 10, draw: 10, interaction: 8, wipes: 2 };
+            if (!blueprint.foundation) blueprint.foundation = { lands: 36, nonBasicLands: 15, creatures: 25, ramp: 10, draw: 10, interaction: 8, wipes: 2 };
         } catch (err) {
             console.error("Blueprint generation failed", err);
             addLog(`[Architect] Failed to generate bespoke blueprint. Falling back to default schema.`);
@@ -369,7 +369,7 @@ const DeckBuildWizardPage = () => {
                     { name: "Primary Synergy", count: 15, description: "Cards that synergize with the commander." },
                     { name: "Secondary Support", count: 10, description: "Support pieces for the main strategy." }
                 ],
-                foundation: { lands: 37, ramp: 10, draw: 10, interaction: 10, wipes: 3 }
+                foundation: { lands: 37, nonBasicLands: 15, creatures: 25, ramp: 10, draw: 10, interaction: 10, wipes: 3 }
             };
         }
 
@@ -477,7 +477,7 @@ const DeckBuildWizardPage = () => {
 
         // STEP 3: THE FOUNDATION (Vegetables)
         const foundation = blueprint.foundation;
-        const roles = ['ramp', 'draw', 'interaction', 'wipes'];
+        const roles = ['creatures', 'nonBasicLands', 'ramp', 'draw', 'interaction', 'wipes'];
 
         for (const role of roles) {
             const target = foundation[role] || 0;
@@ -520,9 +520,18 @@ const DeckBuildWizardPage = () => {
                     }).map(c => c.data || c);
                 }
 
+                const roleDescriptions = {
+                    creatures: "High-synergy creatures vital to the strategy.",
+                    nonBasicLands: "Utility lands, dual lands, and command tower.",
+                    ramp: "Mana rocks and ramp spells.",
+                    draw: "Card draw and advantage engines.",
+                    interaction: "Targeted removal and counterspells.",
+                    wipes: "Board wipes and mass removal."
+                };
+
                 const result = await GeminiService.fetchPackage(
                     userProfile.settings.geminiApiKey,
-                    { name: role, count: target, description: `Efficient ${role} spells for this deck.` },
+                    { name: role, count: target, description: roleDescriptions[role] || `Efficient ${role} spells.` },
                     { commander },
                     userProfile,
                     pool,
@@ -547,7 +556,12 @@ const DeckBuildWizardPage = () => {
                             allNewSuggestions[uuid] = {
                                 ...s, firestoreId: uuid, name: scryData.name, data: scryData,
                                 suggestedType: role.charAt(0).toUpperCase() + role.slice(1),
-                                role: role === 'ramp' ? 'Mana Ramp' : role === 'draw' ? 'Card Draw' : role === 'wipes' ? 'Board Wipes' : 'Targeted Removal',
+                                role: role === 'ramp' ? 'Mana Ramp' :
+                                    role === 'draw' ? 'Card Draw' :
+                                        role === 'wipes' ? 'Board Wipes' :
+                                            role === 'creatures' ? 'Synergy / Strategy' :
+                                                role === 'nonBasicLands' ? 'Land' :
+                                                    'Targeted Removal',
                                 is_wishlist: !isFromCollection
                             };
                             if (typeof updateProgress === 'function') updateProgress(allNewSuggestions);
@@ -578,6 +592,22 @@ const DeckBuildWizardPage = () => {
             const stats = calculateManaStats(deckCards, allNewSuggestions);
             const basics = generateBasicLands(landsNeeded, stats, collection); // Note: generateBasicLands needs to be robust
             Object.assign(allNewSuggestions, basics);
+        }
+
+        // --- FINAL CHECK: ENSURE 100 CARDS ---
+        const finalCheckTotal = deckCards.length + Object.keys(allNewSuggestions).length; // + cmdCount implicit if not in list
+        const deficit = 100 - finalCheckTotal;
+
+        if (deficit > 0) {
+            addLog(`[Audit] Deck is at ${finalCheckTotal}/100. Filling ${deficit} slots...`);
+            setStatus(`Finalizing Deck (${deficit} slots remaining)...`);
+
+            // Simple fill with basic lands for now to ensure legality
+            // In future, this could do another AI pass
+            const stats = calculateManaStats(deckCards, allNewSuggestions);
+            const filler = generateBasicLands(deficit, stats, collection);
+            Object.assign(allNewSuggestions, filler);
+            addLog(`[Audit] Filled deficit with basic lands.`);
         }
 
         // Constraint 2: Fill to 100 if still short (with more basics or generic filler?)

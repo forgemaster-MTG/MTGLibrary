@@ -369,6 +369,8 @@ const GeminiService = {
             ],
             "foundation": {
                 "lands": 36,
+                "nonBasicLands": 15,
+                "creatures": 25,
                 "ramp": 10,
                 "draw": 10,
                 "interaction": 10,
