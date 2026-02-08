@@ -410,7 +410,16 @@ const GeminiService = {
 
                 const data = await response.json();
                 const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                return parseResponse(text);
+                const usage = data.usageMetadata;
+                return {
+                    result: parseResponse(text),
+                    meta: {
+                        model: model,
+                        tokens: usage?.totalTokenCount || 0,
+                        promptTokens: usage?.promptTokenCount || 0,
+                        candidatesTokens: usage?.candidatesTokenCount || 0
+                    }
+                };
             } catch (e) {
                 console.warn(`Blueprint generation failed on ${model}:`, e);
             }
@@ -439,7 +448,16 @@ const GeminiService = {
 
                 const data = await response.json();
                 const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                return parseResponse(text);
+                const usage = data.usageMetadata;
+                return {
+                    result: parseResponse(text),
+                    meta: {
+                        model: model,
+                        tokens: usage?.totalTokenCount || 0,
+                        promptTokens: usage?.promptTokenCount || 0,
+                        candidatesTokens: usage?.candidatesTokenCount || 0
+                    }
+                };
             } catch (e) {
                 console.warn(`Blueprint fallback failed on ${model}:`, e);
             }
@@ -480,8 +498,8 @@ const GeminiService = {
 
         const userQuery = `Fetch ${packageDef.count} cards for "${packageDef.name}".\n${candidateText}`;
 
-        // Use Flash models for bulk drafting
-        const models = this.FLASH_MODELS;
+        // PRIORITIZE PRO MODELS FOR QUALITY, THEN FLASH (Ref: User Request)
+        const models = [...this.PRO_MODELS, ...this.FLASH_MODELS];
 
         // ... Reuse retry logic ...
         for (const model of models) {
@@ -594,7 +612,7 @@ const GeminiService = {
                                 properties: {
                                     firestoreId: { type: "STRING", description: "The ID from the pool, or 'discovery' for new cards" },
                                     name: { type: "STRING" },
-                                    rating: { type: "NUMBER", description: "1-10 how well it fits" },
+                                    rating: { type: "NUMBER", description: "MANDATORY: 1-10 integer score. Do NOT leave null." },
                                     reason: { type: "STRING", description: "Brief justification (max 12 words)" },
                                     set: { type: "STRING", description: "Scryfall set code (e.g. 'mkm')" },
                                     collectorNumber: { type: "STRING", description: "Scryfall collector number" },

@@ -349,12 +349,21 @@ const DeckBuildWizardPage = () => {
 
         let blueprint = null;
         try {
-            blueprint = await GeminiService.generateDeckBlueprint(
+            const blueprintResponse = await GeminiService.generateDeckBlueprint(
                 userProfile.settings.geminiApiKey,
                 commander,
                 userProfile,
                 buildMode === 'collection'
             );
+
+            blueprint = blueprintResponse.result;
+            const meta = blueprintResponse.meta;
+
+            // ADMIN TELEMETRY
+            if (isAdmin && meta) {
+                addToast(`BLUEPRINT: Used ${meta.model} (${meta.tokens} tokens)`, 'info');
+            }
+
             addLog(`[Architect] Blueprint Created: "${blueprint.strategyName}"`);
             addLog(`[Architect] Plan: ${blueprint.description}`);
             // Safely handle if AI didn't return a perfect structure
@@ -415,7 +424,7 @@ const DeckBuildWizardPage = () => {
                     }).map(c => c.data || c);
                 }
 
-                const result = await GeminiService.fetchPackage(
+                const response = await GeminiService.fetchPackage(
                     userProfile.settings.geminiApiKey,
                     pkg,
                     { commander }, // Context
@@ -423,6 +432,14 @@ const DeckBuildWizardPage = () => {
                     pool,
                     constraints
                 );
+
+                const result = response.result;
+                const meta = response.meta;
+
+                // ADMIN TELEMETRY
+                if (isAdmin && meta) {
+                    addToast(`PACKAGE (${pkg.name}): Used ${meta.model} (${meta.tokens} tokens)`, 'info');
+                }
 
                 if (result?.suggestions) {
                     let added = 0;
@@ -480,14 +497,56 @@ const DeckBuildWizardPage = () => {
         const roles = ['creatures', 'nonBasicLands', 'ramp', 'draw', 'interaction', 'wipes'];
 
         for (const role of roles) {
-            const target = foundation[role] || 0;
-            if (target <= 0) continue;
+            // DYNAMIC TARGET (Ref: User Request)
+            // Calculate how many we ALREADY have of this type from the Packages
+            // This prevents "Double Dipping" (e.g. Package gives 20 creatures, Foundation asks for 30 more -> 50 total. Too many!)
 
-            setStatus(`Laying Foundation: ${role.toUpperCase()}...`);
+            // Map 'role' to the 'suggestedType' or 'role' fields we used in packages
+            // Note: Package cards might be tagged as 'Synergy' but are creatures. 
+            // We need a robust count.
 
-            // Calculate what we still need (some packages might have included these)
-            // For now, we assume packages are mostly 'Synergy', but we could check tags.
-            // Simpler approach: Just draft the foundation as a separate package.
+            let currentCount = 0;
+            const currentDraft = Object.values(allNewSuggestions);
+
+            if (role === 'creatures') {
+                currentCount = currentDraft.filter(c => (c.data?.type_line || '').toLowerCase().includes('creature')).length;
+            } else if (role === 'nonBasicLands') {
+                currentCount = currentDraft.filter(c => (c.data?.type_line || '').toLowerCase().includes('land') && !(c.data?.type_line || '').toLowerCase().includes('basic')).length;
+            } else {
+                // For functional roles (ramp, draw, etc), we rely on the 'role' tag assigned by AI
+                // Mapping: 'ramp' -> 'Mana Ramp'
+                const roleTag = role === 'ramp' ? 'Mana Ramp' :
+                    role === 'draw' ? 'Card Draw' :
+                        role === 'wipes' ? 'Board Wipes' :
+                            role === 'interaction' ? 'Targeted Removal' : role;
+
+                currentCount = currentDraft.filter(c => c.role === roleTag || c.suggestedType === roleTag).length;
+            }
+
+            const desiredTotal = foundation[role] || 0;
+            const target = Math.max(0, desiredTotal - currentCount);
+
+            // HARD LIMIT CHECK
+            // If we are already near 100, stop drafting.
+            // (Assuming 1 commander)
+            const TotalSoFar = deckCards.length + currentDraft.length + cmdCount;
+            if (TotalSoFar >= 100) {
+                addLog(`[Foundation] Deck full (${TotalSoFar}/100). Skipping ${role}.`);
+                continue;
+            }
+
+            if (target <= 0) {
+                addLog(`[Foundation] Sufficient ${role} already drafted (${currentCount}/${desiredTotal}). Skipping.`);
+                continue;
+            }
+
+            // Cap target if it would push us way over 100
+            const spaceRemaining = 100 - TotalSoFar;
+            const actualTarget = Math.min(target, spaceRemaining);
+
+            if (actualTarget <= 0) continue;
+
+            setStatus(`Laying Foundation: ${role.toUpperCase()} (${actualTarget} slots)...`);
 
             try {
                 // Prepare Constraints (Foundation)
@@ -575,39 +634,57 @@ const DeckBuildWizardPage = () => {
         }
 
         // STEP 4: ASSEMBLY (Land Fill)
-        const targetLands = foundation.lands || 37;
-        const currentTotal = deckCards.length + Object.keys(allNewSuggestions).length; // + cmdCount (assumed 1)
+        // STEP 4: ASSEMBLY (Land Fill & Polish)
+        // STRICT 100 CARD CHECK (Ref: User Request)
 
-        // Count current lands (including any that slipped in via packages)
-        const currentLands = Object.values(allNewSuggestions).filter(s => (s.data?.type_line || '').toLowerCase().includes('land')).length +
+        const currentDeckSize = deckCards.length + Object.keys(allNewSuggestions).length + cmdCount; // inclusive of drafted + existing + commander
+        const targetDeckSize = 100;
+
+        // 1. Check Land Count specifically
+        const currentLandCount = Object.values(allNewSuggestions).filter(s => (s.data?.type_line || '').toLowerCase().includes('land')).length +
             deckCards.filter(c => (c.type_line || '').toLowerCase().includes('land')).length;
 
-        // We want to hit targetLands, but also fill the deck to 100.
-        // Constraint 1: Must have enough lands.
-        const landsNeeded = Math.max(0, targetLands - currentLands);
+        const minLands = foundation.lands || 36;
+        const landsNeeded = Math.max(0, minLands - currentLandCount);
+
+        // 2. Budget for Lands
+        // Only add lands if we have space OR if we are critically low on lands (in which case we might go over 100, but that's better than 20 lands)
+        // Ideally, we respect the 100 cap.
+
+        const slotsRemaining = targetDeckSize - currentDeckSize;
 
         if (landsNeeded > 0) {
-            setStatus(`Surveying Lands (${landsNeeded} needed)...`);
-            addLog(`[Assembly] Filling ${landsNeeded} basic land slots.`);
-            const stats = calculateManaStats(deckCards, allNewSuggestions);
-            const basics = generateBasicLands(landsNeeded, stats, collection); // Note: generateBasicLands needs to be robust
-            Object.assign(allNewSuggestions, basics);
+            // If we have space, fill with lands. 
+            // If landsNeeded > slotsRemaining, we fill slotsRemaining with lands (hitting 100) and warn user about land count?
+            // Or we force add lands to reach minimum viable count even if > 100?
+            // Decision: Strict 100 Cap is priority for "Over-generation" fix.
+
+            const landsToAdd = Math.min(landsNeeded, Math.max(0, slotsRemaining));
+
+            if (landsToAdd > 0) {
+                setStatus(`Surveying Lands (${landsToAdd} slots)...`);
+                addLog(`[Assembly] Adding ${landsToAdd} basic lands to reach capacity.`);
+                const stats = calculateManaStats(deckCards, allNewSuggestions);
+                const basics = generateBasicLands(landsToAdd, stats, collection);
+                Object.assign(allNewSuggestions, basics);
+            }
         }
 
-        // --- FINAL CHECK: ENSURE 100 CARDS ---
-        const finalCheckTotal = deckCards.length + Object.keys(allNewSuggestions).length; // + cmdCount implicit if not in list
-        const deficit = 100 - finalCheckTotal;
+        // 3. Final Polish (Deficit Check)
+        const finalSize = deckCards.length + Object.keys(allNewSuggestions).length + cmdCount;
+        const finalDeficit = targetDeckSize - finalSize;
 
-        if (deficit > 0) {
-            addLog(`[Audit] Deck is at ${finalCheckTotal}/100. Filling ${deficit} slots...`);
-            setStatus(`Finalizing Deck (${deficit} slots remaining)...`);
+        if (finalDeficit > 0) {
+            addLog(`[Audit] Deck is at ${finalSize}/100. Top-up required.`);
+            setStatus(`Finalizing Deck (${finalDeficit} slots)...`);
 
-            // Simple fill with basic lands for now to ensure legality
-            // In future, this could do another AI pass
+            // Fill remaining slots with basic lands to ensure legality
             const stats = calculateManaStats(deckCards, allNewSuggestions);
-            const filler = generateBasicLands(deficit, stats, collection);
+            const filler = generateBasicLands(finalDeficit, stats, collection);
             Object.assign(allNewSuggestions, filler);
-            addLog(`[Audit] Filled deficit with basic lands.`);
+            addLog(`[Audit] Added ${finalDeficit} basic lands to reach 100.`);
+        } else if (finalDeficit < 0) {
+            addLog(`[Audit] Deck is over capacity (${finalSize}/100). Please trim ${Math.abs(finalDeficit)} cards in Selection.`);
         }
 
         // Constraint 2: Fill to 100 if still short (with more basics or generic filler?)
@@ -1044,7 +1121,11 @@ const DeckBuildWizardPage = () => {
 
     const renderArchitect = () => {
         const displayedSuggestions = Object.values(suggestions).filter(s => selectedTab === 'All' || s.suggestedType === selectedTab);
-        const tabs = ['All', 'Land', 'Mana Ramp', 'Card Draw', 'Targeted Removal', 'Board Wipes', 'Synergy / Strategy'];
+
+        // DYNAMIC TABS (Ref: User Request)
+        // Extract unique types from the suggestion pool and sort them
+        const uniqueTypes = [...new Set(Object.values(suggestions).map(s => s.suggestedType || 'Unknown'))].sort();
+        const tabs = ['All', ...uniqueTypes];
 
         return (
             <div className="h-full flex flex-col gap-6 py-6">
