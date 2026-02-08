@@ -310,6 +310,8 @@ const DeckBuildWizardPage = () => {
             return;
         }
 
+        const isAdmin = userProfile?.roles?.includes('admin') || userProfile?.role === 'admin' || userProfile?.email === 'parkertristin@gmail.com';
+
         setIsProcessing(true);
         setStatus(`Preparing ${buildMode === 'discovery' ? 'Global Analysis' : 'Collection Analysis'}...`);
         const cmdCount = (deck.commander ? 1 : 0) + (deck.commander_partner ? 1 : 0);
