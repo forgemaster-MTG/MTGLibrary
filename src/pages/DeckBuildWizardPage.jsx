@@ -564,11 +564,11 @@ const DeckBuildWizardPage = () => {
                 continue;
             }
 
-            // Cap target if it would push us way over 100
-            const spaceRemaining = 100 - TotalSoFar;
-            const actualTarget = Math.min(target, spaceRemaining);
+            // Cap target if it would push us way over 100 (Logic moved to inside loop for reservation awareness)
+            // const spaceRemaining = 100 - TotalSoFar;
+            // const actualTarget = Math.min(target, spaceRemaining);
 
-            if (actualTarget <= 0) continue;
+            // if (actualTarget <= 0) continue;
 
             setStatus(`Laying Foundation: ${role.toUpperCase()} (${actualTarget} slots)...`);
 
@@ -601,6 +601,34 @@ const DeckBuildWizardPage = () => {
 
                         return true;
                     }).map(c => c.data || c);
+                }
+
+                // --- NEW: LAND RESERVATION LOGIC ---
+                // Before filling this role, check if we need to reserve space for lands.
+                // We do this inside the loop to re-calculate as we add cards (like non-basic lands).
+
+                const minLands = foundation.lands || 36;
+                const currentLands = deckCards.filter(c => (c.type_line || '').toLowerCase().includes('land')).length +
+                    Object.values(allNewSuggestions).filter(s => (s.data?.type_line || '').toLowerCase().includes('land')).length;
+
+                const landsNeeded = Math.max(0, minLands - currentLands);
+
+                // If we differ from the role 'nonBasicLands', we must reserve space.
+                // If the current role IS 'nonBasicLands', we are actively filling that quota, so we don't reserve against ourselves.
+                const reservedLandSlots = (role === 'nonBasicLands') ? 0 : landsNeeded;
+
+                // Update Space Remaining to exclude reserved land slots
+                const hardenedSpaceRemaining = 100 - TotalSoFar - reservedLandSlots;
+
+                if (reservedLandSlots > 0 && role !== 'nonBasicLands') {
+                    addLog(`[Foundation] Reserving ${reservedLandSlots} slots for Lands (Target: ${minLands}). Available for ${role}: ${Math.max(0, hardenedSpaceRemaining)}`);
+                }
+
+                const actualTarget = Math.min(target, Math.max(0, hardenedSpaceRemaining));
+
+                if (actualTarget <= 0) {
+                    addLog(`[Foundation] No space for ${role} after reserving ${reservedLandSlots} land slots.`);
+                    continue;
                 }
 
                 const roleDescriptions = {
