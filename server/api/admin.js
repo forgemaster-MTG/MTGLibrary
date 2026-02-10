@@ -379,4 +379,39 @@ router.delete('/invitations/:id', async (req, res) => {
     }
 });
 
+
+import { PricingService } from '../services/PricingService.js';
+
+// GET /admin/pricing
+// Fetch current pricing config
+router.get('/pricing', async (req, res) => {
+    try {
+        const config = await PricingService.getConfig();
+        const analysis = PricingService.calculateStats(config);
+        res.json({ config, analysis });
+    } catch (err) {
+        console.error('[Admin] Get Pricing Error', err);
+        res.status(500).json({ error: 'Failed to fetch pricing config' });
+    }
+});
+
+// POST /admin/pricing
+// Save new pricing config
+router.post('/pricing', async (req, res) => {
+    try {
+        const { config } = req.body;
+
+        // Optional: Re-validate by calculating stats
+        // const stats = PricingService.calculateStats(config);
+        // if (stats.tiers.some(t => t.metrics.aiBudget < 0)) ... warning?
+
+        const saved = await PricingService.saveConfig(config);
+        res.json({ success: true, config: saved });
+    } catch (err) {
+        console.error('[Admin] Save Pricing Error', err);
+        res.status(500).json({ error: 'Failed to save pricing config' });
+    }
+});
+
 export default router;
+

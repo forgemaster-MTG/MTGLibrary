@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import dotenv from 'dotenv';
 import { knex } from '../db.js';
+import { PricingService } from './PricingService.js';
 
 dotenv.config();
 
@@ -125,8 +126,42 @@ export async function createCheckoutSession(userId, priceId, successUrl, cancelU
 }
 
 /**
- * Create a Customer Portal session (for managing supscriptions)
+ * Create a Checkout Session for a one-time Top-Up
  */
+export async function createTopUpSession(userId, pack, successUrl, cancelUrl) {
+    if (!stripe) throw new Error('Stripe not configured');
+
+    const user = await knex('users').where({ id: userId }).first();
+    const customerId = await getOrCreateCustomer(user);
+
+    const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        mode: 'payment',
+        payment_method_types: ['card'],
+        line_items: [{
+            price_data: {
+                currency: 'usd',
+                product_data: {
+                    name: pack.name,
+                    description: `${(pack.creditLimit / 1000000).toFixed(1)}M AI Credits`,
+                },
+                unit_amount: Math.round(pack.price * 100), // cents
+            },
+            quantity: 1,
+        }],
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+        metadata: {
+            userId: user.id,
+            type: 'top_up',
+            credits: pack.creditLimit
+        },
+        allow_promotion_codes: true,
+    });
+
+    return session;
+}
+
 export async function createPortalSession(userId, returnUrl) {
     if (!stripe) throw new Error('Stripe not configured');
 
@@ -155,29 +190,41 @@ export async function handleWebhook(event) {
         case 'customer.subscription.deleted':
             await handleSubscriptionUpdated(event.data.object);
             break;
+        case 'invoice.payment_succeeded':
+            await handleInvoicePaymentSucceeded(event.data.object);
+            break;
         default:
         // console.log(`Unhandled event type ${event.type}`);
     }
 }
 
 async function handleCheckoutCompleted(session) {
-    // Retrieve the subscription
-    const subscriptionId = session.subscription;
     const customerId = session.customer;
-
-    // Find user by customerId (we indexed it)
     const user = await knex('users').where({ stripe_customer_id: customerId }).first();
+
     if (!user) {
         console.error('Webhook Error: User not found for customer', customerId);
         return;
     }
 
-    // Update user with subscription ID (Tier update happens in 'subscription.updated' usually, but we can do initial sync here)
-    await knex('users').where({ id: user.id }).update({
-        stripe_subscription_id: subscriptionId,
-        subscription_status: 'active'
-        // Tier will be updated by sync logic below or next event
-    });
+    // HANDLE TOP-UPS (One-time payment)
+    if (session.mode === 'payment' && session.metadata?.type === 'top_up') {
+        const creditsToAdd = parseInt(session.metadata.credits || '0', 10);
+        if (creditsToAdd > 0) {
+            console.log(`[Stripe] Adding ${creditsToAdd} top-up credits to user ${user.id}`);
+            await knex('users').where({ id: user.id }).increment('credits_topup', creditsToAdd);
+        }
+        return;
+    }
+
+    // HANDLE SUBSCRIPTIONS
+    if (session.mode === 'subscription') {
+        const subscriptionId = session.subscription;
+        await knex('users').where({ id: user.id }).update({
+            stripe_subscription_id: subscriptionId,
+            subscription_status: 'active'
+        });
+    }
 }
 
 async function handleSubscriptionUpdated(subscription) {
@@ -196,6 +243,36 @@ async function handleSubscriptionUpdated(subscription) {
         subscription_tier: status === 'active' || status === 'trialing' ? tier : 'free',
         subscription_end_date: subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : null
     });
+}
+
+async function handleInvoicePaymentSucceeded(invoice) {
+    if (invoice.billing_reason === 'subscription_create' || invoice.billing_reason === 'subscription_cycle' || invoice.billing_reason === 'subscription_update') {
+        const customerId = invoice.customer;
+        const user = await knex('users').where({ stripe_customer_id: customerId }).first();
+
+        if (!user) {
+            console.error('Webhook Error: User not found for customer', customerId);
+            return;
+        }
+
+        // Identify Tier from Invoice Lines
+        const lineItem = invoice.lines.data[0];
+        if (!lineItem || !lineItem.price) return;
+
+        const tierId = mapPriceToTier(lineItem.price.id);
+        if (tierId === 'free') return; // No credits for free tier payment? (Shouldn't happen for payment_succeeded unless $0 invoice)
+
+        // Fetch Credit Limit for this Tier
+        // We use PricingService to respect Admin config
+        const creditLimit = await PricingService.getLimitForTier(tierId);
+
+        if (creditLimit > 0) {
+            console.log(`[Stripe] Invoice Paid. Resetting monthly credits for ${user.username} (Tier: ${tierId}) to ${creditLimit}`);
+            await knex('users').where({ id: user.id }).update({
+                credits_monthly: creditLimit
+            });
+        }
+    }
 }
 
 import { TIERS, TIER_CONFIG } from '../config/tiers.js';

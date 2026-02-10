@@ -34,12 +34,6 @@ const QuickActionsWidget = ({ data, size }) => {
     const isXL = size === 'xlarge';
 
     const handleNewDeck = () => {
-        const limit = getTierConfig(userProfile?.subscription_tier).limits.decks;
-        const current = stats?.uniqueDecks || 0;
-        if (limit !== Infinity && current >= limit) {
-            addToast(`Deck limit reached (${current}/${limit}). Upgrade to create more!`, 'error');
-            return;
-        }
         navigate('/decks/new');
     };
 

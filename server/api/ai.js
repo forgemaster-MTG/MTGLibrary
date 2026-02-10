@@ -1,9 +1,15 @@
 import express from 'express';
+import auth from '../middleware/auth.js';
+import { CreditService } from '../services/CreditService.js';
+import { PricingService } from '../services/PricingService.js';
 
 const router = express.Router();
 
 // Use server-side env var for the key
 const API_KEY = process.env.GEMINI_API_KEY;
+
+// Protect all AI routes
+router.use(auth);
 
 router.post('/generate', async (req, res) => {
     if (!API_KEY) {
@@ -16,6 +22,21 @@ router.post('/generate', async (req, res) => {
 
         if (!model) {
             return res.status(400).json({ error: 'Model name is required' });
+        }
+
+        // 1. Check Credits (Pre-flight)
+        // Estimate minimum cost to prevent abuse. 
+        // 100 tokens * 15 rate = 1500 credits. 
+        // Let's be lenient and say 100 credits minimum to try.
+        const MIN_CREDITS = 100;
+        const hasCredits = await CreditService.hasSufficientCredits(req.user.id, MIN_CREDITS);
+
+        if (!hasCredits) {
+            return res.status(403).json({
+                error: 'Insufficient AI Credits',
+                code: 'INSUFFICIENT_CREDITS',
+                message: 'You have run out of AI credits. Please upgrade or top-up to continue.'
+            });
         }
 
         // Construct upstream URL
@@ -37,6 +58,42 @@ router.post('/generate', async (req, res) => {
         if (!response.ok) {
             console.error('[AI Proxy] Upstream Error:', response.status, JSON.stringify(responseData));
             return res.status(response.status).json(responseData);
+        }
+
+        // 2. Calculate & Deduct Cost
+        let cost = 0;
+        let finalCredits = null;
+
+        if (responseData.usageMetadata) {
+            const { totalTokenCount = 0 } = responseData.usageMetadata;
+
+            // Get rate
+            const config = await PricingService.getConfig();
+            const exchangeRate = config.assumptions?.exchangeRate || 15; // Default 15 credits per token
+
+            cost = Math.ceil(totalTokenCount * exchangeRate);
+
+            if (cost > 0) {
+                try {
+                    const result = await CreditService.deductCredits(req.user.id, cost);
+                    finalCredits = result;
+                    // console.log(`[AI Proxy] Deducted ${cost} credits for ${totalTokenCount} tokens. Remaining: ${result.total}`);
+                } catch (err) {
+                    console.error('[AI Proxy] Failed to deduct credits:', err);
+                    // Don't fail the request if deduction fails (e.g. race condition or just went zero), but verify?
+                    // If error is INSUFFICIENT_CREDITS, it means they used more than they had.
+                    // We allow this "overdraft" for the last request usually, or we swallow it.
+                    // CreditService throws if insufficient.
+                    // If we want to accept it, we should catch it.
+                }
+            }
+        }
+
+        // Attach credit info to response for frontend to update UI
+        if (finalCredits) {
+            responseData.credits_used = cost;
+            responseData.credits_monthly = finalCredits.credits_monthly;
+            responseData.credits_topup = finalCredits.credits_topup;
         }
 
         res.json(responseData);

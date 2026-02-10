@@ -14,12 +14,13 @@ export const TIER_CONFIG = {
     [TIERS.FREE]: {
         name: 'Initiate',
         prices: { monthly: null, biannual: null, yearly: null }, // Free
-        description: 'The journey begins. Track up to 3 decks and 300 cards.',
+        description: 'The journey begins. Unlimited decks and cards, with essential AI tools.',
         limits: {
-            collection: 300,
-            wishlist: 105,
-            decks: 3,
-            pods: 0
+            collection: Infinity,
+            wishlist: Infinity,
+            decks: Infinity,
+            pods: 0,
+            aiCredits: 750000
         },
         features: {
             aiChatbot: true,
@@ -50,12 +51,13 @@ export const TIER_CONFIG = {
             biannual: 'price_1SnvRKDBKqoK8H1RKcYMRlz2', // $14.99
             yearly: 'price_1SnvPsDBKqoK8H1RcxwM3gZJ'     // $29.99
         },
-        description: 'Perfect for new potential. Store up to 10 decks and 1,000 cards.',
+        description: 'Perfect for new potential. Unlimited storage to build your foundation.',
         limits: {
-            collection: 1000,
-            wishlist: 300,
-            decks: 10,
-            pods: 0
+            collection: Infinity,
+            wishlist: Infinity,
+            decks: Infinity,
+            pods: 0,
+            aiCredits: 7000000
         },
         features: {
             aiChatbot: true,
@@ -85,12 +87,13 @@ export const TIER_CONFIG = {
             biannual: 'price_1SnvVSDBKqoK8H1RFAqc0iIH', // $24.99
             yearly: 'price_1SnvVfDBKqoK8H1RryOTO2p8'     // $49.99
         },
-        description: 'Unlock the power of organization. 25 decks, 2,000 cards, and advanced tools.',
+        description: 'Unlock the power of organization. Unlimited decks, cards, and advanced tools.',
         limits: {
-            collection: 2000,
-            wishlist: 1000,
-            decks: 25,
-            pods: 0
+            collection: Infinity,
+            wishlist: Infinity,
+            decks: Infinity,
+            pods: 0,
+            aiCredits: 11000000
         },
         features: {
             aiChatbot: true,
@@ -120,12 +123,13 @@ export const TIER_CONFIG = {
             biannual: 'price_1SnvUkDBKqoK8H1RgX9mlcxs', // $49.99
             yearly: 'price_1SnvUwDBKqoK8H1RAUVYJtmM'     // $99.99
         },
-        description: 'Master your craft. 55 decks, 5,000 cards, Pods, and the AI Deck Doctor.',
+        description: 'Master your craft. Unlimited decks, cards, Pods, and the AI Deck Doctor.',
         limits: {
-            collection: 5000,
-            wishlist: 2500,
-            decks: 55,
-            pods: 3
+            collection: Infinity,
+            wishlist: Infinity,
+            decks: Infinity,
+            pods: 3,
+            aiCredits: 24500000
         },
         features: {
             aiChatbot: true,
@@ -155,12 +159,13 @@ export const TIER_CONFIG = {
             biannual: 'price_1SnvUSDBKqoK8H1RRAXjFJ1h', // $74.99
             yearly: 'price_1SnvUSDBKqoK8H1RBMhvTUZA'     // $149.99
         },
-        description: 'Command a vast library. 100 decks, 10,000 cards, and advanced management.',
+        description: 'Command a vast library. Unlimited decks, cards, and advanced management.',
         limits: {
-            collection: 10000,
-            wishlist: 5000,
-            decks: 100,
-            pods: 5
+            collection: Infinity,
+            wishlist: Infinity,
+            decks: Infinity,
+            pods: 5,
+            aiCredits: 36500000
         },
         features: {
             aiChatbot: true,
@@ -195,7 +200,8 @@ export const TIER_CONFIG = {
             collection: Infinity,
             wishlist: Infinity,
             decks: Infinity,
-            pods: Infinity
+            pods: Infinity,
+            aiCredits: 49000000
         },
         features: {
             aiChatbot: true,

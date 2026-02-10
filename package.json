@@ -79,6 +79,7 @@
     "test": "vitest",
     "test:coverage": "vitest run --coverage",
     "migrate": "knex migrate:latest --knexfile knexfile.cjs",
+    "migrate:latest": "knex migrate:latest --knexfile knexfile.cjs",
     "import-precons": "node scripts/import-precons-to-pg.js",
     "import-users": "node scripts/import-users-to-pg.js",
     "electron:dev": "wait-on http://localhost:5173 && electron .",

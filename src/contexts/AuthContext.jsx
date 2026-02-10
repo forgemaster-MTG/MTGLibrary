@@ -31,7 +31,22 @@ export const AuthProvider = ({ children }) => {
             return await api.get('/api/users/me');
         },
         enabled: !!currentUser,
-        staleTime: 1000 * 10, // 10 seconds (Shortened for achievement consistency)
+        staleTime: 1000 * 10,
+    });
+
+    // Valid only for public pricing (no auth needed)
+    const { data: pricingConfig = null, isLoading: pricingLoading } = useQuery({
+        queryKey: ['pricingConfig'],
+        queryFn: async () => {
+            try {
+                const res = await api.get('/api/pricing');
+                return res.config || res.data?.config || null;
+            } catch (err) {
+                console.warn('Failed to fetch pricing config', err);
+                return null;
+            }
+        },
+        staleTime: 1000 * 60 * 30, // 30 minutes
     });
 
     // Sign up
@@ -168,6 +183,34 @@ export const AuthProvider = ({ children }) => {
         return unsubscribe;
     }, []);
 
+    // Listen for Credit Updates from AI Service
+    useEffect(() => {
+        const handleCreditUpdate = (e) => {
+            if (!currentUser?.uid) return;
+            const { credits_monthly, credits_topup } = e.detail;
+
+            queryClient.setQueryData(['userProfile', currentUser.uid], (old) => {
+                if (!old) return old;
+                return {
+                    ...old,
+                    credits_monthly: credits_monthly !== undefined ? credits_monthly : old.credits_monthly,
+                    credits_topup: credits_topup !== undefined ? credits_topup : old.credits_topup,
+                    ai_credits: ((credits_monthly !== undefined ? credits_monthly : (old.credits_monthly || 0)) +
+                        (credits_topup !== undefined ? credits_topup : (old.credits_topup || 0)))
+                };
+            });
+        };
+
+        if (typeof window !== 'undefined') {
+            window.addEventListener('auth:update-credits', handleCreditUpdate);
+        }
+        return () => {
+            if (typeof window !== 'undefined') {
+                window.removeEventListener('auth:update-credits', handleCreditUpdate);
+            }
+        };
+    }, [currentUser, queryClient]);
+
     const value = {
         currentUser,
         user: currentUser,
@@ -182,7 +225,9 @@ export const AuthProvider = ({ children }) => {
         resetPassword,
         sendVerification,
         updateProfileFields,
-        uploadProfilePicture
+        updateProfileFields,
+        uploadProfilePicture,
+        pricingConfig
     };
 
     return (

@@ -58,6 +58,7 @@ import OfflineNotifier from './components/OfflineNotifier';
 import AchievementMonitor from './components/common/AchievementMonitor';
 
 import ImpersonationBanner from './components/Admin/ImpersonationBanner';
+import AdminGuard from './components/Admin/AdminGuard';
 
 function App() {
     // Global Shortcuts
@@ -135,7 +136,12 @@ function App() {
                                         <Route path="/tournaments/:id/join" element={<TournamentJoinPage />} />
                                         <Route path="/solitaire/:deckId" element={<SolitairePage />} />
                                         <Route path="/products" element={<ProductsPage />} />
-                                        <Route path="/admin/*" element={<AdminPage />} />
+                                        <Route path="/products" element={<ProductsPage />} />
+                                        <Route path="/admin/*" element={
+                                            <AdminGuard>
+                                                <AdminPage />
+                                            </AdminGuard>
+                                        } />
                                     </Routes>
                                 </div>
                             </AuthGuard>

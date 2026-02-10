@@ -126,7 +126,10 @@ app.get('/me', auth, async (req, res) => {
       subscription_status: user.subscription_status,
       trial_start_date: user.trial_start_date,
       trial_end_date: user.trial_end_date,
-      settings: user.settings || {}
+      trial_end_date: user.trial_end_date,
+      settings: user.settings || {},
+      credits_monthly: parseInt(user.credits_monthly || 0, 10),
+      credits_topup: parseInt(user.credits_topup || 0, 10)
     });
   } catch (e) {
     console.error(e);
@@ -228,6 +231,19 @@ app.get('/api/health', async (req, res) => {
 // Community Routes
 // Community Routes (Mounted above)
 // app.use('/api/community', require('./api/community'));
+
+
+// Public Pricing Endpoint
+import { PricingService } from './services/PricingService.js';
+app.get('/api/pricing', async (req, res) => {
+  try {
+    const config = await PricingService.getConfig();
+    res.json({ config });
+  } catch (err) {
+    console.error('Failed to fetch pricing', err);
+    res.status(500).json({ error: 'Failed to fetch pricing' });
+  }
+});
 
 // Serve Static Files (Production)
 // Serve static assets from the "dist" directory (Vite build output)

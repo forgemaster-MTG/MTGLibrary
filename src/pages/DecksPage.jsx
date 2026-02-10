@@ -156,13 +156,9 @@ const DecksPage = () => {
         fetchSources();
     }, [user]);
 
-    const handleCreateDeck = (e) => {
-        const limit = getTierConfig(userProfile?.subscription_tier).limits.decks;
-        const current = processedDecks.length || 0;
-        if (limit !== Infinity && current >= limit) {
-            e.preventDefault();
-            addToast(`Deck limit reached (${current}/${limit}). Upgrade to create more!`, 'error');
-        }
+    // Limit check removed
+    const handleCreateDeck = () => {
+        // No-op or analytics
     };
 
     // Auto-Lock if filters change

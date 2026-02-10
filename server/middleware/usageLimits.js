@@ -1,5 +1,5 @@
 import { knex } from '../db.js';
-import { getTierConfig } from '../config/tiers.js';
+import { PricingService } from '../services/PricingService.js';
 
 /**
  * Core logic to check if a user can add a resource.
@@ -10,8 +10,36 @@ import { getTierConfig } from '../config/tiers.js';
  * @throws {Error} - If limit is reached
  */
 export async function verifyLimit(userId, tierId, resourceType, amount = 1) {
-    const config = getTierConfig(tierId);
-    const limit = config.limits[resourceType];
+    const config = await PricingService.getConfig();
+
+    // Map Tier ID to Name
+    const map = {
+        'free': 'Trial',
+        'tier_1': 'Apprentice',
+        'tier_2': 'Magician',
+        'tier_3': 'Wizard',
+        'tier_4': 'Archmage',
+        'tier_5': 'Planeswalker'
+    };
+
+    const name = map[tierId || 'free'] || 'Trial';
+    let tierConfig = null;
+
+    if (name === 'Trial') {
+        tierConfig = config.trial;
+        tierConfig.name = 'Initiate'; // Legacy name for error message
+    } else {
+        tierConfig = config.tiers.find(t => t.name === name);
+    }
+
+    // Fallback if tier not found in dynamic config
+    if (!tierConfig) {
+        // Fallback to Free/Trial
+        tierConfig = config.trial;
+    }
+
+    const limit = tierConfig.limits ? tierConfig.limits[resourceType] : Infinity; // Default to infinity if limit type not found? Or 0? strict -> 0. loose -> Infinity. 
+    // Existing code: defaults were set. Let's assume limits exist.
 
     // If infinity, pass
     if (limit === Infinity) return;

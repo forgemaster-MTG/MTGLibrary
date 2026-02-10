@@ -1,6 +1,7 @@
 import express from 'express';
-import { stripe, createCheckoutSession, createPortalSession, handleWebhook } from '../services/stripe.js';
+import { stripe, createCheckoutSession, createPortalSession, createTopUpSession, handleWebhook } from '../services/stripe.js';
 import { TIER_CONFIG } from '../config/tiers.js';
+import { PricingService } from '../services/PricingService.js';
 import authMiddleware from '../middleware/auth.js';
 import bodyParser from 'body-parser';
 
@@ -68,6 +69,38 @@ router.post('/create-checkout-session', authMiddleware, async (req, res) => {
         const cancelUrl = customCancelUrl || `${process.env.PUBLIC_URL || 'http://localhost:5173'}/settings?canceled=true`;
 
         const session = await createCheckoutSession(req.user.id, priceId, successUrl, cancelUrl);
+        res.json({ url: session.url });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+router.post('/create-topup-session', authMiddleware, async (req, res) => {
+    try {
+        const { packIndex, credits, successUrl: customSuccessUrl, cancelUrl: customCancelUrl } = req.body;
+
+        let pack;
+        if (credits) {
+            const price = await PricingService.calculateTopUpCost(credits);
+            pack = {
+                name: 'Custom Top-Up',
+                price: price,
+                creditLimit: credits
+            };
+        } else {
+            const config = await PricingService.getConfig();
+            pack = config.packs?.[packIndex];
+        }
+
+        if (!pack) {
+            return res.status(400).json({ error: 'Invalid Top-Up Pack selected' });
+        }
+
+        const successUrl = customSuccessUrl || `${process.env.PUBLIC_URL || 'http://localhost:5173'}/settings?success=true`;
+        const cancelUrl = customCancelUrl || `${process.env.PUBLIC_URL || 'http://localhost:5173'}/settings?canceled=true`;
+
+        const session = await createTopUpSession(req.user.id, pack, successUrl, cancelUrl);
         res.json({ url: session.url });
     } catch (err) {
         console.error(err);

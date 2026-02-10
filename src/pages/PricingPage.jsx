@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TIERS, TIER_CONFIG } from '../config/tiers';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
-import { Check, X, HelpCircle, Info, Grid, List, ArrowRight } from 'lucide-react';
+import { Check, X, Grid, List } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 import SubscriptionSelection from '../components/onboarding/SubscriptionSelection';
+import TopUpCalculator from '../components/onboarding/TopUpCalculator';
 import { FEATURE_GROUPS } from '../data/pricing_data';
 
 const PricingPage = () => {
@@ -15,10 +16,71 @@ const PricingPage = () => {
     const [billingInterval, setBillingInterval] = useState('monthly');
     const [isLoading, setIsLoading] = useState(false);
     const [viewMode, setViewMode] = useState('cards'); // 'cards' | 'table'
+    const [dynamicConfig, setDynamicConfig] = useState(null);
 
     // Table Highlight State
     const [hoveredRow, setHoveredRow] = useState(null);
     const [hoveredCol, setHoveredCol] = useState(null);
+
+    const calculatedPacks = [
+        { name: "Limited Top-Up", price: 3.00, creditLimit: Math.floor(3 * avgRate) },
+        { name: "Standard Top-Up", price: 5.00, creditLimit: Math.floor(5 * avgRate) },
+        { name: "Mega Top-Up", price: 10.00, creditLimit: Math.floor(10 * avgRate) }
+    ];
+
+    useEffect(() => {
+        const fetchPricing = async () => {
+            try {
+                const res = await api.get('/api/pricing');
+                if (res.data && res.data.config) {
+                    setDynamicConfig(res.data.config);
+                }
+            } catch (error) {
+                console.warn("Using default pricing config", error);
+            }
+        };
+        fetchPricing();
+    }, []);
+
+    const avgRate = useMemo(() => {
+        // 1. Use explicit Top-Up Rate if configured
+        if (dynamicConfig?.assumptions?.topUpCreditRate) {
+            return dynamicConfig.assumptions.topUpCreditRate * 1000000;
+        }
+        // 2. Fallback
+        if (!dynamicConfig?.tiers) return 2300000;
+
+        let total = 0;
+        let count = 0;
+        dynamicConfig.tiers.forEach(t => {
+            const price = t.price || (t.prices?.find(p => p.interval === 'monthly')?.amount / 100);
+            if (price > 0 && t.creditLimit > 0) {
+                total += (t.creditLimit / price);
+                count++;
+            }
+        });
+        return count > 0 ? Math.floor(total / count) : 2300000;
+    }, [dynamicConfig]);
+
+    const getDynamicLimit = (tierKey) => {
+        if (!dynamicConfig) return TIER_CONFIG[tierKey].limits.aiCredits || 0;
+
+        // Map TIER_X to Name
+        const map = {
+            [TIERS.FREE]: 'Trial',
+            [TIERS.TIER_1]: 'Apprentice',
+            [TIERS.TIER_2]: 'Magician',
+            [TIERS.TIER_3]: 'Wizard',
+            [TIERS.TIER_4]: 'Archmage',
+            [TIERS.TIER_5]: 'Planeswalker'
+        };
+
+        const name = map[tierKey];
+        if (name === 'Trial') return dynamicConfig.trial.creditLimit;
+
+        const tier = dynamicConfig.tiers.find(t => t.name === name);
+        return tier ? tier.creditLimit : 0;
+    };
 
     const handleSubscribe = async (tierId) => {
         if (!currentUser) {
@@ -44,17 +106,62 @@ const PricingPage = () => {
         }
     };
 
+    const handleBuyPack = async (pack) => {
+        if (!currentUser) {
+            navigate('/login');
+            return;
+        }
+
+        try {
+            const response = await api.post('/api/payments/create-topup-session', {
+                credits: pack.creditLimit,
+                cost: pack.price
+            });
+            if (response.url) window.location.href = response.url;
+        } catch (error) {
+            console.error('Top-up error:', error);
+            addToast('Failed to start checkout. Please try again.', 'error');
+        }
+    };
+
     const getPriceDisplay = (tier) => {
-        const config = TIER_CONFIG[tier];
-        if (!config.prices.monthly && !config.prices.biannual && !config.prices.yearly) return 'Free';
-        const displayPrices = {
-            [TIERS.TIER_1]: { monthly: '$2.99', biannual: '$14.99', yearly: '$29.99' },
-            [TIERS.TIER_2]: { monthly: '$4.99', biannual: '$24.99', yearly: '$49.99' },
-            [TIERS.TIER_3]: { monthly: '$9.99', biannual: '$49.99', yearly: '$99.99' },
-            [TIERS.TIER_4]: { monthly: '$14.99', biannual: '$74.99', yearly: '$149.99' },
-            [TIERS.TIER_5]: { monthly: '$19.99', biannual: '$99.99', yearly: '$199.99' },
+        if (!dynamicConfig) {
+            // Fallback to existing hardcoded logic if dynamicConfig is not loaded
+            const config = TIER_CONFIG[tier];
+            if (!config.prices.monthly && !config.prices.biannual && !config.prices.yearly) return 'Free';
+            const displayPrices = {
+                [TIERS.TIER_1]: { monthly: '$2.99', biannual: '$14.99', yearly: '$29.99' },
+                [TIERS.TIER_2]: { monthly: '$4.99', biannual: '$24.99', yearly: '$49.99' },
+                [TIERS.TIER_3]: { monthly: '$9.99', biannual: '$49.99', yearly: '$99.99' },
+                [TIERS.TIER_4]: { monthly: '$14.99', biannual: '$74.99', yearly: '$149.99' },
+                [TIERS.TIER_5]: { monthly: '$19.99', biannual: '$99.99', yearly: '$199.99' },
+            };
+            return displayPrices[tier]?.[billingInterval] || 'Free';
+        }
+
+        // Use dynamicConfig
+        const mapTierIdToName = {
+            [TIERS.FREE]: 'Trial',
+            [TIERS.TIER_1]: 'Apprentice',
+            [TIERS.TIER_2]: 'Magician',
+            [TIERS.TIER_3]: 'Wizard',
+            [TIERS.TIER_4]: 'Archmage',
+            [TIERS.TIER_5]: 'Planeswalker',
         };
-        return displayPrices[tier]?.[billingInterval] || 'Free';
+        const tierName = mapTierIdToName[tier];
+
+        if (tierName === 'Trial') {
+            return 'Free';
+        }
+
+        const dynamicTier = dynamicConfig.tiers.find(t => t.name === tierName);
+        if (!dynamicTier) return 'N/A';
+
+        const price = dynamicTier.prices.find(p => p.interval === billingInterval);
+        if (price) {
+            return `$${(price.amount / 100).toFixed(2)}`;
+        }
+        return 'N/A';
     };
 
     const getSavingsDisplay = () => {
@@ -63,8 +170,20 @@ const PricingPage = () => {
         return null;
     };
 
+    const formatCredits = (num) => {
+        if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
+        return (num / 1000).toFixed(0) + "k";
+    };
+
     const renderCellContent = (item, tierKey) => {
         const config = TIER_CONFIG[tierKey];
+
+        // Special case for AI Credits
+        if (item.label === 'AI Credits / Mo' || item.key === 'aiCredits') {
+            const limit = getDynamicLimit(tierKey);
+            return <span className="text-indigo-400 font-bold">{formatCredits(limit)}</span>;
+        }
+
         if (item.type === 'static') return <Check className="w-5 h-5 text-green-500 mx-auto" />;
         if (item.type === 'limit') {
             const val = config.limits[item.key];
@@ -79,6 +198,16 @@ const PricingPage = () => {
             return hasFeature ? <Check className="w-5 h-5 text-green-500 mx-auto" /> : <X className="w-4 h-4 text-gray-700 mx-auto opacity-30" />;
         }
         return '-';
+    };
+
+    const getBreakdown = (creditLimit) => {
+        const exchangeRate = dynamicConfig?.assumptions?.exchangeRate || 15;
+        const deckCost = 45000 * exchangeRate;
+        const chatCost = 100 * exchangeRate;
+        return {
+            decks: Math.floor(creditLimit / deckCost),
+            chats: Math.floor(creditLimit / chatCost)
+        };
     };
 
     const tiers = Object.values(TIERS);
@@ -135,6 +264,9 @@ const PricingPage = () => {
                         onSubscribe={handleSubscribe}
                         isLoading={isLoading}
                         currentTier={userProfile?.subscription_tier}
+                        dynamicConfig={dynamicConfig}
+                        rate={avgRate}
+                        onBuyPack={handleBuyPack}
                     />
                 ) : (
                     // Table View
@@ -149,6 +281,8 @@ const PricingPage = () => {
                                         const config = TIER_CONFIG[tierKey];
                                         const isCurrent = userProfile?.subscription_tier === tierKey;
                                         const isHovered = hoveredCol === index;
+                                        const limit = getDynamicLimit(tierKey);
+                                        const breakdown = getBreakdown(limit);
 
                                         return (
                                             <th
@@ -165,6 +299,14 @@ const PricingPage = () => {
                                                 <div className="text-2xl font-bold mb-2">
                                                     {getPriceDisplay(tierKey)}
                                                     <span className="text-xs text-gray-500 font-normal">/{billingInterval === 'monthly' ? 'mo' : (billingInterval === 'biannual' ? '6mo' : 'yr')}</span>
+                                                </div>
+
+                                                {/* Display AI Credit Limit in Header too */}
+                                                <div className="text-sm text-indigo-400 font-mono font-bold">
+                                                    {formatCredits(limit)} Credits/mo
+                                                </div>
+                                                <div className="text-[10px] text-gray-500 mb-2">
+                                                    ~{breakdown.decks} Decks or ~{breakdown.chats.toLocaleString()} Chats
                                                 </div>
 
                                                 <button
@@ -233,19 +375,15 @@ const PricingPage = () => {
                 )}
             </div>
 
-            <div className="mt-8 text-center">
+
+
+            <div className="mt-16 text-center">
                 <p className="text-gray-500 text-sm">* Prices and limits subject to change. VAT may apply.</p>
             </div>
         </div>
     );
 };
 
-const FeatureItem = ({ label, check, highlight }) => (
-    <div className={`flex items-start text-sm ${check ? (highlight ? 'text-white font-medium' : 'text-gray-300') : 'text-gray-500'}`}>
-        {check ? <Check className={`w-4 h-4 mr-2 mt-0.5 flex-shrink-0 ${highlight ? 'text-purple-400' : 'text-green-500'}`} />
-            : <X className="w-4 h-4 mr-2 text-red-900/50 mt-0.5 flex-shrink-0" />}
-        <span>{label}</span>
-    </div>
-);
+;
 
 export default PricingPage;

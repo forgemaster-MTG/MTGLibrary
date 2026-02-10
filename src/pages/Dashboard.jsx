@@ -253,7 +253,7 @@ const SortableWidget = ({ id, widgetKey, editMode, data, actions, containerId, s
 
 // --- Main Dashboard Component ---
 const Dashboard = () => {
-    const { currentUser, userProfile, updateSettings } = useAuth();
+    const { currentUser, userProfile, updateSettings, pricingConfig } = useAuth();
     const navigate = useNavigate();
     const { addToast } = useToast();
     const { cards: collection, refresh: refreshCollection } = useCollection();
@@ -628,8 +628,8 @@ const Dashboard = () => {
 
     // --- Render ---
     const dashboardData = useMemo(() => ({
-        stats, decks, decksLoading, collection, userProfile, syncLoading
-    }), [stats, decks, decksLoading, collection, userProfile, syncLoading]);
+        stats, decks, decksLoading, collection, userProfile, syncLoading, pricingConfig
+    }), [stats, decks, decksLoading, collection, userProfile, syncLoading, pricingConfig]);
 
     const dashboardActions = useMemo(() => ({
         handleSyncPrices,

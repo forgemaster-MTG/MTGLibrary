@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { TIERS, TIER_CONFIG, getTierConfig } from '../../config/tiers';
@@ -15,6 +15,43 @@ const Membership = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
     const [billingInterval, setBillingInterval] = useState('monthly');
+    const [dynamicConfig, setDynamicConfig] = useState(null);
+
+    useEffect(() => {
+        const fetchPricing = async () => {
+            try {
+                const res = await api.get('/api/pricing');
+                if (res.data && res.data.config) {
+                    setDynamicConfig(res.data.config);
+                }
+            } catch (error) {
+                console.warn("Using default pricing config", error);
+            }
+        };
+        fetchPricing();
+    }, []);
+
+    const avgRate = useMemo(() => {
+        // 1. Use explicit Top-Up Rate if configured (Millions -> Raw)
+        if (dynamicConfig?.assumptions?.topUpCreditRate) {
+            return dynamicConfig.assumptions.topUpCreditRate * 1000000;
+        }
+
+        // 2. Fallback to average of tiers
+        if (!dynamicConfig?.tiers) return 2300000;
+
+        let total = 0;
+        let count = 0;
+        dynamicConfig.tiers.forEach(t => {
+            // Support both simple 'price' and 'prices' array
+            const price = t.price || (t.prices?.find(p => p.interval === 'monthly')?.amount / 100);
+            if (price > 0 && t.creditLimit > 0) {
+                total += (t.creditLimit / price);
+                count++;
+            }
+        });
+        return count > 0 ? Math.floor(total / count) : 2300000;
+    }, [dynamicConfig]);
 
     // Data Hooks for Usage Stats
     const { cards: collection } = useCollection();
@@ -85,6 +122,23 @@ const Membership = () => {
         } catch (error) {
             console.error("Subscription error:", error);
             alert(error.message || 'Failed to start subscription process');
+            setIsLoading(false);
+        }
+    };
+
+    const handleBuyPack = async (pack) => {
+        setIsLoading(true);
+        try {
+            const response = await api.post('/api/payments/create-topup-session', {
+                credits: pack.creditLimit,
+                cost: pack.price
+            });
+            if (response.url) {
+                window.location.href = response.url;
+            }
+        } catch (error) {
+            console.error("Top-up error:", error);
+            alert('Failed to start top-up checkout.');
             setIsLoading(false);
         }
     };
@@ -255,6 +309,9 @@ const Membership = () => {
                                 onSubscribe={handleSubscribe}
                                 isLoading={isLoading}
                                 currentTier={currentTierId}
+                                dynamicConfig={dynamicConfig}
+                                rate={avgRate}
+                                onBuyPack={handleBuyPack}
                             />
                         </div>
                     </div>

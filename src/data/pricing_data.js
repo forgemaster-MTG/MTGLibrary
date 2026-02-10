@@ -2,11 +2,11 @@ import { TIERS, TIER_CONFIG } from '../config/tiers';
 
 export const FEATURE_GROUPS = [
     {
-        name: "Limits",
+        name: "Core Features",
         items: [
-            { label: "Collection size", type: 'limit', key: 'collection' },
-            { label: "Wishlist size", type: 'limit', key: 'wishlist' },
-            { label: "Deck count", type: 'limit', key: 'decks' },
+            { label: "Unlimited Collection", type: 'static', value: true },
+            { label: "Unlimited Decks", type: 'static', value: true },
+            { label: "Unlimited Wishlist", type: 'static', value: true },
             { label: "Pod Count", type: 'limit', key: 'pods' },
         ]
     },
@@ -79,19 +79,48 @@ export const FEATURE_GROUPS = [
 ];
 
 // Helper to find features new to this tier compared to previous
-export const getNewFeatures = (currentTier, previousTier) => {
-    const current = TIER_CONFIG[currentTier];
-    const prev = previousTier ? TIER_CONFIG[previousTier] : null;
+// Helper to find features new to this tier compared to previous
+export const getNewFeatures = (currentTier, previousTier, dynamicConfig = null) => {
+    const currentStatic = TIER_CONFIG[currentTier];
+    const prevStatic = previousTier ? TIER_CONFIG[previousTier] : null;
 
-    if (!prev) {
+    // Helper to get effective limits
+    const getEffectiveLimits = (tierKey) => {
+        const staticLimits = TIER_CONFIG[tierKey].limits;
+        if (!dynamicConfig) return staticLimits;
+
+        const map = {
+            'free': 'Trial',
+            'tier_1': 'Apprentice', 'tier_2': 'Magician', 'tier_3': 'Wizard',
+            'tier_4': 'Archmage', 'tier_5': 'Planeswalker'
+        };
+        const name = map[tierKey];
+        const dynTier = name === 'Trial' ? dynamicConfig.trial : (dynamicConfig.tiers ? dynamicConfig.tiers.find(t => t.name === name) : null);
+
+        if (!dynTier) return staticLimits;
+
+        return {
+            collection: dynTier.collectionLimit ?? staticLimits.collection,
+            decks: dynTier.deckLimit ?? staticLimits.decks,
+            wishlist: dynTier.wishlistLimit ?? staticLimits.wishlist,
+            pods: dynTier.podLimit ?? staticLimits.pods,
+            // aiCredits handled elsewhere
+        };
+    };
+
+    const currentLimits = getEffectiveLimits(currentTier);
+    const prevLimits = previousTier ? getEffectiveLimits(previousTier) : null;
+
+    const isInf = (val) => val === null || val === Infinity || val >= 999999;
+
+    if (!prevLimits) {
         // For the first tier (Free), show some base features manually
         if (currentTier === TIERS.FREE) {
             return {
                 limits: [
-                    { label: `Collection: ${current.limits.collection}`, type: 'limit' },
-                    { label: `Wishlist: ${current.limits.wishlist}`, type: 'limit' },
-                    { label: `Decks: ${current.limits.decks}`, type: 'limit' },
-                    { label: `Pods (Shared Accounts): 0`, type: 'limit' },
+                    { label: `Collection: ${isInf(currentLimits.collection) ? 'Unlimited' : currentLimits.collection}`, type: 'limit' },
+                    { label: `Decks: ${isInf(currentLimits.decks) ? 'Unlimited' : currentLimits.decks}`, type: 'limit' },
+                    { label: `Pods (Shared Accounts): ${currentLimits.pods || 0}`, type: 'limit' },
                 ],
                 features: [
                     { label: "AI Chatbot", type: 'feature' }
@@ -105,30 +134,38 @@ export const getNewFeatures = (currentTier, previousTier) => {
     const features = [];
 
     // Check Limits - Order: Collection, Wishlist, Decks, Pods
-    if (current.limits.collection > prev.limits.collection)
-        limits.push({ label: `Collection: ${current.limits.collection === Infinity ? 'Unlimited' : current.limits.collection}`, type: 'limit' });
-    if (current.limits.wishlist > prev.limits.wishlist)
-        limits.push({ label: `Wishlist: ${current.limits.wishlist === Infinity ? 'Unlimited' : current.limits.wishlist}`, type: 'limit' });
-    if (current.limits.decks > prev.limits.decks)
-        limits.push({ label: `Decks: ${current.limits.decks === Infinity ? 'Unlimited' : current.limits.decks}`, type: 'limit' });
+    if (isInf(currentLimits.collection) && !isInf(prevLimits.collection)) {
+        limits.push({ label: `Collection: Unlimited`, type: 'limit' });
+    } else if (currentLimits.collection > prevLimits.collection) {
+        limits.push({ label: `Collection: ${currentLimits.collection}`, type: 'limit' });
+    }
 
-    // Pods Logic: Explicitly show for lower tiers, bold for Wizard
+    if (isInf(currentLimits.wishlist) && !isInf(prevLimits.wishlist)) {
+        limits.push({ label: `Wishlist: Unlimited`, type: 'limit' });
+    } else if (currentLimits.wishlist > prevLimits.wishlist) {
+        limits.push({ label: `Wishlist: ${currentLimits.wishlist}`, type: 'limit' });
+    }
+
+    if (isInf(currentLimits.decks) && !isInf(prevLimits.decks)) {
+        limits.push({ label: `Decks: Unlimited`, type: 'limit' });
+    } else if (currentLimits.decks > prevLimits.decks) {
+        limits.push({ label: `Decks: ${currentLimits.decks}`, type: 'limit' });
+    }
+
+    // Pods Logic
     const isWizard = currentTier === TIERS.TIER_3;
-    const isLowerTier = [TIERS.TIER_1, TIERS.TIER_2].includes(currentTier);
-
-    if (current.limits.pods > prev.limits.pods || isLowerTier) {
+    if (currentLimits.pods > prevLimits.pods || (currentLimits.pods > 0 && prevLimits.pods === 0)) {
         limits.push({
-            label: `Pods (Shared Accounts): ${current.limits.pods === Infinity ? 'Unlimited' : current.limits.pods}`,
+            label: `Pods (Shared Accounts): ${isInf(currentLimits.pods) ? 'Unlimited' : currentLimits.pods}`,
             type: 'limit',
             bold: isWizard,
             tooltip: "Pods allow you to link accounts (friends/family) to share your collection and deck building tools."
         });
     }
 
-    // Check Features
-    Object.keys(current.features).forEach(key => {
-        if (current.features[key] && !prev.features[key]) {
-            // Find readable label from FEATURE_GROUPS if possible, or format key
+    // Check Features (Static only for now)
+    Object.keys(currentStatic.features).forEach(key => {
+        if (currentStatic.features[key] && !prevStatic.features[key]) {
             const groupItem = FEATURE_GROUPS.flatMap(g => g.items).find(i => i.key === key);
             features.push({ label: groupItem ? groupItem.label : key.replace(/([A-Z])/g, ' $1').trim(), type: 'feature' });
         }

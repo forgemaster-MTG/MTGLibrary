@@ -66,13 +66,12 @@ const getKeys = (primaryKey, userProfile) => {
 };
 
 const PRO_MODELS = [
-    "gemini-2.5-pro",            // Verified Available
-    "gemini-2.0-flash-exp",      // Fallback High Intelligence
+    "gemini-1.5-pro",            // Stable High-Intelligence
+    "gemini-1.5-pro-latest"      // Fallback
 ];
 
 const FLASH_MODELS = [
-    "gemini-2.5-flash-lite",     // Primary High-Speed
-    "gemini-1.5-flash",          // Stable Fallback
+    "gemini-1.5-flash",          // Primary High-Speed
     "gemini-1.5-flash-8b",       // Super Fast Fallback
 ];
 
@@ -311,6 +310,20 @@ const GeminiService = {
 
                         // Success
                         const data = await response.json();
+
+                        // Fire event to update credits in UI instantly
+                        if (data.credits_monthly !== undefined || data.credits_topup !== undefined) {
+                            if (typeof window !== 'undefined') {
+                                const evt = new CustomEvent('auth:update-credits', {
+                                    detail: {
+                                        credits_monthly: data.credits_monthly,
+                                        credits_topup: data.credits_topup
+                                    }
+                                });
+                                window.dispatchEvent(evt);
+                            }
+                        }
+
                         const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
                         if (text) {
                             const outTokens = estimateTokens(text);
@@ -745,7 +758,7 @@ const GeminiService = {
             system_instruction: { parts: [{ text: `You are a professional editor. Rewrite the following ${type} text to be professional, evocative, and structured for a high-end gaming application. Use basic HTML (<b>, <i>, <ul>, <li>). Do not use markdown blocks.` }] },
             contents: [{ role: 'user', parts: [{ text: text }] }]
         };
-        const result = await this.executeWithFallback(payload, userProfile, { apiKey });
+        const result = await this.executeWithFallback(payload, userProfile, { apiKey, models: FLASH_MODELS });
         return result.replace(/```html/g, '').replace(/```/g, '').trim();
     },
 
@@ -992,7 +1005,7 @@ const GeminiService = {
             }
         };
 
-        const result = await this.executeWithFallback(body, userProfile, { apiKey });
+        const result = await this.executeWithFallback(body, userProfile, { apiKey, models: PRO_MODELS });
         return parseResponse(result);
     },
 
@@ -1022,7 +1035,7 @@ const GeminiService = {
                 }
             }
         };
-        const result = await this.executeWithFallback(payload, userProfile, { apiKey });
+        const result = await this.executeWithFallback(payload, userProfile, { apiKey, models: FLASH_MODELS });
         return parseResponse(result);
     },
 
@@ -1063,7 +1076,7 @@ const GeminiService = {
                 }
             }
         };
-        const result = await this.executeWithFallback(payload, userProfile, { apiKey });
+        const result = await this.executeWithFallback(payload, userProfile, { apiKey, models: FLASH_MODELS });
         return parseResponse(result);
     },
 
@@ -1110,7 +1123,7 @@ const GeminiService = {
                 }
             }
         };
-        const result = await this.executeWithFallback(payload, userProfile, { apiKey });
+        const result = await this.executeWithFallback(payload, userProfile, { apiKey, models: FLASH_MODELS });
         return JSON.parse(result);
     },
 
@@ -1151,7 +1164,7 @@ const GeminiService = {
                 }
             }
         };
-        const result = await this.executeWithFallback(payload, userProfile, { apiKey });
+        const result = await this.executeWithFallback(payload, userProfile, { apiKey, models: FLASH_MODELS });
         return JSON.parse(result);
     },
 
@@ -1164,7 +1177,7 @@ const GeminiService = {
             system_instruction: { parts: [{ text: systemPrompt }] },
             contents: [{ role: 'user', parts: [{ text: `Tickets: ${JSON.stringify(tickets)}` }] }]
         };
-        const result = await this.executeWithFallback(payload, userProfile, { apiKey });
+        const result = await this.executeWithFallback(payload, userProfile, { apiKey, models: PRO_MODELS });
         return result.replace(/```html/g, '').replace(/```/g, '').trim();
     }
 };
