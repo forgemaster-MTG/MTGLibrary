@@ -134,21 +134,27 @@ export async function createTopUpSession(userId, pack, successUrl, cancelUrl) {
     const user = await knex('users').where({ id: userId }).first();
     const customerId = await getOrCreateCustomer(user);
 
+
+    const lineItems = pack.priceId ? [{
+        price: pack.priceId,
+        quantity: 1
+    }] : [{
+        price_data: {
+            currency: 'usd',
+            product_data: {
+                name: pack.name,
+                description: `${(pack.creditLimit / 1000000).toFixed(1)}M AI Credits`,
+            },
+            unit_amount: Math.round(pack.price * 100), // cents
+        },
+        quantity: 1,
+    }];
+
     const session = await stripe.checkout.sessions.create({
         customer: customerId,
         mode: 'payment',
         payment_method_types: ['card'],
-        line_items: [{
-            price_data: {
-                currency: 'usd',
-                product_data: {
-                    name: pack.name,
-                    description: `${(pack.creditLimit / 1000000).toFixed(1)}M AI Credits`,
-                },
-                unit_amount: Math.round(pack.price * 100), // cents
-            },
-            quantity: 1,
-        }],
+        line_items: lineItems,
         success_url: successUrl,
         cancel_url: cancelUrl,
         metadata: {

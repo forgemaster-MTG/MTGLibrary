@@ -211,10 +211,30 @@ export const AuthProvider = ({ children }) => {
         };
     }, [currentUser, queryClient]);
 
+    // Compute Effective Profile (Handle Trial Expiration)
+    const effectiveUserProfile = React.useMemo(() => {
+        if (!userProfile) return null;
+        const profile = { ...userProfile };
+
+        // Trial Expiration Logic
+        if (profile.subscription_status === 'trial' && profile.trial_end_date) {
+            const endDate = new Date(profile.trial_end_date);
+            const now = new Date();
+            // Calculate distinct days left (ceiling to round up partial days)
+            const daysLeft = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
+
+            if (daysLeft <= 0) {
+                profile.subscription_tier = 'free'; // Downgrade to free
+                profile.is_trial_expired = true;
+            }
+        }
+        return profile;
+    }, [userProfile]);
+
     const value = {
         currentUser,
         user: currentUser,
-        userProfile,
+        userProfile: effectiveUserProfile,
         loading: firebaseLoading || (!!currentUser && profileLoading),
         refreshUserProfile: refetchProfile,
         updateSettings,

@@ -30,12 +30,13 @@ const SubscriptionSelection = ({
     const displayPacks = React.useMemo(() => {
         if (packs && packs.length > 0) return packs;
         if (dynamicConfig?.packs && dynamicConfig.packs.length > 0) return dynamicConfig.packs;
+        const currentRate = rate || 2300000;
         return [
-            { name: "Limited Top-Up", price: 3.00, creditLimit: 8000000 },
-            { name: "Standard Top-Up", price: 5.00, creditLimit: 15000000 },
-            { name: "Mega Top-Up", price: 10.00, creditLimit: 31500000 }
+            { name: "Limited Top-Up", price: 3.00, creditLimit: Math.floor(3 * currentRate), priceId: 'price_1SzqhHDBKqoK8H1R2hueH8bO' },
+            { name: "Standard Top-Up", price: 5.00, creditLimit: Math.floor(5 * currentRate), priceId: 'price_1SzqhhDBKqoK8H1RhI24QhlN' },
+            { name: "Mega Top-Up", price: 10.00, creditLimit: Math.floor(10 * currentRate), priceId: 'price_1SzqhsDBKqoK8H1RxtCngqnG' }
         ];
-    }, [packs, dynamicConfig]);
+    }, [packs, dynamicConfig, rate]);
 
     const getPriceDisplay = (tier) => {
         if (dynamicConfig && dynamicConfig.tiers) {
@@ -100,6 +101,23 @@ const SubscriptionSelection = ({
         };
     };
 
+    const getTierImage = (tierKey) => {
+        const map = {
+            [TIERS.FREE]: 'initiate.png',
+            [TIERS.TIER_1]: 'apprentice.png',
+            [TIERS.TIER_2]: 'magician.png',
+            [TIERS.TIER_3]: 'wizard.png',
+            [TIERS.TIER_4]: 'archmage.png',
+            [TIERS.TIER_5]: 'planeswalker.png'
+        };
+        return `/images/tiers/${map[tierKey] || 'initiate.png'}`;
+    };
+
+    const getTopUpImage = (index) => {
+        const map = ['3_token top-up.png', '5_token top-up.png', '10_token top-up.png'];
+        return `/images/tiers/${map[index] || '3_token top-up.png'}`;
+    };
+
     return (
         <div className="w-full">
             {showIntervalSelector && (
@@ -136,9 +154,14 @@ const SubscriptionSelection = ({
                                 </div>
                             )}
 
-                            <div className="mb-4">
+                            <div className="mb-4 text-center">
+                                <img
+                                    src={getTierImage(tierKey)}
+                                    alt={config.name}
+                                    className="w-full h-32 object-contain mb-4 drop-shadow-lg"
+                                />
                                 <h3 className="text-xl font-bold text-gray-100">{config.name}</h3>
-                                <div className="flex items-baseline gap-1">
+                                <div className="flex items-baseline justify-center gap-1">
                                     <span className="text-2xl font-bold text-white">{getPriceDisplay(tierKey)}</span>
                                     <span className="text-sm text-gray-500">/{billingInterval === 'monthly' ? 'mo' : (billingInterval === 'quarterly' ? 'qtr' : (billingInterval === 'biannual' ? '6mo' : 'yr'))}</span>
                                 </div>
@@ -219,6 +242,13 @@ const SubscriptionSelection = ({
                 <div className="flex flex-wrap justify-center gap-6">
                     {displayPacks.map((pack, i) => (
                         <div key={i} className="bg-gray-800/50 border border-gray-700/50 rounded-xl p-5 w-full max-w-[280px] hover:border-indigo-500/50 transition-all group flex flex-col items-center text-center">
+
+                            <img
+                                src={getTopUpImage(i)}
+                                alt={pack.name}
+                                className="w-32 h-32 object-contain mb-4 drop-shadow-lg"
+                            />
+
                             <div className="mb-4">
                                 <h4 className="font-bold text-gray-200 text-lg mb-1">{pack.name}</h4>
                                 <div className="text-2xl font-bold text-white">${typeof pack.price === 'number' ? pack.price.toFixed(2) : pack.price}</div>

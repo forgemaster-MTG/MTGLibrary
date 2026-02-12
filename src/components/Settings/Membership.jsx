@@ -61,6 +61,23 @@ const Membership = () => {
     const currentTierId = userProfile?.override_tier || userProfile?.subscription_tier;
     const config = getTierConfig(currentTierId);
 
+    const getCreditLimit = (tierKey) => {
+        if (!dynamicConfig) return TIER_CONFIG[tierKey]?.limits?.aiCredits || 0;
+
+        const map = {
+            [TIERS.FREE]: 'Trial',
+            [TIERS.TIER_1]: 'Apprentice',
+            [TIERS.TIER_2]: 'Magician',
+            [TIERS.TIER_3]: 'Wizard',
+            [TIERS.TIER_4]: 'Archmage',
+            [TIERS.TIER_5]: 'Planeswalker'
+        };
+        const name = map[tierKey];
+        if (name === 'Trial') return dynamicConfig.trial.creditLimit;
+        const tier = dynamicConfig.tiers.find(t => t.name === name);
+        return tier ? tier.creditLimit : 0;
+    };
+
     // Fallback if subscription_status is missing but tier is not free (manual assignment)
     const status = userProfile?.subscription_status || (currentTierId !== TIERS.FREE ? 'active' : 'free');
 
@@ -83,7 +100,8 @@ const Membership = () => {
         return {
             decks: decks.length,
             collection: totalCards,
-            wishlist: wishlistCount
+            wishlist: wishlistCount,
+            credits: (userProfile?.credits_monthly || 0) + (userProfile?.credits_topup || 0)
         };
     }, [collection, decks]);
 
@@ -131,7 +149,8 @@ const Membership = () => {
         try {
             const response = await api.post('/api/payments/create-topup-session', {
                 credits: pack.creditLimit,
-                cost: pack.price
+                cost: pack.price,
+                priceId: pack.priceId
             });
             if (response.url) {
                 window.location.href = response.url;
@@ -157,13 +176,25 @@ const Membership = () => {
 
     const renderProgressBar = (label, current, max, icon) => {
         const percentage = max === Infinity ? 0 : Math.min((current / max) * 100, 100);
-        const isNearLimit = max !== Infinity && (current / max) >= 0.9;
 
-        // Colors
+        let isNearLimit = false;
         let colorClass = 'bg-green-500';
-        if (max === Infinity) colorClass = 'bg-blue-500';
-        else if (percentage >= 90) colorClass = 'bg-red-500';
-        else if (percentage >= 75) colorClass = 'bg-yellow-500';
+
+        if (label === 'AI Credits') {
+            // Inverted logic for credits (Remaining / Max)
+            // Low % is Bad (Red)
+            isNearLimit = max > 0 && (current / max) < 0.1;
+            if (percentage < 10) colorClass = 'bg-red-500';
+            else if (percentage < 30) colorClass = 'bg-yellow-500';
+            else colorClass = 'bg-green-500';
+        } else {
+            // Standard logic (Used / Max)
+            // High % is Bad (Red)
+            isNearLimit = max !== Infinity && (current / max) >= 0.9;
+            if (max === Infinity) colorClass = 'bg-blue-500';
+            else if (percentage >= 90) colorClass = 'bg-red-500';
+            else if (percentage >= 75) colorClass = 'bg-yellow-500';
+        }
 
         return (
             <div className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-4">
@@ -182,10 +213,14 @@ const Membership = () => {
                         style={{ width: max === Infinity ? '100%' : `${percentage}%` }}
                     />
                 </div>
-                {isNearLimit && (
-                    <p className="text-[10px] text-red-400 mt-1 mt-2">Running low on space!</p>
-                )}
-            </div>
+                {
+                    isNearLimit && (
+                        <p className="text-[10px] text-red-400 mt-1 mt-2">
+                            {label === 'AI Credits' ? 'Running low on credits!' : 'Running low on space!'}
+                        </p>
+                    )
+                }
+            </div >
         );
     };
 
@@ -280,7 +315,8 @@ const Membership = () => {
                 <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                     <span className="text-xl">📊</span> Usage & Limits
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {renderProgressBar('AI Credits', stats.credits, getCreditLimit(currentTierId), '⚡')}
                     {renderProgressBar('Decks', stats.decks, config.limits.decks, '📚')}
                     {renderProgressBar('Collection', stats.collection, config.limits.collection, '🃏')}
                     {renderProgressBar('Wishlist', stats.wishlist, config.limits.wishlist, '✨')}

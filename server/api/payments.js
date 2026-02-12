@@ -78,10 +78,16 @@ router.post('/create-checkout-session', authMiddleware, async (req, res) => {
 
 router.post('/create-topup-session', authMiddleware, async (req, res) => {
     try {
-        const { packIndex, credits, successUrl: customSuccessUrl, cancelUrl: customCancelUrl } = req.body;
+        const { packIndex, credits, priceId, successUrl: customSuccessUrl, cancelUrl: customCancelUrl } = req.body;
 
         let pack;
-        if (credits) {
+        if (priceId) {
+            pack = {
+                priceId,
+                creditLimit: credits,
+                name: 'Top-Up'
+            };
+        } else if (credits) {
             const price = await PricingService.calculateTopUpCost(credits);
             pack = {
                 name: 'Custom Top-Up',

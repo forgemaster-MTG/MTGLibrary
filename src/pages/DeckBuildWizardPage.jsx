@@ -484,7 +484,7 @@ const DeckBuildWizardPage = () => {
                         if (!scryData && buildMode !== 'collection') {
                             try {
                                 const resp = await api.post('/api/cards/search', { query: s.name });
-                                scryData = resp.data?.data?.[0];
+                                scryData = resp.data?.[0];
                             } catch (e) { /* ignore search fail */ }
                         }
 
@@ -570,8 +570,6 @@ const DeckBuildWizardPage = () => {
 
             // if (actualTarget <= 0) continue;
 
-            setStatus(`Laying Foundation: ${role.toUpperCase()} (${actualTarget} slots)...`);
-
             try {
                 // Prepare Constraints (Foundation)
                 const restrictedSetCodes = getRestrictedSets().map(s => s.code.toLowerCase());
@@ -626,6 +624,8 @@ const DeckBuildWizardPage = () => {
 
                 const actualTarget = Math.min(target, Math.max(0, hardenedSpaceRemaining));
 
+                setStatus(`Laying Foundation: ${role.toUpperCase()} (${actualTarget} slots)...`);
+
                 if (actualTarget <= 0) {
                     addLog(`[Foundation] No space for ${role} after reserving ${reservedLandSlots} land slots.`);
                     continue;
@@ -673,7 +673,7 @@ const DeckBuildWizardPage = () => {
                         const inColl = collection.find(c => c.name === s.name);
                         if (inColl) { scryData = inColl.data || inColl; isFromCollection = true; }
                         if (!scryData && buildMode !== 'collection') {
-                            try { const resp = await api.post('/api/cards/search', { query: s.name }); scryData = resp.data?.data?.[0]; } catch (e) { }
+                            try { const resp = await api.post('/api/cards/search', { query: s.name }); scryData = resp.data?.[0]; } catch (e) { }
                         }
 
                         if (scryData) {

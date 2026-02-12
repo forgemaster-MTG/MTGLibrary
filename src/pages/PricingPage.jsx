@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { TIERS, TIER_CONFIG } from '../config/tiers';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -21,12 +21,6 @@ const PricingPage = () => {
     // Table Highlight State
     const [hoveredRow, setHoveredRow] = useState(null);
     const [hoveredCol, setHoveredCol] = useState(null);
-
-    const calculatedPacks = [
-        { name: "Limited Top-Up", price: 3.00, creditLimit: Math.floor(3 * avgRate) },
-        { name: "Standard Top-Up", price: 5.00, creditLimit: Math.floor(5 * avgRate) },
-        { name: "Mega Top-Up", price: 10.00, creditLimit: Math.floor(10 * avgRate) }
-    ];
 
     useEffect(() => {
         const fetchPricing = async () => {
@@ -61,6 +55,12 @@ const PricingPage = () => {
         });
         return count > 0 ? Math.floor(total / count) : 2300000;
     }, [dynamicConfig]);
+
+    const calculatedPacks = useMemo(() => [
+        { name: "Limited Top-Up", price: 3.00, creditLimit: Math.floor(3 * avgRate), priceId: 'price_1SzqhHDBKqoK8H1R2hueH8bO' },
+        { name: "Standard Top-Up", price: 5.00, creditLimit: Math.floor(5 * avgRate), priceId: 'price_1SzqhhDBKqoK8H1RhI24QhlN' },
+        { name: "Mega Top-Up", price: 10.00, creditLimit: Math.floor(10 * avgRate), priceId: 'price_1SzqhsDBKqoK8H1RxtCngqnG' }
+    ], [avgRate]);
 
     const getDynamicLimit = (tierKey) => {
         if (!dynamicConfig) return TIER_CONFIG[tierKey].limits.aiCredits || 0;
@@ -115,7 +115,8 @@ const PricingPage = () => {
         try {
             const response = await api.post('/api/payments/create-topup-session', {
                 credits: pack.creditLimit,
-                cost: pack.price
+                cost: pack.price,
+                priceId: pack.priceId
             });
             if (response.url) window.location.href = response.url;
         } catch (error) {

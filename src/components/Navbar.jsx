@@ -206,6 +206,14 @@ const Navbar = () => {
 
 
                                             {userProfile?.subscription_status === 'trial' && (() => {
+                                                if (userProfile.is_trial_expired) {
+                                                    return (
+                                                        <span className="bg-red-500/10 border border-red-500/30 text-red-400 text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse leading-none uppercase">
+                                                            TRIAL ENDED
+                                                        </span>
+                                                    );
+                                                }
+
                                                 const endDate = userProfile?.trial_end_date ? new Date(userProfile.trial_end_date) : null;
                                                 const daysLeft = endDate ? Math.ceil((endDate - new Date()) / (1000 * 60 * 60 * 24)) : 0;
                                                 return (

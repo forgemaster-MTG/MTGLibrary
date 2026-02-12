@@ -1068,7 +1068,8 @@ const GeminiService = {
                                 interaction: { type: "NUMBER" },
                                 complexity: { type: "NUMBER" },
                                 political: { type: "NUMBER" }
-                            }
+                            },
+                            required: ["aggression", "interaction", "complexity", "political"]
                         },
                         archetypes: { type: "ARRAY", items: { type: "STRING" } }
                     },
@@ -1113,10 +1114,12 @@ const GeminiService = {
                                         interaction: { type: "NUMBER" },
                                         complexity: { type: "NUMBER" },
                                         political: { type: "NUMBER" }
-                                    }
+                                    },
+                                    required: ["aggression", "interaction", "complexity", "political"]
                                 },
                                 archetypes: { type: "ARRAY", items: { type: "STRING" } }
-                            }
+                            },
+                            required: ["summary", "tags", "scores", "archetypes"]
                         }
                     },
                     required: ["aiResponse", "updatedProfile"]

@@ -60,6 +60,8 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection', decks 
     const [worker, setWorker] = useState(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [isWorkerReady, setIsWorkerReady] = useState(false);
+    const [activeDeviceId, setActiveDeviceId] = useState(null);
+    const [availableDevices, setAvailableDevices] = useState([]);
 
     // Scanned Data
     const [scannedCards, setScannedCards] = useState([]);
@@ -107,6 +109,39 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection', decks 
             }
         };
     }, [isOpen, isRemoteMode]);
+
+    // Camera enumerator
+    useEffect(() => {
+        if (!isOpen || isRemoteMode) return;
+
+        const getDevices = async () => {
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(d => d.kind === 'videoinput');
+                setAvailableDevices(videoDevices);
+                if (videoDevices.length > 0 && !activeDeviceId) {
+                    // Default to the last one (often the "back" camera on mobile chains, or just the first)
+                    // Better logic: try to find one with "back" or "environment" in label
+                    const backCam = videoDevices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('environment'));
+                    setActiveDeviceId(backCam ? backCam.deviceId : videoDevices[videoDevices.length - 1].deviceId);
+                }
+            } catch (err) {
+                console.error("Error enumerating devices:", err);
+            }
+        };
+
+        getDevices();
+    }, [isOpen, isRemoteMode]);
+
+    const handleSwitchCamera = useCallback(() => {
+        if (availableDevices.length < 2) return;
+        const tempDevices = [...availableDevices];
+        const currentIndex = tempDevices.findIndex(d => d.deviceId === activeDeviceId);
+        const nextIndex = (currentIndex + 1) % tempDevices.length;
+        const nextDevice = tempDevices[nextIndex];
+        setActiveDeviceId(nextDevice.deviceId);
+        addToast(`Switched to ${nextDevice.label || 'Camera ' + (nextIndex + 1)}`, 'info');
+    }, [availableDevices, activeDeviceId, addToast]);
 
     // WebSocket Integration
     useEffect(() => {
@@ -313,6 +348,9 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection', decks 
 
         if (validUn.length > 0) cn = validUn[0];
 
+        // Normalize CN (remove leading zeros) for later comparison/search
+        if (cn) cn = cn.replace(/^0+/, '');
+
         // Set Code Logic
         const setMatches = footerText.match(/\b[A-Z0-9]{3,4}\b/g);
         if (setMatches) {
@@ -440,6 +478,7 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection', decks 
 
     const handleConfirmAll = () => {
         if (onFinish) onFinish(scannedCards, destination);
+        setScannedCards([]); // Clear the list
         onClose();
     };
 
@@ -544,9 +583,10 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection', decks 
                                     videoConstraints={{
                                         width: 1280,
                                         height: 720,
-                                        facingMode: "environment"
+                                        deviceId: activeDeviceId ? { exact: activeDeviceId } : undefined,
+                                        facingMode: activeDeviceId ? undefined : "environment"
                                     }}
-                                    className="w-full h-full object-cover grayscale brightness-110 contrast-125"
+                                    className="w-full h-full object-cover brightness-110"
                                 />
 
                                 {/* Overlays */}
@@ -583,6 +623,20 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection', decks 
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* Camera Switcher (Bottom Right of Feed) */}
+                                {availableDevices.length > 1 && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleSwitchCamera();
+                                        }}
+                                        className="absolute bottom-4 right-4 p-2 bg-black/50 text-white rounded-full hover:bg-white/20 transition-all pointer-events-auto z-50 backdrop-blur-sm"
+                                        title="Switch Camera (Telephoto)"
+                                    >
+                                        <RefreshCw className="w-5 h-5" />
+                                    </button>
+                                )}
                             </div>
 
                             {/* Controls */}
