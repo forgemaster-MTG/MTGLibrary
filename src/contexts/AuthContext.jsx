@@ -233,7 +233,8 @@ export const AuthProvider = ({ children }) => {
         // Attach Tier Config with Override Support
         profile.tierConfig = getTierConfig(
             profile.subscription_tier,
-            profile.settings?.permissions || []
+            profile.settings?.permissions || [],
+            { isTrial: profile.subscription_status === 'trial' }
         );
 
         return profile;

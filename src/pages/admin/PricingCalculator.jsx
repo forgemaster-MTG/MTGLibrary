@@ -133,7 +133,12 @@ const PricingCalculator = () => {
                 let totalTopUpRemaining = 0;
 
                 users.forEach(u => {
-                    const tierConfig = getTierConfig(u.override_tier || u.subscription_tier || 'free', u.settings?.permissions);
+                    const isTrial = u.subscription_status === 'trial';
+                    const tierConfig = getTierConfig(
+                        u.override_tier || u.subscription_tier || 'free',
+                        u.settings?.permissions,
+                        { isTrial }
+                    );
                     totalMonthlyLimit += (tierConfig?.limits?.aiCredits || 0);
                     // Use Number() to ensure we don't do string concatenation with strings from DB
                     totalMonthlyRemaining += Number(u.credits_monthly || 0);

@@ -104,10 +104,34 @@ app.use(limiter);
 
 
 
+// 1. PUBLIC ROUTES (No Auth, No global JSON parser needed for webhooks)
+import { handleWebhook } from './services/stripe.js';
+app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  let event;
+  try {
+    if (endpointSecret) {
+      const { stripe } = await import('./services/stripe.js');
+      event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
+    } else {
+      // Dev mode/Unverified
+      event = JSON.parse(req.body.toString());
+    }
+    await handleWebhook(event);
+    res.json({ received: true });
+  } catch (err) {
+    console.error(`[Stripe Webhook Error] ${err.message}`);
+    res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+});
+
+
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
-// Authenticated user endpoints
+// 2. AUTHENTICATED USER ENDPOINTS
 app.get('/me', auth, async (req, res) => {
   // Fetch fresh user data including settings
   try {

@@ -7,48 +7,7 @@ import bodyParser from 'body-parser';
 
 const router = express.Router();
 
-// Webhook endpoint (Must use raw body, so we mount it before json parser if global, but here we can handle it specifically)
-// Note: server/index.js likely applies bodyParser/express.json globally. 
-// We might need to ensuring raw body is available.
-// For now, let's assume standard construction. In many Express apps, you need `express.raw({type: 'application/json'})` for webhooks.
-// If index.js sets global json parsing, it might verify signature tricky.
-// Usually easier to handle webhook in index.js or specific route with raw parser.
-// We'll stick to standard logic and hope the global middleware doesn't consume it too much or we use the buffer.
-
-router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-    const sig = req.headers['stripe-signature'];
-    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
-    let event;
-
-    try {
-        // If we have the secret, verify. If not (dev mode without secret), proceed with caution or fail?
-        // User didn't have secret yet.
-        if (endpointSecret && stripe) {
-            event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
-        } else {
-            // Fallback for unverified dev testing (NOT SECURE FOR PROD)
-            // If body is already parsed by global middleware, this might fail 'constructEvent'.
-            if (!stripe) return res.status(500).send('Stripe not initialized');
-            try {
-                event = JSON.parse(req.body.toString());
-            } catch (e) {
-                event = req.body; // already parsed?
-            }
-        }
-    } catch (err) {
-        console.error(`Webhook Error: ${err.message}`);
-        return res.status(400).send(`Webhook Error: ${err.message}`);
-    }
-
-    try {
-        await handleWebhook(event);
-        res.json({ received: true });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Webhook handler failed' });
-    }
-});
+// Webhook handled in index.js for raw body parsing and public access
 
 // All other routes require auth
 router.post('/create-checkout-session', authMiddleware, async (req, res) => {

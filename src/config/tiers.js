@@ -225,19 +225,44 @@ export const TIER_CONFIG = {
     }
 };
 
-export function getTierConfig(tierId, permissions = []) {
+/**
+ * Get tier configuration with optional overrides and trial logic.
+ * @param {string} tierId - The base subscription tier
+ * @param {string[]} permissions - User permissions (for bypass feature)
+ * @param {Object} options - Additional context
+ * @param {boolean} options.isTrial - Whether the user is currently in a trial period
+ */
+export function getTierConfig(tierId, permissions = [], options = {}) {
     const baseConfig = TIER_CONFIG[tierId] || TIER_CONFIG[TIERS.FREE];
+    const isTrial = options.isTrial || false;
 
+    let finalConfig = { ...baseConfig };
+
+    // 1. Handle Feature Override (Bypass)
     if (permissions && permissions.includes('bypass_tier_limits')) {
         const superConfig = TIER_CONFIG[TIERS.TIER_5];
-        return {
+        finalConfig = {
             ...superConfig,
             limits: {
                 ...superConfig.limits,
-                aiCredits: baseConfig.limits.aiCredits // Keep credits from original tier
+                // Keep credits from original tier as we only want to unlock features
+                aiCredits: baseConfig.limits.aiCredits
             }
         };
     }
 
-    return baseConfig;
+    // 2. Handle Trial Limit Capping (Crucial Fix)
+    // Trial users receive the Free tier AI credit limit (750k) 
+    // even if they have "Wizard" or other high features.
+    if (isTrial) {
+        finalConfig = {
+            ...finalConfig,
+            limits: {
+                ...finalConfig.limits,
+                aiCredits: TIER_CONFIG[TIERS.FREE].limits.aiCredits
+            }
+        };
+    }
+
+    return finalConfig;
 }

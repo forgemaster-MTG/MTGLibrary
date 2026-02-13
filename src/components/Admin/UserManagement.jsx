@@ -181,7 +181,12 @@ const UserManagement = () => {
                                         <td className="py-3 px-4">
                                             {(() => {
                                                 const effectiveTier = u.override_tier || u.subscription_tier || 'free';
-                                                const config = getTierConfig(effectiveTier, u.settings?.permissions);
+                                                const isTrial = u.subscription_status === 'trial';
+                                                const config = getTierConfig(
+                                                    effectiveTier,
+                                                    u.settings?.permissions,
+                                                    { isTrial }
+                                                );
                                                 const monthlyLimit = config.limits.aiCredits;
                                                 const formatK = (n) => n >= 1000000 ? `${(n / 1000000).toFixed(1)}M` : n >= 1000 ? `${(n / 1000).toFixed(0)}K` : n;
 
