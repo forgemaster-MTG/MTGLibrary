@@ -85,11 +85,6 @@ const DeckStrategyModal = ({ isOpen, onClose, deck, cards = [], onStrategyUpdate
     const hasStrategy = !!blueprint.strategy;
 
     const handleRerunning = async () => {
-        if (!userProfile?.settings?.geminiApiKey) {
-            addToast("Gemini API Key missing in settings.", "error");
-            return;
-        }
-
         setIsRerunning(true);
         try {
             console.log('[DeckStrategy] requesting new strategy...');

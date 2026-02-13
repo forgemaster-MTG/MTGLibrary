@@ -304,11 +304,7 @@ const DeckBuildWizardPage = () => {
 
     const startAnalysis = async () => {
         const initialSelectedIds = new Set();
-        if (!userProfile?.settings?.geminiApiKey) {
-            addToast("Gemini API Key missing in settings.", "error");
-            navigate('/settings/ai');
-            return;
-        }
+        // No longer requiring hard geminiApiKey check here; executeWithFallback will handle it
 
         // Admin Check (Roles + Specific IDs)
         const isAdmin = userProfile?.roles?.includes('admin') ||

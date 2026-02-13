@@ -41,11 +41,13 @@ const SubscriptionWidget = ({ size, data }) => {
         decks: stats?.uniqueDecks || 0,
         collection: stats?.collectionCount || 0,
         wishlist: stats?.wishlistCount || 0,
-        credits: (userProfile?.credits_monthly || 0) + (userProfile?.credits_topup || 0) // Total available
+        credits_monthly: Number(userProfile?.credits_monthly || 0),
+        credits_topup: Number(userProfile?.credits_topup || 0)
     };
 
     const getUsageColor = (current, max) => {
         // Credits are "Remaining". Green = High % remaining.
+        if (max === Infinity) return 'bg-blue-500';
         const percentage = max > 0 ? (current / max) * 100 : 0;
         if (percentage < 10) return 'bg-red-500 animate-pulse';
         if (percentage < 30) return 'bg-yellow-500';
@@ -54,12 +56,13 @@ const SubscriptionWidget = ({ size, data }) => {
 
     const getUsageWidth = (current, max) => {
         // Credits: Width = % Remaining
+        if (max === Infinity) return '100%';
         const percentage = max > 0 ? (current / max) * 100 : 0;
         return `${Math.min(percentage, 100)}%`;
     };
 
     // Alert if credits are low (< 10%)
-    const isLowCredits = creditLimit > 0 && (counts.credits / creditLimit) < 0.1;
+    const isLowCredits = creditLimit > 0 && (counts.credits_monthly / creditLimit) < 0.1;
     const isAnyNearLimit = isLowCredits;
 
     if (isXS) {
@@ -80,7 +83,7 @@ const SubscriptionWidget = ({ size, data }) => {
     const renderProgressBar = (label, current, max, formatFn) => {
         const colorClass = getUsageColor(current, max);
         const width = getUsageWidth(current, max);
-        const displayMax = formatFn ? formatFn(max) : max;
+        const displayMax = max === Infinity ? '∞' : (formatFn ? formatFn(max) : max);
         const displayCurrent = formatFn ? formatFn(current) : current;
 
         return (
@@ -126,12 +129,13 @@ const SubscriptionWidget = ({ size, data }) => {
             </div>
 
             <div className={`flex-grow ${isLargePlus ? 'grid grid-cols-2 gap-6' : 'space-y-4'}`}>
-                <div className="space-y-4">
-                    {renderProgressBar('AI Credits', counts.credits, creditLimit, formatK)}
+                <div className="space-y-3">
+                    {renderProgressBar('Monthly Credits', counts.credits_monthly, creditLimit, formatK)}
+                    {counts.credits_topup > 0 && renderProgressBar('Top-up Credits', counts.credits_topup, Infinity, formatK)}
 
-                    <div className="flex items-center gap-2 pt-2">
-                        <Check className="w-4 h-4 text-green-500" />
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Unlimited Storage Active</span>
+                    <div className="flex items-center gap-2 pt-1">
+                        <Check className="w-3 h-3 text-green-500" />
+                        <span className="text-[8px] font-bold text-gray-500 uppercase tracking-wider leading-none">Unlimited Storage Active</span>
                     </div>
                 </div>
 

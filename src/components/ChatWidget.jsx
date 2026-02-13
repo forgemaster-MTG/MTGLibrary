@@ -27,7 +27,7 @@ const ChatWidget = () => {
 
     useEffect(() => {
         scrollToBottom();
-    }, [messages]);
+    }, [messages, loading]);
 
     // Fetch dynamic intro only when opened for the first time
     useEffect(() => {
@@ -44,18 +44,14 @@ const ChatWidget = () => {
         if (!isOpen) return;
 
         const fetchIntro = async () => {
-            const apiKey = userProfile?.settings?.geminiApiKey;
-            if (!apiKey || introFetched) {
-                if (!apiKey && messages.length === 0) {
-                    setMessages([{ role: 'model', content: '<p class="text-gray-300">Please add your Gemini API Key in Settings to enable the chat.</p>' }]);
-                }
-                return;
-            }
+            if (introFetched) return;
 
             setIntroFetched(true); // Prevent double fetch
 
             // If we already have messages (restored session?), skip intro
             if (messages.length > 0) return;
+
+            const apiKey = userProfile?.settings?.geminiApiKey;
 
             try {
                 const introPrompt = `
@@ -68,7 +64,7 @@ const ChatWidget = () => {
 
                 // We use a history of [] so it treats it as a fresh start
                 const response = await GeminiService.sendMessage(apiKey, [], introPrompt, '', helper, userProfile);
-                setMessages([{ role: 'model', content: response }]);
+                setMessages([{ role: 'model', content: response.result }]);
             } catch (err) {
                 console.error("Intro fetch failed", err);
                 setMessages([{ role: 'model', content: `<p>Greetings. I am ${helperName}. How may I assist?</p>` }]);
@@ -111,20 +107,12 @@ ${playstyleContext}
 
         try {
             const apiKey = userProfile?.settings?.geminiApiKey;
-            if (!apiKey) {
-                setMessages(prev => [...prev, {
-                    role: 'model',
-                    content: '<div class="p-3 bg-red-900/30 border border-red-700 rounded text-red-200">Please add your Gemini API Key in <a href="/settings" class="underline font-bold">Settings</a> to use the chat.</div>'
-                }]);
-                return;
-            }
-
             const history = messages.map(m => ({ role: m.role, content: m.content }));
 
             // Pass full context (Docs + Playstyle)
-            const responseHtml = await GeminiService.sendMessage(apiKey, history, userMsg, fullContext, helper, userProfile);
+            const response = await GeminiService.sendMessage(apiKey, history, userMsg, fullContext, helper, userProfile);
 
-            setMessages(prev => [...prev, { role: 'model', content: responseHtml }]);
+            setMessages(prev => [...prev, { role: 'model', content: response.result }]);
         } catch (error) {
             console.error(error);
             setMessages(prev => [...prev, {
@@ -195,7 +183,7 @@ ${playstyleContext}
                     </div>
 
                     {/* Messages */}
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-800/95 backdrop-blur">
+                    <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-gray-800/95 backdrop-blur">
                         {messages.length === 0 && !loading ? (
                             <div className="flex justify-center items-center h-full text-gray-500 italic">
                                 Summoning {helperName}...
@@ -204,12 +192,15 @@ ${playstyleContext}
                             messages.map((msg, i) => (
                                 <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                     <div
-                                        className={`max-w-[85%] p-3 rounded-2xl ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-gray-700 text-gray-200 rounded-bl-none'} shadow-md`}
+                                        className={`max-w-[85%] p-2.5 rounded-2xl ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-gray-700 text-gray-200 rounded-bl-none'} shadow-md text-sm`}
                                     >
                                         {msg.role === 'user' ? (
                                             msg.content
                                         ) : (
-                                            <div dangerouslySetInnerHTML={{ __html: msg.content }} />
+                                            <div
+                                                className="[&_p]:mb-1.5 [&_p:last-child]:mb-0 [&_h1]:text-lg [&_h1]:font-bold [&_h1]:mb-2 [&_h2]:text-base [&_h2]:font-bold [&_h2]:mb-1.5 [&_ul]:my-1.5 [&_li]:mb-0.5 leading-relaxed"
+                                                dangerouslySetInnerHTML={{ __html: msg.content }}
+                                            />
                                         )}
                                     </div>
                                 </div>

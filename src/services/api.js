@@ -176,5 +176,8 @@ export const api = {
     createFeaturedProduct: (data) => request('POST', '/api/featured', data),
     updateFeaturedProduct: (id, data) => request('PUT', `/api/featured/${id}`, data),
     deleteFeaturedProduct: (id) => request('DELETE', `/api/featured/${id}`),
-    reorderFeaturedProducts: (order) => request('PUT', '/api/featured/reorder/batch', { order })
+    reorderFeaturedProducts: (order) => request('PUT', '/api/featured/reorder/batch', { order }),
+
+    // Credit Reset
+    resetUserCredits: (userId) => request('POST', `/api/admin/credit-reset/${userId}`)
 };

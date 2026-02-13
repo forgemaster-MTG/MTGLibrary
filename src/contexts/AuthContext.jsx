@@ -184,20 +184,28 @@ export const AuthProvider = ({ children }) => {
         return unsubscribe;
     }, []);
 
-    // Listen for Credit Updates from AI Service
+    // Listen for Credit Updates from AI Service (Central Logic)
     useEffect(() => {
         const handleCreditUpdate = (e) => {
             if (!currentUser?.uid) return;
-            const { credits_monthly, credits_topup } = e.detail;
+            const { credits_monthly, credits_topup, credits_used } = e.detail;
 
+            // 1. Show Toast for Spent Credits (Centralized Feedback)
+            if (credits_used > 0 && typeof window.addToast === 'function') {
+                window.addToast(`${credits_used.toLocaleString()} AI Credits used.`, 'info');
+            }
+
+            // 2. Update Local State
             queryClient.setQueryData(['userProfile', currentUser.uid], (old) => {
                 if (!old) return old;
+                const m = Number(credits_monthly !== undefined ? credits_monthly : (old.credits_monthly || 0));
+                const t = Number(credits_topup !== undefined ? credits_topup : (old.credits_topup || 0));
+
                 return {
                     ...old,
-                    credits_monthly: credits_monthly !== undefined ? credits_monthly : old.credits_monthly,
-                    credits_topup: credits_topup !== undefined ? credits_topup : old.credits_topup,
-                    ai_credits: ((credits_monthly !== undefined ? credits_monthly : (old.credits_monthly || 0)) +
-                        (credits_topup !== undefined ? credits_topup : (old.credits_topup || 0)))
+                    credits_monthly: m,
+                    credits_topup: t,
+                    ai_credits: m + t
                 };
             });
         };

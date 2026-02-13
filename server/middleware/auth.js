@@ -27,11 +27,15 @@ async function authMiddleware(req, res, next) {
 		const lastActive = user.last_active_at ? new Date(user.last_active_at) : null;
 		if (!lastActive || (now - lastActive) > 5 * 60 * 1000) {
 			const { knex } = await import('../db.js');
-			// Fire and forget to avoid slowing down the request
-			knex('users')
-				.where({ id: user.id })
-				.update({ last_active_at: knex.fn.now() })
-				.catch(err => console.warn('[Auth] Failed to update last_active_at:', err.message));
+			const { CreditResetService } = await import('../services/CreditResetService.js');
+
+			// Fire and forget updates to avoid slowing down the request
+			Promise.all([
+				knex('users')
+					.where({ id: user.id })
+					.update({ last_active_at: knex.fn.now() }),
+				CreditResetService.checkAndResetUser(user.id)
+			]).catch(err => console.warn('[Auth] Background updates failed:', err.message));
 		}
 
 		// Impersonation Logic (Admin Only)

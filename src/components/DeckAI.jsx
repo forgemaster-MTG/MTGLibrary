@@ -15,7 +15,6 @@ const DeckAI = ({ deck, cards }) => {
         setError(null);
         try {
             const apiKey = userProfile?.settings?.geminiApiKey;
-            if (!apiKey) throw new Error("Please add your Gemini API Key in Settings first.");
 
             const cardList = cards.map(c => `${c.countInDeck || 1}x ${c.name}`).join('\n');
             const prompt = `

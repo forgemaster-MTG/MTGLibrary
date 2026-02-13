@@ -31,11 +31,6 @@ const DeckDoctorModal = ({ isOpen, onClose, deck, cards, isOwner }) => {
         setLoading(true);
         try {
             const apiKey = userProfile?.settings?.geminiApiKey; // Use consistent Gemini API key
-            if (!apiKey) {
-                addToast("Please save your API Key in Settings > AI first.", "error");
-                setLoading(false);
-                return;
-            }
 
             const result = await GeminiService.gradeDeck(apiKey, {
                 deckName: deck.name,

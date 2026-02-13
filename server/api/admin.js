@@ -1,5 +1,7 @@
 import express from 'express';
 import { knex } from '../db.js';
+import { PricingService } from '../services/PricingService.js';
+import { CreditResetService } from '../services/CreditResetService.js';
 
 import { syncUserToFirestore } from '../utils/firestoreSync.js';
 
@@ -380,7 +382,7 @@ router.delete('/invitations/:id', async (req, res) => {
 });
 
 
-import { PricingService } from '../services/PricingService.js';
+
 
 // GET /admin/pricing
 // Fetch current pricing config
@@ -410,6 +412,31 @@ router.post('/pricing', async (req, res) => {
     } catch (err) {
         console.error('[Admin] Save Pricing Error', err);
         res.status(500).json({ error: 'Failed to save pricing config' });
+    }
+});
+
+// POST /admin/credit-reset
+// Triggers global monthly credit reset
+router.post('/credit-reset', async (req, res) => {
+    try {
+        const total = await CreditResetService.resetAllUsers();
+        res.json({ success: true, message: `Reset credits for ${total} users.` });
+    } catch (err) {
+        console.error('[Admin] Credit Reset Error', err);
+        res.status(500).json({ error: 'Failed to reset credits' });
+    }
+});
+
+// GET /admin/credit-reset/:userId
+// Triggers credit reset for a single user
+router.post('/credit-reset/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const limit = await CreditResetService.resetUser(userId);
+        res.json({ success: true, message: `Reset credits for user ${userId} to ${limit}.` });
+    } catch (err) {
+        console.error('[Admin] Individual Credit Reset Error:', err);
+        res.status(500).json({ error: 'Failed to reset credits for user', details: err.message });
     }
 });
 

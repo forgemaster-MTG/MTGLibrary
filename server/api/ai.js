@@ -5,13 +5,19 @@ import { PricingService } from '../services/PricingService.js';
 
 const router = express.Router();
 
-// Use server-side env var for the key
-const API_KEY = process.env.GEMINI_API_KEY;
+// Use server-side env var for the key, fallback to VITE_ prefixed one if needed
+const API_KEY = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
 
 // Protect all AI routes
 router.use(auth);
 
 router.post('/generate', async (req, res) => {
+    if (API_KEY) {
+        console.log(`[AI Proxy] API_KEY loaded. Ends with: ...${API_KEY.slice(-5)} (Total Length: ${API_KEY.length})`);
+    } else {
+        console.error('[AI Proxy] API_KEY is undefined/empty');
+    }
+
     if (!API_KEY) {
         console.error('GEMINI_API_KEY is missing on server.');
         return res.status(500).json({ error: 'Server misconfiguration: AI service unavailable.' });

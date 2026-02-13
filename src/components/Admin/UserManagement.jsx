@@ -117,6 +117,17 @@ const UserManagement = () => {
         } catch (err) { alert(err.message); }
     };
 
+    const handleResetCredits = async (user) => {
+        if (!window.confirm(`Force reset monthly credits for ${user.username} to their tier limit?`)) return;
+        try {
+            const res = await api.resetUserCredits(user.id);
+            if (res.success) {
+                alert(`Credits reset successfully!`);
+                fetchUsers(); // Refresh list to see new values
+            }
+        } catch (err) { alert(`Error: ${err.message}`); }
+    };
+
     return (
         <div className="p-4 md:p-8 min-h-screen bg-gray-950 text-gray-100">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
@@ -232,6 +243,7 @@ const UserManagement = () => {
                                             <div className="flex items-center justify-end gap-2 outline-none text-right">
                                                 <button onClick={() => { localStorage.setItem('impersonate_user_id', u.id); window.location.href = '/dashboard'; }} className="text-[10px] bg-amber-900/30 hover:bg-amber-800 text-amber-400 border border-amber-700/50 px-2 py-1 rounded transition-colors">View</button>
                                                 <button onClick={() => handleSyncUser(u)} disabled={syncingUser === u.id} className="text-[10px] bg-cyan-900/30 hover:bg-cyan-800 text-cyan-400 border border-cyan-700/50 px-2 py-1 rounded transition-colors disabled:opacity-50">Push FS</button>
+                                                <button onClick={() => handleResetCredits(u)} className="text-[10px] bg-indigo-900/30 hover:bg-indigo-800 text-indigo-400 border border-indigo-700/50 px-2 py-1 rounded transition-colors" title="Reset Monthly Credits">Reset</button>
                                                 <button onClick={() => handleDeleteUser(u)} className="text-red-500 hover:text-red-400 p-1" title="Delete User">
                                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 0 00-1-1h-4a1 0 00-1 1v3M4 7h16" /></svg>
                                                 </button>
@@ -306,6 +318,12 @@ const UserManagement = () => {
                                         className="flex-1 min-w-[80px] bg-cyan-600/10 hover:bg-cyan-600/20 text-cyan-500 border border-cyan-600/30 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all disabled:opacity-50"
                                     >
                                         {syncingUser === u.id ? 'Syncing...' : 'Push FS'}
+                                    </button>
+                                    <button
+                                        onClick={() => handleResetCredits(u)}
+                                        className="flex-1 min-w-[80px] bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-500 border border-indigo-600/30 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all"
+                                    >
+                                        Reset
                                     </button>
                                     <button
                                         onClick={() => handleDeleteUser(u)}

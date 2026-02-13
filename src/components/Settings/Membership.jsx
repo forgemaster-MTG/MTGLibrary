@@ -32,18 +32,14 @@ const Membership = () => {
     }, []);
 
     const avgRate = useMemo(() => {
-        // 1. Use explicit Top-Up Rate if configured (Millions -> Raw)
         if (dynamicConfig?.assumptions?.topUpCreditRate) {
             return dynamicConfig.assumptions.topUpCreditRate * 1000000;
         }
-
-        // 2. Fallback to average of tiers
         if (!dynamicConfig?.tiers) return 2300000;
 
         let total = 0;
         let count = 0;
         dynamicConfig.tiers.forEach(t => {
-            // Support both simple 'price' and 'prices' array
             const price = t.price || (t.prices?.find(p => p.interval === 'monthly')?.amount / 100);
             if (price > 0 && t.creditLimit > 0) {
                 total += (t.creditLimit / price);
@@ -53,13 +49,10 @@ const Membership = () => {
         return count > 0 ? Math.floor(total / count) : 2300000;
     }, [dynamicConfig]);
 
-    // Data Hooks for Usage Stats
     const { cards: collection } = useCollection();
     const { decks } = useDecks();
 
-    // Use override_tier if present, otherwise subscription_tier, default to FREE
     const currentTierId = userProfile?.override_tier || userProfile?.subscription_tier;
-    // Use effective tier config from profile (handles bypass)
     const config = userProfile?.tierConfig || getTierConfig(currentTierId, userProfile?.settings?.permissions);
 
     const getCreditLimit = (tierKey) => {
@@ -79,22 +72,17 @@ const Membership = () => {
         return tier ? tier.creditLimit : 0;
     };
 
-    // Fallback if subscription_status is missing but tier is not free (manual assignment)
     const status = userProfile?.subscription_status || (currentTierId !== TIERS.FREE ? 'active' : 'free');
-
-    // Calculate effective end date (Trial > Subscription)
     const isTrial = status === 'trial';
     const endDateRaw = isTrial ? userProfile?.trial_end_date : userProfile?.subscription_end_date;
     const endDate = endDateRaw ? new Date(endDateRaw).toLocaleDateString() : null;
 
-    // Calculate Usage Stats
     const stats = useMemo(() => {
-        if (!collection || !decks) return { decks: 0, collection: 0, wishlist: 0 };
+        if (!collection || !decks) return { decks: 0, collection: 0, wishlist: 0, credits_monthly: 0, credits_topup: 0 };
 
         const collectionItems = collection.filter(c => !c.is_wishlist);
         const wishlistItems = collection.filter(c => c.is_wishlist);
 
-        // Base counts
         let totalCards = collectionItems.reduce((acc, card) => acc + (card.count || 1), 0);
         let wishlistCount = wishlistItems.reduce((acc, card) => acc + (card.count || 1), 0);
 
@@ -102,9 +90,10 @@ const Membership = () => {
             decks: decks.length,
             collection: totalCards,
             wishlist: wishlistCount,
-            credits: (userProfile?.credits_monthly || 0) + (userProfile?.credits_topup || 0)
+            credits_monthly: Number(userProfile?.credits_monthly || 0),
+            credits_topup: Number(userProfile?.credits_topup || 0)
         };
-    }, [collection, decks]);
+    }, [collection, decks, userProfile]);
 
     const handleManageSubscription = async () => {
         setIsLoading(true);
@@ -175,22 +164,68 @@ const Membership = () => {
         }
     };
 
-    const renderProgressBar = (label, current, max, icon) => {
-        const percentage = max === Infinity ? 0 : Math.min((current / max) * 100, 100);
+    const formatK = (n) => {
+        if (n === Infinity) return '∞';
+        if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+        if (n >= 1000) return (n / 1000).toFixed(0) + 'k';
+        return n;
+    };
 
+    const renderProgressBar = (label, current, max, icon) => {
+        let percentage = max === Infinity ? 0 : Math.min((current / max) * 100, 100);
+        let displayValue = "";
         let isNearLimit = false;
         let colorClass = 'bg-green-500';
 
-        if (label === 'AI Credits') {
-            // Inverted logic for credits (Remaining / Max)
-            // Low % is Bad (Red)
+        // Est. Costs (1 Token = 15 Credits)
+        // Chat ~1k tokens = 15k credits
+        // Deck ~45k tokens = 675k credits
+        const CHAT_COST = 15000;
+        const DECK_COST = 675000;
+        let estimations = null;
+
+        if (label === 'Monthly Credits') {
+            // current = Remaining Credits
+            displayValue = `${formatK(current)} / ${formatK(max)} LEFT`;
+            percentage = max > 0 ? (current / max) * 100 : 0;
             isNearLimit = max > 0 && (current / max) < 0.1;
-            if (percentage < 10) colorClass = 'bg-red-500';
-            else if (percentage < 30) colorClass = 'bg-yellow-500';
+
+            // Low remaining = Red
+            if (percentage <= 10) colorClass = 'bg-red-500';
+            else if (percentage <= 30) colorClass = 'bg-yellow-500';
             else colorClass = 'bg-green-500';
+
+            if (current > 0) {
+                const chats = Math.floor(current / CHAT_COST);
+                const decks = Math.floor(current / DECK_COST);
+                estimations = (
+                    <div className="flex gap-3 mt-2 text-xs text-gray-400 font-mono opacity-90">
+                        <span>~{formatK(chats)} Chats</span>
+                        <span className="text-gray-600">•</span>
+                        <span>~{decks} Decks</span>
+                    </div>
+                );
+            }
+        } else if (label === 'Top-up Credits') {
+            displayValue = `${formatK(current)} REMAINING`;
+            percentage = 100; // Always looks full/available
+            isNearLimit = false; // No warnings for top-up
+            colorClass = 'bg-blue-500';
+
+            if (current > 0) {
+                const chats = Math.floor(current / CHAT_COST);
+                const decks = Math.floor(current / DECK_COST);
+                estimations = (
+                    <div className="flex gap-3 mt-2 text-xs text-gray-400 font-mono opacity-90">
+                        <span>~{formatK(chats)} Chats</span>
+                        <span className="text-gray-600">•</span>
+                        <span>~{decks} Decks</span>
+                    </div>
+                );
+            }
         } else {
-            // Standard logic (Used / Max)
-            // High % is Bad (Red)
+            // Standard metrics (Decks, Collection, etc)
+            displayValue = `${formatK(current)} / ${formatK(max)}`;
             isNearLimit = max !== Infinity && (current / max) >= 0.9;
             if (max === Infinity) colorClass = 'bg-blue-500';
             else if (percentage >= 90) colorClass = 'bg-red-500';
@@ -198,26 +233,30 @@ const Membership = () => {
         }
 
         return (
-            <div className="bg-gray-800/30 border border-gray-700/50 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                    <span className="text-gray-300 text-sm font-medium flex items-center gap-2">
-                        <span>{icon}</span> {label}
+            <div className="bg-gray-800/30 border border-gray-700/50 rounded-xl p-4 flex flex-col justify-between min-w-0">
+                <div className="flex items-center justify-between mb-3 gap-3 overflow-hidden">
+                    <span className="text-gray-300 text-xs font-black uppercase tracking-wider flex items-center gap-2 overflow-hidden">
+                        <span className="text-sm shrink-0">{icon}</span>
+                        <span className="truncate">{label}</span>
                     </span>
-                    <span className={`font-bold text-sm ${isNearLimit ? 'text-red-400' : 'text-white'}`}>
-                        {current} / {max === Infinity ? '∞' : max}
+                    <span className={`font-mono font-bold text-xs ${isNearLimit ? 'text-red-400' : 'text-white'} ml-auto shrink-0`}>
+                        {displayValue}
                     </span>
                 </div>
 
-                <div className="h-2 w-full bg-gray-900 rounded-full overflow-hidden border border-gray-700/50">
+                <div className="h-2 w-full bg-gray-900 rounded-full overflow-hidden border border-gray-700/50 shadow-inner">
                     <div
                         className={`h-full ${colorClass} transition-all duration-1000 ease-out`}
-                        style={{ width: max === Infinity ? '100%' : `${percentage}%` }}
+                        style={{ width: `${percentage}%` }}
                     />
                 </div>
+
+                {estimations}
+
                 {
-                    isNearLimit && (
-                        <p className="text-[10px] text-red-400 mt-1 mt-2">
-                            {label === 'AI Credits' ? 'Running low on credits!' : 'Running low on space!'}
+                    isNearLimit && !estimations && (
+                        <p className="text-[10px] font-bold text-red-500/80 mt-1 uppercase tracking-tighter truncate">
+                            {label === 'Monthly Credits' ? 'Low credits!' : 'Low space!'}
                         </p>
                     )
                 }
@@ -229,7 +268,6 @@ const Membership = () => {
         <div className="space-y-8 animate-fade-in">
             <h2 className="text-xl font-semibold text-white mb-4">Membership & Billing</h2>
 
-            {/* Current Plan Card */}
             <div className="bg-gray-900/50 border border-gray-700 rounded-xl p-6 relative overflow-hidden">
                 <div className="flex flex-col md:flex-row items-start justify-between relative z-10 gap-6">
                     <div className="flex gap-4">
@@ -241,7 +279,6 @@ const Membership = () => {
                             <p className="text-gray-400 text-sm max-w-md">{config.description}</p>
 
                             <div className="flex flex-col gap-2 mt-4">
-                                {/* Status Badge */}
                                 <div className="flex items-center gap-2">
                                     <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide border ${status === 'active' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
                                         status === 'canceled' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
@@ -258,7 +295,6 @@ const Membership = () => {
                                     )}
                                 </div>
 
-                                {/* Timer / Renewal Info */}
                                 {endDate && status !== 'free' && !userProfile?.override_tier && (
                                     <div className={`mt-2 p-3 rounded-lg border ${isTrial ? 'bg-blue-500/10 border-blue-500/30' : 'bg-gray-800 border-gray-700'}`}>
                                         <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">
@@ -285,7 +321,6 @@ const Membership = () => {
                         </div>
                     </div>
 
-                    {/* Actions */}
                     <div className="flex flex-col gap-3 w-full md:w-auto">
                         <button
                             onClick={() => setShowUpgradeModal(true)}
@@ -307,27 +342,31 @@ const Membership = () => {
                     </div>
                 </div>
 
-                {/* Decoration */}
                 <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-b from-purple-500/10 to-transparent rounded-bl-full pointer-events-none" />
             </div>
 
-            {/* Usage Tracking */}
             <div>
                 <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                    <span className="text-xl">📊</span> Usage & Limits
+                    <span className="text-xl">⚡</span> AI Credits & Usage
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {renderProgressBar('AI Credits', stats.credits, getCreditLimit(currentTierId), '⚡')}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                    {renderProgressBar('Monthly Credits', stats.credits_monthly, getCreditLimit(currentTierId), '⚡')}
+                    {renderProgressBar('Top-up Credits', stats.credits_topup > 0 ? stats.credits_topup : 0, Infinity, '💎')}
+                </div>
+
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                    <span className="text-xl">📊</span> Library Metrics
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {renderProgressBar('Decks', stats.decks, config.limits.decks, '📚')}
                     {renderProgressBar('Collection', stats.collection, config.limits.collection, '🃏')}
                     {renderProgressBar('Wishlist', stats.wishlist, config.limits.wishlist, '✨')}
                 </div>
-                <p className="text-xs text-gray-500 mt-2 text-right">
+                <p className="text-xs text-gray-500 mt-4 text-right">
                     * Limits apply to active items. Archived/Deleted items do not count.
                 </p>
             </div>
 
-            {/* Upgrade Modal */}
             {showUpgradeModal && createPortal(
                 <div className="fixed inset-0 z-[9999] flex items-start justify-center p-4 pt-24 text-left font-sans">
                     <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowUpgradeModal(false)} />

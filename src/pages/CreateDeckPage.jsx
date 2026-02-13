@@ -179,12 +179,6 @@ const CreateDeckPage = () => {
         const apiKey = userProfile?.settings?.geminiApiKey;
         const helperName = userProfile?.settings?.helper?.name || 'The Oracle';
 
-        if (!apiKey) {
-            addToast('AI Key missing. Skipping strategy.', 'warning');
-            setStep(STEPS.REVIEW);
-            return;
-        }
-
         setLoading(true);
         setLoadingMessage(`${helperName} is analyzing ${selectedPartner ? 'your commanders' : 'your commander'}...`);
 
