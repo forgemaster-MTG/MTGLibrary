@@ -28,7 +28,9 @@ const PricingCalculator = () => {
         totalMonthly: 0,
         totalTopUp: 0,
         totalTokens: 0,
-        estimatedCost: 0
+        estimatedCost: 0,
+        totalStaleMonthlyLimit: 0,
+        totalStaleTopUp: 0
     });
 
     // Helper functions for calculation (Ported from HTML/JS)
@@ -131,6 +133,11 @@ const PricingCalculator = () => {
                 let totalMonthlyRemaining = 0;
                 let totalMonthlyLimit = 0;
                 let totalTopUpRemaining = 0;
+                let totalStaleMonthlyLimit = 0;
+                let totalStaleTopUp = 0;
+
+                const STALE_THRESHOLD_DAYS = 30;
+                const now = new Date();
 
                 users.forEach(u => {
                     const isTrial = u.subscription_status === 'trial';
@@ -139,10 +146,23 @@ const PricingCalculator = () => {
                         u.settings?.permissions,
                         { isTrial }
                     );
-                    totalMonthlyLimit += (tierConfig?.limits?.aiCredits || 0);
-                    // Use Number() to ensure we don't do string concatenation with strings from DB
+
+                    const monthlyLimit = (tierConfig?.limits?.aiCredits || 0);
+                    const topUpBalance = Number(u.credits_topup || 0);
+
+                    totalMonthlyLimit += monthlyLimit;
                     totalMonthlyRemaining += Number(u.credits_monthly || 0);
-                    totalTopUpRemaining += Number(u.credits_topup || 0);
+                    totalTopUpRemaining += topUpBalance;
+
+                    // Calculate Stale Status
+                    const lastActive = u.last_active_at ? new Date(u.last_active_at) : null;
+                    const daysInactive = lastActive ? Math.floor((now - lastActive) / (1000 * 60 * 60 * 24)) : 999; // Treat null as very stale
+                    const isStale = daysInactive >= STALE_THRESHOLD_DAYS;
+
+                    if (isStale) {
+                        totalStaleMonthlyLimit += monthlyLimit;
+                        totalStaleTopUp += topUpBalance;
+                    }
                 });
 
                 setLiability({
@@ -150,7 +170,9 @@ const PricingCalculator = () => {
                     totalMonthlyLimit,
                     totalTopUp: totalTopUpRemaining,
                     totalTokens: totalMonthlyRemaining + totalTopUpRemaining,
-                    totalTokensLimit: totalMonthlyLimit + totalTopUpRemaining
+                    totalTokensLimit: totalMonthlyLimit + totalTopUpRemaining,
+                    totalStaleMonthlyLimit,
+                    totalStaleTopUp
                 });
             } catch (err) {
                 console.error("Failed to fetch users for liability", err);
@@ -172,14 +194,22 @@ const PricingCalculator = () => {
 
         // Monthly Liability is calculated on the FULL limit (Worst case / Total Promise)
         const monthlyCost = calculateCost(liability.totalMonthlyLimit);
+        const monthlyStaleCost = calculateCost(liability.totalStaleMonthlyLimit);
+
         // Top-Up Liability is calculated on CURRENT remaining balance
         const topUpCost = calculateCost(liability.totalTopUp);
+        const topUpStaleCost = calculateCost(liability.totalStaleTopUp);
+
         const totalCost = monthlyCost + topUpCost;
+        const totalStaleCost = monthlyStaleCost + topUpStaleCost;
 
         return {
             monthlyCost,
+            monthlyStaleCost,
             topUpCost,
-            totalCost
+            topUpStaleCost,
+            totalCost,
+            totalStaleCost
         };
     }, [liability, config.assumptions.exchangeRate, config.assumptions.proTokenCost]);
 
@@ -249,7 +279,14 @@ const PricingCalculator = () => {
                                             </span>
                                             <span className="text-[10px] text-gray-500 lowercase font-normal ml-1">total potential</span>
                                         </div>
-                                        <p className="text-sm font-bold text-white">${liabilityDetails.monthlyCost.toFixed(2)} <span className="text-[10px] text-gray-500 font-normal">liability</span></p>
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-sm font-bold text-white">${liabilityDetails.monthlyCost.toFixed(2)} <span className="text-[10px] text-gray-500 font-normal">liability</span></p>
+                                            {liabilityDetails.monthlyStaleCost > 0 && (
+                                                <span className="text-[10px] text-gray-500 italic bg-gray-900 px-1.5 py-0.5 rounded border border-gray-700" title={`Credits from users inactive > 30 days: ${formatMillions(liability.totalStaleMonthlyLimit)}`}>
+                                                    ${liabilityDetails.monthlyStaleCost.toFixed(2)} stale
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                     <div className="space-y-1">
                                         <p className="text-[10px] text-gray-500 uppercase font-black">Top-Up Credits</p>
@@ -259,7 +296,14 @@ const PricingCalculator = () => {
                                             </span>
                                             <span className="text-[10px] text-gray-500 lowercase font-normal ml-1">avbl balance</span>
                                         </div>
-                                        <p className="text-sm font-bold text-white">${liabilityDetails.topUpCost.toFixed(2)} <span className="text-[10px] text-gray-500 font-normal">liability</span></p>
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-sm font-bold text-white">${liabilityDetails.topUpCost.toFixed(2)} <span className="text-[10px] text-gray-500 font-normal">liability</span></p>
+                                            {liabilityDetails.topUpStaleCost > 0 && (
+                                                <span className="text-[10px] text-gray-500 italic bg-gray-900 px-1.5 py-0.5 rounded border border-gray-700" title={`Credits from users inactive > 30 days: ${formatMillions(liability.totalStaleTopUp)}`}>
+                                                    ${liabilityDetails.topUpStaleCost.toFixed(2)} stale
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                     <div className="space-y-1 border-l border-gray-700 pl-4">
                                         <p className="text-[10px] text-gray-500 uppercase font-black">Combined Total</p>
@@ -269,7 +313,14 @@ const PricingCalculator = () => {
                                             </span>
                                             <span className="text-[10px] text-gray-500 lowercase font-normal ml-1">combined avbl</span>
                                         </div>
-                                        <p className="text-sm font-bold text-red-400">${liabilityDetails.totalCost.toFixed(2)} <span className="text-[10px] text-gray-500 font-normal">total risk</span></p>
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-sm font-bold text-red-400">${liabilityDetails.totalCost.toFixed(2)} <span className="text-[10px] text-gray-500 font-normal">total risk</span></p>
+                                            {liabilityDetails.totalStaleCost > 0 && (
+                                                <span className="text-[11px] text-gray-400 font-medium bg-gray-900 px-2 py-0.5 rounded border border-gray-700 shadow-sm" title="Total credits from users inactive > 30 days">
+                                                    ${liabilityDetails.totalStaleCost.toFixed(2)} inactive
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
