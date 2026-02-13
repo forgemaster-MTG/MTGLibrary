@@ -914,7 +914,7 @@ const CollectionPage = () => {
 
     // Verify View Permissions on Load
     useEffect(() => {
-        const canAccessBinders = getTierConfig(userProfile?.subscription_tier).features.binders;
+        const canAccessBinders = (userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier)).features.binders;
         // If in folder view, grouping by binders, and not allowed -> force grid
         if (viewMode === 'folder' && groupingMode === 'binders' && !canAccessBinders) {
             setViewMode('grid');
@@ -965,7 +965,7 @@ const CollectionPage = () => {
                                     setActiveFolder(null);
                                     // If switching to folder and binders restricted, default to smart
                                     if (m === 'folder') {
-                                        const canAccess = getTierConfig(userProfile?.subscription_tier).features.binders;
+                                        const canAccess = (userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier)).features.binders;
                                         if (!canAccess) {
                                             setGroupingMode('smart');
                                         }
@@ -980,18 +980,18 @@ const CollectionPage = () => {
 
                                 <button
                                     onClick={() => {
-                                        const allowed = getTierConfig(userProfile?.subscription_tier).features.binders;
+                                        const allowed = (userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier)).features.binders;
                                         if (!allowed) {
                                             addToast('Custom Binders are available on Wizard tier and above.', 'info');
                                             return;
                                         }
                                         setIsWizardOpen(true);
                                     }}
-                                    className={`flex p-2.5 md:px-4 md:py-3 rounded-xl transition-all border items-center justify-center gap-2 group ${getTierConfig(userProfile?.subscription_tier).features.binders
+                                    className={`flex p-2.5 md:px-4 md:py-3 rounded-xl transition-all border items-center justify-center gap-2 group ${(userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier)).features.binders
                                         ? 'bg-gray-800 hover:bg-gray-700 text-indigo-400 hover:text-white border-gray-700 hover:border-indigo-500/50 cursor-pointer'
                                         : 'bg-gray-800/50 text-gray-600 border-gray-700 cursor-not-allowed opacity-60'
                                         }`}
-                                    title={getTierConfig(userProfile?.subscription_tier).features.binders ? "Create New Binder" : "Requires Wizard Tier"}
+                                    title={(userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier)).features.binders ? "Create New Binder" : "Requires Wizard Tier"}
                                 >
                                     <svg className="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                     <span className="text-[10px] font-bold uppercase tracking-widest hidden lg:inline-block">New Binder</span>
@@ -999,18 +999,18 @@ const CollectionPage = () => {
 
                                 <button
                                     onClick={() => {
-                                        const allowed = getTierConfig(userProfile?.subscription_tier).features.collectionAudit;
+                                        const allowed = (userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier)).features.collectionAudit;
                                         if (!allowed) {
                                             addToast('Collection Organization tools are available on Wizard tier.', 'info');
                                             return;
                                         }
                                         setIsOrganizationWizardOpen(true);
                                     }}
-                                    className={`hidden md:flex p-2.5 md:px-3 md:py-3 rounded-xl transition-all border items-center justify-center shadow-lg ${getTierConfig(userProfile?.subscription_tier).features.collectionAudit
+                                    className={`hidden md:flex p-2.5 md:px-3 md:py-3 rounded-xl transition-all border items-center justify-center shadow-lg ${(userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier)).features.collectionAudit
                                         ? 'bg-gray-900 hover:bg-gray-800 text-gray-400 hover:text-white border-gray-800 hover:border-gray-700 cursor-pointer'
                                         : 'bg-gray-900/50 text-gray-600 border-gray-800 cursor-not-allowed opacity-50'
                                         }`}
-                                    title={getTierConfig(userProfile?.subscription_tier).features.collectionAudit ? "Organize Collection" : "Requires Wizard Tier"}
+                                    title={(userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier)).features.collectionAudit ? "Organize Collection" : "Requires Wizard Tier"}
                                 >
                                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" /></svg>
                                 </button>
@@ -1159,7 +1159,7 @@ const CollectionPage = () => {
                                 <div className="bg-gray-900 border border-gray-700 p-1 rounded-xl flex self-start overflow-hidden">
                                     <button
                                         onClick={() => {
-                                            const allowed = getTierConfig(userProfile?.subscription_tier).features.binders;
+                                            const allowed = (userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier)).features.binders;
                                             if (!allowed) {
                                                 addToast(`Custom Binders are available on ${TIER_CONFIG[TIERS.TIER_2].name} tier.`, 'info');
                                                 return;
@@ -1168,13 +1168,13 @@ const CollectionPage = () => {
                                         }}
                                         className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${groupingMode === 'binders'
                                             ? 'bg-indigo-600 text-white'
-                                            : getTierConfig(userProfile?.subscription_tier).features.binders
+                                            : (userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier)).features.binders
                                                 ? 'text-gray-500 hover:text-gray-300'
                                                 : 'text-gray-600 cursor-not-allowed opacity-60'
                                             }`}
                                     >
                                         Binders
-                                        {!getTierConfig(userProfile?.subscription_tier).features.binders && (
+                                        {!(userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier)).features.binders && (
                                             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
                                         )}
                                     </button>

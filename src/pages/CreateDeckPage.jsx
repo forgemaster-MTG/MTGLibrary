@@ -154,7 +154,7 @@ const CreateDeckPage = () => {
         if (hasPartner) {
             setStep(STEPS.PARTNER);
         } else {
-            const allowed = getTierConfig(userProfile?.subscription_tier).features.aiStrategy;
+            const allowed = (userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier)).features.aiStrategy;
             if (allowed) {
                 setStep(STEPS.AI_STRATEGY);
             } else {
@@ -165,7 +165,7 @@ const CreateDeckPage = () => {
 
     const handlePartnerSelect = (card) => {
         setSelectedPartner(card);
-        const allowed = getTierConfig(userProfile?.subscription_tier).features.aiStrategy;
+        const allowed = (userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier)).features.aiStrategy;
         if (allowed) {
             setStep(STEPS.AI_STRATEGY);
         } else {

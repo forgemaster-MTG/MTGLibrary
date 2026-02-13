@@ -47,14 +47,26 @@ const updateUsageStats = (keyIndex, model, status, inputTokens, outputTokens) =>
 const DEFAULT_BOOTSTRAP_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 const getKeys = (primaryKey, userProfile) => {
-    let rawKeys = [primaryKey];
-    if (userProfile?.settings?.geminiApiKeys && Array.isArray(userProfile.settings.geminiApiKeys)) {
-        userProfile.settings.geminiApiKeys.forEach(k => {
-            if (k && !rawKeys.includes(k)) rawKeys.push(k);
-        });
+    let rawKeys = [];
+
+    // 1. Determine if user is allowed to use Custom Keys
+    //    Allowed: Tier 5 (Planeswalker) OR Admin
+    const tier = userProfile?.subscription_tier;
+    const isAdmin = userProfile?.role === 'admin' || userProfile?.settings?.isAdmin === true;
+    const isAllowedCustomKeys = (tier === 'tier_5') || isAdmin;
+
+    // 2. If allowed, push their custom keys
+    if (isAllowedCustomKeys) {
+        if (primaryKey) rawKeys.push(primaryKey);
+        if (userProfile?.settings?.geminiApiKeys && Array.isArray(userProfile.settings.geminiApiKeys)) {
+            userProfile.settings.geminiApiKeys.forEach(k => {
+                if (k && !rawKeys.includes(k)) rawKeys.push(k);
+            });
+        }
     }
 
-    // Fallback to bootstrap key if not present
+    // 3. ALWAYS add the bootstrap key (The Default Proxy)
+    //    If they aren't allowed custom keys, this will be the ONLY key they get.
     if (!rawKeys.includes(DEFAULT_BOOTSTRAP_KEY)) {
         rawKeys.push(DEFAULT_BOOTSTRAP_KEY);
     }
@@ -66,13 +78,13 @@ const getKeys = (primaryKey, userProfile) => {
 };
 
 const PRO_MODELS = [
-    "gemini-1.5-pro",            // Stable High-Intelligence
-    "gemini-1.5-pro-latest"      // Fallback
+    "gemini-2.5-pro",  // 2.0 Pro Experimental
+    "gemini-3-pro-preview",            // Stable Fallback
 ];
 
 const FLASH_MODELS = [
-    "gemini-1.5-flash",          // Primary High-Speed
-    "gemini-1.5-flash-8b",       // Super Fast Fallback
+    "gemini-2.5-flash-lite", // 2.0 Flash Lite
+    "gemini-2.5-flash",          // Stable Fallback
 ];
 
 const PREFERRED_MODELS = [...PRO_MODELS, ...FLASH_MODELS];
@@ -745,7 +757,8 @@ const GeminiService = {
         ];
 
         const payload = { contents };
-        const result = await this.executeWithFallback(payload, userProfile, { apiKey });
+        // FORCE FLASH MODELS FOR CHAT
+        const result = await this.executeWithFallback(payload, userProfile, { apiKey, models: FLASH_MODELS });
         return cleanResponse(result);
     },
 

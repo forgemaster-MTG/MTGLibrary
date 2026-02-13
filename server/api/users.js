@@ -9,7 +9,6 @@ import { userService } from '../services/userService.js';
 const router = express.Router();
 
 // List users (admin use) - protected
-// List users (admin use) - protected
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const rows = await knex('users')
@@ -23,27 +22,15 @@ router.get('/', authMiddleware, async (req, res) => {
         'users.subscription_tier',
         'users.override_tier',
         'users.subscription_status',
+        'users.credits_monthly',
+        'users.credits_topup',
+        'users.ai_credits_used',
         'users.created_at',
-        'users.created_at',
-        'users.created_at as last_login',
+        'users.last_active_at',
         knex.raw('(SELECT COUNT(*) FROM user_cards WHERE user_cards.user_id = users.id)::int as card_count'),
         knex.raw('(SELECT COUNT(*) FROM user_decks WHERE user_decks.user_id = users.id)::int as deck_count')
       )
       .limit(200);
-
-    // DEBUG: Check counts
-    const totalCards = await knex('user_cards').count('id as count').first();
-    const totalDecks = await knex('user_decks').count('id as count').first();
-    console.log(`[users] DEBUG: Total Cards: ${totalCards?.count}, Total Decks: ${totalDecks?.count}`);
-
-    const debugUser = rows.find(r => r.id === 198);
-    if (debugUser) {
-      console.log('[users] DEBUG USER 198:', JSON.stringify(debugUser, null, 2));
-    }
-
-    if (rows.length > 0) {
-      console.log('[users] First User:', JSON.stringify(rows[0], null, 2));
-    }
 
     res.json(rows);
   } catch (err) {
@@ -151,10 +138,22 @@ router.put('/:id/permissions', authMiddleware, validate({ body: userPermissionsS
     if (user_override_tier !== undefined) updatePayload.override_tier = user_override_tier; // Map to DB column 'override_tier'
     if (subscription_status !== undefined) updatePayload.subscription_status = subscription_status;
 
-    const [updated] = await knex('users')
+    let [updated] = await knex('users')
       .where({ id: targetId })
       .update(updatePayload)
       .returning('*');
+
+    // 4. Automatic Support: If override was REMOVED (null), attempt to sync with Stripe 
+    // to restore their actual paid tier (if any)
+    if (user_override_tier === null && updated.stripe_customer_id) {
+      try {
+        const { syncSubscriptionStatus } = await import('../services/stripe.js');
+        const syncedUser = await syncSubscriptionStatus(targetId);
+        if (syncedUser) updated = syncedUser;
+      } catch (e) {
+        console.error("[UserPermissions] Failed to sync stripe on override removal:", e);
+      }
+    }
 
     res.json(updated);
   } catch (err) {

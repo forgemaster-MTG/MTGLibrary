@@ -202,26 +202,42 @@ const PreferencesSettings = () => {
                         </button>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {geminiKeys.map((key, idx) => (
-                            <div key={idx} className="space-y-1">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Key {idx + 1} {idx === 0 ? '(Primary)' : ''}</span>
+                    {(userProfile?.subscription_tier === 'tier_5' || userProfile?.settings?.isAdmin || userProfile?.role === 'admin') ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {geminiKeys.map((key, idx) => (
+                                <div key={idx} className="space-y-1">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Key {idx + 1} {idx === 0 ? '(Primary)' : ''}</span>
+                                    </div>
+                                    <input
+                                        type="password"
+                                        value={key}
+                                        onChange={(e) => {
+                                            const newKeys = [...geminiKeys];
+                                            newKeys[idx] = e.target.value;
+                                            setGeminiKeys(newKeys);
+                                        }}
+                                        placeholder={`Enter Key ${idx + 1}...`}
+                                        className="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm"
+                                    />
                                 </div>
-                                <input
-                                    type="password"
-                                    value={key}
-                                    onChange={(e) => {
-                                        const newKeys = [...geminiKeys];
-                                        newKeys[idx] = e.target.value;
-                                        setGeminiKeys(newKeys);
-                                    }}
-                                    placeholder={`Enter Key ${idx + 1}...`}
-                                    className="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm"
-                                />
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="p-6 bg-gray-900/50 border border-gray-700 rounded-xl mb-4">
+                            <div className="flex items-center gap-3 text-amber-500 mb-2">
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                                <span className="font-bold text-lg">Planeswalker Exclusive</span>
                             </div>
-                        ))}
-                    </div>
+                            <p className="text-gray-400 mb-4">
+                                Custom Gemini API keys are an advanced feature available on the <strong>Planeswalker ($10/mo)</strong> tier.
+                                Upgrade to use your own keys, bypass shared rate limits, and access higher-tier models.
+                            </p>
+                            <button className="text-sm bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-lg font-bold transition-colors">
+                                View Tiers
+                            </button>
+                        </div>
+                    )}
 
                     <div className="text-xs text-gray-500 flex justify-between bg-gray-900/50 p-3 rounded-lg border border-gray-700">
                         <span>Multiple keys enable automatic rotation when rate limits (429) are hit on free tiers.</span>

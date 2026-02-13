@@ -152,33 +152,8 @@ export const HelperForgeStep = ({ onNext, onBack }) => {
                         </button>
                     </div>
 
-                    {/* Optional API Key Input */}
-                    <div className="max-w-xl mx-auto mt-8 pt-6 border-t border-gray-800">
-                        <div className="flex flex-col gap-2 text-left">
-                            <label className="text-xs text-gray-500 uppercase tracking-widest font-bold">
-                                Optional: Enable High-Power Uplink (API Key)
-                            </label>
-                            <input
-                                type="password"
-                                placeholder="Paste Gemini API Key here (starts with AIza...)"
-                                defaultValue={userProfile?.settings?.geminiApiKey || ''}
-                                onBlur={async (e) => {
-                                    const key = e.target.value.trim();
-                                    if (key && key.startsWith('AIza')) {
-                                        try {
-                                            await updateSettings({ geminiApiKey: key });
-                                        } catch (err) {
-                                            console.error("Failed to save key", err);
-                                        }
-                                    }
-                                }}
-                                className="bg-black/40 border border-gray-700 rounded-lg px-4 py-2 text-sm text-gray-300 focus:border-amber-500 focus:outline-none w-full"
-                            />
-                            <p className="text-[10px] text-gray-600">
-                                Use this if the Oracle is exhausted. Overrides the shared connection.
-                            </p>
-                        </div>
-                    </div>
+                    {/* Optional API Key Input - REMOVED PER NEW SUBSCRIPTION MODEL */}
+
                 </div>
             )}
 

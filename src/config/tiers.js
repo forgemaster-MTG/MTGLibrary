@@ -225,6 +225,19 @@ export const TIER_CONFIG = {
     }
 };
 
-export function getTierConfig(tierId) {
-    return TIER_CONFIG[tierId] || TIER_CONFIG[TIERS.FREE];
+export function getTierConfig(tierId, permissions = []) {
+    const baseConfig = TIER_CONFIG[tierId] || TIER_CONFIG[TIERS.FREE];
+
+    if (permissions && permissions.includes('bypass_tier_limits')) {
+        const superConfig = TIER_CONFIG[TIERS.TIER_5];
+        return {
+            ...superConfig,
+            limits: {
+                ...superConfig.limits,
+                aiCredits: baseConfig.limits.aiCredits // Keep credits from original tier
+            }
+        };
+    }
+
+    return baseConfig;
 }

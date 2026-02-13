@@ -12,6 +12,7 @@ import {
 import { auth } from '../lib/firebase';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../services/api';
+import { getTierConfig } from '../config/tiers';
 
 const AuthContext = createContext();
 
@@ -211,7 +212,7 @@ export const AuthProvider = ({ children }) => {
         };
     }, [currentUser, queryClient]);
 
-    // Compute Effective Profile (Handle Trial Expiration)
+    // Compute Effective Profile (Handle Trial Expiration & Feature Bypass)
     const effectiveUserProfile = React.useMemo(() => {
         if (!userProfile) return null;
         const profile = { ...userProfile };
@@ -228,6 +229,13 @@ export const AuthProvider = ({ children }) => {
                 profile.is_trial_expired = true;
             }
         }
+
+        // Attach Tier Config with Override Support
+        profile.tierConfig = getTierConfig(
+            profile.subscription_tier,
+            profile.settings?.permissions || []
+        );
+
         return profile;
     }, [userProfile]);
 

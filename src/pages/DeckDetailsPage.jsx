@@ -941,7 +941,7 @@ const DeckDetailsPage = () => {
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            const tierConfig = getTierConfig(userProfile?.subscription_tier);
+                                                            const tierConfig = (userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier));
                                                             if (!tierConfig.features.deckDoctor) {
                                                                 addToast('Deck Doctor is available on Wizard tier and above.', 'info');
                                                                 return;
@@ -949,7 +949,7 @@ const DeckDetailsPage = () => {
                                                             setIsDoctorOpen(true);
                                                             setIsToolsMenuOpen(false);
                                                         }}
-                                                        className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all group ${getTierConfig(userProfile?.subscription_tier).features.deckDoctor
+                                                        className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all group ${(userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier)).features.deckDoctor
                                                             ? 'bg-indigo-500/10 hover:bg-indigo-500/30 border-indigo-500/20'
                                                             : 'bg-gray-900 border-gray-800 opacity-40 cursor-not-allowed'
                                                             }`}
@@ -959,7 +959,7 @@ const DeckDetailsPage = () => {
                                                     </button>
 
                                                     {canEdit && (
-                                                        getTierConfig(userProfile?.subscription_tier).features.deckAudit ? (
+                                                        (userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier)).features.deckAudit ? (
                                                             <button
                                                                 onClick={(e) => { e.stopPropagation(); handleAuditClick(); }}
                                                                 className="w-full h-full flex flex-col items-center gap-2 p-3 bg-purple-500/10 hover:bg-purple-500/30 border border-purple-500/20 rounded-xl transition-all group"
@@ -1053,20 +1053,20 @@ const DeckDetailsPage = () => {
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            if (getTierConfig(userProfile?.subscription_tier).features.deckBackup) {
+                                                            if ((userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier)).features.deckBackup) {
                                                                 handleExportDeck();
                                                                 setIsToolsMenuOpen(false);
                                                             } else {
                                                                 addToast('Deck Export is available on Magician tier and above.', 'error');
                                                             }
                                                         }}
-                                                        className={`w-full text-left px-4 py-3 text-xs flex items-center justify-between transition-colors group ${getTierConfig(userProfile?.subscription_tier).features.deckBackup ? 'hover:bg-gray-800' : 'opacity-40 cursor-not-allowed'}`}
+                                                        className={`w-full text-left px-4 py-3 text-xs flex items-center justify-between transition-colors group ${(userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier)).features.deckBackup ? 'hover:bg-gray-800' : 'opacity-40 cursor-not-allowed'}`}
                                                     >
                                                         <div className="flex items-center gap-3">
                                                             <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                                                             <span className="font-bold text-gray-300">Export JSON</span>
                                                         </div>
-                                                        {!getTierConfig(userProfile?.subscription_tier).features.deckBackup && <span className="text-[8px] bg-amber-500/20 text-amber-500 px-1.5 py-0.5 rounded leading-none">PRO</span>}
+                                                        {!(userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier)).features.deckBackup && <span className="text-[8px] bg-amber-500/20 text-amber-500 px-1.5 py-0.5 rounded leading-none">PRO</span>}
                                                     </button>
 
                                                     {canEdit && (
@@ -1074,14 +1074,14 @@ const DeckDetailsPage = () => {
                                                             <button
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
-                                                                    if (getTierConfig(userProfile?.subscription_tier).features.mockupDeck) {
+                                                                    if ((userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier)).features.mockupDeck) {
                                                                         handleToggleMockup();
                                                                         setIsToolsMenuOpen(false);
                                                                     } else {
                                                                         addToast('Mockup Mode is available on Magician tier and above.', 'error');
                                                                     }
                                                                 }}
-                                                                className={`w-full text-left px-4 py-3 text-xs flex items-center justify-between transition-colors group ${getTierConfig(userProfile?.subscription_tier).features.mockupDeck ? 'hover:bg-orange-950/20' : 'opacity-40 cursor-not-allowed'}`}
+                                                                className={`w-full text-left px-4 py-3 text-xs flex items-center justify-between transition-colors group ${(userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier)).features.mockupDeck ? 'hover:bg-orange-950/20' : 'opacity-40 cursor-not-allowed'}`}
                                                             >
                                                                 <div className="flex items-center gap-3">
                                                                     <svg className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
@@ -1391,7 +1391,7 @@ const DeckDetailsPage = () => {
                             <div className="space-y-3 relative z-10">
                                 <button
                                     onClick={() => {
-                                        const tierConfig = getTierConfig(userProfile?.subscription_tier);
+                                        const tierConfig = (userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier));
                                         if (!tierConfig.features.deckSuggestions) {
                                             addToast('Deck Builder is available on Magician tier and above.', 'info');
                                             return;
@@ -1403,13 +1403,13 @@ const DeckDetailsPage = () => {
                                             navigate(`/decks/${deckId}/build`);
                                         }
                                     }}
-                                    className={`w-full py-4 rounded-xl border transition-all font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3 group/btn ${getTierConfig(userProfile?.subscription_tier).features.deckSuggestions
+                                    className={`w-full py-4 rounded-xl border transition-all font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3 group/btn ${(userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier)).features.deckSuggestions
                                         ? 'bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-300 border-indigo-500/20 hover:border-indigo-500/40'
                                         : 'bg-gray-900/50 border-gray-800 text-gray-600 cursor-not-allowed hover:bg-gray-900/50'
                                         }`}
                                 >
-                                    <span className={`text-lg transition-transform ${getTierConfig(userProfile?.subscription_tier).features.deckSuggestions ? 'group-hover/btn:scale-110' : ''}`}>
-                                        {getTierConfig(userProfile?.subscription_tier).features.deckSuggestions ? '✨' : '🔒'}
+                                    <span className={`text-lg transition-transform ${(userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier)).features.deckSuggestions ? 'group-hover/btn:scale-110' : ''}`}>
+                                        {(userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier)).features.deckSuggestions ? '✨' : '🔒'}
                                     </span>
                                     {helperName}'s Deck Builder
                                 </button>

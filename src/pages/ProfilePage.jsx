@@ -242,7 +242,7 @@ const ProfilePage = () => {
                             playstyle={profile.playstyle}
                             isOwnProfile={userProfile?.id === profile.id}
                             onRetake={() => navigate('/onboarding?step=5')}
-                            canRegenerate={getTierConfig(userProfile?.subscription_tier).features.customAiPersona}
+                            canRegenerate={(userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier)).features.customAiPersona}
                         />
 
                         {/* Public Decks */}

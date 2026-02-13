@@ -47,7 +47,7 @@ const ConsoleBridge = () => {
 const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection', decks = [], sharedSources = [] }) => {
     const { addToast } = useToast();
     const { userProfile } = useAuth();
-    const tierConfig = getTierConfig(userProfile?.subscription_tier);
+    const tierConfig = userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier);
 
     // UI State
     const [view, setView] = useState('scanning'); // scanning | review

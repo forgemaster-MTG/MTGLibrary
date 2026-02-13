@@ -59,7 +59,8 @@ const Membership = () => {
 
     // Use override_tier if present, otherwise subscription_tier, default to FREE
     const currentTierId = userProfile?.override_tier || userProfile?.subscription_tier;
-    const config = getTierConfig(currentTierId);
+    // Use effective tier config from profile (handles bypass)
+    const config = userProfile?.tierConfig || getTierConfig(currentTierId, userProfile?.settings?.permissions);
 
     const getCreditLimit = (tierKey) => {
         if (!dynamicConfig) return TIER_CONFIG[tierKey]?.limits?.aiCredits || 0;

@@ -23,7 +23,7 @@ export const userPermissionsSchema = z.object({
     permissions: z.array(z.string()).optional(),
     isAdmin: z.boolean().optional(),
     subscription_tier: z.string().optional(),
-    user_override_tier: z.string().optional(),
+    user_override_tier: z.string().nullable().optional(),
     subscription_status: z.string().optional()
 });
 

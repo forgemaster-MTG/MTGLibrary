@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
+import { getTierConfig } from '../../config/tiers';
+
 
 const PricingCalculator = () => {
     const { user } = useAuth();
@@ -20,6 +22,13 @@ const PricingCalculator = () => {
         tiers: [],
         packs: [],
         trial: { creditLimit: 750000 }
+    });
+
+    const [liability, setLiability] = useState({
+        totalMonthly: 0,
+        totalTopUp: 0,
+        totalTokens: 0,
+        estimatedCost: 0
     });
 
     // Helper functions for calculation (Ported from HTML/JS)
@@ -115,8 +124,59 @@ const PricingCalculator = () => {
                 setLoading(false);
             }
         };
+
+        const fetchLiability = async () => {
+            try {
+                const users = await api.getUsers(); // We need all users to sum up credits
+                let totalMonthlyRemaining = 0;
+                let totalMonthlyLimit = 0;
+                let totalTopUpRemaining = 0;
+
+                users.forEach(u => {
+                    const tierConfig = getTierConfig(u.override_tier || u.subscription_tier || 'free', u.settings?.permissions);
+                    totalMonthlyLimit += (tierConfig?.limits?.aiCredits || 0);
+                    // Use Number() to ensure we don't do string concatenation with strings from DB
+                    totalMonthlyRemaining += Number(u.credits_monthly || 0);
+                    totalTopUpRemaining += Number(u.credits_topup || 0);
+                });
+
+                setLiability({
+                    totalMonthly: totalMonthlyRemaining,
+                    totalMonthlyLimit,
+                    totalTopUp: totalTopUpRemaining,
+                    totalTokens: totalMonthlyRemaining + totalTopUpRemaining,
+                    totalTokensLimit: totalMonthlyLimit + totalTopUpRemaining
+                });
+            } catch (err) {
+                console.error("Failed to fetch users for liability", err);
+            }
+        };
+
         fetchConfig();
+        fetchLiability();
     }, []);
+
+    const liabilityDetails = useMemo(() => {
+        if (!config.assumptions.exchangeRate || !config.assumptions.proTokenCost) return null;
+
+        const calculateCost = (credits) => {
+            const numCredits = Number(credits) || 0;
+            const rawTokens = (numCredits / config.assumptions.exchangeRate);
+            return (rawTokens / 1000000) * config.assumptions.proTokenCost;
+        };
+
+        // Monthly Liability is calculated on the FULL limit (Worst case / Total Promise)
+        const monthlyCost = calculateCost(liability.totalMonthlyLimit);
+        // Top-Up Liability is calculated on CURRENT remaining balance
+        const topUpCost = calculateCost(liability.totalTopUp);
+        const totalCost = monthlyCost + topUpCost;
+
+        return {
+            monthlyCost,
+            topUpCost,
+            totalCost
+        };
+    }, [liability, config.assumptions.exchangeRate, config.assumptions.proTokenCost]);
 
     const handleSave = async () => {
         setSaving(true);
@@ -170,149 +230,189 @@ const PricingCalculator = () => {
         <div className="bg-gray-900 text-gray-100 min-h-screen p-8">
             <div className="max-w-7xl mx-auto">
                 <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-3xl font-bold text-indigo-400">🧙‍♂️ Pricing Calculator & Config</h1>
-                    <div className="space-x-4">
-                        <button
-                            onClick={applyProposedLimits}
-                            className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded transition"
-                        >
-                            Apply Proposed Limits
-                        </button>
-                        <button
-                            onClick={handleSave}
-                            disabled={saving}
-                            className={`bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded font-bold transition ${saving ? 'opacity-50' : ''}`}
-                        >
-                            {saving ? 'Saving...' : 'Save Configuration'}
-                        </button>
-                    </div>
-                </div>
-
-                {message && (
-                    <div className={`p-4 rounded mb-6 ${message.type === 'error' ? 'bg-red-900/50 border-red-500' : 'bg-green-900/50 border-green-500'} border`}>
-                        {message.text}
-                    </div>
-                )}
-
-                {/* Assumptions */}
-                {/* Assumptions */}
-                <div className="bg-gray-800 p-6 rounded-xl shadow-lg mb-8 border border-gray-700">
-                    <div className="flex justify-between items-start mb-4">
-                        <h2 className="text-xl font-semibold text-green-400">⚙️ Assumptions</h2>
-                        <div className="text-right bg-gray-900/50 p-3 rounded-lg border border-gray-700">
-                            <div className="text-xs text-gray-400 uppercase tracking-wider font-bold mb-1">Average Value</div>
-                            <div className="text-xl font-mono font-bold text-indigo-400">
-                                {(avgCreditsPerDollar / 1000000).toFixed(2)}M <span className="text-sm text-gray-500">Credits / $1</span>
+                    <div>
+                        <h1 className="text-3xl font-bold text-indigo-400">🧙‍♂️ Pricing Calculator & Config</h1>
+                        {liability.totalTokensLimit > 0 && liabilityDetails && (
+                            <div className="mt-4 p-4 bg-gray-800/50 border border-gray-700 rounded-xl space-y-3">
+                                <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest border-b border-gray-700 pb-2">AI Liability Economics</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] text-gray-500 uppercase font-black">Monthly Subscription</p>
+                                        <div className="flex items-baseline gap-1">
+                                            <span className="text-lg font-mono text-indigo-400" title="Total Potential Limit">
+                                                {formatMillions(liability.totalMonthlyLimit)}
+                                            </span>
+                                            <span className="text-[10px] text-gray-500 lowercase font-normal ml-1">total potential</span>
+                                        </div>
+                                        <p className="text-sm font-bold text-white">${liabilityDetails.monthlyCost.toFixed(2)} <span className="text-[10px] text-gray-500 font-normal">liability</span></p>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] text-gray-500 uppercase font-black">Top-Up Credits</p>
+                                        <div className="flex items-baseline gap-1">
+                                            <span className="text-lg font-mono text-yellow-500" title="Remaining purchased credits">
+                                                {formatMillions(liability.totalTopUp)}
+                                            </span>
+                                            <span className="text-[10px] text-gray-500 lowercase font-normal ml-1">avbl balance</span>
+                                        </div>
+                                        <p className="text-sm font-bold text-white">${liabilityDetails.topUpCost.toFixed(2)} <span className="text-[10px] text-gray-500 font-normal">liability</span></p>
+                                    </div>
+                                    <div className="space-y-1 border-l border-gray-700 pl-4">
+                                        <p className="text-[10px] text-gray-500 uppercase font-black">Combined Total</p>
+                                        <div className="flex items-baseline gap-1">
+                                            <span className="text-lg font-mono text-white">
+                                                {formatMillions(liability.totalMonthlyLimit + liability.totalTopUp)}
+                                            </span>
+                                            <span className="text-[10px] text-gray-500 lowercase font-normal ml-1">combined avbl</span>
+                                        </div>
+                                        <p className="text-sm font-bold text-red-400">${liabilityDetails.totalCost.toFixed(2)} <span className="text-[10px] text-gray-500 font-normal">total risk</span></p>
+                                    </div>
+                                </div>
                             </div>
+                        )}
+                    </div>
+
+                </div>
+                <div className="space-x-4">
+                    <button
+                        onClick={applyProposedLimits}
+                        className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded transition"
+                    >
+                        Apply Proposed Limits
+                    </button>
+                    <button
+                        onClick={handleSave}
+                        disabled={saving}
+                        className={`bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded font-bold transition ${saving ? 'opacity-50' : ''}`}
+                    >
+                        {saving ? 'Saving...' : 'Save Configuration'}
+                    </button>
+                </div>
+            </div>
+
+            {message && (
+                <div className={`p-4 rounded mb-6 ${message.type === 'error' ? 'bg-red-900/50 border-red-500' : 'bg-green-900/50 border-green-500'} border`}>
+                    {message.text}
+                </div>
+            )}
+
+            {/* Assumptions */}
+            {/* Assumptions */}
+            <div className="bg-gray-800 p-6 rounded-xl shadow-lg mb-8 border border-gray-700">
+                <div className="flex justify-between items-start mb-4">
+                    <h2 className="text-xl font-semibold text-green-400">⚙️ Assumptions</h2>
+                    <div className="text-right bg-gray-900/50 p-3 rounded-lg border border-gray-700">
+                        <div className="text-xs text-gray-400 uppercase tracking-wider font-bold mb-1">Average Value</div>
+                        <div className="text-xl font-mono font-bold text-indigo-400">
+                            {(avgCreditsPerDollar / 1000000).toFixed(2)}M <span className="text-sm text-gray-500">Credits / $1</span>
                         </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-                        {Object.entries(config.assumptions).map(([key, value]) => (
-                            <div key={key}>
-                                <label className="block text-sm text-gray-400 mb-1 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</label>
-                                <input
-                                    type="number"
-                                    value={value}
-                                    onChange={(e) => handleAssumptionChange(key, e.target.value)}
-                                    step="0.01"
-                                    className="w-full bg-gray-900 border border-gray-600 rounded p-2 text-white focus:border-indigo-500 outline-none"
-                                />
-                            </div>
-                        ))}
-                    </div>
                 </div>
-
-                {/* Tiers Table */}
-                <h2 className="text-2xl font-bold mb-4">Subscription Tiers</h2>
-                <div className="overflow-x-auto mb-12 bg-gray-800 rounded-xl border border-gray-700">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-gray-900/50 text-gray-400 uppercase text-sm border-b border-gray-700">
-                                <th className="p-4">Tier</th>
-                                <th className="p-4">Price</th>
-                                <th className="p-4">Margin %</th>
-                                <th className="p-4">Req. Profit</th>
-                                <th className="p-4 text-indigo-400">Strict Max</th>
-                                <th className="p-4 text-white">Current Limit</th>
-                                <th className="p-4 text-green-400">Proposed</th>
-                                <th className="p-4">Est. Decks</th>
-                                <th className="p-4 text-emerald-300">Proj. Profit</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {config.tiers.map((tier, index) => {
-                                const stats = calculateStats(tier, 'tier');
-                                const isDiscrepancy = tier.creditLimit !== stats.proposedLimit;
-
-                                return (
-                                    <tr key={tier.name} className="border-b border-gray-700 hover:bg-gray-700/50 transition">
-                                        <td className="p-4 font-bold">{tier.name}</td>
-                                        <td className="p-4 text-green-400">${tier.price.toFixed(2)}</td>
-                                        <td className="p-4">
-                                            <input
-                                                type="number"
-                                                value={tier.marginPercent !== undefined ? tier.marginPercent : config.assumptions.marginPercent}
-                                                onChange={(e) => handleTierMarginChange(index, e.target.value)}
-                                                className="w-20 bg-gray-900 border border-gray-600 rounded p-1 text-white text-center"
-                                            />
-                                        </td>
-                                        <td className="p-4 text-green-300 font-mono">${stats.profit.toFixed(2)}</td>
-                                        <td className="p-4 font-bold text-lg text-indigo-300">{formatMillions(stats.maxCredits)}</td>
-                                        <td className={`p-4 font-bold text-xl ${isDiscrepancy ? 'text-yellow-500' : 'text-white'}`}>
-                                            {formatMillions(tier.creditLimit)}
-                                        </td>
-                                        <td className="p-4 font-bold text-xl text-green-400">{formatMillions(stats.proposedLimit)}</td>
-                                        <td className="p-4 font-bold text-yellow-300 text-lg">{stats.estDecks}</td>
-                                        <td className="p-4 text-emerald-300 font-bold">${stats.projProfit.toFixed(2)}</td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+                    {Object.entries(config.assumptions).map(([key, value]) => (
+                        <div key={key}>
+                            <label className="block text-sm text-gray-400 mb-1 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</label>
+                            <input
+                                type="number"
+                                value={value}
+                                onChange={(e) => handleAssumptionChange(key, e.target.value)}
+                                step="0.01"
+                                className="w-full bg-gray-900 border border-gray-600 rounded p-2 text-white focus:border-indigo-500 outline-none"
+                            />
+                        </div>
+                    ))}
                 </div>
-
-                {/* Packs Table */}
-                <h2 className="text-2xl font-bold mb-4">Top-Up Packs</h2>
-                <div className="overflow-x-auto bg-gray-800 rounded-xl border border-gray-700">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-gray-900/50 text-gray-400 uppercase text-sm border-b border-gray-700">
-                                <th className="p-4">Pack</th>
-                                <th className="p-4">Price</th>
-                                <th className="p-4">Stripe</th>
-                                <th className="p-4">Req. Profit</th>
-                                <th className="p-4 text-indigo-400">Strict Max</th>
-                                <th className="p-4 text-white">Current Limit</th>
-                                <th className="p-4 text-green-400">Proposed</th>
-                                <th className="p-4">Est. Decks</th>
-                                <th className="p-4 text-emerald-300">Proj. Profit</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {config.packs.map(pack => {
-                                const stats = calculateStats(pack, 'pack', 100);
-                                const isDiscrepancy = pack.creditLimit !== stats.proposedLimit;
-                                return (
-                                    <tr key={pack.name} className="border-b border-gray-700 hover:bg-gray-700/50 transition">
-                                        <td className="p-4 font-bold">{pack.name}</td>
-                                        <td className="p-4 text-green-400">${pack.price.toFixed(2)}</td>
-                                        <td className="p-4 text-red-400 text-sm">-${stats.stripe.toFixed(2)}</td>
-                                        <td className="p-4 text-green-300 font-mono">${stats.profit.toFixed(2)}</td>
-                                        <td className="p-4 font-bold text-lg text-indigo-300">{formatMillions(stats.maxCredits)}</td>
-                                        <td className={`p-4 font-bold text-xl ${isDiscrepancy ? 'text-yellow-500' : 'text-white'}`}>
-                                            {formatMillions(pack.creditLimit)}
-                                        </td>
-                                        <td className="p-4 font-bold text-xl text-green-400">{formatMillions(stats.proposedLimit)}</td>
-                                        <td className="p-4 font-bold text-yellow-300 text-lg">{stats.estDecks}</td>
-                                        <td className="p-4 text-emerald-300 font-bold">${stats.projProfit.toFixed(2)}</td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </div>
-
             </div>
+
+            {/* Tiers Table */}
+            <h2 className="text-2xl font-bold mb-4">Subscription Tiers</h2>
+            <div className="overflow-x-auto mb-12 bg-gray-800 rounded-xl border border-gray-700">
+                <table className="w-full text-left border-collapse">
+                    <thead>
+                        <tr className="bg-gray-900/50 text-gray-400 uppercase text-sm border-b border-gray-700">
+                            <th className="p-4">Tier</th>
+                            <th className="p-4">Price</th>
+                            <th className="p-4">Margin %</th>
+                            <th className="p-4">Req. Profit</th>
+                            <th className="p-4 text-indigo-400">Strict Max</th>
+                            <th className="p-4 text-white">Current Limit</th>
+                            <th className="p-4 text-green-400">Proposed</th>
+                            <th className="p-4">Est. Decks</th>
+                            <th className="p-4 text-emerald-300">Proj. Profit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {config.tiers.map((tier, index) => {
+                            const stats = calculateStats(tier, 'tier');
+                            const isDiscrepancy = tier.creditLimit !== stats.proposedLimit;
+
+                            return (
+                                <tr key={tier.name} className="border-b border-gray-700 hover:bg-gray-700/50 transition">
+                                    <td className="p-4 font-bold">{tier.name}</td>
+                                    <td className="p-4 text-green-400">${tier.price.toFixed(2)}</td>
+                                    <td className="p-4">
+                                        <input
+                                            type="number"
+                                            value={tier.marginPercent !== undefined ? tier.marginPercent : config.assumptions.marginPercent}
+                                            onChange={(e) => handleTierMarginChange(index, e.target.value)}
+                                            className="w-20 bg-gray-900 border border-gray-600 rounded p-1 text-white text-center"
+                                        />
+                                    </td>
+                                    <td className="p-4 text-green-300 font-mono">${stats.profit.toFixed(2)}</td>
+                                    <td className="p-4 font-bold text-lg text-indigo-300">{formatMillions(stats.maxCredits)}</td>
+                                    <td className={`p-4 font-bold text-xl ${isDiscrepancy ? 'text-yellow-500' : 'text-white'}`}>
+                                        {formatMillions(tier.creditLimit)}
+                                    </td>
+                                    <td className="p-4 font-bold text-xl text-green-400">{formatMillions(stats.proposedLimit)}</td>
+                                    <td className="p-4 font-bold text-yellow-300 text-lg">{stats.estDecks}</td>
+                                    <td className="p-4 text-emerald-300 font-bold">${stats.projProfit.toFixed(2)}</td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            </div>
+
+            {/* Packs Table */}
+            <h2 className="text-2xl font-bold mb-4">Top-Up Packs</h2>
+            <div className="overflow-x-auto bg-gray-800 rounded-xl border border-gray-700">
+                <table className="w-full text-left border-collapse">
+                    <thead>
+                        <tr className="bg-gray-900/50 text-gray-400 uppercase text-sm border-b border-gray-700">
+                            <th className="p-4">Pack</th>
+                            <th className="p-4">Price</th>
+                            <th className="p-4">Stripe</th>
+                            <th className="p-4">Req. Profit</th>
+                            <th className="p-4 text-indigo-400">Strict Max</th>
+                            <th className="p-4 text-white">Current Limit</th>
+                            <th className="p-4 text-green-400">Proposed</th>
+                            <th className="p-4">Est. Decks</th>
+                            <th className="p-4 text-emerald-300">Proj. Profit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {config.packs.map(pack => {
+                            const stats = calculateStats(pack, 'pack', 100);
+                            const isDiscrepancy = pack.creditLimit !== stats.proposedLimit;
+                            return (
+                                <tr key={pack.name} className="border-b border-gray-700 hover:bg-gray-700/50 transition">
+                                    <td className="p-4 font-bold">{pack.name}</td>
+                                    <td className="p-4 text-green-400">${pack.price.toFixed(2)}</td>
+                                    <td className="p-4 text-red-400 text-sm">-${stats.stripe.toFixed(2)}</td>
+                                    <td className="p-4 text-green-300 font-mono">${stats.profit.toFixed(2)}</td>
+                                    <td className="p-4 font-bold text-lg text-indigo-300">{formatMillions(stats.maxCredits)}</td>
+                                    <td className={`p-4 font-bold text-xl ${isDiscrepancy ? 'text-yellow-500' : 'text-white'}`}>
+                                        {formatMillions(pack.creditLimit)}
+                                    </td>
+                                    <td className="p-4 font-bold text-xl text-green-400">{formatMillions(stats.proposedLimit)}</td>
+                                    <td className="p-4 font-bold text-yellow-300 text-lg">{stats.estDecks}</td>
+                                    <td className="p-4 text-emerald-300 font-bold">${stats.projProfit.toFixed(2)}</td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            </div>
+
         </div>
     );
 };

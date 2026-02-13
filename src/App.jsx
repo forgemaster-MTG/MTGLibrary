@@ -59,6 +59,7 @@ import AchievementMonitor from './components/common/AchievementMonitor';
 
 import ImpersonationBanner from './components/Admin/ImpersonationBanner';
 import AdminGuard from './components/Admin/AdminGuard';
+import UsernamePrompt from './components/onboarding/UsernamePrompt';
 
 function App() {
     // Global Shortcuts
@@ -149,6 +150,7 @@ function App() {
                             {/* Global Components */}
                             <ChatWidget />
                             <CardDetailsModal />
+                            <UsernamePrompt />
                         </div>
                     </CardModalProvider>
                 </AuthProvider>

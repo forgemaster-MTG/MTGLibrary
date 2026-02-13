@@ -22,6 +22,18 @@ async function authMiddleware(req, res, next) {
 		// Attach user context
 		req.user = user;
 
+		// Throttled last_active_at update (only once every 5 minutes)
+		const now = new Date();
+		const lastActive = user.last_active_at ? new Date(user.last_active_at) : null;
+		if (!lastActive || (now - lastActive) > 5 * 60 * 1000) {
+			const { knex } = await import('../db.js');
+			// Fire and forget to avoid slowing down the request
+			knex('users')
+				.where({ id: user.id })
+				.update({ last_active_at: knex.fn.now() })
+				.catch(err => console.warn('[Auth] Failed to update last_active_at:', err.message));
+		}
+
 		// Impersonation Logic (Admin Only)
 		const impersonateId = req.headers['x-impersonate-user-id'];
 		if (impersonateId) {

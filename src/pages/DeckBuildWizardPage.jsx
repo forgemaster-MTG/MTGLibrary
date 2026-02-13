@@ -27,7 +27,7 @@ const DeckBuildWizardPage = () => {
 
     useEffect(() => {
         if (!userProfile) return;
-        const tier = getTierConfig(userProfile.subscription_tier);
+        const tier = userProfile.tierConfig;
         if (!tier.features.deckSuggestions) {
             addToast("Deck Builder requires Magician tier or higher.", "error");
             navigate(`/decks/${deckId}`);

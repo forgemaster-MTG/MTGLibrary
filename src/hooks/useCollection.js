@@ -4,7 +4,8 @@ import { api } from '../services/api';
 
 export function useCollection(options = {}) {
     const { wishlist, userId } = options;
-    const { currentUser } = useAuth();
+    const auth = useAuth();
+    const currentUser = auth?.currentUser;
     const queryClient = useQueryClient();
 
     const queryKey = ['collection', { wishlist, userId: userId || currentUser?.uid }];

@@ -81,7 +81,7 @@ const DeckStrategyModal = ({ isOpen, onClose, deck, cards = [], onStrategyUpdate
     const typeDistribution = blueprint.layout?.types || blueprint.typeCounts || {};
 
     // Check Feature Access
-    const canRecreate = getTierConfig(userProfile?.subscription_tier).features.aiStrategy;
+    const canRecreate = (userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier)).features.aiStrategy;
     const hasStrategy = !!blueprint.strategy;
 
     const handleRerunning = async () => {

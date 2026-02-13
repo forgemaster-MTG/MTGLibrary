@@ -269,7 +269,7 @@ const SetDetailsPage = () => {
                                 <span className="text-sm font-black text-emerald-400 tabular-nums">${stats.value}</span>
                             </div>
                         </div>
-                        {getTierConfig(userProfile?.subscription_tier).features.setAudit ? (
+                        {(userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier)).features.setAudit ? (
                             <StartAuditButton type="set" targetId={setCode} label="Audit Set" className="text-xs py-1.5" />
                         ) : (
                             <button

@@ -11,9 +11,10 @@ const AdminGuard = ({ children }) => {
     }
 
     // TODO: rigorous role check. For now, email list or role 'admin'
-    console.log('[AdminGuard] Checking access for:', currentUser?.email, 'Role:', userProfile?.role, 'isAdmin:', userProfile?.isAdmin);
+    console.log('[AdminGuard] Checking access for:', currentUser?.email, 'Role:', userProfile?.role, 'isAdmin:', userProfile?.settings?.isAdmin);
     const isAdmin = userProfile?.role === 'admin' ||
         userProfile?.isAdmin === true ||
+        userProfile?.settings?.isAdmin === true ||
         ['gidgiddings@gmail.com', 'test@test.com', 'forge_test@gmail.com'].includes(currentUser?.email);
 
     if (!isAdmin) {
