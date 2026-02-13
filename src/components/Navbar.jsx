@@ -184,6 +184,11 @@ const Navbar = () => {
                                                 CUSTOM
                                             </span>
                                         )}
+                                        {userProfile?.settings?.permissions?.includes('bypass_tier_limits') && (
+                                            <span className="bg-purple-500/10 border border-purple-500/30 text-purple-400 text-[8px] font-black px-1.5 py-0.5 rounded animate-pulse w-fit leading-none uppercase flex items-center justify-center tracking-tighter">
+                                                CUSTOM - FEATURES UNLOCKED
+                                            </span>
+                                        )}
                                     </div>
 
                                     {/* Desktop Title & Badges */}
@@ -247,6 +252,12 @@ const Navbar = () => {
                                             {(userProfile?.override_tier || userProfile?.custom_limits) && (
                                                 <span className="bg-pink-500/10 border border-pink-500/30 text-pink-400 text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse leading-none uppercase tracking-wider">
                                                     CUSTOM
+                                                </span>
+                                            )}
+
+                                            {userProfile?.settings?.permissions?.includes('bypass_tier_limits') && (
+                                                <span className="bg-purple-500/10 border border-purple-500/30 text-purple-400 text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse leading-none uppercase tracking-wider">
+                                                    CUSTOM - FEATURES UNLOCKED
                                                 </span>
                                             )}
                                         </div>
