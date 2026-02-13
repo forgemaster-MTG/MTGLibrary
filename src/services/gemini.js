@@ -85,9 +85,9 @@ const PRO_MODELS = [
 ];
 
 const FLASH_MODELS = [
-    "gemini-2.0-flash-lite", // 2.0 Flash Lite (Typo fix if needed, assuming 2.5 was correct but checking docs)
+    "gemini-2.5-flash-lite", // 2.0 Flash Lite (Typo fix if needed, assuming 2.5 was correct but checking docs)
     // Actually assuming 2.5 is correct as per user context, but let's add 1.5
-    "gemini-2.0-flash",
+    "gemini-2.5-flash",
     "gemini-1.5-flash",          // Stable Fallback
 ];
 
