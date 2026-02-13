@@ -198,7 +198,7 @@ ${playstyleContext}
                                             msg.content
                                         ) : (
                                             <div
-                                                className="[&_p]:!mb-1.5 [&_p:last-child]:!mb-0 [&_h1]:!text-lg [&_h1]:!font-bold [&_h1]:!mb-2 [&_h2]:!text-base [&_h2]:!font-bold [&_h2]:!mb-1.5 [&_ul]:!my-1.5 [&_li]:!mb-0.5 leading-relaxed"
+                                                className="prose-chat leading-relaxed"
                                                 dangerouslySetInnerHTML={{ __html: msg.content }}
                                             />
                                         )}

@@ -84,4 +84,41 @@ body {
     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
         background: rgba(255, 255, 255, 0.1);
     }
+
+    /* Production-Safe Chat Typography Overrides */
+    .prose-chat p {
+        margin-bottom: 0.375rem !important;
+        /* mb-1.5 */
+    }
+
+    .prose-chat p:last-child {
+        margin-bottom: 0 !important;
+    }
+
+    .prose-chat h1 {
+        font-size: 1.125rem !important;
+        /* text-lg */
+        font-weight: 700 !important;
+        margin-bottom: 0.5rem !important;
+        /* mb-2 */
+    }
+
+    .prose-chat h2 {
+        font-size: 1rem !important;
+        /* text-base */
+        font-weight: 700 !important;
+        margin-bottom: 0.375rem !important;
+        /* mb-1.5 */
+    }
+
+    .prose-chat ul {
+        margin-top: 0.375rem !important;
+        /* my-1.5 */
+        margin-bottom: 0.375rem !important;
+    }
+
+    .prose-chat li {
+        margin-bottom: 0.125rem !important;
+        /* mb-0.5 */
+    }
 }
