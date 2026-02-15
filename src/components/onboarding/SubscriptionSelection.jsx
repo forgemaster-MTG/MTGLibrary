@@ -22,10 +22,20 @@ const SubscriptionSelection = ({
     dynamicConfig,
     packs,
     onBuyPack,
-    rate
+    rate,
+    initialSection = 'tiers'
 }) => {
     const [buyingPackIndex, setBuyingPackIndex] = React.useState(null);
+    const topUpRef = React.useRef(null);
     const tiers = Object.values(TIERS);
+
+    React.useEffect(() => {
+        if (initialSection === 'topup' && topUpRef.current) {
+            setTimeout(() => {
+                topUpRef.current.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+        }
+    }, [initialSection]);
 
     const displayPacks = React.useMemo(() => {
         if (packs && packs.length > 0) return packs;
@@ -226,7 +236,7 @@ const SubscriptionSelection = ({
             </div>
 
             {/* Top Up Section */}
-            <div className="mt-16 pt-8 border-t border-gray-800">
+            <div ref={topUpRef} className="mt-16 pt-8 border-t border-gray-800">
                 <div className="text-center mb-8">
                     <h3 className="text-2xl font-bold text-white mb-2">Need more power?</h3>
                     <p className="text-gray-400">

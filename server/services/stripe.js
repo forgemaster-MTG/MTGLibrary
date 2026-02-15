@@ -204,6 +204,12 @@ export async function handleWebhook(event) {
     }
 }
 
+import { CreditService } from './CreditService.js';
+
+// ... (existing imports)
+
+// ...
+
 async function handleCheckoutCompleted(session) {
     const customerId = session.customer;
     const user = await knex('users').where({ stripe_customer_id: customerId }).first();
@@ -218,7 +224,12 @@ async function handleCheckoutCompleted(session) {
         const creditsToAdd = parseInt(session.metadata.credits || '0', 10);
         if (creditsToAdd > 0) {
             console.log(`[Stripe] Adding ${creditsToAdd} top-up credits to user ${user.id}`);
-            await knex('users').where({ id: user.id }).increment('credits_topup', creditsToAdd);
+            // Use CreditService to log
+            await CreditService.addCredits(user.id, creditsToAdd, 'topup', 'Top-up Purchase', {
+                transaction_type: 'topup_purchase',
+                session_id: session.id,
+                amount_paid: session.amount_total
+            });
         }
         return;
     }
@@ -274,8 +285,12 @@ async function handleInvoicePaymentSucceeded(invoice) {
 
         if (creditLimit > 0) {
             console.log(`[Stripe] Invoice Paid. Resetting monthly credits for ${user.username} (Tier: ${tierId}) to ${creditLimit}`);
-            await knex('users').where({ id: user.id }).update({
-                credits_monthly: creditLimit
+            // Use CreditService to log (SET operation)
+            await CreditService.addCredits(user.id, creditLimit, 'monthly', 'Subscription Renewal', {
+                operation: 'set',
+                transaction_type: 'subscription_renewal',
+                tier: tierId,
+                invoice_id: invoice.id
             });
         }
     }

@@ -42,7 +42,10 @@ import socialApi from './api/social.js';
 import tournamentsApi from './api/tournaments.js';
 import aiApi from './api/ai.js';
 import featuredApi from './api/featured.js';
+
 import tradesApi from './api/trades.js';
+import creditsApi from './api/credits.js';
+import importApi from './api/import.js';
 
 
 const require = createRequire(import.meta.url);
@@ -219,6 +222,7 @@ app.delete('/saved_views/:id', auth, async (req, res) => {
 app.use('/api/cards', cardsApi);
 app.use('/api/cardidentifiers', cardIdentifiersApi);
 app.use('/api/decks', decksApi);
+app.use('/api/import', importApi);
 app.use('/api/users', usersApi);
 app.use('/api/payments', auth, paymentsApi);
 app.use('/api/precons', preconsApi);
@@ -239,6 +243,7 @@ app.use('/api/tournaments', tournamentsApi);
 app.use('/api/ai', aiApi);
 app.use('/api/featured', featuredApi);
 app.use('/api/trades', tradesApi);
+app.use('/api/credits', creditsApi);
 
 
 // Health endpoint with DB check

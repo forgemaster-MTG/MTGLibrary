@@ -45,7 +45,7 @@ const updateUsageStats = (keyIndex, model, status, inputTokens, outputTokens) =>
     }
 };
 
-const DEFAULT_BOOTSTRAP_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+const DEFAULT_BOOTSTRAP_KEY = import.meta.env.VITE_GEMINI_API_KEY || 'USE_PROXY';
 
 const getKeys = (primaryKey, userProfile) => {
     let rawKeys = [];

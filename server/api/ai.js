@@ -81,16 +81,14 @@ router.post('/generate', async (req, res) => {
 
             if (cost > 0) {
                 try {
-                    const result = await CreditService.deductCredits(req.user.id, cost);
+                    const result = await CreditService.deductCredits(req.user.id, cost, `AI: ${method}`, {
+                        model: model,
+                        token_count: totalTokenCount,
+                        api_version: apiVersion
+                    });
                     finalCredits = result;
-                    // console.log(`[AI Proxy] Deducted ${cost} credits for ${totalTokenCount} tokens. Remaining: ${result.total}`);
                 } catch (err) {
                     console.error('[AI Proxy] Failed to deduct credits:', err);
-                    // Don't fail the request if deduction fails (e.g. race condition or just went zero), but verify?
-                    // If error is INSUFFICIENT_CREDITS, it means they used more than they had.
-                    // We allow this "overdraft" for the last request usually, or we swallow it.
-                    // CreditService throws if insufficient.
-                    // If we want to accept it, we should catch it.
                 }
             }
         }

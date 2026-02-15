@@ -271,30 +271,35 @@ const CreateDeckPage = () => {
         }
     };
 
-    const handleImportDeck = async (parsedData) => {
+    const handleImportDeck = async (parsedData, importOptions = {}) => {
         setImporting(true);
         setIsImportModalOpen(false);
-        const toastId = addToast('Resolving cards with Oracle...', 'info', 10000);
+        const toastId = addToast('Saving deck...', 'info', 10000);
 
         try {
-            // 1. Resolve Cards
-            const allCards = [...parsedData.mainboard, ...parsedData.sideboard];
-            const resolved = await DeckImportService.resolveCards(allCards);
+            // 1. Identify Commanders and Cards
+            // parsedData.mainboard and sideboard are ALREADY resolved in the modal.
+            const allCards = [
+                ...parsedData.mainboard.map(c => ({ ...c, board: 'main' })),
+                ...parsedData.sideboard.map(c => ({ ...c, board: 'side' }))
+            ];
 
-            if (resolved.length === 0) {
-                addToast('No valid cards found to import.', 'error');
-                setImporting(false);
-                return;
-            }
+            const commanders = allCards.filter(c => c.isCommander);
+            const cardsToImport = allCards.filter(c => !c.isCommander);
+
+            const commander = commanders[0] || null;
+            const partner = commanders[1] || null;
 
             // 2. Prepare Payload
             const payload = {
                 deck: {
-                    name: "Imported Deck", // TODO: Detect name from file?
-                    format: 'Commander', // Default
-                    commander: null // Auto-detection logic could go here
+                    name: parsedData.name || "Imported Deck",
+                    format: 'Commander',
+                    commander: commander ? (commander.data || commander) : null,
+                    commanderPartner: partner ? (partner.data || partner) : null,
+                    is_wishlist: importOptions.isWishlist // Pass deck-level flag if backend supports it
                 },
-                cards: resolved.map(c => ({
+                cards: cardsToImport.map(c => ({
                     scryfall_id: c.scryfall_id,
                     name: c.name,
                     set_code: c.set_code,
@@ -302,20 +307,14 @@ const CreateDeckPage = () => {
                     finish: c.isFoil ? 'foil' : 'nonfoil',
                     count: c.quantity || 1,
                     data: c.data,
-                    // Map mainboard/sideboard logic if needed, but 'import' endpoint puts all in deck
-                    // We might need to handle sideboard tagging if backend supported it.
-                    // For now, everything goes to deck.
                 })),
                 options: {
-                    // The backend logic: if checkCollection=true, it links to EXISTING cards.
-                    // If checkCollection=false, it creates NEW 'wishlist' copies (if addToCollecton=true).
-                    // Let's assume we want to MATCH first, then wishlist.
-                    checkCollection: true,
-                    addToCollection: true
+                    checkCollection: !importOptions.isWishlist, // Ensure we check collection ONLY if not a wishlist
+                    addToCollection: true, // Always add to collection (backend will tag as wishlist if needed)
+                    isWishlist: importOptions.isWishlist // Explicit flag for card creation
                 }
             };
 
-            // 3. Send to Backend
             // 3. Send to Backend
             const res = await api.post('/api/decks/import', payload);
             await queryClient.invalidateQueries({ queryKey: ['decks'] });

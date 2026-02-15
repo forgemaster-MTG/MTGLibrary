@@ -321,7 +321,9 @@ const DeckDetailsPage = () => {
 
         deckCards.forEach(c => {
             const cardData = c;
-            const typeLine = ((cardData.data?.type_line || cardData.type_line) || '').toLowerCase();
+            // Split type line to prioritize front face for DFCs (e.g. "Artifact // Creature" -> catch as Artifact first)
+            const rawTypeLine = (cardData.data?.type_line || cardData.type_line) || '';
+            const typeLine = rawTypeLine.split('//')[0].toLowerCase();
 
             const isCommander = deck?.commander && (cardData.scryfall_id === (deck.commander.id || deck.commander.scryfall_id) || (cardData.oracle_id && cardData.oracle_id === deck.commander.oracle_id));
             const isPartner = deck?.commander_partner && (cardData.scryfall_id === (deck.commander_partner.id || deck.commander_partner.scryfall_id) || (cardData.oracle_id && cardData.oracle_id === deck.commander_partner.oracle_id));

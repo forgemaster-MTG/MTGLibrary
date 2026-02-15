@@ -47,38 +47,41 @@ async function fetchMoxfield(url) {
     const mainboard = [];
     const sideboard = [];
 
-    // Moxfield returns object: { "Card Name": { quantity: 1, card: {...} } }
-    Object.values(data.mainboard).forEach(entry => {
+    // Parse Mainboard
+    Object.keys(data.mainboard).forEach(cardName => {
+        const item = data.mainboard[cardName];
         mainboard.push({
-            quantity: entry.quantity,
-            name: entry.card.name,
-            set: entry.card.set,
-            collectorNumber: entry.card.cn,
-            isFoil: entry.finish === 'foil' // Moxfield layout might differ slightly
+            quantity: item.quantity,
+            name: item.card.name,
+            set: item.card.set,
+            collectorNumber: item.card.cn,
+            isFoil: item.finish === 'foil'
         });
     });
 
-    Object.values(data.sideboard).forEach(entry => {
+    // Parse Sideboard
+    Object.keys(data.sideboard).forEach(cardName => {
+        const item = data.sideboard[cardName];
         sideboard.push({
-            quantity: entry.quantity,
-            name: entry.card.name,
-            set: entry.card.set,
-            collectorNumber: entry.card.cn
+            quantity: item.quantity,
+            name: item.card.name,
+            set: item.card.set,
+            collectorNumber: item.card.cn,
+            isFoil: item.finish === 'foil'
         });
     });
 
-    // Commanders? Moxfield puts them in 'commanders' object too
+    // Parse Commanders (Moxfield puts them in separate object usually, but also mainboard sometimes?)
+    // Moxfield V2 'commanders' object contains card names as keys.
     if (data.commanders) {
-        Object.values(data.commanders).forEach(entry => {
-            // Logic: Check if it's already in mainboard? Usually yes but marked as commander?
-            // Or separate? Moxfield removes them from mainboard usually in export view?
-            // Actually API usually has them separate.
-            // We'll push to sideboard/commander section for our parser
+        Object.keys(data.commanders).forEach(cardName => {
+            const item = data.commanders[cardName];
             sideboard.push({
-                quantity: entry.quantity,
-                name: entry.card.name,
-                set: entry.card.set,
-                collectorNumber: entry.card.cn,
+                quantity: item.quantity,
+                name: item.card.name,
+                set: item.card.set,
+                collectorNumber: item.card.cn,
+                isFoil: item.finish === 'foil',
                 isCommander: true
             });
         });
@@ -97,11 +100,23 @@ async function fetchArchidekt(url) {
     if (!match) throw new Error('Invalid Archidekt URL');
     const id = match[1];
 
-    const response = await axios.get(`https://archidekt.com/api/decks/${id}/`);
+    const response = await axios.get(`https://archidekt.com/api/decks/${id}/`, {
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+    });
+
+    // Archidekt API structure usually: { id: ..., cards: [ ... ] }
+    // Sometimes response.data IS the deck object, sometimes response.data.results?
+    // Let's assume response.data based on typical endpoint behavior.
     const data = response.data;
 
     const mainboard = [];
     const sideboard = [];
+
+    if (!data.cards) {
+        throw new Error('Archidekt deck is private or invalid format.');
+    }
 
     data.cards.forEach(card => {
         const entry = {
@@ -109,21 +124,21 @@ async function fetchArchidekt(url) {
             name: card.card.oracleCard.name,
             set: card.card.edition.editionCode,
             collectorNumber: card.card.collectorNumber,
-            isFoil: card.modifier === 'Foil' // Archidekt modifier
+            isFoil: card.modifier === 'Foil'
         };
 
-        // Category? "Commander", "Sideboard", "Mainboard"
-        // Archidekt uses 'categories': ["Commander"], ["Sideboard"], etc.
-        // But categories are user defined? 
-        // Standard categories: 'Commander', 'Sideboard', 'Maybeboard'
+        // Categories check
+        // Archidekt cards have 'categories': ["Commander"], ["Sideboard"], etc.
+        const categories = card.categories || [];
 
-        if (card.categories.includes('Commander')) {
+        if (categories.includes('Commander')) {
             sideboard.push({ ...entry, isCommander: true });
-        } else if (card.categories.includes('Sideboard')) {
+        } else if (categories.includes('Sideboard')) {
             sideboard.push(entry);
-        } else if (card.categories.includes('Maybeboard')) {
-            // Skip maybeboard?
+        } else if (categories.includes('Maybeboard')) {
+            // Skip maybeboard
         } else {
+            // Default to mainboard
             mainboard.push(entry);
         }
     });

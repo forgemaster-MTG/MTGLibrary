@@ -4,10 +4,11 @@ import { useAuth } from '../../contexts/AuthContext';
 import { TIERS, TIER_CONFIG, getTierConfig } from '../../config/tiers';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../services/api';
-import { CreditCard, Star, Shield, Zap, Crown, X } from 'lucide-react';
+import { CreditCard, Star, Shield, Zap, Crown, X, History } from 'lucide-react';
 import { useCollection } from '../../hooks/useCollection';
 import { useDecks } from '../../hooks/useDecks';
 import SubscriptionSelection from '../onboarding/SubscriptionSelection';
+import CreditHistoryModal from '../modals/CreditHistoryModal';
 
 const Membership = () => {
     const { userProfile, currentUser, refreshUserProfile } = useAuth();
@@ -16,6 +17,8 @@ const Membership = () => {
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
     const [billingInterval, setBillingInterval] = useState('monthly');
     const [dynamicConfig, setDynamicConfig] = useState(null);
+    const [upgradeModalSection, setUpgradeModalSection] = useState('tiers');
+    const [showHistoryModal, setShowHistoryModal] = useState(false);
 
     useEffect(() => {
         const fetchPricing = async () => {
@@ -232,8 +235,22 @@ const Membership = () => {
             else if (percentage >= 75) colorClass = 'bg-yellow-500';
         }
 
+        const isInteractive = label === 'Monthly Credits' || label === 'Top-up Credits';
+        const handleClick = () => {
+            if (label === 'Monthly Credits') {
+                setUpgradeModalSection('tiers');
+                setShowUpgradeModal(true);
+            } else if (label === 'Top-up Credits') {
+                setUpgradeModalSection('topup');
+                setShowUpgradeModal(true);
+            }
+        };
+
         return (
-            <div className="bg-gray-800/30 border border-gray-700/50 rounded-xl p-4 flex flex-col justify-between min-w-0">
+            <div
+                onClick={isInteractive ? handleClick : undefined}
+                className={`bg-gray-800/30 border border-gray-700/50 rounded-xl p-4 flex flex-col justify-between min-w-0 ${isInteractive ? 'cursor-pointer hover:bg-gray-800/50 hover:border-indigo-500/30 transition-all' : ''}`}
+            >
                 <div className="flex items-center justify-between mb-3 gap-3 overflow-hidden">
                     <span className="text-gray-300 text-xs font-black uppercase tracking-wider flex items-center gap-2 overflow-hidden">
                         <span className="text-sm shrink-0">{icon}</span>
@@ -346,9 +363,18 @@ const Membership = () => {
             </div>
 
             <div>
-                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                    <span className="text-xl">⚡</span> AI Credits & Usage
-                </h3>
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                        <span className="text-xl">⚡</span> AI Credits & Usage
+                    </h3>
+                    <button
+                        onClick={() => setShowHistoryModal(true)}
+                        className="text-xs flex items-center gap-1.5 text-indigo-400 hover:text-indigo-300 font-medium transition-colors bg-indigo-500/10 hover:bg-indigo-500/20 px-3 py-1.5 rounded-lg border border-indigo-500/20"
+                    >
+                        <History className="w-3.5 h-3.5" />
+                        View History
+                    </button>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                     {renderProgressBar('Monthly Credits', stats.credits_monthly, getCreditLimit(currentTierId), '⚡')}
                     {renderProgressBar('Top-up Credits', stats.credits_topup > 0 ? stats.credits_topup : 0, Infinity, '💎')}
@@ -388,11 +414,16 @@ const Membership = () => {
                                 dynamicConfig={dynamicConfig}
                                 rate={avgRate}
                                 onBuyPack={handleBuyPack}
+                                initialSection={upgradeModalSection}
                             />
                         </div>
                     </div>
                 </div>,
                 document.body
+            )}
+
+            {showHistoryModal && (
+                <CreditHistoryModal onClose={() => setShowHistoryModal(false)} />
             )}
 
         </div>

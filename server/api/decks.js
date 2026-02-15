@@ -429,7 +429,7 @@ router.post('/import', checkLimit('decks'), async (req, res) => {
             collector_number: c.collector_number || '0',
             finish: c.finish || 'nonfoil',
             image_uri: (c.data && c.data.image_uris?.normal) || c.image_uri || (c.image_uris?.normal) || null,
-            count: 1, // Start with 1 for the deck
+            count: c.count || c.quantity || 1, // Use provided count
             data: c.data || c,
             deck_id: null, // Will assign below
             added_at: new Date()

@@ -66,6 +66,25 @@ export class DeckImportService {
      * Priority: Arena -> Standard Qty -> Valid Name
      */
     static parseLine(line) {
+        // Pre-processing: Detect Commander tags and strip ALL tags to clean names
+        // Example: "1x Sol Ring [Ramp]" -> "1x Sol Ring"
+        // Example: "1x Terra... [Commander{top}]" -> "1x Terra...", isCommander=true
+
+        let isCommander = false;
+
+        // 1. Check for Commander keyword in any brackets or specific *CMDR* tag
+        const cmdrTriggerRegex = /\[.*Commander.*\]|\*CMDR\*/i;
+        if (cmdrTriggerRegex.test(line)) {
+            isCommander = true;
+        }
+
+        // 2. Remove ALL square bracket tags (custom categories) and *CMDR*
+        // keeping *F* for foil detection later (or we can detect foil here too?)
+        // The existing code detects *F* inside arenaRegex or manual check. 
+        // Let's just strip the known junk.
+
+        line = line.replace(/\[.*?\]/g, '').replace(/\*CMDR\*/ig, '').trim();
+
         // Strategy 1: Arena / MTGO Export with Set Code
         // Format: "4 Opt (XLN) 65" or "1x Opt (XLN) 65" or "1 Opt (XLN)"
         const arenaRegex = /^(\d+)[xX]?\s+(.+)\s+\(([A-Za-z0-9]{3,4})\)\s*(\d+)?/;
@@ -77,7 +96,8 @@ export class DeckImportService {
                 name: arenaMatch[2].trim(),
                 set: arenaMatch[3].toUpperCase(),
                 collectorNumber: arenaMatch[4] || null,
-                isFoil: line.toLowerCase().includes(' *f*') // Arena sometimes marks foils
+                isFoil: line.toLowerCase().includes(' *f*'), // Arena sometimes marks foils
+                isCommander
             };
         }
 
@@ -103,7 +123,8 @@ export class DeckImportService {
                 quantity: parseInt(standardMatch[1], 10),
                 name: name,
                 set: set,
-                collectorNumber: null
+                collectorNumber: null,
+                isCommander
             };
         }
 
@@ -114,7 +135,8 @@ export class DeckImportService {
                 quantity: 1,
                 name: line,
                 set: null,
-                collectorNumber: null
+                collectorNumber: null,
+                isCommander
             };
         }
 
@@ -161,16 +183,14 @@ export class DeckImportService {
         }
 
         const resolvedCards = [];
-        const missingNames = [];
+        // Track which input card objects (references) were successfully resolved
+        const resolvedInputCards = new Set();
 
         for (const chunk of chunks) {
             const identifiers = chunk.map(c => {
                 if (c.set && c.collectorNumber) {
                     return { set: c.set, collector_number: c.collectorNumber };
                 }
-                // If we have strict set but no number, generic set search isn't directly supported by identifier
-                // nicely in this batch endpoint (it supports 'name' + 'set' only if name is exact?)
-                // Actually Scryfall identifiers are: { name, set? } or { id } or { set, collector_number }
                 if (c.set) {
                     return { name: c.name, set: c.set };
                 }
@@ -190,16 +210,6 @@ export class DeckImportService {
 
                 // Process hits
                 data.data.forEach(scryfallCard => {
-                    // Find the original input to merge quantity/isFoil
-                    // Scryfall returns 'name' and we can try to matches
-                    // But since we sent a batch, we rely on the order? 
-                    // No, Scryfall docs say: "results are NOT in order".
-                    // We have to match by name/set/collector.
-
-                    // Optimization: Create a lookup key for the chunk inputs
-                    // This is complex because of varying input quality.
-                    // Simple approach: Match by name (lowercase)
-
                     const match = chunk.find(c => {
                         // Try strict match first
                         if (c.set && c.collectorNumber) {
@@ -218,17 +228,85 @@ export class DeckImportService {
                             set_code: scryfallCard.set,
                             collector_number: scryfallCard.collector_number,
                             image_uri: scryfallCard.image_uris?.normal || scryfallCard.card_faces?.[0]?.image_uris?.normal,
-                            data: scryfallCard
+                            data: scryfallCard,
+                            isCommander: match.isCommander // Explicitly preserve
                         });
+                        resolvedInputCards.add(match);
                     }
                 });
 
-                // Track missing
+                // Handle missing / retry logic
                 if (data.not_found && data.not_found.length > 0) {
-                    data.not_found.forEach(nf => {
-                        console.warn("Card not found:", nf);
-                        missingNames.push(nf.name);
+                    console.warn("Cards not found with strict matching, retrying with name only:", data.not_found.length);
+
+                    const failedIdentifiers = new Set(data.not_found.map(nf =>
+                        nf.set && nf.collector_number ? `${nf.set}:${nf.collector_number}` : nf.name
+                    ));
+
+                    const retryCandidates = chunk.filter(c => {
+                        const id = c.set && c.collectorNumber ? `${c.set}:${c.collectorNumber}` : c.name;
+                        // Only retry if we haven't already resolved it (sanity check)
+                        return failedIdentifiers.has(id) && !resolvedInputCards.has(c);
                     });
+
+                    if (retryCandidates.length > 0) {
+                        const retryIdentifiers = retryCandidates.map(c => {
+                            // Clean name for retry: remove " // " suffix if present
+                            const cleanName = c.name.split(' // ')[0];
+                            return { name: cleanName };
+                        });
+
+                        try {
+                            const retryResponse = await fetch('https://api.scryfall.com/cards/collection', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ identifiers: retryIdentifiers })
+                            });
+
+                            if (retryResponse.ok) {
+                                const retryData = await retryResponse.json();
+                                retryData.data.forEach(scryfallCard => {
+                                    const match = retryCandidates.find(c => {
+                                        const cName = c.name.toLowerCase();
+                                        const sName = scryfallCard.name.toLowerCase();
+
+                                        // Specific check for double-sided cards:
+                                        // Input might be "Front // Back" or just "Front"
+                                        // Scryfall result is "Front // Back"
+
+                                        // 1. Exact match
+                                        if (cName === sName) return true;
+
+                                        // 2. Input is "Front", Scryfall is "Front // Back"
+                                        if (sName.startsWith(cName + ' //')) return true;
+
+                                        // 3. Input is "Front // Back", Scryfall is "Front // Back" (Covered by 1)
+
+                                        // 4. Input is "Front // Back", Scryfall returned just "Front" (unlikely but possible for meld?)
+                                        if (cName.startsWith(sName + ' //')) return true;
+
+                                        return false;
+                                    });
+
+                                    if (match) {
+                                        resolvedCards.push({
+                                            ...match,
+                                            scryfall_id: scryfallCard.id,
+                                            name: scryfallCard.name,
+                                            set_code: scryfallCard.set,
+                                            collector_number: scryfallCard.collector_number,
+                                            image_uri: scryfallCard.image_uris?.normal || scryfallCard.card_faces?.[0]?.image_uris?.normal,
+                                            data: scryfallCard,
+                                            isCommander: match.isCommander // Explicitly preserve
+                                        });
+                                        resolvedInputCards.add(match);
+                                    }
+                                });
+                            }
+                        } catch (retryErr) {
+                            console.error("Retry failed", retryErr);
+                        }
+                    }
                 }
 
             } catch (err) {
@@ -236,11 +314,14 @@ export class DeckImportService {
             }
         }
 
-        // Add dummy objects for missing cards so they at least appear (optional?)
-        // Or just let them drop? 
-        // Better to notify user. For now, we return resolved only.
-        return resolvedCards;
-        return resolvedCards;
+        // Append missing cards (preserves input data even if Scryfall failed)
+        const missingCards = cards.filter(c => !resolvedInputCards.has(c));
+
+        if (missingCards.length > 0) {
+            console.warn(`DeckImportService: ${missingCards.length} cards failed to resolve from Scryfall. Returning raw inputs.`);
+        }
+
+        return [...resolvedCards, ...missingCards];
     }
 
     /**
