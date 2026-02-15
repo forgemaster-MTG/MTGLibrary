@@ -149,46 +149,54 @@ const Navbar = () => {
                                     <img src="/logo.png" alt="MTG Forge Logo" className="h-10 w-auto" />
 
                                     {/* Mobile Badges (Right of Logo) */}
-                                    <div className="grid grid-cols-2 gap-x-2 gap-y-1 sm:hidden">
-                                        <span className="bg-orange-500/10 border border-orange-500/30 text-orange-400 text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse w-fit leading-none flex items-center justify-center">
-                                            ALPHA
-                                        </span>
-                                        {!userProfile?.settings?.onboarding_complete && (
-                                            <span className="bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse w-fit leading-none uppercase flex items-center justify-center">
-                                                SETUP
+                                    {/* Mobile Badges (Right of Logo) */}
+                                    <div className="flex flex-col gap-0.5 sm:hidden">
+                                        {/* Row 1: Status & Tier */}
+                                        <div className="flex items-center gap-1">
+                                            <span className="bg-orange-500/10 border border-orange-500/30 text-orange-400 text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse w-fit leading-none flex items-center justify-center">
+                                                ALPHA
                                             </span>
-                                        )}
-                                        {userProfile?.subscription_status === 'trial' && (
-                                            <span className="bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse w-fit leading-none uppercase flex items-center justify-center">
-                                                TRIAL
-                                            </span>
-                                        )}
-                                        {tier && tier !== 'free' && (() => {
-                                            const config = TIER_CONFIG[tier];
-                                            let badgeColor = 'text-gray-400 border-gray-600 bg-gray-800';
-
-                                            if (tier === TIERS.TIER_1) badgeColor = 'text-blue-400 border-blue-500/30 bg-blue-500/10';
-                                            if (tier === TIERS.TIER_2) badgeColor = 'text-purple-400 border-purple-500/30 bg-purple-500/10';
-                                            if (tier === TIERS.TIER_3) badgeColor = 'text-yellow-400 border-yellow-500/30 bg-yellow-500/10';
-                                            if (tier === TIERS.TIER_4) badgeColor = 'text-orange-400 border-orange-500/30 bg-orange-500/10';
-                                            if (tier === TIERS.TIER_5) badgeColor = 'text-red-400 border-red-500/30 bg-red-500/10';
-
-                                            return (
-                                                <span className={`border text-[9px] font-bold px-1.5 py-0.5 rounded leading-none uppercase w-fit flex items-center justify-center ${badgeColor}`}>
-                                                    {config?.name || tier || 'MEMBER'}
+                                            {!userProfile?.settings?.onboarding_complete && (
+                                                <span className="bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse w-fit leading-none uppercase flex items-center justify-center">
+                                                    SETUP
                                                 </span>
-                                            );
-                                        })()}
-                                        {(userProfile?.override_tier || userProfile?.custom_limits) && (
-                                            <span className="bg-pink-500/10 border border-pink-500/30 text-pink-400 text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse w-fit leading-none uppercase flex items-center justify-center">
-                                                CUSTOM
-                                            </span>
-                                        )}
-                                        {userProfile?.settings?.permissions?.includes('bypass_tier_limits') && (
-                                            <span className="bg-purple-500/10 border border-purple-500/30 text-purple-400 text-[8px] font-black px-1.5 py-0.5 rounded animate-pulse w-fit leading-none uppercase flex items-center justify-center tracking-tighter">
-                                                CUSTOM - FEATURES UNLOCKED
-                                            </span>
-                                        )}
+                                            )}
+                                            {userProfile?.subscription_status === 'trial' && (
+                                                <span className="bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse w-fit leading-none uppercase flex items-center justify-center">
+                                                    TRIAL
+                                                </span>
+                                            )}
+                                            {tier && tier !== 'free' && (() => {
+                                                const config = TIER_CONFIG[tier];
+                                                let badgeColor = 'text-gray-400 border-gray-600 bg-gray-800';
+
+                                                if (tier === TIERS.TIER_1) badgeColor = 'text-blue-400 border-blue-500/30 bg-blue-500/10';
+                                                if (tier === TIERS.TIER_2) badgeColor = 'text-purple-400 border-purple-500/30 bg-purple-500/10';
+                                                if (tier === TIERS.TIER_3) badgeColor = 'text-yellow-400 border-yellow-500/30 bg-yellow-500/10';
+                                                if (tier === TIERS.TIER_4) badgeColor = 'text-orange-400 border-orange-500/30 bg-orange-500/10';
+                                                if (tier === TIERS.TIER_5) badgeColor = 'text-red-400 border-red-500/30 bg-red-500/10';
+
+                                                return (
+                                                    <span className={`border text-[9px] font-bold px-1.5 py-0.5 rounded leading-none uppercase w-fit flex items-center justify-center ${badgeColor}`}>
+                                                        {config?.name || tier || 'MEMBER'}
+                                                    </span>
+                                                );
+                                            })()}
+                                        </div>
+
+                                        {/* Row 2: Custom/Overrides */}
+                                        <div className="flex items-center gap-1">
+                                            {(userProfile?.override_tier || userProfile?.custom_limits) && (
+                                                <span className="bg-pink-500/10 border border-pink-500/30 text-pink-400 text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse w-fit leading-none uppercase flex items-center justify-center">
+                                                    CUSTOM
+                                                </span>
+                                            )}
+                                            {userProfile?.settings?.permissions?.includes('bypass_tier_limits') && (
+                                                <span className="bg-purple-500/10 border border-purple-500/30 text-purple-400 text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse w-fit leading-none uppercase flex items-center justify-center tracking-tighter">
+                                                    FEATURES UNLOCKED
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
 
                                     {/* Desktop Title & Badges */}
