@@ -26,6 +26,7 @@ import StartAuditButton from '../components/Audit/StartAuditButton';
 import ForgeLensModal from '../components/modals/ForgeLensModal';
 import PrintSettingsModal from '../components/printing/PrintSettingsModal';
 import FeatureTour from '../components/common/FeatureTour';
+import DeckChecklistModal from '../components/modals/DeckChecklistModal';
 import { Share2 } from 'lucide-react';
 
 
@@ -77,6 +78,7 @@ const DeckDetailsPage = () => {
 
     const [isForgeLensOpen, setIsForgeLensOpen] = useState(false);
     const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+    const [checklistState, setChecklistState] = useState({ isOpen: false, tab: 'missing' });
 
     // Edit Mode State
     const [isEditingName, setIsEditingName] = useState(false);
@@ -1026,6 +1028,18 @@ const DeckDetailsPage = () => {
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
+                                                            setChecklistState({ isOpen: true, tab: 'tokens' });
+                                                            setIsToolsMenuOpen(false);
+                                                        }}
+                                                        className="w-full py-2 bg-pink-900/10 hover:bg-pink-900/20 text-pink-400 rounded-xl border border-pink-500/10 hover:border-pink-500/30 transition-all font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 group"
+                                                    >
+                                                        <span className="text-sm group-hover:scale-110 transition-transform">🪙</span>
+                                                        Required Tokens
+                                                    </button>
+
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
                                                             navigate('/tournaments');
                                                             setIsToolsMenuOpen(false);
                                                         }}
@@ -1153,8 +1167,11 @@ const DeckDetailsPage = () => {
                                     Decklist
                                 </div>
                                 {totalCards > 0 && (
-                                    <div className="flex items-center gap-2 bg-gray-900/50 px-3 py-1 rounded-full border border-gray-700">
-                                        <span className="text-xs font-bold text-gray-500 uppercase">Acquired</span>
+                                    <button
+                                        onClick={() => setChecklistState({ isOpen: true, tab: 'missing' })}
+                                        className="flex items-center gap-2 bg-gray-900/50 hover:bg-gray-800 px-3 py-1 rounded-full border border-gray-700 hover:border-indigo-500/50 transition-all group cursor-pointer"
+                                    >
+                                        <span className="text-xs font-bold text-gray-500 uppercase group-hover:text-indigo-300">Acquired</span>
                                         <span className={`text-sm font-mono font-bold ${ownedCardsCount === totalCards ? 'text-green-400' : 'text-orange-400'}`}>
                                             {ownedCardsCount}/{totalCards}
                                         </span>
@@ -1164,7 +1181,7 @@ const DeckDetailsPage = () => {
                                                 style={{ width: `${(ownedCardsCount / totalCards) * 100}%` }}
                                             />
                                         </div>
-                                    </div>
+                                    </button>
                                 )}
                             </h3>
                             <div className="flex bg-gray-900/50 rounded-lg p-1 gap-1 border border-gray-700 items-center">
@@ -1519,6 +1536,14 @@ const DeckDetailsPage = () => {
                 isOpen={isSearchOpen}
                 onClose={() => setIsSearchOpen(false)}
                 onAddCard={handleAddToDeck}
+            />
+
+            {/* Deck Checklist Modal (Replaces TokenModal) */}
+            <DeckChecklistModal
+                isOpen={checklistState.isOpen}
+                onClose={() => setChecklistState(prev => ({ ...prev, isOpen: false }))}
+                deckCards={deckCards}
+                initialTab={checklistState.tab}
             />
 
             {/* Confirmation Modal */}
