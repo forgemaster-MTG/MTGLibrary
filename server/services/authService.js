@@ -2,6 +2,8 @@
 import admin from '../firebaseAdmin.js';
 import { knex } from '../db.js';
 import AppError from '../utils/AppError.js';
+import { PricingService } from './PricingService.js';
+
 
 class AuthService {
     /**
@@ -69,13 +71,19 @@ class AuthService {
             // Ignore firestore errors
         }
 
+        // START FIX: Get Initial Credits
+        const initialCredits = await PricingService.getLimitForTier('free');
+        // END FIX
+
         // Insert new user
         const insertData = {
             firestore_id: uid,
             email: email || (profile && profile.email) || null,
             data: { firebase: decodedToken, profile }, // Store raw providers data
-            referred_by: referredById
+            referred_by: referredById,
+            credits_monthly: initialCredits,
         };
+
 
         // Try insert
         let user;
