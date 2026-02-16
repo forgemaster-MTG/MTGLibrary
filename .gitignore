@@ -110,3 +110,5 @@ dist-electron/MTG Forge Setup 1.0.1.exe
 dist-electron/win-unpacked/MTG Forge.exe
 .env.backup
 .env.test
+gitignore
+env.backup
