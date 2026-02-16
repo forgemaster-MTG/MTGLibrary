@@ -8,6 +8,89 @@ import { format } from 'date-fns';
 import { TIERS } from '../../config/tiers';
 import SubscriptionOverrideModal from './SubscriptionOverrideModal';
 
+// Manual Credit Modal
+const AddCreditsModal = ({ isOpen, onClose, onConfirm, user }) => {
+    const [amount, setAmount] = useState(1000000); // Default 1M
+    const [description, setDescription] = useState('Admin Bonus');
+    const [estimatedValue, setEstimatedValue] = useState(0);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (isOpen && user) {
+            // Fetch initial estimate
+            fetchEstimate(amount);
+        }
+    }, [isOpen, user]);
+
+    const fetchEstimate = async (amt) => {
+        try {
+            // Use existing API wrapper if available, or direct fetch
+            // We added GET /api/users/:id/credits/value
+            const res = await api.get(`/api/users/${user.id}/credits/value?amount=${amt}`);
+            setEstimatedValue(res.value);
+        } catch (e) {
+            console.error("Failed to estimate value", e);
+        }
+    };
+
+    const handleAmountChange = (e) => {
+        const val = parseInt(e.target.value, 10) || 0;
+        setAmount(val);
+        fetchEstimate(val); // Debounce in prod, direct here ok for admin
+    };
+
+    const handleSubmit = () => {
+        onConfirm(amount, description);
+    };
+
+    if (!isOpen || !user) return null;
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <div className="bg-gray-900 border border-indigo-500/30 rounded-xl p-6 max-w-sm w-full shadow-2xl relative animate-fade-in">
+                <h3 className="text-xl font-bold text-white mb-4">Add Credits to {user.username}</h3>
+                
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Amount (Credits)</label>
+                        <input 
+                            type="number" 
+                            value={amount} 
+                            onChange={handleAmountChange}
+                            step={100000}
+                            className="w-full bg-gray-800 border border-gray-600 rounded-lg px-4 py-2 text-white"
+                        />
+                        <p className="text-xs text-gray-400 mt-1">1M Credits ≈ $3.30</p>
+                    </div>
+
+                    <div className="bg-indigo-900/20 border border-indigo-500/30 p-3 rounded-lg flex justify-between items-center">
+                        <span className="text-gray-300 text-sm">Estimated Value</span>
+                        <span className="text-indigo-400 font-bold text-lg">${estimatedValue.toFixed(2)}</span>
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Reason / Description</label>
+                        <input 
+                            type="text" 
+                            value={description} 
+                            onChange={(e) => setDescription(e.target.value)}
+                            className="w-full bg-gray-800 border border-gray-600 rounded-lg px-4 py-2 text-white"
+                        />
+                    </div>
+                </div>
+
+                <div className="flex justify-end gap-3 mt-6">
+                    <button onClick={onClose} className="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5">Cancel</button>
+                    <button onClick={handleSubmit} className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white font-bold shadow-lg">
+                        Confirm Add
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
 // Simple Modal Component
 const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, confirmText = 'Confirm', creating }) => {
     if (!isOpen) return null;
@@ -237,6 +320,31 @@ const AdminPanel = () => {
         setSelectedUserForSub(user);
         setShowSubModal(true);
     };
+
+    // Credit Modal State
+    const [showCreditModal, setShowCreditModal] = useState(false);
+    const [selectedUserForCredit, setSelectedUserForCredit] = useState(null);
+
+    const handleOpenCreditModal = (user) => {
+        setSelectedUserForCredit(user);
+        setShowCreditModal(true);
+    };
+
+    const handleConfirmAddCredits = async (amount, description) => {
+        if (!selectedUserForCredit) return;
+        try {
+            // Call API
+            // api.js doesn't have a helper for this specific endpoint yet, use generic post
+            await api.post(`/api/users/${selectedUserForCredit.id}/credits/add`, { amount, description });
+            
+            alert(`Successfully added ${amount.toLocaleString()} credits to ${selectedUserForCredit.username}.`);
+            setShowCreditModal(false);
+            fetchUsers(); // Refresh to show new totals? Table doesn't show totals yet but good practice.
+        } catch (e) {
+            alert('Failed to add credits: ' + e.message);
+        }
+    };
+
 
     const handleConfirmSubOverride = async (newTier) => {
         if (!selectedUserForSub) return;
@@ -493,7 +601,17 @@ const AdminPanel = () => {
                 onClose={() => setShowSubModal(false)}
                 onConfirm={handleConfirmSubOverride}
                 user={selectedUserForSub}
+                onConfirm={handleConfirmSubOverride}
+                user={selectedUserForSub}
             />
+
+            <AddCreditsModal
+                isOpen={showCreditModal}
+                onClose={() => setShowCreditModal(false)}
+                onConfirm={handleConfirmAddCredits}
+                user={selectedUserForCredit}
+            />
+
 
             <div className="flex border-b border-gray-700 mb-6 overflow-x-auto">
                 <button
@@ -599,14 +717,8 @@ const AdminPanel = () => {
                                                     >
                                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-12a2 2 0 01-2-2V6a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
                                                     </button>
-                                                    {isSaved && (
+                                                    <div className="flex justify-end gap-2">
                                                         <button
-                                                            onClick={async () => {
-                                                                if (window.confirm(isDefault ? `Revert "${name}" to system default?` : `Delete layout "${name}"?`)) {
-                                                                    const newSaved = { ...userProfile.settings.saved_layouts };
-                                                                    delete newSaved[name];
-                                                                    await api.updateUser(userProfile.id, { settings: { ...userProfile.settings, saved_layouts: newSaved } });
-                                                                    refreshUserProfile();
                                                                 }
                                                             }}
                                                             className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
@@ -797,7 +909,11 @@ const AdminPanel = () => {
                                                                     Trial
                                                                 </span>
                                                             )}
+                                                            <span className="text-[10px] text-gray-500">
+                                                                ({(u.credits_monthly || 0).toLocaleString()} / {(u.credits_topup || 0).toLocaleString()})
+                                                            </span>
                                                             {!u.settings?.onboarding_complete && (
+
                                                                 <span className="text-[10px] px-1.5 py-0.5 rounded border bg-blue-500/20 text-blue-400 border-blue-500/30 uppercase font-bold">
                                                                     Onboarding
                                                                 </span>

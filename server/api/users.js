@@ -5,6 +5,9 @@ import authMiddleware from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { userUpdateSchema, userPermissionsSchema, bulkDeleteSchema } from '../schemas/userSchemas.js';
 import { userService } from '../services/userService.js';
+import { PricingService } from '../services/PricingService.js';
+import { CreditService } from '../services/CreditService.js';
+
 
 const router = express.Router();
 
@@ -137,6 +140,18 @@ router.put('/:id/permissions', authMiddleware, validate({ body: userPermissionsS
     if (subscription_tier !== undefined) updatePayload.subscription_tier = subscription_tier;
     if (user_override_tier !== undefined) updatePayload.override_tier = user_override_tier; // Map to DB column 'override_tier'
     if (subscription_status !== undefined) updatePayload.subscription_status = subscription_status;
+
+    // START FIX: Auto-Sync Credits on Tier Override
+    if (user_override_tier) {
+        try {
+            const newLimit = await PricingService.getLimitForTier(user_override_tier);
+            updatePayload.credits_monthly = newLimit;
+            console.log(`[UserUpdate] Syncing credits for ${targetId} to ${newLimit} (Tier: ${user_override_tier})`);
+        } catch (e) {
+            console.error('[UserUpdate] Failed to fetch credit limit for tier:', e);
+        }
+    }
+    // END FIX
 
     let [updated] = await knex('users')
       .where({ id: targetId })
@@ -293,6 +308,50 @@ router.post('/:id/achievements', authMiddleware, async (req, res) => {
     console.error('[users] achievements sync error', err);
     res.status(500).json({ error: 'db error' });
   }
+});
+
+// ADMIN: Add Manual Credits (Top-Up)
+router.post('/:id/credits/add', authMiddleware, async (req, res) => {
+    try {
+        const adminUser = req.user;
+        if (!adminUser.settings?.isAdmin) return res.status(403).json({ error: 'Admin access required' });
+
+        const targetId = parseInt(req.params.id, 10);
+        const { amount, description } = req.body;
+
+        if (!amount || isNaN(amount)) return res.status(400).json({ error: 'Invalid amount' });
+
+        // Calculate Value for Logging
+        const value = await PricingService.calculateTopUpCost(amount);
+
+        // Add Credits
+        await CreditService.addCredits(targetId, amount, 'topup', description || 'Admin Manual Top-Up', {
+            admin_id: adminUser.id,
+            estimated_value: value
+        });
+
+        res.json({ success: true, added: amount, estimatedValue: value });
+    } catch (err) {
+        console.error('[users] manual credit add error', err);
+        res.status(500).json({ error: 'db error' });
+    }
+});
+
+// ADMIN: Calculate Credit Value
+router.get('/:id/credits/value', authMiddleware, async (req, res) => {
+    try {
+        const adminUser = req.user;
+        if (!adminUser.settings?.isAdmin) return res.status(403).json({ error: 'Admin access required' });
+
+        const amount = parseInt(req.query.amount, 10);
+        if (!amount || isNaN(amount)) return res.json({ value: 0 });
+
+        const value = await PricingService.calculateTopUpCost(amount);
+        res.json({ value });
+    } catch (err) {
+        console.error('[users] credit calc error', err);
+        res.status(500).json({ error: 'calc error' });
+    }
 });
 
 // ADMIN: Delete a user by ID
