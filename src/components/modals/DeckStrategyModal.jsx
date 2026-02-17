@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
+import { PdfService } from '../../services/PdfService';
 import { useAuth } from '../../contexts/AuthContext';
 import { GeminiService } from '../../services/gemini';
 import { deckService } from '../../services/deckService';
@@ -210,6 +211,15 @@ const DeckStrategyModal = ({ isOpen, onClose, deck, cards = [], onStrategyUpdate
                             <svg className="w-6 h-6 transform group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                         </button>
                     </div>
+
+                    {/* Export PDF (New) */}
+                    <button
+                        onClick={() => PdfService.generateStrategicBlueprintReport(deck, userProfile)}
+                        className="absolute bottom-4 right-1/2 translate-x-1/2 md:translate-x-0 md:static md:bottom-auto md:right-auto text-gray-500 hover:text-indigo-400 p-2 transition-colors"
+                        title="Export Blueprint to PDF"
+                    >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                    </button>
                 </div>
 
                 {/* Content */}

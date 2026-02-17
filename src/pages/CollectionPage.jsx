@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, forwardRef } from 'react';
+import React, { useState, useEffect, useMemo, forwardRef, useRef } from 'react';
 import { VirtuosoGrid } from 'react-virtuoso';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { useCollection } from '../hooks/useCollection';
@@ -24,6 +24,7 @@ import BinderGuideModal from '../components/modals/BinderGuideModal';
 import OrganizationWizardModal from '../components/modals/OrganizationWizardModal';
 import ForgeLensModal from '../components/modals/ForgeLensModal';
 import BulkActionBar from '../components/BulkActionBar';
+import CollectionFloatingFooter from '../components/collection/CollectionFloatingFooter'; // [NEW]
 import { evaluateRules } from '../services/ruleEvaluator';
 
 
@@ -377,6 +378,43 @@ const CollectionPage = () => {
         const val = userProfile?.settings?.collection?.itemsPerPage || localStorage.getItem('collection_itemsPerPage');
         return val ? parseInt(val) : 50;
     });
+
+    // Floating Footer Logic [NEW]
+    const [showFloatingFooter, setShowFloatingFooter] = useState(false);
+    
+    // Use callback ref to ensure we observe even if element mounts late
+    const observerRef = useRef(null);
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                // Show footer when filter bar is scrolled out of view OR is about to be (top < 100)
+                // Using rootMargin -60px 0px 0px 0px basically "shrinks" the viewport from top by 60px
+                // So as soon as element slides under a 60px header, it is "intersecting" less or leaving?
+                // Actually, simply checking boundingClientRect.top is robust.
+                // If top is negative, it's above the viewport.
+                setShowFloatingFooter(entry.boundingClientRect.top < 10);
+            },
+            {
+                threshold: [0, 1],
+                rootMargin: "-20px 0px 0px 0px" // Trigger slightly before it leaves completely if we want? 
+                // Actually standard is fine, but let's be lenient.
+            }
+        );
+        observerRef.current = observer;
+
+        const target = document.getElementById('collection-filter-bar');
+        if (target) observer.observe(target);
+
+        // Also add a scroll listener as a fallback because IntersectionObserver can be finicky with 0-height sentinels?
+        // No, filter-bar has height.
+        
+        return () => observer.disconnect();
+    }, []);
+
+    // Also: Add a global scroll listener to force check? 
+    // Sometimes observers miss the initial state?
+    // Let's stick to Observer but ensure we observe the right thing.
 
     // Virtuoso Grid Components
     const GridList = forwardRef(({ style, children, ...props }, ref) => (
@@ -1301,6 +1339,24 @@ w - 8 h - 8 rounded - full border flex items - center justify - center transitio
                             </div >
                         </div >
                     )}
+
+                    {/* Floating Footer [NEW] */}
+                    <CollectionFloatingFooter
+                        isVisible={showFloatingFooter}
+                        searchTerm={searchTerm}
+                        setSearchTerm={setSearchTerm}
+                        showFilters={showFilters}
+                        setShowFilters={setShowFilters}
+                        isSelectionMode={isSelectionMode}
+                        toggleSelectionMode={toggleSelectionMode}
+                        sortBy={sortBy}
+                        setSortBy={setSortBy}
+                        sortOrder={sortOrder}
+                        setSortOrder={setSortOrder}
+                        totalCount={filteredCards.length}
+                        selectedCount={selectedCardIds.size}
+                        scrollToTop={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                    />
 
                     {
                         error ? (

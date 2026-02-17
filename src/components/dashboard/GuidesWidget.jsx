@@ -1,18 +1,25 @@
 import React from 'react';
 
+
+
 const GuidesWidget = ({ size, actions }) => {
     const { setShowBinderGuide, setShowPodGuide, setShowAuditGuide } = actions;
+
 
     const isXS = size === 'xs';
     const isSmall = size === 'small';
     const isLarge = size === 'large';
     const isXL = size === 'xlarge';
     const isLargePlus = isLarge || isXL;
+    
+    const handleOpenGuide = (guideId) => {
+        window.dispatchEvent(new CustomEvent('open-help-center', { detail: { guide: guideId } }));
+    }
 
     if (isXS) {
         return (
             <div
-                onClick={() => setShowBinderGuide(true)}
+                onClick={() => handleOpenGuide('/binders')}
                 className="bg-blue-900/10 border border-blue-500/20 rounded-3xl h-full flex items-center justify-center cursor-pointer hover:bg-blue-500/20 transition-all group"
             >
                 <svg className="w-6 h-6 text-blue-400 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
@@ -21,9 +28,9 @@ const GuidesWidget = ({ size, actions }) => {
     }
 
     const items = [
-        { title: "Smart Binders", desc: "Automate your collection logic", icon: "✨", color: "indigo", progress: 80, onClick: () => setShowBinderGuide(true) },
-        { title: "Pods & Sharing", desc: "Manage permissions & social", icon: "🤝", color: "purple", progress: 40, onClick: () => setShowPodGuide(true) },
-        { title: "Verification", desc: "Maintain inventory accuracy", icon: "🛡️", color: "green", progress: 0, onClick: () => setShowAuditGuide(true) },
+        { title: "Smart Binders", desc: "Automate your collection logic", icon: "✨", color: "indigo", progress: 80, onClick: () => handleOpenGuide('/binders') },
+        { title: "Pods & Sharing", desc: "Manage permissions & social", icon: "🤝", color: "purple", progress: 40, onClick: () => handleOpenGuide('/social') },
+        { title: "Verification", desc: "Maintain inventory accuracy", icon: "🛡️", color: "green", progress: 0, onClick: () => handleOpenGuide('/audit') },
     ];
 
     return (

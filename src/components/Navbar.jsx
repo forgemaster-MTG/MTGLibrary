@@ -32,6 +32,7 @@ const Navbar = () => {
     const [isAchievementsOpen, setIsAchievementsOpen] = useState(false);
     const [imageError, setImageError] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [helpGuide, setHelpGuide] = useState(null);
     const fileInputRef = React.useRef(null);
 
 
@@ -59,6 +60,20 @@ const Navbar = () => {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [isUserMenuOpen]);
+
+    // Listen for Help Center requests
+    React.useEffect(() => {
+        const handleOpenHelp = (event) => {
+            if (event.detail && event.detail.guide) {
+                setHelpGuide(event.detail.guide);
+            } else {
+                setHelpGuide(null);
+            }
+            setIsHelpOpen(true);
+        };
+        window.addEventListener('open-help-center', handleOpenHelp);
+        return () => window.removeEventListener('open-help-center', handleOpenHelp);
+    }, []);
 
     const handlePlaystyleUpdate = async (profile) => {
         console.log("Saving new playstyle:", profile);
@@ -670,7 +685,11 @@ const Navbar = () => {
 
             <HelpCenterModal
                 isOpen={isHelpOpen}
-                onClose={() => setIsHelpOpen(false)}
+                onClose={() => {
+                    setIsHelpOpen(false);
+                    setHelpGuide(null);
+                }}
+                initialGuide={helpGuide}
                 onStartTour={() => window.dispatchEvent(new Event('start-tour'))}
                 onOpenChat={() => {
                     // This is tricky as ChatWidget is sibling or child. 

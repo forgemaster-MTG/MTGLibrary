@@ -6,17 +6,25 @@ import { useToast } from '../../contexts/ToastContext';
 import { api } from '../../services/api';
 import { deckService } from '../../services/deckService';
 import { useNavigate } from 'react-router-dom';
+import { PdfService } from '../../services/PdfService';
+import { useCardModal } from '../../contexts/CardModalContext';
+import { useCollection } from '../../hooks/useCollection';
 
 const DeckDoctorModal = ({ isOpen, onClose, deck, cards, isOwner }) => {
     const { userProfile, currentUser } = useAuth();
     const { addToast } = useToast();
     const navigate = useNavigate();
     const helperName = userProfile?.settings?.helper?.name || 'The Oracle';
+    
+    // Global Modal & Collection
+    const { openCardModal } = useCardModal();
+    const { cards: allUserCards } = useCollection();
 
     const [loading, setLoading] = useState(false);
     // Initialize report from saved grade if available
     const [report, setReport] = useState(deck?.aiBlueprint?.grade || null);
     const [applying, setApplying] = useState(false);
+    const [detailsLoading, setDetailsLoading] = useState(null); // specific card name being loaded
 
     // Sync report when modal opens or deck updates
     React.useEffect(() => {
@@ -25,6 +33,46 @@ const DeckDoctorModal = ({ isOpen, onClose, deck, cards, isOwner }) => {
         }
     }, [isOpen, deck]);
 
+    const [allSets, setAllSets] = useState([]);
+    React.useEffect(() => {
+        if (isOpen && deck?.is_thematic && allSets.length === 0) {
+             api.get('/api/sets').then(res => {
+                const sets = res.data || res;
+                if (Array.isArray(sets)) setAllSets(sets);
+            }).catch(err => console.error("Failed to fetch sets for thematic doctor", err));
+        }
+    }, [isOpen, deck]);
+
+    const getRestrictedSets = () => {
+        if (!deck?.is_thematic) return [];
+        
+        const cmdSetCode = (deck?.commander?.set || '').trim().toLowerCase();
+        const cmdSetName = (deck?.commander?.set_name || '').trim().toLowerCase();
+        
+        // Virtual Set Fallback if API fails or empty
+        const virtualSet = {
+            code: cmdSetCode || 'unk',
+            name: deck?.commander?.set_name || 'Current Set',
+            released_at: deck?.commander?.released_at || '2025-01-01',
+            virtual: true
+        };
+
+        if (!allSets.length) return (cmdSetCode || cmdSetName) ? [virtualSet] : [];
+
+        const cmdSet = allSets.find(s => s.code.toLowerCase() === cmdSetCode)
+            || allSets.find(s => s.name.toLowerCase() === cmdSetName);
+
+        if (!cmdSet || !cmdSet.released_at) return [virtualSet];
+
+        const targetDate = new Date(cmdSet.released_at).toISOString().split('T')[0];
+        // Restrict to sets released in the same year-ish (simple cohort logic: same release date for now to match Wizard)
+        // actually Wizard logic was "same release date" effectively for "Cohort"
+        return allSets.filter(s => {
+            if (!s.released_at) return false;
+            return new Date(s.released_at).toISOString().split('T')[0] === targetDate;
+        });
+    };
+
     if (!isOpen) return null;
 
     const runDiagnosis = async () => {
@@ -32,13 +80,16 @@ const DeckDoctorModal = ({ isOpen, onClose, deck, cards, isOwner }) => {
         try {
             const apiKey = userProfile?.settings?.geminiApiKey; // Use consistent Gemini API key
 
+            const restrictedSets = deck.is_thematic ? getRestrictedSets().map(s => s.code) : [];
+
             const result = await GeminiService.gradeDeck(apiKey, {
                 deckName: deck.name,
                 commander: deck.commander?.name || 'Unknown',
                 cards: cards,
                 playerProfile: "Competitive but casual friendly", // Default or user setting
                 strategyGuide: deck.description || "General synergy",
-                helperPersona: userProfile?.settings?.helper
+                helperPersona: userProfile?.settings?.helper,
+                restrictedSets
             }, userProfile);
             // Map the result directly as report
             // Map the result directly as report
@@ -158,6 +209,70 @@ const DeckDoctorModal = ({ isOpen, onClose, deck, cards, isOwner }) => {
         }
     };
 
+    const handleViewDetails = async (cardName) => {
+        if (!cardName) return;
+        setDetailsLoading(cardName);
+        try {
+            // Priority:
+            // 1. If thematic & commander set known -> Search specific printing (set:CODE)
+            // 2. If thematic & commander released_at known -> Search same era (year:YYYY)
+            // 3. Fallback -> General search
+
+            const cmdSet = deck?.commander?.set || deck?.commander?.set_code;
+            const releasedAt = deck?.commander?.released_at;
+            let targetCard = null;
+
+            if (deck?.is_thematic) {
+                // 1. Exact Set Match
+                if (cmdSet) {
+                    try {
+                        const response = await api.post('/api/cards/search', {
+                            query: `!"${cardName}" set:${cmdSet} unique:prints`,
+                        });
+                        if (response.data && response.data.length > 0) {
+                            targetCard = response.data[0];
+                        }
+                    } catch (ignore) { }
+                }
+
+                // 2. Era Match (Same Year)
+                if (!targetCard && releasedAt) {
+                    try {
+                        const year = releasedAt.substring(0, 4);
+                        const response = await api.post('/api/cards/search', {
+                            query: `!"${cardName}" year:${year} unique:prints`,
+                        });
+                        if (response.data && response.data.length > 0) {
+                            targetCard = response.data[0];
+                        }
+                    } catch (ignore) { }
+                }
+            }
+
+            if (!targetCard) {
+                // 3. Fallback: General Search (default printing)
+                const response = await api.post('/api/cards/search', {
+                    query: `!"${cardName}"`, // Exact name search
+                    unique: 'cards'
+                });
+                if (response.data && response.data.length > 0) {
+                    targetCard = response.data[0];
+                }
+            }
+            
+            if (targetCard) {
+                openCardModal(targetCard);
+            } else {
+                 addToast(`Could not find details for ${cardName}`, "error");
+            }
+        } catch (err) {
+            console.error("Failed to fetch card details", err);
+             addToast("Failed to load card details.", "error");
+        } finally {
+            setDetailsLoading(null);
+        }
+    };
+
     return ReactDOM.createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
             <div className="bg-gray-900 w-full max-w-4xl rounded-3xl border border-white/10 shadow-2xl p-8 relative flex flex-col max-h-[90vh]">
@@ -170,6 +285,20 @@ const DeckDoctorModal = ({ isOpen, onClose, deck, cards, isOwner }) => {
                         </h2>
                         <p className="text-gray-400 text-sm mt-1">Evaluated by {helperName}</p>
                     </div>
+                </div>
+
+                {/* Header Actions */}
+                <div className="absolute top-8 right-8 z-20 flex gap-2">
+                     {report && (
+                        <button
+                            onClick={() => PdfService.generateDeckDoctorReport(report, deck.name, userProfile)}
+                            className="p-2 bg-gray-800 hover:bg-gray-700 text-indigo-400 rounded-lg border border-gray-700 transition-colors flex items-center gap-2 text-sm font-bold"
+                            title="Export to PDF"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                            <span>Download PDF</span>
+                        </button>
+                    )}
                     <button onClick={onClose} className="text-gray-500 hover:text-white p-2">
                         <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
@@ -332,10 +461,75 @@ const DeckDoctorModal = ({ isOpen, onClose, deck, cards, isOwner }) => {
                                                 </div>
 
                                                 {/* Add */}
-                                                <div className="flex-1 w-full">
-                                                    <div className="text-[10px] font-black text-green-500 uppercase tracking-widest mb-2">Slot This In</div>
-                                                    <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-xl text-right">
-                                                        <span className="text-white font-bold">{swap.add}</span>
+                                                <div className="flex-1 w-full relative group/add">
+                                                    <div className="text-[10px] font-black text-green-500 uppercase tracking-widest mb-2 flex justify-between items-center">
+                                                        <div className="flex items-center gap-2">
+                                                            <span>Slot This In</span>
+                                                            {(() => {
+                                                                // Check if player owns this card and it's NOT in a deck (available)
+                                                                const availableCopies = allUserCards?.filter(c => 
+                                                                    c.name === swap.add && 
+                                                                    !c.deck_id && // Binder only
+                                                                    !c.is_wishlist
+                                                                ).reduce((sum, c) => sum + (c.count || 1), 0) || 0;
+
+                                                                if (availableCopies > 0) {
+                                                                    return (
+                                                                        <span className="bg-indigo-500 text-white text-[9px] px-1.5 py-0.5 rounded shadow-sm border border-indigo-400 flex items-center gap-1">
+                                                                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                                                                            OWNED ({availableCopies})
+                                                                        </span>
+                                                                    );
+                                                                }
+                                                                return null;
+                                                            })()}
+                                                        </div>
+                                                        {swap.set && (
+                                                            <div className="flex gap-2 opacity-0 group-hover/add:opacity-100 transition-opacity">
+                                                                <button
+                                                                    onClick={() => handleViewDetails(swap.add)}
+                                                                    disabled={detailsLoading === swap.add}
+                                                                    className="text-[9px] bg-indigo-900/50 text-indigo-400 px-2 py-0.5 rounded hover:bg-indigo-900 border border-indigo-500/30 disabled:opacity-50 flex items-center gap-1"
+                                                                >
+                                                                    {detailsLoading === swap.add ? (
+                                                                         <svg className="animate-spin w-3 h-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                                        </svg>
+                                                                    ) : 'DETAILS'}
+                                                                </button>
+                                                                <a
+                                                                    href={`https://shop.tcgplayer.com/productcatalog/product/show?ProductName=${encodeURIComponent(swap.add)}`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="text-[9px] bg-green-900/50 text-green-400 px-2 py-0.5 rounded hover:bg-green-900 border border-green-500/30"
+                                                                >
+                                                                    BUY
+                                                                </a>
+                                                                <button
+                                                                    onClick={() => addToast(`Added ${swap.add} to Wishlist`, 'success')}
+                                                                    className="text-[9px] bg-pink-900/50 text-pink-400 px-2 py-0.5 rounded hover:bg-pink-900 border border-pink-500/30"
+                                                                >
+                                                                    WISHLIST
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    
+                                                    <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-xl text-right flex items-center justify-between">
+                                                         {swap.set ? (
+                                                            <div className="flex items-center gap-3">
+                                                                <img 
+                                                                    src={`https://cards.scryfall.io/small/front/${swap.set}/${swap.collectorNumber}.jpg`}
+                                                                    onError={(e) => { e.target.style.display = 'none'; }}
+                                                                    className="w-8 h-11 rounded object-cover shadow-sm border border-black/20"
+                                                                    alt=""
+                                                                />
+                                                                <span className="text-white font-bold">{swap.add}</span>
+                                                            </div>
+                                                         ) : (
+                                                            <span className="text-white font-bold">{swap.add}</span>
+                                                         )}
                                                     </div>
                                                 </div>
                                             </div>

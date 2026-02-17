@@ -274,6 +274,7 @@ router.post('/', checkLimit('decks'), async (req, res) => {
       commander_partner: commanderPartner || null,
       ai_blueprint: aiBlueprint || null, // Map camelCase to snake_case column
       is_mockup: req.body.isMockup || false,
+      is_thematic: req.body.isThematic || false,
       // firestore_id? optional
     };
 
@@ -301,6 +302,7 @@ router.put('/:id', async (req, res) => {
     if (commander !== undefined) update.commander = commander;
     if (commanderPartner !== undefined) update.commander_partner = commanderPartner;
     if (req.body.isMockup !== undefined) update.is_mockup = req.body.isMockup;
+    if (req.body.isThematic !== undefined) update.is_thematic = req.body.isThematic;
     if (req.body.shareSlug !== undefined) update.share_slug = req.body.shareSlug;
     if (req.body.notes !== undefined) update.notes = req.body.notes;
     if (req.body.tags !== undefined) update.tags = JSON.stringify(req.body.tags);

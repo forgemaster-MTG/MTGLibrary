@@ -4,7 +4,7 @@ import { Fragment } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { HELP_DOCS } from '../../data/helpDocs';
 
-const HelpCenterModal = ({ isOpen, onClose, onStartTour, onOpenChat }) => {
+const HelpCenterModal = ({ isOpen, onClose, onStartTour, onOpenChat, initialGuide = null }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const [view, setView] = React.useState('home'); // 'home' | 'guide'
@@ -13,10 +13,15 @@ const HelpCenterModal = ({ isOpen, onClose, onStartTour, onOpenChat }) => {
     // Reset when opening
     React.useEffect(() => {
         if (isOpen) {
-            setView('home');
-            setActiveGuide(null);
+            if (initialGuide) {
+                setActiveGuide(initialGuide);
+                setView('guide');
+            } else {
+                setView('home');
+                setActiveGuide(null);
+            }
         }
-    }, [isOpen]);
+    }, [isOpen, initialGuide]);
 
     // Determine relevant quick links based on current path
     const isDeckBuilder = location.pathname.startsWith('/decks/');

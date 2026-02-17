@@ -63,7 +63,26 @@ describe('Decks API Integration', () => {
         expect(res.status).toBe(201);
         expect(res.body.name).toBe('Test Deck');
         expect(res.body.user_id).toBe(testUserId);
+        expect(res.body.is_thematic).toBe(false); // Default
         deckId = res.body.id;
+    });
+
+    it('should create a thematic deck', async () => {
+        const res = await request(app)
+            .post('/api/decks')
+            .set('x-test-user-id', testUserId)
+            .send({
+                name: 'Thematic Test Deck',
+                format: 'Commander',
+                commander: { name: 'Urza' },
+                isThematic: true
+            });
+
+        expect(res.status).toBe(201);
+        expect(res.body.is_thematic).toBe(true);
+        
+        // Clean up this specific deck
+        await knex('user_decks').where({ id: res.body.id }).del();
     });
 
     it('should list user decks', async () => {

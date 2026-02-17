@@ -9,6 +9,7 @@ const ImportDeckModal = ({ isOpen, onClose, onImport }) => {
     const [url, setUrl] = useState('');
     const [loadingStatus, setLoadingStatus] = useState(''); // '' = not loading
     const [isWishlist, setIsWishlist] = useState(false);
+    const [isThematic, setIsThematic] = useState(false);
 
     const handleParse = async () => {
         let result = null;
@@ -50,7 +51,7 @@ const ImportDeckModal = ({ isOpen, onClose, onImport }) => {
 
     const handleConfirm = () => {
         if (parsedData) {
-            onImport(parsedData, { isWishlist });
+            onImport(parsedData, { isWishlist, isThematic });
             onClose();
         }
     };
@@ -329,6 +330,22 @@ const ImportDeckModal = ({ isOpen, onClose, onImport }) => {
                                             <div className="flex flex-col">
                                                 <span className="text-sm font-bold text-white group-hover:text-indigo-300 transition-colors">Import as Wishlist</span>
                                                 <span className="text-[10px] text-gray-500">Don't add to collection</span>
+                                            </div>
+                                        </label>
+
+                                        <label className="flex items-center gap-3 cursor-pointer group">
+                                            <div className="relative">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isThematic}
+                                                    onChange={(e) => setIsThematic(e.target.checked)}
+                                                    className="sr-only peer"
+                                                />
+                                                <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-bold text-white group-hover:text-amber-300 transition-colors">Thematic Deck</span>
+                                                <span className="text-[10px] text-gray-500">Restrict to Set/Era</span>
                                             </div>
                                         </label>
 

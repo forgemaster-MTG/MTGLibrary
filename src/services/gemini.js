@@ -1142,13 +1142,20 @@ const GeminiService = {
       playerProfile,
       strategyGuide,
       helperPersona,
+      restrictedSets,
     } = payload;
     const helperName = helperPersona?.name || "The Oracle";
+
+    const setRestriction =
+      restrictedSets && restrictedSets.length > 0
+        ? `RESTRICTION: You MUST ONLY suggest 'recommendedSwaps' using cards from these set codes: ${restrictedSets.join(", ")}. Do NOT suggest cards from any other sets.`
+        : "";
 
     const systemInstruction = `You are ${helperName}, a Tier-1 MTG competitive analyst.
         
         MISSION:
         Evaluate the power level of the provided decklist based on the "Commander Bracket" system.
+        ${setRestriction}
         
         CRITIQUE FORMATTING:
         Provide the 'critique' and 'bracketJustification' fields as **Polished Modern HTML**. 
@@ -1173,6 +1180,8 @@ const GeminiService = {
             COMMANDER: ${commander}
             STRATEGY: ${strategyGuide}
             USER PROFILE: ${playerProfile}
+            [RESTRICTED SETS] ${restrictedSets && restrictedSets.length > 0 ? restrictedSets.join(", ") : "None"}
+            DECKLIST:
             DECKLIST:
             ${(cards || []).map((c) => `- ${c.name}`).join("\n")}
         `;
@@ -1214,12 +1223,14 @@ const GeminiService = {
               type: "ARRAY",
               items: {
                 type: "OBJECT",
-                properties: {
-                  remove: { type: "STRING" },
-                  add: { type: "STRING" },
-                  reason: { type: "STRING" },
-                },
-                required: ["remove", "add", "reason"],
+                  properties: {
+                    remove: { type: "STRING" },
+                    add: { type: "STRING" },
+                    reason: { type: "STRING" },
+                    set: { type: "STRING", description: "Scryfall set code preference" },
+                    collectorNumber: { type: "STRING", description: "Scryfall collector number" }
+                  },
+                  required: ["remove", "add", "reason"],
               },
             },
           },

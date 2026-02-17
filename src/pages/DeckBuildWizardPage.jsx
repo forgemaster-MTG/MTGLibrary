@@ -139,12 +139,16 @@ const DeckBuildWizardPage = () => {
         logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [logs]);
 
-    // Pre-fill Set Name from Commander
+    // Pre-fill Settings from Deck
     useEffect(() => {
-        if (deck?.commander?.set_name && !analysisSettings.setName) {
-            setAnalysisSettings(prev => ({ ...prev, setName: deck.commander.set_name }));
+        if (deck) {
+            setAnalysisSettings(prev => ({
+                ...prev,
+                setName: deck.commander?.set_name || prev.setName,
+                restrictSet: deck.is_thematic !== undefined ? deck.is_thematic : prev.restrictSet
+            }));
         }
-    }, [deck, analysisSettings.setName]);
+    }, [deck]);
 
     const addLog = (msg) => {
         setLogs(prev => [...prev, `[${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}] ${msg}`]);
@@ -986,10 +990,13 @@ const DeckBuildWizardPage = () => {
                                         </div>
                                     )}
 
-                                    {/* Set Restriction - Available in both? Yes, Discovery can be set restricted too logically */}
+                                    {/* Thematic Mode (Set Restriction) */}
                                     <div className="p-4 bg-gray-950/30 rounded-2xl border border-white/5 space-y-3">
                                         <div className="flex justify-between items-center">
-                                            <span className="text-sm font-bold text-gray-200">Set Restriction</span>
+                                            <div className="flex items-center gap-2">
+                                                 <span className="text-sm font-bold text-gray-200">Thematic Mode</span>
+                                                 <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-500/30 uppercase tracking-wider">Flavor</span>
+                                            </div>
                                             <button
                                                 onClick={() => setAnalysisSettings(s => ({ ...s, restrictSet: !s.restrictSet }))}
                                                 className={`w-10 h-6 rounded-full p-1 transition-colors ${analysisSettings.restrictSet ? 'bg-indigo-600' : 'bg-gray-800'}`}
@@ -1003,7 +1010,7 @@ const DeckBuildWizardPage = () => {
                                             {analysisSettings.restrictSet ? (
                                                 <div className="bg-black/20 border border-indigo-500/30 rounded-xl p-3 space-y-2">
                                                     <p className="text-[10px] text-indigo-300 font-bold uppercase tracking-wider">
-                                                        Allowed Sets ({getRestrictedSets().length})
+                                                        Thematic Restriction ({getRestrictedSets().length} Sets)
                                                     </p>
                                                     <div className="flex flex-wrap gap-1.5 h-full overflow-y-auto max-h-20 custom-scrollbar">
                                                         {getRestrictedSets().map(s => (
@@ -1016,7 +1023,7 @@ const DeckBuildWizardPage = () => {
                                                 </div>
                                             ) : (
                                                 <div className="bg-black/20 border border-white/5 rounded-xl p-3">
-                                                    <p className="text-xs text-gray-600 italic">Enable to restrict cards to the Commander's release window.</p>
+                                                    <p className="text-xs text-gray-600 italic">Enable to restrict suggestions to the Commander's original set and era.</p>
                                                 </div>
                                             )}
                                         </div>

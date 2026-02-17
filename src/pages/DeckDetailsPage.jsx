@@ -28,6 +28,7 @@ import PrintSettingsModal from '../components/printing/PrintSettingsModal';
 import FeatureTour from '../components/common/FeatureTour';
 import DeckChecklistModal from '../components/modals/DeckChecklistModal';
 import { Share2 } from 'lucide-react';
+import DeckSettingsModal from '../components/modals/DeckSettingsModal';
 
 
 const MTG_IDENTITY_REGISTRY = [
@@ -79,6 +80,7 @@ const DeckDetailsPage = () => {
     const [isForgeLensOpen, setIsForgeLensOpen] = useState(false);
     const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
     const [checklistState, setChecklistState] = useState({ isOpen: false, tab: 'missing' });
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
     // Edit Mode State
     const [isEditingName, setIsEditingName] = useState(false);
@@ -790,6 +792,12 @@ const DeckDetailsPage = () => {
                                                     {permissionLevel} Access
                                                 </span>
                                             )}
+                                            {deck.is_thematic && (
+                                                <div className="flex items-center gap-1 bg-amber-900/40 border border-amber-500/30 px-2 py-0.5 rounded-full">
+                                                    <svg className="w-3 h-3 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                                                    <span className="text-[9px] md:text-[10px] font-bold text-amber-200 uppercase tracking-widest">Thematic</span>
+                                                </div>
+                                            )}
                                             <div className="flex items-center gap-1 shrink-0">
                                                 {/* Calculate combined identity for display */
                                                     (() => {
@@ -1055,6 +1063,19 @@ const DeckDetailsPage = () => {
                                             <div className="space-y-2 pb-2">
                                                 <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] px-2">Management</h3>
                                                 <div className="bg-white/5 rounded-xl border border-white/5 divide-y divide-white/5 overflow-hidden">
+                                                    {canEdit && (
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); setIsSettingsOpen(true); setIsToolsMenuOpen(false); }}
+                                                            className="w-full text-left px-4 py-3 text-xs flex items-center justify-between hover:bg-indigo-500/10 transition-colors group"
+                                                        >
+                                                            <div className="flex items-center gap-3">
+                                                                <span className="text-gray-400 group-hover:text-indigo-400 transition-colors">⚙️</span>
+                                                                <span className="font-bold text-gray-300">Deck Settings</span>
+                                                            </div>
+                                                            <svg className="w-3 h-3 text-gray-600 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                                                        </button>
+                                                    )}
+                                                    
                                                     <button
                                                         onClick={(e) => { e.stopPropagation(); setIsShareModalOpen(true); setIsToolsMenuOpen(false); }}
                                                         className="w-full text-left px-4 py-3 text-xs flex items-center justify-between hover:bg-indigo-500/10 transition-colors group"
@@ -1629,6 +1650,13 @@ const DeckDetailsPage = () => {
                 isOpen={isPrintModalOpen}
                 onClose={() => setIsPrintModalOpen(false)}
                 cards={deckCards}
+            />
+
+            <DeckSettingsModal
+                isOpen={isSettingsOpen}
+                onClose={() => setIsSettingsOpen(false)}
+                deck={deck}
+                onUpdate={refreshDeck}
             />
 
             {/* Audit Modal */}

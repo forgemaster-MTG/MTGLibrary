@@ -163,7 +163,7 @@ const CardDetailsModal = () => {
     };
 
     return (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center overflow-hidden animate-fade-in" role="dialog">
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center overflow-hidden animate-fade-in" role="dialog">
             {/* Standard Dark Backdrop */}
             <div
                 className="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity"

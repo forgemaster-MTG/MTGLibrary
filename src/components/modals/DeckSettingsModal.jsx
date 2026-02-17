@@ -13,6 +13,7 @@ const DeckSettingsModal = ({ isOpen, onClose, deck, onUpdate }) => {
     const [name, setName] = useState(deck?.name || '');
     const [format, setFormat] = useState(deck?.format || 'Commander');
     const [tagsInput, setTagsInput] = useState((deck?.tags || []).join(', '));
+    const [isThematic, setIsThematic] = useState(deck?.is_thematic || false);
 
     // Reset on Open
     React.useEffect(() => {
@@ -20,6 +21,7 @@ const DeckSettingsModal = ({ isOpen, onClose, deck, onUpdate }) => {
             setName(deck.name || '');
             setFormat(deck.format || 'Commander');
             setTagsInput((deck.tags || []).join(', '));
+            setIsThematic(deck.is_thematic || false);
         }
     }, [isOpen, deck]);
 
@@ -39,7 +41,8 @@ const DeckSettingsModal = ({ isOpen, onClose, deck, onUpdate }) => {
             await deckService.updateDeck(currentUser.uid, deck.id, {
                 name,
                 format,
-                tags
+                tags,
+                isThematic
             });
             addToast("Deck settings updated!", "success");
             if (onUpdate) onUpdate();
@@ -88,6 +91,23 @@ const DeckSettingsModal = ({ isOpen, onClose, deck, onUpdate }) => {
                                 <option key={f} value={f}>{f}</option>
                             ))}
                         </select>
+                    </div>
+
+                    {/* Thematic Setting */}
+                    <div className="flex items-center justify-between p-4 bg-black/20 rounded-xl border border-white/5">
+                        <div className="space-y-0.5">
+                            <h3 className="text-sm font-bold text-white">Thematic DeckMode</h3>
+                            <p className="text-[10px] text-gray-500">Only suggest cards from the Commander's set/era</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={isThematic}
+                                onChange={(e) => setIsThematic(e.target.checked)}
+                                className="sr-only peer"
+                            />
+                            <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                        </label>
                     </div>
 
                     {/* Tags */}

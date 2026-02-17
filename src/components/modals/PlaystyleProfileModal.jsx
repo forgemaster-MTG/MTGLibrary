@@ -1,6 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
+import { PdfService } from '../../services/PdfService';
+import { useAuth } from '../../contexts/AuthContext';
 
 const PlaystyleProfileModal = ({ isOpen, onClose, profile, onRetake, userImage }) => {
+    const { userProfile } = useAuth();
+    
     if (!isOpen) return null;
 
     // Empty State (No Profile)
@@ -55,6 +59,15 @@ const PlaystyleProfileModal = ({ isOpen, onClose, profile, onRetake, userImage }
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
 
+                {/* Export Button */}
+                <button
+                    onClick={() => PdfService.generatePlaystyleReport(profile, userProfile)}
+                    className="absolute top-4 right-16 text-gray-400 hover:text-indigo-400 z-10 p-2 bg-black/20 rounded-full hover:bg-black/40 transition-colors"
+                    title="Export Profile to PDF"
+                >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                </button>
+                    
                 <div className="flex flex-col md:flex-row h-full">
                     {/* Sidebar / Header */}
                     <div className="w-full md:w-80 flex-shrink-0 bg-gray-800/50 p-8 border-b md:border-b-0 md:border-r border-gray-700 flex flex-col items-center text-center">

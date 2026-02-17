@@ -121,8 +121,17 @@ const DeckCard = memo(function DeckCard({ deck }) {
                     )}
 
                     <div className="mt-4">
-                        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 mb-1 opacity-80">
-                            {identity.badge}
+                        <div className="flex items-center gap-2 mb-1">
+                            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 opacity-80">
+                                {identity.badge}
+                            </div>
+                            
+                            {(Number(deck.is_thematic) === 1 || deck.is_thematic === true) && (
+                                <div className="flex items-center gap-1 bg-amber-900/40 border border-amber-500/30 px-1.5 py-0.5 rounded-full">
+                                    <svg className="w-2.5 h-2.5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                                    <span className="text-[8px] font-bold text-amber-200 uppercase tracking-widest">Thematic</span>
+                                </div>
+                            )}
                         </div>
                         <h3 className="text-xl font-bold text-white leading-tight line-clamp-2 mb-1 group-hover:text-indigo-300 transition-colors">
                             {deck.name || 'Untitled Deck'}
