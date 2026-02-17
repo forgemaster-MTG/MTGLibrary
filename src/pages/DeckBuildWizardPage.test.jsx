@@ -21,6 +21,11 @@ vi.mock('../contexts/AuthContext', () => ({
         userProfile: {
             id: 1,
             subscription_tier: 'tier_4', // Magician/Wizard (High tier)
+            tierConfig: {
+                features: {
+                    deckSuggestions: true
+                }
+            },
             settings: {
                 helper: { name: 'The Oracle' },
                 geminiApiKey: 'test-key'
@@ -95,10 +100,25 @@ vi.mock('../components/common/CardGridItem', () => ({
     default: ({ card }) => <div data-testid="card-grid-item">{card.name}</div>
 }));
 
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const createWrapper = () => {
+    const queryClient = new QueryClient({
+        defaultOptions: {
+            queries: {
+                retry: false,
+            },
+        },
+    });
+    return ({ children }) => (
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+};
+
 describe('DeckBuildWizardPage', () => {
 
     it('renders the initial setup step correctly', async () => {
-        render(<DeckBuildWizardPage />);
+        render(<DeckBuildWizardPage />, { wrapper: createWrapper() });
 
         // Header
         // Header
@@ -111,7 +131,7 @@ describe('DeckBuildWizardPage', () => {
     });
 
     it('toggles build mode', async () => {
-        render(<DeckBuildWizardPage />);
+        render(<DeckBuildWizardPage />, { wrapper: createWrapper() });
 
         const collectionBtn = screen.getByText(/My Collection/i);
         const discoveryBtn = screen.getByText(/Global Discovery/i);
@@ -130,7 +150,7 @@ describe('DeckBuildWizardPage', () => {
     });
 
     it('runs analysis when start button is clicked', async () => {
-        render(<DeckBuildWizardPage />);
+        render(<DeckBuildWizardPage />, { wrapper: createWrapper() });
 
         const startBtn = screen.getByText(/INITIALIZE ARCHITECT/i);
         fireEvent.click(startBtn);

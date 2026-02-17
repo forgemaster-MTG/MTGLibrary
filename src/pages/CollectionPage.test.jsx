@@ -9,6 +9,26 @@ import CollectionPage from './CollectionPage';
 window.HTMLElement.prototype.scrollIntoView = vi.fn();
 window.confirm = vi.fn().mockReturnValue(true);
 
+// Mock LocalStorage
+const localStorageMock = (() => {
+    let store = {};
+    return {
+        getItem: vi.fn((key) => store[key] || null),
+        setItem: vi.fn((key, value) => { store[key] = value.toString(); }),
+        clear: vi.fn(() => { store = {}; })
+    };
+})();
+Object.defineProperty(window, 'localStorage', { value: localStorageMock });
+
+// Mock IntersectionObserver
+window.IntersectionObserver = class {
+    constructor() {
+        this.observe = vi.fn();
+        this.unobserve = vi.fn();
+        this.disconnect = vi.fn();
+    }
+};
+
 // Mock Router
 const mockSearchParams = new URLSearchParams();
 const mockSetSearchParams = vi.fn();
