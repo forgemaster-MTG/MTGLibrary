@@ -100,7 +100,7 @@ const getKeys = (primaryKey, userProfile) => {
 
 const PRO_MODELS = [
   "gemini-2.5-pro", // 2.0 Pro Experimental
-  "gemini-2.0-pro-exp",
+  "gemini-2.0-pro",
   "gemini-1.5-pro", // Stable 1.5
 ];
 
@@ -582,13 +582,12 @@ const GeminiService = {
         COMMANDER: ${currentDeck.commander?.name}
         ${setRestriction}
         
-        ${
-          isCollectionMode
-            ? `CONSTRAINT: You MUST select cards from the provided [CANDIDATE POOL] below. 
+        ${isCollectionMode
+        ? `CONSTRAINT: You MUST select cards from the provided [CANDIDATE POOL] below. 
                - If perfect matches aren't found, choose the best available functional substitutes from the pool.
                - Do NOT suggest cards not in the pool.`
-            : `CONSTRAINT: Search the entire MTG history for the absolute best synergies.`
-        }
+        : `CONSTRAINT: Search the entire MTG history for the absolute best synergies.`
+      }
             
         OUTPUT JSON:
         { "suggestions": [ { "name": "Card Name", "reason": "Why it fits", "role": "Synergy", "rating": 1-10 } ] }
@@ -597,9 +596,9 @@ const GeminiService = {
 
     const candidateText = isCollectionMode
       ? `[CANDIDATE POOL (Filtered by Color)]\n${candidates
-          .slice(0, 800)
-          .map((c) => `- ${c.name} (${c.type_line})`)
-          .join("\n")}` // Cap at 800 to fit context
+        .slice(0, 800)
+        .map((c) => `- ${c.name} (${c.type_line})`)
+        .join("\n")}` // Cap at 800 to fit context
       : "";
 
     const userQuery = `Fetch ${packageDef.count} cards for "${packageDef.name}".\n${candidateText}`;
@@ -1223,14 +1222,14 @@ const GeminiService = {
               type: "ARRAY",
               items: {
                 type: "OBJECT",
-                  properties: {
-                    remove: { type: "STRING" },
-                    add: { type: "STRING" },
-                    reason: { type: "STRING" },
-                    set: { type: "STRING", description: "Scryfall set code preference" },
-                    collectorNumber: { type: "STRING", description: "Scryfall collector number" }
-                  },
-                  required: ["remove", "add", "reason"],
+                properties: {
+                  remove: { type: "STRING" },
+                  add: { type: "STRING" },
+                  reason: { type: "STRING" },
+                  set: { type: "STRING", description: "Scryfall set code preference" },
+                  collectorNumber: { type: "STRING", description: "Scryfall collector number" }
+                },
+                required: ["remove", "add", "reason"],
               },
             },
           },
@@ -1370,11 +1369,11 @@ const GeminiService = {
       contents:
         history.length > 0
           ? [
-              ...history.map((h) => ({
-                role: h.role === "user" ? "user" : "model",
-                parts: [{ text: h.content }],
-              })),
-            ]
+            ...history.map((h) => ({
+              role: h.role === "user" ? "user" : "model",
+              parts: [{ text: h.content }],
+            })),
+          ]
           : [{ role: "user", parts: [{ text: "Begin the session." }] }],
       generationConfig: {
         responseMimeType: "application/json",
@@ -1438,11 +1437,11 @@ const GeminiService = {
       contents:
         history.length > 0
           ? [
-              ...history.map((h) => ({
-                role: h.role === "user" ? "user" : "model",
-                parts: [{ text: h.content }],
-              })),
-            ]
+            ...history.map((h) => ({
+              role: h.role === "user" ? "user" : "model",
+              parts: [{ text: h.content }],
+            })),
+          ]
           : [{ role: "user", parts: [{ text: "Initialize Forge." }] }],
       generationConfig: {
         responseMimeType: "application/json",
