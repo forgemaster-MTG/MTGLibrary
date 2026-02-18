@@ -27,9 +27,9 @@ import ForgeLensModal from '../components/modals/ForgeLensModal';
 import PrintSettingsModal from '../components/printing/PrintSettingsModal';
 import FeatureTour from '../components/common/FeatureTour';
 import DeckChecklistModal from '../components/modals/DeckChecklistModal';
+import ExportDeckModal from '../components/modals/ExportDeckModal';
 import { Share2 } from 'lucide-react';
 import DeckSettingsModal from '../components/modals/DeckSettingsModal';
-
 
 const MTG_IDENTITY_REGISTRY = [
     { badge: "White", colors: ["W"], theme: "Absolute Order", flavor_text: "A single spark of light can banish a world of shadows." },
@@ -79,6 +79,7 @@ const DeckDetailsPage = () => {
 
     const [isForgeLensOpen, setIsForgeLensOpen] = useState(false);
     const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+    const [isExportModalOpen, setIsExportModalOpen] = useState(false);
     const [checklistState, setChecklistState] = useState({ isOpen: false, tab: 'missing' });
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
@@ -1075,9 +1076,13 @@ const DeckDetailsPage = () => {
                                                             <svg className="w-3 h-3 text-gray-600 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                                                         </button>
                                                     )}
-                                                    
+
                                                     <button
-                                                        onClick={(e) => { e.stopPropagation(); setIsShareModalOpen(true); setIsToolsMenuOpen(false); }}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setIsShareModalOpen(true);
+                                                            setIsToolsMenuOpen(false);
+                                                        }}
                                                         className="w-full text-left px-4 py-3 text-xs flex items-center justify-between hover:bg-indigo-500/10 transition-colors group"
                                                     >
                                                         <div className="flex items-center gap-3">
@@ -1091,7 +1096,7 @@ const DeckDetailsPage = () => {
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             if ((userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier)).features.deckBackup) {
-                                                                handleExportDeck();
+                                                                setIsExportModalOpen(true);
                                                                 setIsToolsMenuOpen(false);
                                                             } else {
                                                                 addToast('Deck Export is available on Magician tier and above.', 'error');
@@ -1101,7 +1106,7 @@ const DeckDetailsPage = () => {
                                                     >
                                                         <div className="flex items-center gap-3">
                                                             <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                                                            <span className="font-bold text-gray-300">Export JSON</span>
+                                                            <span className="font-bold text-gray-300">Export Deck</span>
                                                         </div>
                                                         {!(userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier)).features.deckBackup && <span className="text-[8px] bg-amber-500/20 text-amber-500 px-1.5 py-0.5 rounded leading-none">PRO</span>}
                                                     </button>
@@ -1509,6 +1514,8 @@ const DeckDetailsPage = () => {
                     onClose={() => setIsShareModalOpen(false)}
                     type="deck"
                     shareUrl={deck?.shareSlug ? `${window.location.origin}/share/${deck.shareSlug}` : `${window.location.origin}/public/deck/${deckId}`}
+                    deck={deck}
+                    onUpdate={refreshDeck}
                     data={{
                         title: deck.name,
                         win: deck.is_mockup ? "Dream Build" : (deck.stats?.winRate > 60 ? "Dominant Force" : "Battle Ready"),
@@ -1676,6 +1683,12 @@ const DeckDetailsPage = () => {
                 isOpen={isTourOpen}
                 onClose={() => setIsTourOpen(false)}
                 tourId="deck_details_v1"
+            />
+            <ExportDeckModal
+                isOpen={isExportModalOpen}
+                onClose={() => setIsExportModalOpen(false)}
+                deck={deck}
+                cards={deckCards}
             />
         </div>
     );

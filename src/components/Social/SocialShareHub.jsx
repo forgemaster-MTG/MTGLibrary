@@ -4,14 +4,39 @@ import { useToast } from '../../contexts/ToastContext';
 import SocialCardPreview from './SocialCardPreview';
 import { Share2, Download, Copy, X, Check, Image as ImageIcon, Link as LinkIcon, QrCode } from 'lucide-react';
 
-const SocialShareHub = ({ isOpen, onClose, type, data, shareUrl }) => {
+import { useAuth } from '../../contexts/AuthContext';
+import { deckService } from '../../services/deckService';
+
+const SocialShareHub = ({ isOpen, onClose, type, data, shareUrl, deck, onUpdate }) => {
+    const { currentUser } = useAuth();
     const { addToast } = useToast();
     const cardRef = useRef(null);
     const [isGenerating, setIsGenerating] = useState(false);
     const [viewMode, setViewMode] = useState('card'); // 'card' | 'link'
     const [copied, setCopied] = useState(false);
+    const [isUpdating, setIsUpdating] = useState(false);
 
     if (!isOpen) return null;
+
+    const isPublic = deck?.is_public || deck?.isPublic;
+
+    const handleMakePublic = async () => {
+        if (!currentUser) {
+            addToast('You must be logged in to update deck settings.', 'error');
+            return;
+        }
+        setIsUpdating(true);
+        try {
+            await deckService.updateDeck(currentUser.uid, deck.id, { isPublic: true });
+            addToast('Deck is now public!', 'success');
+            if (onUpdate) onUpdate();
+        } catch (err) {
+            console.error(err);
+            addToast('Failed to make deck public.', 'error');
+        } finally {
+            setIsUpdating(false);
+        }
+    };
 
     const handleDownload = async () => {
         if (!cardRef.current) return;
@@ -153,9 +178,39 @@ const SocialShareHub = ({ isOpen, onClose, type, data, shareUrl }) => {
                 </div>
 
                 {/* Main View Area */}
-                <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-black/20">
+                <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-black/20 relative">
+                    {/* Private Deck Overlay */}
+                    {type === 'deck' && !isPublic && (
+                        <div className="absolute inset-x-0 top-0 bottom-0 z-50 bg-gray-950/80 backdrop-blur-sm flex flex-col items-center justify-center p-8 text-center animate-fade-in">
+                            <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-6 border border-red-500/20">
+                                <Share2 className="w-8 h-8 text-red-400" />
+                            </div>
+                            <h3 className="text-2xl font-black text-white uppercase italic tracking-tight mb-2">Deck is Private</h3>
+                            <p className="text-gray-400 max-w-md mb-8">
+                                This deck is currently set to <strong>Private</strong>. You must make it <strong>Public</strong> before you can share it with others or generate social cards.
+                            </p>
+                            <button
+                                onClick={handleMakePublic}
+                                disabled={isUpdating}
+                                className="bg-green-600 hover:bg-green-500 text-white font-black py-4 px-8 rounded-xl shadow-lg shadow-green-900/40 transition-all flex items-center gap-3 w-full sm:w-auto justify-center scale-110"
+                            >
+                                {isUpdating ? (
+                                    <>
+                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        Updating...
+                                    </>
+                                ) : (
+                                    <>
+                                        <span className="text-xl">🔓</span>
+                                        <span>Make Public & Share</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    )}
+
                     {viewMode === 'card' ? (
-                        <div className="flex flex-col items-center gap-8">
+                        <div className={`flex flex-col items-center gap-8 ${!isPublic && type === 'deck' ? 'blur-sm opacity-50 pointer-events-none' : ''}`}>
                             {/* The Hidden Preview for html2canvas */}
                             <div className="hidden">
                                 <SocialCardPreview
@@ -198,7 +253,7 @@ const SocialShareHub = ({ isOpen, onClose, type, data, shareUrl }) => {
                             </div>
                         </div>
                     ) : (
-                        <div className="max-w-xl mx-auto py-12 space-y-8">
+                        <div className={`max-w-xl mx-auto py-12 space-y-8 ${!isPublic && type === 'deck' ? 'blur-sm opacity-50 pointer-events-none' : ''}`}>
                             <div className="text-center">
                                 <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-white/10">
                                     <QrCode className="w-8 h-8 text-purple-400" />
