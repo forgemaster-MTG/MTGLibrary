@@ -118,10 +118,10 @@ const ContentManager = ({ activeTab = 'epics' }) => {
     };
 
     const handleGenerateNotes = async () => {
-        if (!userProfile?.settings?.geminiApiKey) return alert('Missing Gemini API Key.');
+        // if (!userProfile?.settings?.geminiApiKey) return alert('Missing Gemini API Key.');
         setGeneratingNotes(true);
         try {
-            const notes = await GeminiService.generateReleaseNotes(userProfile.settings.geminiApiKey, reportTickets, userProfile);
+            const notes = await GeminiService.generateReleaseNotes(userProfile?.settings?.geminiApiKey, reportTickets, userProfile);
             setGeneratedNotes(notes);
             setReleaseVersion(`v${new Date().toISOString().slice(0, 10).replace(/-/g, '.')}`);
         } catch (err) { alert('Failed to generate release notes: ' + err.message); } finally { setGeneratingNotes(false); }
