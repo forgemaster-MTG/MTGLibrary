@@ -113,7 +113,7 @@ const CreateDeckPage = () => {
             };
 
             if (selectedFormat === 'Commander') {
-                params.type_line = 'legendary creature';
+                params.is_commander = true;
             }
             // For Standard, we don't restrict by type (or restrict to legal Standard cards if backend supported it)
             // For now, we fetch generic unused cards for Standard Showcase selection

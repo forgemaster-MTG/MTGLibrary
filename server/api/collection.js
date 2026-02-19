@@ -138,6 +138,19 @@ router.get('/', async (req, res) => {
             });
         }
 
+        // Commander Filter (Legendary Creature OR "can be your commander")
+        if (req.query.is_commander === 'true') {
+            q.where((builder) => {
+                builder.whereRaw("user_cards.data->>'type_line' ILIKE ?", ['%Legendary%'])
+                    .andWhereRaw("user_cards.data->>'type_line' ILIKE ?", ['%Creature%'])
+                    .orWhereRaw("user_cards.data->>'oracle_text' ILIKE ?", ['%can be your commander%'])
+                    // Fix: leadershipskills is stored as a stringified JSON, so we must extract as text (->>) then cast to jsonb
+                    .orWhereRaw("(user_cards.data->>'leadershipskills')::jsonb @> ?", ['{"commander": true}'])
+                    // Fallback for potentially direct object storage or typo
+                    .orWhereRaw("(user_cards.data->>'leadership_skills')::jsonb @> ?", ['{"commander": true}']);
+            });
+        }
+
         // Filter for unused cards (not in a deck)
         if (req.query.unused === 'true') {
             q.whereNull('user_cards.deck_id');

@@ -27,7 +27,8 @@ export const cardSearchSchema = z.object({
         value: z.number().or(z.string().transform(Number)),
         operator: z.string().optional()
     }).optional(),
-    preferFinish: z.enum(['foil', 'nonfoil', 'cheapest']).optional()
+    preferFinish: z.enum(['foil', 'nonfoil', 'cheapest']).optional(),
+    isCommander: z.boolean().optional()
 });
 
 export const cardAutocompleteSchema = z.object({

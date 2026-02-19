@@ -44,7 +44,8 @@ const CommanderSearchModal = ({ isOpen, onClose, onAdd }) => {
 
             const payload = {
                 query: query,
-                type: 'legendary creature', // Enforce
+                // type: 'legendary creature', // Removed to allow broader commander search
+                isCommander: true, // Enforce Commander eligibility
                 text: oracleText,
                 colors: colors.length > 0 ? colors : undefined,
                 colorIdentity: true, // Identify as ID for commander search usually

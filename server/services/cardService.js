@@ -153,9 +153,9 @@ export const cardService = {
      * Advanced Card Search with Fallback
      */
     async findCards(criteria) {
-        const { query: nameQueryString, set, cn, type, text, flavor, artist, rarity, colors, colorLogic, colorIdentity, colorExcluded, mv, power, toughness, preferFinish } = criteria;
+        const { query: nameQueryString, set, cn, type, text, flavor, artist, rarity, colors, colorLogic, colorIdentity, colorExcluded, mv, power, toughness, preferFinish, isCommander } = criteria;
         const nameQuery = (nameQueryString || '').trim();
-        const isSimple = !colors && !type && !text && !mv && !rarity;
+        const isSimple = !colors && !type && !text && !mv && !rarity && !isCommander;
 
         try {
             let dbQuery = knex('cards');
@@ -175,6 +175,16 @@ export const cardService = {
             }
 
             if (type) dbQuery.whereRaw("data->>'type_line' ILIKE ?", [`%${type}%`]);
+
+            if (isCommander) {
+                dbQuery.where(function () {
+                    this.whereRaw("data->>'type_line' ILIKE ?", ['%Legendary%'])
+                        .andWhereRaw("data->>'type_line' ILIKE ?", ['%Creature%'])
+                        .orWhereRaw("data->>'oracle_text' ILIKE ?", ['%can be your commander%'])
+                        .orWhereRaw("(data->>'leadershipskills')::jsonb @> ?", ['{"commander": true}'])
+                        .orWhereRaw("(data->>'leadership_skills')::jsonb @> ?", ['{"commander": true}']);
+                });
+            }
             if (text) dbQuery.whereRaw("data->>'oracle_text' ILIKE ?", [`%${text}%`]);
             if (flavor) dbQuery.whereRaw("data->>'flavor_text' ILIKE ?", [`%${flavor}%`]);
             if (artist) dbQuery.whereRaw("data->>'artist' ILIKE ?", [`%${artist}%`]);
