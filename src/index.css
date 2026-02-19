@@ -41,6 +41,114 @@ body {
         }
     }
 
+    /* THEME VARIABLES */
+    :root {
+        /* Default / Multiversal Theme (Indigo/Void) */
+        --color-primary-50: #eef2ff;
+        --color-primary-100: #e0e7ff;
+        --color-primary-200: #c7d2fe;
+        --color-primary-300: #a5b4fc;
+        --color-primary-400: #818cf8;
+        --color-primary-500: #6366f1;
+        /* Main Brand */
+        --color-primary-600: #4f46e5;
+        --color-primary-700: #4338ca;
+        --color-primary-800: #3730a3;
+        --color-primary-900: #312e81;
+        --color-primary-950: #1e1b4b;
+    }
+
+    /* Multiversal (Explicit Class - same as root) */
+    .theme-multiversal {
+        --color-primary-50: #eef2ff;
+        --color-primary-100: #e0e7ff;
+        --color-primary-200: #c7d2fe;
+        --color-primary-300: #a5b4fc;
+        --color-primary-400: #818cf8;
+        --color-primary-500: #6366f1;
+        --color-primary-600: #4f46e5;
+        --color-primary-700: #4338ca;
+        --color-primary-800: #3730a3;
+        --color-primary-900: #312e81;
+        --color-primary-950: #1e1b4b;
+    }
+
+    /* White Theme (Gold/Light/Order) */
+    .theme-white {
+        --color-primary-50: #fffbeb;
+        --color-primary-100: #fef3c7;
+        --color-primary-200: #fde68a;
+        --color-primary-300: #fcd34d;
+        --color-primary-400: #fbbf24;
+        --color-primary-500: #f59e0b;
+        --color-primary-600: #d97706;
+        --color-primary-700: #b45309;
+        --color-primary-800: #92400e;
+        --color-primary-900: #78350f;
+        --color-primary-950: #451a03;
+    }
+
+    /* Blue Theme (Cyan/Mind/Knowledge) */
+    .theme-blue {
+        --color-primary-50: #ecfeff;
+        --color-primary-100: #cffafe;
+        --color-primary-200: #a5f3fc;
+        --color-primary-300: #67e8f9;
+        --color-primary-400: #22d3ee;
+        --color-primary-500: #06b6d4;
+        --color-primary-600: #0891b2;
+        --color-primary-700: #0e7490;
+        --color-primary-800: #155e75;
+        --color-primary-900: #164e63;
+        --color-primary-950: #083344;
+    }
+
+    /* Black Theme (Purple/Necromancy/Death) */
+    /* Using a more "Necrotic" Purple/Gray than the default Indigo */
+    .theme-black {
+        --color-primary-50: #fdf4ff;
+        --color-primary-100: #fae8ff;
+        --color-primary-200: #f5d0fe;
+        --color-primary-300: #f0abfc;
+        --color-primary-400: #e879f9;
+        --color-primary-500: #d946ef;
+        --color-primary-600: #c026d3;
+        --color-primary-700: #a21caf;
+        --color-primary-800: #86198f;
+        --color-primary-900: #701a75;
+        --color-primary-950: #4a044e;
+    }
+
+    /* Red Theme (Orange/Red/Fury) */
+    .theme-red {
+        --color-primary-50: #fff1f2;
+        --color-primary-100: #ffe4e6;
+        --color-primary-200: #fecdd3;
+        --color-primary-300: #fda4af;
+        --color-primary-400: #fb7185;
+        --color-primary-500: #f43f5e;
+        --color-primary-600: #e11d48;
+        --color-primary-700: #be123c;
+        --color-primary-800: #9f1239;
+        --color-primary-900: #881337;
+        --color-primary-950: #4c0519;
+    }
+
+    /* Green Theme (Emerald/Nature/Life) */
+    .theme-green {
+        --color-primary-50: #f0fdf4;
+        --color-primary-100: #dcfce7;
+        --color-primary-200: #bbf7d0;
+        --color-primary-300: #86efac;
+        --color-primary-400: #4ade80;
+        --color-primary-500: #22c55e;
+        --color-primary-600: #16a34a;
+        --color-primary-700: #15803d;
+        --color-primary-800: #166534;
+        --color-primary-900: #14532d;
+        --color-primary-950: #052e16;
+    }
+
     /* Bump up third-party chat widgets/bubbles to avoid pagination footer */
     /* This targets common chat widget selectors - adjust if your specific chat widget uses different classes/ids */
     #hubspot-messages-iframe-container,

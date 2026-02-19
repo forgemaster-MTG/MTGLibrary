@@ -42,6 +42,7 @@ import AdminPage from './pages/AdminPage';
 import ChatWidget from './components/ChatWidget';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 
 import { QueryClientProvider } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
@@ -83,77 +84,79 @@ function App() {
             loadingComponent={<div className="min-h-screen bg-gray-950 flex items-center justify-center text-indigo-500 font-bold tracking-widest animate-pulse">LOADING MAGIC...</div>}
         >
             <ToastProvider>
-                <OfflineNotifier />
-                <AchievementToast />
-                <AuthProvider>
-                    <AchievementMonitor />
-                    <CardModalProvider>
-                        <div className="bg-gray-900 text-gray-200 font-sans min-h-screen flex flex-col">
-                            <ScrollToTop />
-                            <ReferralTracker />
-                            <ImpersonationBanner />
-                            {/* Navbar is now always rendered but handles its own restriction logic */}
-                            <Navbar />
-                            <AuthGuard>
-                                <div className="flex-grow pb-24 md:pb-0">
-                                    <Routes>
-                                        <Route path="/" element={<LandingPage />} />
-                                        <Route path="/about" element={<AboutPage />} />
-                                        <Route path="/dashboard" element={<Dashboard />} />
-                                        <Route path="/login" element={<LoginPage />} />
-                                        <Route path="/onboarding" element={<OnboardingPage />} />
-                                        <Route path="/collection" element={<CollectionPage />} />
-                                        <Route path="/pricing" element={<PricingPage />} />
-                                        <Route path="/decks" element={<DecksPage />} />
-                                        <Route path="/binders" element={<BindersPage />} />
-                                        <Route path="/precons" element={<PreconPage />} />
-                                        <Route path="/precons/type/:type" element={<PreconPage />} />
-                                        <Route path="/precons/set/:set" element={<PreconPage />} />
-                                        <Route path="/precons/deck/:id" element={<PreconDeckPage />} />
-                                        <Route path="/decks/new" element={<CreateDeckPage />} />
-                                        <Route path="/decks/:deckId" element={<DeckDetailsPage />} />
-                                        <Route path="/share/:slug" element={<PublicDeckPage />} />
-                                        <Route path="/decks/:deckId/build" element={<DeckBuildWizardPage />} />
-                                        <Route path="/sets" element={<SetsPage />} />
-                                        <Route path="/sets/:setCode" element={<SetDetailsPage />} />
-                                        <Route path="/wishlist" element={<WishlistPage />} />
-                                        <Route path="/settings/*" element={<SettingsPage />} />
-                                        <Route path="/vault" element={<TheVault />} />
-                                        <Route path="/audit" element={<AuditHub />} />
-                                        <Route path="/audit/complete" element={<AuditCompletion />} />
-                                        <Route path="/audit/:id" element={<AuditHub />} />
-                                        <Route path="/audit/:auditId/wizard" element={<AuditWizard />} />
-                                        <Route path="/remote/:sessionId" element={<RemoteLensPage />} />
-                                        <Route path="/strategy" element={<AIStrategyPage />} />
-                                        <Route path="/play" element={<Navigate to="/play/lobby" replace />} />
-                                        <Route path="/play/lobby" element={<Lobby />} />
-                                        <Route path="/play/room/:id" element={<GameRoom />} />
-                                        <Route path="/social" element={<SocialPage />} />
-                                        <Route path="/profile/:id" element={<ProfilePage />} />
-                                        <Route path="/trades" element={<TradeDashboard />} />
-                                        <Route path="/trades/:id" element={<TradeDetail />} />
-                                        <Route path="/tournaments" element={<TournamentPage />} />
-                                        <Route path="/tournaments/:id" element={<TournamentPage />} />
-                                        <Route path="/tournaments/:id/join" element={<TournamentJoinPage />} />
-                                        <Route path="/solitaire/:deckId" element={<SolitairePage />} />
-                                        <Route path="/products" element={<ProductsPage />} />
-                                        <Route path="/products" element={<ProductsPage />} />
-                                        <Route path="/admin/*" element={
-                                            <AdminGuard>
-                                                <AdminPage />
-                                            </AdminGuard>
-                                        } />
-                                    </Routes>
-                                </div>
-                            </AuthGuard>
-                            <ApiInterceptor />
-                            {/* Global Components */}
-                            <ChatWidget />
-                            <CardDetailsModal />
-                            <UsernamePrompt />
-                        </div>
-                    </CardModalProvider>
-                </AuthProvider>
+                <ThemeProvider>
+                    <OfflineNotifier />
+                    <AchievementToast />
+                    <AuthProvider>
+                        <AchievementMonitor />
+                        <CardModalProvider>
+                            <div className="bg-gray-900 text-gray-200 font-sans min-h-screen flex flex-col transition-colors duration-500">
+                                <ScrollToTop />
+                                <ReferralTracker />
+                                <ImpersonationBanner />
+                                {/* Navbar is now always rendered but handles its own restriction logic */}
+                                <Navbar />
+                                <AuthGuard>
+                                    <div className="flex-grow pb-24 md:pb-0">
+                                        <Routes>
+                                            <Route path="/" element={<LandingPage />} />
+                                            <Route path="/about" element={<AboutPage />} />
+                                            <Route path="/dashboard" element={<Dashboard />} />
+                                            <Route path="/login" element={<LoginPage />} />
+                                            <Route path="/onboarding" element={<OnboardingPage />} />
+                                            <Route path="/collection" element={<CollectionPage />} />
+                                            <Route path="/pricing" element={<PricingPage />} />
+                                            <Route path="/decks" element={<DecksPage />} />
+                                            <Route path="/binders" element={<BindersPage />} />
+                                            <Route path="/precons" element={<PreconPage />} />
+                                            <Route path="/precons/type/:type" element={<PreconPage />} />
+                                            <Route path="/precons/set/:set" element={<PreconPage />} />
+                                            <Route path="/precons/deck/:id" element={<PreconDeckPage />} />
+                                            <Route path="/decks/new" element={<CreateDeckPage />} />
+                                            <Route path="/decks/:deckId" element={<DeckDetailsPage />} />
+                                            <Route path="/share/:slug" element={<PublicDeckPage />} />
+                                            <Route path="/decks/:deckId/build" element={<DeckBuildWizardPage />} />
+                                            <Route path="/sets" element={<SetsPage />} />
+                                            <Route path="/sets/:setCode" element={<SetDetailsPage />} />
+                                            <Route path="/wishlist" element={<WishlistPage />} />
+                                            <Route path="/settings/*" element={<SettingsPage />} />
+                                            <Route path="/vault" element={<TheVault />} />
+                                            <Route path="/audit" element={<AuditHub />} />
+                                            <Route path="/audit/complete" element={<AuditCompletion />} />
+                                            <Route path="/audit/:id" element={<AuditHub />} />
+                                            <Route path="/audit/:auditId/wizard" element={<AuditWizard />} />
+                                            <Route path="/remote/:sessionId" element={<RemoteLensPage />} />
+                                            <Route path="/strategy" element={<AIStrategyPage />} />
+                                            <Route path="/play" element={<Navigate to="/play/lobby" replace />} />
+                                            <Route path="/play/lobby" element={<Lobby />} />
+                                            <Route path="/play/room/:id" element={<GameRoom />} />
+                                            <Route path="/social" element={<SocialPage />} />
+                                            <Route path="/profile/:id" element={<ProfilePage />} />
+                                            <Route path="/trades" element={<TradeDashboard />} />
+                                            <Route path="/trades/:id" element={<TradeDetail />} />
+                                            <Route path="/tournaments" element={<TournamentPage />} />
+                                            <Route path="/tournaments/:id" element={<TournamentPage />} />
+                                            <Route path="/tournaments/:id/join" element={<TournamentJoinPage />} />
+                                            <Route path="/solitaire/:deckId" element={<SolitairePage />} />
+                                            <Route path="/products" element={<ProductsPage />} />
+                                            <Route path="/products" element={<ProductsPage />} />
+                                            <Route path="/admin/*" element={
+                                                <AdminGuard>
+                                                    <AdminPage />
+                                                </AdminGuard>
+                                            } />
+                                        </Routes>
+                                    </div>
+                                </AuthGuard>
+                                <ApiInterceptor />
+                                {/* Global Components */}
+                                <ChatWidget />
+                                <CardDetailsModal />
+                                <UsernamePrompt />
+                            </div>
+                        </CardModalProvider>
+                    </AuthProvider>
+                </ThemeProvider>
             </ToastProvider>
             <ReactQueryDevtools initialIsOpen={false} />
         </PersistQueryClientProvider>

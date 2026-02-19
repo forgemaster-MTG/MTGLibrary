@@ -18,6 +18,7 @@ import DeckStrategyModal from '../components/modals/DeckStrategyModal';
 import StartAuditModal from '../components/Audit/StartAuditModal';
 import { api } from '../services/api';
 import DeckDoctorModal from '../components/modals/DeckDoctorModal';
+import DeckToolsMenu from '../components/decks/DeckToolsMenu';
 import SocialShareHub from '../components/Social/SocialShareHub';
 import DeckAI from '../components/DeckAI';
 import CardGridItem from '../components/common/CardGridItem';
@@ -777,7 +778,7 @@ const DeckDetailsPage = () => {
                                 ) : (
                                     <div className="flex flex-col gap-0.5 min-w-0">
                                         <div className="flex items-center gap-2 group max-w-full">
-                                            <h2 className="text-xl md:text-3xl lg:text-4xl font-black text-white tracking-tighter uppercase truncate leading-tight flex-1" title={deck.name}>{deck.name}</h2>
+                                            <h2 className="text-xl md:text-3xl lg:text-4xl font-black text-white tracking-tighter uppercase break-words leading-tight flex-1" title={deck.name}>{deck.name}</h2>
                                             {canEdit && (
                                                 <button onClick={handleStartEdit} className="p-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-white shrink-0">
                                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
@@ -856,6 +857,80 @@ const DeckDetailsPage = () => {
                                             ${totalValue.toFixed(2)}
                                         </span>
                                     </div>
+                                    {/* Action Buttons Section - Moved here to be underneath stats on mobile */}
+                                    <div className="flex items-center gap-2 md:gap-3 bg-gray-950/40 p-1.5 rounded-2xl border border-white/5 backdrop-blur-md relative mt-3 w-fit lg:absolute lg:top-1/2 lg:-translate-y-1/2 lg:right-0 lg:mt-0" ref={toolsMenuRef}>
+                                        <button
+                                            onClick={() => setIsStrategyModalOpen(true)}
+                                            className="bg-indigo-600 hover:bg-indigo-500 text-white font-black py-2.5 px-4 md:px-6 rounded-xl shadow-lg shadow-indigo-900/40 transition-all flex items-center gap-2 uppercase tracking-widest text-[10px] md:text-xs shrink-0"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                                            <span className="hidden sm:inline">Strategy</span>
+                                        </button>
+
+                                        {canEdit && (
+                                            <button
+                                                onClick={() => setIsAddCollectionOpen(true)}
+                                                className="bg-green-600 hover:bg-green-500 text-white font-black py-2.5 px-4 md:px-6 rounded-xl shadow-lg shadow-green-900/40 transition-all flex items-center gap-2 uppercase tracking-widest text-[10px] md:text-xs shrink-0"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                                                <span className="hidden sm:inline">Collection</span>
+                                            </button>
+                                        )}
+
+                                        {/* Mobile/Desktop Tools Toggle */}
+                                        <div className="relative">
+                                            <button
+                                                id="deck-tools-trigger"
+                                                onClick={() => setIsToolsMenuOpen(!isToolsMenuOpen)}
+                                                className={`group relative flex items-center justify-center w-12 h-11 md:w-auto md:px-5 transition-all rounded-xl border ${isToolsMenuOpen ? 'bg-indigo-600 border-indigo-400 text-white' : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700 hover:text-white'} shadow-md`}
+                                                title="Deck Tools & Management"
+                                            >
+                                                {/* Desktop: Action Cluster Icon Set */}
+                                                <div className="hidden md:flex items-center -space-x-2 mr-3 opacity-70 group-hover:opacity-100 transition-opacity">
+                                                    <div className="w-6 h-6 rounded-full bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center backdrop-blur-sm">
+                                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg>
+                                                    </div>
+                                                    <div className="w-6 h-6 rounded-full bg-purple-500/20 border border-purple-500/40 flex items-center justify-center backdrop-blur-sm">
+                                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                                    </div>
+                                                    <div className="w-6 h-6 rounded-full bg-blue-500/20 border border-blue-500/40 flex items-center justify-center backdrop-blur-sm">
+                                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                    </div>
+                                                </div>
+
+                                                <span className="text-[10px] md:text-xs font-black uppercase tracking-widest">
+                                                    Tools
+                                                </span>
+
+                                                {/* Mobile Indicator Ring */}
+                                                {!isToolsMenuOpen && (
+                                                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-indigo-500 rounded-full border-2 border-gray-900 md:hidden animate-pulse" />
+                                                )}
+                                            </button>
+
+                                            <DeckToolsMenu
+                                                isOpen={isToolsMenuOpen}
+                                                onClose={() => setIsToolsMenuOpen(false)}
+                                                isEditMode={canEdit}
+                                                deck={deck}
+                                                totalValue={totalValue}
+                                                onOpenSearch={() => setIsSearchOpen(true)}
+                                                onOpenStrategy={() => setIsStrategyModalOpen(true)}
+                                                onOpenCollection={() => setIsAddCollectionOpen(true)}
+                                                onOpenDoctor={() => setIsDoctorOpen(true)}
+                                                onOpenAudit={handleAuditClick}
+                                                onOpenPrint={() => setIsPrintModalOpen(true)}
+                                                onOpenExport={() => setIsExportModalOpen(true)}
+                                                onOpenSettings={() => setIsSettingsOpen(true)}
+                                                onOpenShare={() => setIsShareModalOpen(true)}
+                                                onToggleMockup={handleToggleMockup}
+                                                onDelete={handleDeleteDeck}
+                                                onOpenSolitaire={() => navigate(`/solitaire/${deckId}`)}
+                                                onOpenTokens={() => setChecklistState({ isOpen: true, tab: 'tokens' })}
+                                                onOpenTournaments={() => navigate('/tournaments')}
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -866,287 +941,7 @@ const DeckDetailsPage = () => {
                             </div>
                         </div>
 
-                        {/* Right: Actions */}
-                        <div className="flex items-center gap-2 md:gap-3 bg-gray-950/40 p-1.5 rounded-2xl border border-white/5 backdrop-blur-md relative self-end lg:self-auto" ref={toolsMenuRef}>
-                            <button
-                                onClick={() => setIsStrategyModalOpen(true)}
-                                className="bg-indigo-600 hover:bg-indigo-500 text-white font-black py-2.5 px-4 md:px-6 rounded-xl shadow-lg shadow-indigo-900/40 transition-all flex items-center gap-2 uppercase tracking-widest text-[10px] md:text-xs shrink-0"
-                            >
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                                <span className="hidden sm:inline">Strategy</span>
-                            </button>
-
-                            {canEdit && (
-                                <button
-                                    onClick={() => setIsAddCollectionOpen(true)}
-                                    className="bg-green-600 hover:bg-green-500 text-white font-black py-2.5 px-4 md:px-6 rounded-xl shadow-lg shadow-green-900/40 transition-all flex items-center gap-2 uppercase tracking-widest text-[10px] md:text-xs shrink-0"
-                                >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-                                    <span className="hidden sm:inline">Collection</span>
-                                </button>
-                            )}
-
-                            {/* Mobile/Desktop Tools Toggle */}
-                            <div className="relative">
-                                <button
-                                    id="deck-tools-trigger"
-                                    onClick={() => setIsToolsMenuOpen(!isToolsMenuOpen)}
-                                    className={`group relative flex items-center justify-center w-12 h-11 md:w-auto md:px-5 transition-all rounded-xl border ${isToolsMenuOpen ? 'bg-indigo-600 border-indigo-400 text-white' : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700 hover:text-white'} shadow-md`}
-                                    title="Deck Tools & Management"
-                                >
-                                    {/* Desktop: Action Cluster Icon Set */}
-                                    <div className="hidden md:flex items-center -space-x-2 mr-3 opacity-70 group-hover:opacity-100 transition-opacity">
-                                        <div className="w-6 h-6 rounded-full bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center backdrop-blur-sm">
-                                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg>
-                                        </div>
-                                        <div className="w-6 h-6 rounded-full bg-purple-500/20 border border-purple-500/40 flex items-center justify-center backdrop-blur-sm">
-                                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                                        </div>
-                                        <div className="w-6 h-6 rounded-full bg-blue-500/20 border border-blue-500/40 flex items-center justify-center backdrop-blur-sm">
-                                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                        </div>
-                                    </div>
-
-                                    <span className="text-[10px] md:text-xs font-black uppercase tracking-widest">
-                                        {isToolsMenuOpen ? 'Close' : 'Tools'}
-                                    </span>
-
-                                    {/* Mobile Indicator Ring */}
-                                    {!isToolsMenuOpen && (
-                                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-indigo-500 rounded-full border-2 border-gray-900 md:hidden animate-pulse" />
-                                    )}
-                                </button>
-
-                                {/* Grouped Action Menu */}
-                                {isToolsMenuOpen && (
-                                    <div className="absolute right-0 top-full mt-3 w-[calc(100vw-2rem)] sm:w-80 bg-gray-950/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[60] animate-in fade-in zoom-in-95 duration-200 origin-top-right flex flex-col max-h-[calc(100vh-120px)] overflow-hidden">
-                                        <div className="p-4 space-y-4 overflow-y-auto custom-scrollbar">
-                                            {/* Section: Building */}
-                                            <div className="space-y-2">
-                                                <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] px-2">Deck Building</h3>
-                                                <div className="grid grid-cols-2 gap-2">
-                                                    {canEdit && (
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); setIsForgeLensOpen(true); setIsToolsMenuOpen(false); }}
-                                                            className="flex flex-col items-center gap-2 p-3 bg-white/5 hover:bg-indigo-500/20 rounded-xl border border-white/5 transition-all group"
-                                                        >
-                                                            <svg className="w-5 h-5 text-indigo-400 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                                                            <span className="text-[10px] font-bold text-gray-300">Scan</span>
-                                                        </button>
-                                                    )}
-
-
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); setIsSearchOpen(true); setIsToolsMenuOpen(false); }}
-                                                        className={`flex flex-col items-center gap-2 p-3 bg-white/5 rounded-xl border border-white/5 transition-all group ${canEdit ? 'hover:bg-indigo-500/20' : 'opacity-50 cursor-not-allowed'}`}
-                                                        disabled={!canEdit}
-                                                    >
-                                                        <svg className="w-5 h-5 text-blue-400 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                                                        <span className="text-[10px] font-bold text-gray-300">Search</span>
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            {/* Section: Analysis */}
-                                            <div className="space-y-2">
-                                                <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] px-2">Logic & Analysis</h3>
-                                                <div className="grid grid-cols-2 gap-2">
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            const tierConfig = (userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier));
-                                                            if (!tierConfig.features.deckDoctor) {
-                                                                addToast('Deck Doctor is available on Wizard tier and above.', 'info');
-                                                                return;
-                                                            }
-                                                            setIsDoctorOpen(true);
-                                                            setIsToolsMenuOpen(false);
-                                                        }}
-                                                        className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all group ${(userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier)).features.deckDoctor
-                                                            ? 'bg-indigo-500/10 hover:bg-indigo-500/30 border-indigo-500/20'
-                                                            : 'bg-gray-900 border-gray-800 opacity-40 cursor-not-allowed'
-                                                            }`}
-                                                    >
-                                                        <span className="text-xl group-hover:scale-110 transition-transform">🩺</span>
-                                                        <span className="text-[10px] font-bold text-indigo-300">Doctor</span>
-                                                    </button>
-
-                                                    {canEdit && (
-                                                        (userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier)).features.deckAudit ? (
-                                                            <button
-                                                                onClick={(e) => { e.stopPropagation(); handleAuditClick(); }}
-                                                                className="w-full h-full flex flex-col items-center gap-2 p-3 bg-purple-500/10 hover:bg-purple-500/30 border border-purple-500/20 rounded-xl transition-all group"
-                                                            >
-                                                                <svg className="w-5 h-5 text-purple-400 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
-                                                                <span className="text-[10px] font-bold text-purple-300 uppercase tracking-wider">Audit</span>
-                                                            </button>
-                                                        ) : (
-                                                            <button
-                                                                onClick={(e) => { e.stopPropagation(); addToast('Deck Audits are available on Magician tier and above.', 'info'); }}
-                                                                className="flex flex-col items-center gap-2 p-3 bg-gray-900 border border-gray-800 rounded-xl opacity-40 cursor-not-allowed"
-                                                            >
-                                                                <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                                                <span className="text-[10px] font-bold text-gray-500">Audit</span>
-                                                            </button>
-                                                        )
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            <div className="space-y-2">
-                                                <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] px-2">Tabletop Tools</h3>
-                                                <div className="grid grid-cols-1 gap-2">
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            navigate(`/solitaire/${deckId}`);
-                                                            setIsToolsMenuOpen(false);
-                                                        }}
-                                                        className="w-full py-3 bg-emerald-900/10 hover:bg-emerald-900/20 text-emerald-400 rounded-xl border border-emerald-500/10 hover:border-emerald-500/30 transition-all font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3 group"
-                                                    >
-                                                        <span className="text-lg group-hover:scale-110 transition-transform">🎲</span>
-                                                        Solitaire & Playtest
-                                                    </button>
-
-                                                    <div className="grid grid-cols-2 gap-2">
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setIsPrintModalOpen(true);
-                                                                setIsToolsMenuOpen(false);
-                                                            }}
-                                                            className="flex flex-col items-center gap-2 p-3 bg-white/5 hover:bg-white/10 rounded-xl border border-white/5 transition-all group"
-                                                        >
-                                                            <span className="text-xl group-hover:scale-110 transition-transform">🖨️</span>
-                                                            <span className="text-[10px] font-bold text-gray-300">Print Proxies</span>
-                                                        </button>
-
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                navigate('/play/lobby');
-                                                                setIsToolsMenuOpen(false);
-                                                            }}
-                                                            className="flex flex-col items-center gap-2 p-3 bg-white/5 hover:bg-white/10 rounded-xl border border-white/5 transition-all group"
-                                                        >
-                                                            <span className="text-xl group-hover:scale-110 transition-transform">🎥</span>
-                                                            <span className="text-[10px] font-bold text-gray-300">Live Session</span>
-                                                        </button>
-                                                    </div>
-
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setChecklistState({ isOpen: true, tab: 'tokens' });
-                                                            setIsToolsMenuOpen(false);
-                                                        }}
-                                                        className="w-full py-2 bg-pink-900/10 hover:bg-pink-900/20 text-pink-400 rounded-xl border border-pink-500/10 hover:border-pink-500/30 transition-all font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 group"
-                                                    >
-                                                        <span className="text-sm group-hover:scale-110 transition-transform">🪙</span>
-                                                        Required Tokens
-                                                    </button>
-
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            navigate('/tournaments');
-                                                            setIsToolsMenuOpen(false);
-                                                        }}
-                                                        className="w-full py-2 bg-amber-900/10 hover:bg-amber-900/20 text-amber-500 rounded-xl border border-amber-500/10 hover:border-amber-500/30 transition-all font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 group"
-                                                    >
-                                                        <span className="text-sm group-hover:scale-110 transition-transform">🏆</span>
-                                                        Find Tournament
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            {/* Section: Management */}
-                                            <div className="space-y-2 pb-2">
-                                                <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] px-2">Management</h3>
-                                                <div className="bg-white/5 rounded-xl border border-white/5 divide-y divide-white/5 overflow-hidden">
-                                                    {canEdit && (
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); setIsSettingsOpen(true); setIsToolsMenuOpen(false); }}
-                                                            className="w-full text-left px-4 py-3 text-xs flex items-center justify-between hover:bg-indigo-500/10 transition-colors group"
-                                                        >
-                                                            <div className="flex items-center gap-3">
-                                                                <span className="text-gray-400 group-hover:text-indigo-400 transition-colors">⚙️</span>
-                                                                <span className="font-bold text-gray-300">Deck Settings</span>
-                                                            </div>
-                                                            <svg className="w-3 h-3 text-gray-600 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-                                                        </button>
-                                                    )}
-
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setIsShareModalOpen(true);
-                                                            setIsToolsMenuOpen(false);
-                                                        }}
-                                                        className="w-full text-left px-4 py-3 text-xs flex items-center justify-between hover:bg-indigo-500/10 transition-colors group"
-                                                    >
-                                                        <div className="flex items-center gap-3">
-                                                            <Share2 className="w-4 h-4 text-indigo-400" />
-                                                            <span className="font-bold text-gray-300">Share Deck</span>
-                                                        </div>
-                                                        <svg className="w-3 h-3 text-gray-600 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-                                                    </button>
-
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            if ((userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier)).features.deckBackup) {
-                                                                setIsExportModalOpen(true);
-                                                                setIsToolsMenuOpen(false);
-                                                            } else {
-                                                                addToast('Deck Export is available on Magician tier and above.', 'error');
-                                                            }
-                                                        }}
-                                                        className={`w-full text-left px-4 py-3 text-xs flex items-center justify-between transition-colors group ${(userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier)).features.deckBackup ? 'hover:bg-gray-800' : 'opacity-40 cursor-not-allowed'}`}
-                                                    >
-                                                        <div className="flex items-center gap-3">
-                                                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                                                            <span className="font-bold text-gray-300">Export Deck</span>
-                                                        </div>
-                                                        {!(userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier)).features.deckBackup && <span className="text-[8px] bg-amber-500/20 text-amber-500 px-1.5 py-0.5 rounded leading-none">PRO</span>}
-                                                    </button>
-
-                                                    {canEdit && (
-                                                        <>
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    if ((userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier)).features.mockupDeck) {
-                                                                        handleToggleMockup();
-                                                                        setIsToolsMenuOpen(false);
-                                                                    } else {
-                                                                        addToast('Mockup Mode is available on Magician tier and above.', 'error');
-                                                                    }
-                                                                }}
-                                                                className={`w-full text-left px-4 py-3 text-xs flex items-center justify-between transition-colors group ${(userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier)).features.mockupDeck ? 'hover:bg-orange-950/20' : 'opacity-40 cursor-not-allowed'}`}
-                                                            >
-                                                                <div className="flex items-center gap-3">
-                                                                    <svg className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                                                                    <span className="font-bold text-gray-300">{deck.is_mockup ? 'To Collection' : 'To Mockup'}</span>
-                                                                </div>
-                                                            </button>
-
-                                                            <button
-                                                                onClick={(e) => { e.stopPropagation(); handleDeleteDeck(); setIsToolsMenuOpen(false); }}
-                                                                className="w-full text-left px-4 py-3 text-xs flex items-center gap-3 hover:bg-red-900/30 text-red-400 transition-colors"
-                                                            >
-                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                                                <span className="font-bold">Delete Deck</span>
-                                                            </button>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
+                        {/* Right: Actions Section - Removed from here and moved into the identity flow for better mobile layout */}
                     </div>
                 </div>
 
@@ -1161,8 +956,8 @@ const DeckDetailsPage = () => {
                             return (
                                 <div key={idx} className="bg-gray-950/30 p-3 rounded-xl border border-white/5 backdrop-blur-md shadow-lg group hover:border-indigo-500/30 transition-all hover:bg-gray-950/50">
                                     <div className="flex justify-between items-end mb-1">
-                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{kpi.label}</span>
-                                        <span className={`text-xs font-mono font-bold ${isPerfect ? 'text-green-400' : isOver ? 'text-orange-400' : 'text-indigo-300'}`}>
+                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest truncate min-w-0 pr-2">{kpi.label}</span>
+                                        <span className={`text-xs font-mono font-bold shrink-0 ${isPerfect ? 'text-green-400' : isOver ? 'text-orange-400' : 'text-indigo-300'}`}>
                                             {kpi.current}<span className="text-gray-600 mx-0.5">/</span>{kpi.target || '?'}
                                         </span>
                                     </div>

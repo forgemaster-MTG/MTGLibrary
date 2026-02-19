@@ -4,6 +4,7 @@ import { api } from '../../services/api';
 import GeminiUsageModal from '../../components/modals/GeminiUsageModal';
 import HelperSettingsModal from '../../components/modals/HelperSettingsModal';
 import OrganizationWizardModal from '../../components/modals/OrganizationWizardModal';
+import ThemePicker from './ThemePicker';
 import { useNavigate } from 'react-router-dom';
 
 const PreferencesSettings = () => {
@@ -80,6 +81,8 @@ const PreferencesSettings = () => {
                         {saving ? 'Saving...' : 'Save Changes'}
                     </button>
                 </div>
+
+                <ThemePicker />
 
                 {/* Organization Profile */}
                 <div className="bg-indigo-900/20 border border-indigo-500/30 rounded-xl p-4 md:p-6">
