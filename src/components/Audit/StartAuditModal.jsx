@@ -8,11 +8,11 @@ const StartAuditModal = ({ isOpen, onClose, onConfirm, type, targetId, loading, 
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fade-in">
             <div className="bg-gray-900/90 border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl relative overflow-hidden">
                 {/* Glassy Background Effect */}
-                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-br from-primary-500/10 to-purple-500/10 pointer-events-none" />
 
                 <div className="p-8 relative z-10">
                     <div className="flex items-center gap-4 mb-6">
-                        <div className="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center text-2xl border border-indigo-500/30 text-indigo-400">
+                        <div className="w-12 h-12 rounded-xl bg-primary-500/20 flex items-center justify-center text-2xl border border-primary-500/30 text-primary-400">
                             📋
                         </div>
                         <div>
@@ -37,15 +37,15 @@ const StartAuditModal = ({ isOpen, onClose, onConfirm, type, targetId, loading, 
                                 <h3 className="text-sm font-bold text-white mb-2">How it works:</h3>
                                 <ul className="space-y-2 text-sm text-gray-300">
                                     <li className="flex gap-2">
-                                        <span className="text-indigo-400">1.</span>
+                                        <span className="text-primary-400">1.</span>
                                         <span>We'll create a snapshot of your current digital list.</span>
                                     </li>
                                     <li className="flex gap-2">
-                                        <span className="text-indigo-400">2.</span>
+                                        <span className="text-primary-400">2.</span>
                                         <span>You'll verify each card physically.</span>
                                     </li>
                                     <li className="flex gap-2">
-                                        <span className="text-indigo-400">3.</span>
+                                        <span className="text-primary-400">3.</span>
                                         <span>Finalize to reconcile any differences.</span>
                                     </li>
                                 </ul>
@@ -70,7 +70,7 @@ const StartAuditModal = ({ isOpen, onClose, onConfirm, type, targetId, loading, 
                         <button
                             onClick={onConfirm}
                             disabled={loading}
-                            className={`px-6 py-2 font-bold rounded-xl shadow-lg transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2 disabled:opacity-50 ${activeSession ? 'bg-red-600 hover:bg-red-500 text-white shadow-red-500/20' : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-500/20'}`}
+                            className={`px-6 py-2 font-bold rounded-xl shadow-lg transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2 disabled:opacity-50 ${activeSession ? 'bg-red-600 hover:bg-red-500 text-white shadow-red-500/20' : 'bg-primary-600 hover:bg-primary-500 text-white shadow-primary-500/20'}`}
                         >
                             {loading ? 'Starting...' : activeSession ? 'Overwrite & Start' : 'Begin Audit'}
                             {!loading && <span className="opacity-70">→</span>}

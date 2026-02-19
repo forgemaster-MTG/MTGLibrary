@@ -96,7 +96,7 @@ const SocialPage = () => {
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => navigate('/trades')}
-                        className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg font-bold shadow-lg shadow-indigo-500/20 flex items-center gap-2 transition-transform hover:scale-105"
+                        className="bg-primary-600 hover:bg-primary-500 text-white px-4 py-2 rounded-lg font-bold shadow-lg shadow-primary-500/20 flex items-center gap-2 transition-transform hover:scale-105"
                     >
                         <span>🤝</span>
                         Trade Hub
@@ -107,7 +107,7 @@ const SocialPage = () => {
                             <button
                                 id="social-lfg-toggle"
                                 onClick={handleLfgChange}
-                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-900 ${lfgStatus ? 'bg-green-500' : 'bg-gray-700'}`}
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-gray-900 ${lfgStatus ? 'bg-green-500' : 'bg-gray-700'}`}
                             >
                                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${lfgStatus ? 'translate-x-6' : 'translate-x-1'}`} />
                             </button>
@@ -135,7 +135,7 @@ const SocialPage = () => {
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
                                     className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${isActive
-                                        ? 'border-indigo-500 text-indigo-400 bg-indigo-500/5'
+                                        ? 'border-primary-500 text-primary-400 bg-primary-500/5'
                                         : 'border-transparent text-gray-400 hover:text-gray-200 hover:bg-white/5'
                                         }`}
                                 >

@@ -270,7 +270,7 @@ const RemoteLensPage = () => {
             {/* Header */}
             <div className="w-full flex justify-between items-center mb-4">
                 <div className="flex items-center gap-2">
-                    <Smartphone className="w-5 h-5 text-indigo-400" />
+                    <Smartphone className="w-5 h-5 text-primary-400" />
                     <h1 className="font-black italic uppercase text-lg">Forge Remote</h1>
                 </div>
                 <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${status === 'ready' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
@@ -291,15 +291,15 @@ const RemoteLensPage = () => {
 
                 {/* Overlay Brackets */}
                 <div className="absolute inset-4 border-2 border-white/5 rounded-2xl pointer-events-none">
-                    <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-indigo-500 rounded-tl-xl" />
-                    <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-indigo-500 rounded-tr-xl" />
-                    <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-indigo-500 rounded-bl-xl" />
-                    <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-indigo-500 rounded-br-xl" />
+                    <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-primary-500 rounded-tl-xl" />
+                    <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-primary-500 rounded-tr-xl" />
+                    <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-primary-500 rounded-bl-xl" />
+                    <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-primary-500 rounded-br-xl" />
 
                     {/* Feedback */}
                     <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-full px-8">
                         {isProcessing ? (
-                            <div className="bg-indigo-600 text-white text-xs py-2 rounded-full font-black text-center animate-pulse">
+                            <div className="bg-primary-600 text-white text-xs py-2 rounded-full font-black text-center animate-pulse">
                                 ANALYZING...
                             </div>
                         ) : lastDetection?.success ? (
@@ -324,7 +324,7 @@ const RemoteLensPage = () => {
                 <button
                     onClick={captureAndProcess}
                     disabled={isProcessing || !isWorkerReady}
-                    className="w-24 h-24 bg-indigo-600 rounded-full flex items-center justify-center shadow-2xl active:scale-90 transition-all border-4 border-white/5"
+                    className="w-24 h-24 bg-primary-600 rounded-full flex items-center justify-center shadow-2xl active:scale-90 transition-all border-4 border-white/5"
                 >
                     {isProcessing ? <RefreshCw className="w-10 h-10 animate-spin" /> : <Camera className="w-10 h-10" />}
                 </button>

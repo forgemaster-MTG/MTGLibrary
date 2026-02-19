@@ -129,7 +129,7 @@ function SolitaireContent() {
             <div className="h-16 border-b border-white/5 flex items-center px-6 justify-between bg-black/40 backdrop-blur-xl shrink-0 z-40 relative">
                 <div className="flex items-center gap-6">
                     <div className="flex flex-col">
-                        <span className="text-xs font-black text-indigo-500 uppercase tracking-widest">Solitaire</span>
+                        <span className="text-xs font-black text-primary-500 uppercase tracking-widest">Solitaire</span>
                         <span className="text-sm font-bold text-white truncate max-w-[200px]">
                             {deck?.name || 'Loading...'}
                         </span>
@@ -167,7 +167,7 @@ function SolitaireContent() {
                     </button>
                     <button
                         onClick={() => setInspectedZone('library')}
-                        className="px-4 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
+                        className="px-4 py-2 bg-primary-500/10 hover:bg-primary-500/20 text-primary-400 border border-primary-500/30 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
                     >
                         Library
                     </button>
@@ -180,7 +180,7 @@ function SolitaireContent() {
                     <div className="w-px h-6 bg-white/10 mx-1" />
                     <button
                         onClick={() => actions.untapAll()}
-                        className="px-4 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
+                        className="px-4 py-2 bg-primary-500/10 hover:bg-primary-500/20 text-primary-400 border border-primary-500/30 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
                     >
                         Untap (U)
                     </button>
@@ -204,8 +204,8 @@ function SolitaireContent() {
                 {isLoading ? (
                     <div className="flex items-center justify-center h-full">
                         <div className="flex flex-col items-center gap-4">
-                            <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-                            <span className="text-indigo-400 font-black uppercase tracking-widest animate-pulse">Initializing Board...</span>
+                            <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
+                            <span className="text-primary-400 font-black uppercase tracking-widest animate-pulse">Initializing Board...</span>
                         </div>
                     </div>
                 ) : (
@@ -253,7 +253,7 @@ function SolitaireContent() {
                     pos={manaWidget}
                     setPos={setManaWidget}
                     isVisible={manaWidget.isVisible}
-                    icon={<div className="flex gap-1"><div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" /><div className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse delay-75" /></div>}
+                    icon={<div className="flex gap-1"><div className="w-1.5 h-1.5 rounded-full bg-primary-500 animate-pulse" /><div className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse delay-75" /></div>}
                 >
                     <div className="grid grid-cols-2 gap-4">
                         {Object.entries(state.manaPool).map(([color, count]) => (
@@ -267,7 +267,7 @@ function SolitaireContent() {
                                             onClick={() => actions.addMana(color)}
                                         />
                                     </div>
-                                    <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-indigo-600 border-2 border-gray-950 flex items-center justify-center text-[10px] font-black text-white shadow-lg">
+                                    <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-primary-600 border-2 border-gray-950 flex items-center justify-center text-[10px] font-black text-white shadow-lg">
                                         {count}
                                     </div>
                                 </div>
@@ -320,20 +320,20 @@ function SolitaireContent() {
                     <button
                         onClick={() => actions.undo()}
                         disabled={state.past.length === 0}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${state.past.length > 0 ? 'bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20' : 'bg-gray-800 text-gray-600 border border-gray-700 cursor-not-allowed opacity-50'}`}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${state.past.length > 0 ? 'bg-primary-500/10 hover:bg-primary-500/20 text-primary-400 border border-primary-500/20' : 'bg-gray-800 text-gray-600 border border-gray-700 cursor-not-allowed opacity-50'}`}
                     >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
                         <span className="font-bold text-xs uppercase tracking-widest">Undo</span>
                     </button>
                     <div className="bg-gray-800/50 backdrop-blur-md px-6 py-2 rounded-xl border border-white/5 flex items-center gap-8 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">
-                        <div className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-indigo-500" /> [1-7] Draw X</div>
+                        <div className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-primary-500" /> [1-7] Draw X</div>
                         <div className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-purple-500" /> Space: Next Phase</div>
                         <div className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-pink-500" /> U: Untap All</div>
                         <div className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> S: Shuffle</div>
                     </div>
                 </div>
                 <div className="flex-grow" />
-                <span className="text-indigo-500/50">Antigravity Solitaire Engine v2.0</span>
+                <span className="text-primary-500/50">Antigravity Solitaire Engine v2.0</span>
             </div>
 
             {/* Modals */}
@@ -359,7 +359,7 @@ function Toggle({ active, onClick, label }) {
     return (
         <button
             onClick={onClick}
-            className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all ${active ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/50' : 'bg-gray-800/40 text-gray-600 border-white/5'}`}
+            className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all ${active ? 'bg-primary-500/20 text-primary-400 border-primary-500/50' : 'bg-gray-800/40 text-gray-600 border-white/5'}`}
         >
             {label}
         </button>
@@ -421,7 +421,7 @@ function DraggableWidget({ title, pos, setPos, children, icon, isVisible }) {
             {pos.isMinimized ? (
                 <button
                     onClick={() => setPos(prev => ({ ...prev, isMinimized: false }))}
-                    className="w-12 h-12 flex items-center justify-center bg-indigo-600/20 text-indigo-400 rounded-xl hover:bg-indigo-600/40 transition-all"
+                    className="w-12 h-12 flex items-center justify-center bg-primary-600/20 text-primary-400 rounded-xl hover:bg-primary-600/40 transition-all"
                 >
                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
                 </button>

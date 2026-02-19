@@ -182,7 +182,7 @@ const PricingPage = () => {
         // Special case for AI Credits
         if (item.label === 'AI Credits / Mo' || item.key === 'aiCredits') {
             const limit = getDynamicLimit(tierKey);
-            return <span className="text-indigo-400 font-bold">{formatCredits(limit)}</span>;
+            return <span className="text-primary-400 font-bold">{formatCredits(limit)}</span>;
         }
 
         if (item.type === 'static') return <Check className="w-5 h-5 text-green-500 mx-auto" />;
@@ -303,7 +303,7 @@ const PricingPage = () => {
                                                 </div>
 
                                                 {/* Display AI Credit Limit in Header too */}
-                                                <div className="text-sm text-indigo-400 font-mono font-bold">
+                                                <div className="text-sm text-primary-400 font-mono font-bold">
                                                     {formatCredits(limit)} Credits/mo
                                                 </div>
                                                 <div className="text-[10px] text-gray-500 mb-2">

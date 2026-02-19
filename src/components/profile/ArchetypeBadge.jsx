@@ -28,7 +28,7 @@ const ArchetypeBadge = ({ archetype }) => {
         return 'from-gray-400 to-gray-600 text-white'; // Colorless
     };
 
-    const bgClass = archetype.colorKey ? getColors(archetype.colorKey) : 'from-indigo-500 to-purple-600 text-white';
+    const bgClass = archetype.colorKey ? getColors(archetype.colorKey) : 'from-primary-500 to-purple-600 text-white';
 
     return (
         <div className="relative group cursor-default">

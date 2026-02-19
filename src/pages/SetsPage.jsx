@@ -146,7 +146,7 @@ const SetsPage = () => {
     if (setsLoading) {
         return (
             <div className="flex justify-center items-center h-screen bg-gray-900">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
             </div>
         );
     }
@@ -173,7 +173,7 @@ const SetsPage = () => {
                         <div className="flex items-center gap-4 w-full lg:w-auto">
                             <div className="flex flex-col">
                                 <h1 className="text-xl md:text-2xl font-black text-white uppercase tracking-tighter leading-none">
-                                    Set <span className="text-indigo-500">Library</span>
+                                    Set <span className="text-primary-500">Library</span>
                                 </h1>
                                 <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mt-1 opacity-70">Browse Collections</p>
                             </div>
@@ -182,13 +182,13 @@ const SetsPage = () => {
                         <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto lg:flex-1 lg:justify-end">
                             <div className="relative flex-grow max-w-xs group">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <svg className="h-3.5 w-3.5 text-gray-500 group-focus-within:text-indigo-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg className="h-3.5 w-3.5 text-gray-500 group-focus-within:text-primary-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                     </svg>
                                 </div>
                                 <input
                                     type="text"
-                                    className="block w-full pl-9 pr-10 py-2 bg-gray-900/50 border border-white/5 rounded-lg text-xs text-gray-300 placeholder-gray-600 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all outline-none"
+                                    className="block w-full pl-9 pr-10 py-2 bg-gray-900/50 border border-white/5 rounded-lg text-xs text-gray-300 placeholder-gray-600 focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all outline-none"
                                     placeholder="Search sets..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -216,7 +216,7 @@ const SetsPage = () => {
                                 onClick={() => setShowOnlyOwned(!showOnlyOwned)}
                                 id="sets-owned-toggle"
                                 className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${showOnlyOwned
-                                    ? 'bg-indigo-600 text-white shadow-lg'
+                                    ? 'bg-primary-600 text-white shadow-lg'
                                     : 'bg-gray-800/80 text-gray-400 border border-white/5 hover:bg-gray-700'
                                     }`}
                             >
@@ -234,7 +234,7 @@ const SetsPage = () => {
                             <div className="flex items-center gap-4 mb-8">
                                 <h2 className="text-2xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
                                     {section}
-                                    <div className="h-[2px] w-12 bg-indigo-500/50" />
+                                    <div className="h-[2px] w-12 bg-primary-500/50" />
                                 </h2>
                                 <span className="text-[10px] font-black text-gray-500 bg-gray-800/50 border border-white/5 px-3 py-1 rounded-full uppercase tracking-widest">
                                     {groupedSets[section].length} Sets
@@ -250,7 +250,7 @@ const SetsPage = () => {
                                         <div
                                             key={set.id}
                                             onClick={() => handleSetClick(set.code)}
-                                            className="relative bg-gray-800/40 backdrop-blur-md rounded-2xl border border-white/5 p-5 group cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:border-indigo-500/30 overflow-hidden min-h-[160px] flex flex-col justify-between"
+                                            className="relative bg-gray-800/40 backdrop-blur-md rounded-2xl border border-white/5 p-5 group cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:border-primary-500/30 overflow-hidden min-h-[160px] flex flex-col justify-between"
                                         >
                                             {/* Progress Background Layer */}
                                             <div
@@ -275,14 +275,14 @@ const SetsPage = () => {
                                                     <div className="text-right">
                                                         <div className="flex flex-col items-end">
                                                             <span className="text-[10px] font-black text-gray-500 block uppercase tracking-widest leading-none mb-1">Code</span>
-                                                            <span className="text-xs font-bold text-indigo-400 mb-2">{set.code.toUpperCase()}</span>
+                                                            <span className="text-xs font-bold text-primary-400 mb-2">{set.code.toUpperCase()}</span>
                                                             <span className="text-[10px] font-black text-gray-500 block uppercase tracking-widest leading-none mb-1">Release</span>
                                                             <span className="text-xs font-bold text-gray-400">{set.released_at?.split('-')[0]}</span>
                                                         </div>
                                                     </div>
                                                 </div>
 
-                                                <h3 className="text-sm font-black text-white leading-snug group-hover:text-indigo-400 transition-colors">
+                                                <h3 className="text-sm font-black text-white leading-snug group-hover:text-primary-400 transition-colors">
                                                     {set.name}
                                                 </h3>
                                             </div>
@@ -291,7 +291,7 @@ const SetsPage = () => {
                                                 <div className="flex flex-col">
                                                     <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1">Collected</span>
                                                     <div className="flex items-baseline gap-1">
-                                                        <span className={`text-lg font-black tabular-nums ${isComplete ? 'text-green-400' : 'text-indigo-400'}`}>
+                                                        <span className={`text-lg font-black tabular-nums ${isComplete ? 'text-green-400' : 'text-primary-400'}`}>
                                                             {set.ownedCount}
                                                         </span>
                                                         <span className="text-gray-600 text-[10px] font-bold">/ {set.card_count}</span>

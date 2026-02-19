@@ -52,7 +52,7 @@ const SocialFeed = () => {
                 <div key={match.id} className="bg-gray-800/40 border border-white/5 rounded-xl p-5 hover:border-white/10 transition-colors">
                     {/* Header */}
                     <div className="flex justify-between items-start mb-4">
-                        <div className="flex items-center gap-2 text-indigo-400">
+                        <div className="flex items-center gap-2 text-primary-400">
                             <Swords size={20} />
                             <span className="font-bold text-sm uppercase tracking-wide">Commander Match</span>
                         </div>

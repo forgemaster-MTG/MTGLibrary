@@ -67,7 +67,7 @@ const getStyle = (badge, colors) => {
     }
 
     // 3+ Colors
-    return { bg: 'bg-indigo-500', color: 'text-indigo-400' };
+    return { bg: 'bg-primary-500', color: 'text-primary-400' };
 };
 
 export const getIdentity = (colors) => {

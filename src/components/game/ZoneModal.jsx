@@ -17,7 +17,7 @@ export default function ZoneModal({ isOpen, zoneId, onClose }) {
                 {/* Header */}
                 <div className="p-8 border-b border-white/5 flex items-center justify-between bg-white/5">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-lg">
+                        <div className="w-12 h-12 rounded-2xl bg-primary-600 flex items-center justify-center text-white shadow-lg">
                             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                         </div>
                         <div>
@@ -52,7 +52,7 @@ export default function ZoneModal({ isOpen, zoneId, onClose }) {
                                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0">
                                     <button
                                         onClick={() => actions.moveCard(card.instanceId, zoneId, 'hand')}
-                                        className="bg-indigo-600 hover:bg-indigo-500 text-white p-2 rounded-lg text-[10px] font-black uppercase tracking-tighter"
+                                        className="bg-primary-600 hover:bg-primary-500 text-white p-2 rounded-lg text-[10px] font-black uppercase tracking-tighter"
                                         title="Move to Hand"
                                     >
                                         Hand

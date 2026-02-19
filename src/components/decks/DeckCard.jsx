@@ -14,7 +14,7 @@ const DeckCard = memo(function DeckCard({ deck }) {
     return (
         <div onClick={() => navigate(`/decks/${deck.id}`)} className="group relative flex flex-col h-[420px] rounded-3xl transition-all duration-300 hover:-translate-y-2 cursor-pointer">
             {/* Glass Container */}
-            <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-md rounded-3xl border border-white/5 shadow-2xl group-hover:border-indigo-500/50 group-hover:shadow-indigo-500/20 transition-all overflow-hidden flex flex-col">
+            <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-md rounded-3xl border border-white/5 shadow-2xl group-hover:border-primary-500/50 group-hover:shadow-primary-500/20 transition-all overflow-hidden flex flex-col">
 
                 {/* Image Area */}
                 <div className="h-[60%] w-full relative overflow-hidden bg-gray-950 shrink-0">
@@ -103,9 +103,9 @@ const DeckCard = memo(function DeckCard({ deck }) {
 
                     {/* Deck Grade Badge */}
                     {(deck.ai_blueprint?.grade?.powerLevel > 0 || deck.aiBlueprint?.grade?.powerLevel > 0) && (
-                        <div className="absolute -top-3 right-5 flex items-center gap-1.5 bg-gray-900 backdrop-blur-md rounded-full px-3 py-1 border border-white/10 shadow-xl group-hover:border-indigo-500/50 transition-colors">
+                        <div className="absolute -top-3 right-5 flex items-center gap-1.5 bg-gray-900 backdrop-blur-md rounded-full px-3 py-1 border border-white/10 shadow-xl group-hover:border-primary-500/50 transition-colors">
                             <div className="flex items-center gap-1">
-                                <span className="text-[9px] font-black uppercase text-indigo-400 tracking-wider">B</span>
+                                <span className="text-[9px] font-black uppercase text-primary-400 tracking-wider">B</span>
                                 <span className="text-xs font-mono font-bold text-white">
                                     {(deck.ai_blueprint?.grade?.commanderBracket || deck.aiBlueprint?.grade?.commanderBracket) || '?'}
                                 </span>
@@ -122,7 +122,7 @@ const DeckCard = memo(function DeckCard({ deck }) {
 
                     <div className="mt-4">
                         <div className="flex items-center gap-2 mb-1">
-                            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 opacity-80">
+                            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-400 opacity-80">
                                 {identity.badge}
                             </div>
                             
@@ -133,7 +133,7 @@ const DeckCard = memo(function DeckCard({ deck }) {
                                 </div>
                             )}
                         </div>
-                        <h3 className="text-xl font-bold text-white leading-tight line-clamp-2 mb-1 group-hover:text-indigo-300 transition-colors">
+                        <h3 className="text-xl font-bold text-white leading-tight line-clamp-2 mb-1 group-hover:text-primary-300 transition-colors">
                             {deck.name || 'Untitled Deck'}
                         </h3>
                         <p className="text-xs text-gray-500 font-medium line-clamp-1">
@@ -150,7 +150,7 @@ const DeckCard = memo(function DeckCard({ deck }) {
                         </div>
                         <div className="flex flex-col items-end">
                             <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Cards</span>
-                            <span className={`text-sm font-mono font-bold ${cardCount >= (deck.format?.toLowerCase() === 'standard' ? 60 : 100) ? 'text-green-500' : 'text-indigo-400'}`}>
+                            <span className={`text-sm font-mono font-bold ${cardCount >= (deck.format?.toLowerCase() === 'standard' ? 60 : 100) ? 'text-green-500' : 'text-primary-400'}`}>
                                 {cardCount}<span className="text-gray-600 text-[10px]">/{deck.format?.toLowerCase() === 'standard' ? '60' : '100'}</span>
                             </span>
                         </div>

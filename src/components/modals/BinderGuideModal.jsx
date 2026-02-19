@@ -10,9 +10,9 @@ const BinderGuideModal = ({ isOpen, onClose }) => {
             <div className="bg-gray-900 border border-white/10 rounded-3xl w-full max-w-3xl relative z-10 shadow-2xl overflow-hidden animate-fade-in-up flex flex-col max-h-[90vh]">
 
                 {/* Header */}
-                <div className="p-6 border-b border-white/5 bg-gradient-to-r from-indigo-900 to-gray-900 flex justify-between items-center">
+                <div className="p-6 border-b border-white/5 bg-gradient-to-r from-primary-900 to-gray-900 flex justify-between items-center">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 bg-indigo-500/20 rounded-xl text-indigo-400">
+                        <div className="p-2 bg-primary-500/20 rounded-xl text-primary-400">
                             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
                         </div>
                         <div>
@@ -36,14 +36,14 @@ const BinderGuideModal = ({ isOpen, onClose }) => {
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="bg-gray-800/40 p-4 rounded-2xl border border-white/5">
-                                <h4 className="text-white font-bold mb-1 flex items-center gap-2">📁 Manual Binder <span className="text-[9px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded uppercase tracking-wider">Magician Tier</span></h4>
+                                <h4 className="text-white font-bold mb-1 flex items-center gap-2">📁 Manual Binder <span className="text-[9px] bg-primary-500/20 text-primary-300 px-2 py-0.5 rounded uppercase tracking-wider">Magician Tier</span></h4>
                                 <p className="text-xs text-gray-400 leading-relaxed">
                                     Classic storage. You drag and drop exactly which cards go inside. Great for mirroring your physical binders.
                                 </p>
                             </div>
-                            <div className="bg-indigo-900/10 p-4 rounded-2xl border border-indigo-500/20">
-                                <h4 className="text-indigo-300 font-bold mb-1 flex items-center gap-2">✨ Smart Binder <span className="text-[9px] bg-green-500/20 text-green-300 px-2 py-0.5 rounded uppercase tracking-wider">Free & Up</span></h4>
-                                <p className="text-xs text-indigo-200/60 leading-relaxed">
+                            <div className="bg-primary-900/10 p-4 rounded-2xl border border-primary-500/20">
+                                <h4 className="text-primary-300 font-bold mb-1 flex items-center gap-2">✨ Smart Binder <span className="text-[9px] bg-green-500/20 text-green-300 px-2 py-0.5 rounded uppercase tracking-wider">Free & Up</span></h4>
+                                <p className="text-xs text-primary-200/60 leading-relaxed">
                                     Live automation. You set rules (like "Price &gt; $10"), and the binder automatically grabs matching cards from your collection.
                                 </p>
                             </div>
@@ -59,9 +59,9 @@ const BinderGuideModal = ({ isOpen, onClose }) => {
                         <p className="text-gray-300 text-sm leading-relaxed mb-4">
                             Don't want to build rules manually? Just describe what you want in plain English!
                         </p>
-                        <div className="bg-black/40 p-4 rounded-xl border border-indigo-500/30 mb-4">
+                        <div className="bg-black/40 p-4 rounded-xl border border-primary-500/30 mb-4">
                             <p className="font-mono text-xs text-gray-400 mb-2">Try prompts like:</p>
-                            <ul className="space-y-2 text-sm text-indigo-300 font-medium">
+                            <ul className="space-y-2 text-sm text-primary-300 font-medium">
                                 <li>"All my red goblins over $5"</li>
                                 <li>"Cards to trade that I have duplicates of"</li>
                                 <li>"High value commanders not in any decks"</li>
@@ -95,7 +95,7 @@ const BinderGuideModal = ({ isOpen, onClose }) => {
                     </section>
 
                     {/* Section 4: Pro Tips */}
-                    <section className="bg-gradient-to-br from-indigo-900/40 to-purple-900/40 p-6 rounded-3xl border border-indigo-500/20">
+                    <section className="bg-gradient-to-br from-primary-900/40 to-purple-900/40 p-6 rounded-3xl border border-primary-500/20">
                         <h3 className="text-lg font-bold text-white mb-2">💡 Pro Tips</h3>
                         <div className="space-y-3">
                             <div className="flex gap-3">
@@ -119,7 +119,7 @@ const BinderGuideModal = ({ isOpen, onClose }) => {
                 <div className="p-6 bg-gray-950 border-t border-white/5 flex justify-end">
                     <button
                         onClick={onClose}
-                        className="px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-all font-black text-sm shadow-xl shadow-indigo-900/20 active:scale-95"
+                        className="px-8 py-3 bg-primary-600 hover:bg-primary-500 text-white rounded-xl transition-all font-black text-sm shadow-xl shadow-primary-900/20 active:scale-95"
                     >
                         Got it!
                     </button>

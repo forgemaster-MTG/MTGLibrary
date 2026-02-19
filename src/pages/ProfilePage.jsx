@@ -121,11 +121,11 @@ const ProfilePage = () => {
         <div className="min-h-screen pb-20">
             {/* 1. Cover Banner */}
             <div className="relative h-64 w-full bg-slate-900 overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-indigo-900 via-slate-900 to-black animate-gradient-slow"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-primary-900 via-slate-900 to-black animate-gradient-slow"></div>
                 <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
 
                 {/* Decorative Circles */}
-                <div className="absolute -top-24 -right-24 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl"></div>
+                <div className="absolute -top-24 -right-24 w-96 h-96 bg-primary-500/20 rounded-full blur-3xl"></div>
                 <div className="absolute top-1/2 left-1/4 w-64 h-64 bg-purple-500/20 rounded-full blur-3xl"></div>
             </div>
 
@@ -133,7 +133,7 @@ const ProfilePage = () => {
                 <div className="relative -mt-20 mb-8 flex flex-col md:flex-row items-end md:items-end gap-6">
                     {/* Avatar with Ring */}
                     <div className="relative group">
-                        <div className="w-40 h-40 rounded-full p-1 bg-gradient-to-br from-indigo-500 to-purple-600 shadow-2xl z-10 relative">
+                        <div className="w-40 h-40 rounded-full p-1 bg-gradient-to-br from-primary-500 to-purple-600 shadow-2xl z-10 relative">
                             <div className="w-full h-full rounded-full bg-slate-800 flex items-center justify-center overflow-hidden border-4 border-slate-900">
                                 {profile.avatar ? (
                                     <img src={profile.avatar} alt={profile.username} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-500" />
@@ -156,7 +156,7 @@ const ProfilePage = () => {
                                 </span>
                             )}
                             {userProfile?.id === profile.id && (
-                                <span className="px-3 py-1 rounded-full text-xs font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 backdrop-blur-sm">
+                                <span className="px-3 py-1 rounded-full text-xs font-bold bg-primary-500/20 text-primary-300 border border-primary-500/30 backdrop-blur-sm">
                                     You
                                 </span>
                             )}
@@ -178,7 +178,7 @@ const ProfilePage = () => {
 
                         {/* Bio */}
                         {profile.bio && (
-                            <p className="mt-4 text-slate-300 max-w-2xl text-lg leading-relaxed font-light border-l-2 border-indigo-500/50 pl-4">{profile.bio}</p>
+                            <p className="mt-4 text-slate-300 max-w-2xl text-lg leading-relaxed font-light border-l-2 border-primary-500/50 pl-4">{profile.bio}</p>
                         )}
                     </div>
 
@@ -198,7 +198,7 @@ const ProfilePage = () => {
                                     <button
                                         onClick={() => handleFriendAction('request')}
                                         disabled={actionLoading}
-                                        className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-indigo-500/20 transition-all disabled:opacity-50 flex items-center gap-2"
+                                        className="bg-primary-600 hover:bg-primary-500 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-primary-500/20 transition-all disabled:opacity-50 flex items-center gap-2"
                                     >
                                         <User className="w-4 h-4" /> Add Friend
                                     </button>
@@ -249,7 +249,7 @@ const ProfilePage = () => {
                         <div>
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                                    <span className="w-1 h-8 bg-indigo-500 rounded-full"></span>
+                                    <span className="w-1 h-8 bg-primary-500 rounded-full"></span>
                                     Public Decks
                                 </h2>
                                 <span className="text-slate-400 text-sm font-medium">{decks.length} Decks Shared</span>
@@ -260,17 +260,17 @@ const ProfilePage = () => {
                                     <div
                                         key={deck.id}
                                         onClick={() => navigate(`/decks/${deck.id}`)}
-                                        className="group cursor-pointer relative bg-slate-800/80 hover:bg-slate-800 border-2 border-transparent hover:border-indigo-500/50 rounded-2xl p-6 transition-all hover:-translate-y-1 hover:shadow-2xl overflow-hidden"
+                                        className="group cursor-pointer relative bg-slate-800/80 hover:bg-slate-800 border-2 border-transparent hover:border-primary-500/50 rounded-2xl p-6 transition-all hover:-translate-y-1 hover:shadow-2xl overflow-hidden"
                                     >
-                                        <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+                                        <div className="absolute top-0 right-0 w-24 h-24 bg-primary-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
 
                                         <div className="relative z-10">
                                             <div className="flex justify-between items-start mb-3">
-                                                <h3 className="text-xl font-bold text-white group-hover:text-indigo-400 transition-colors line-clamp-1">{deck.name}</h3>
+                                                <h3 className="text-xl font-bold text-white group-hover:text-primary-400 transition-colors line-clamp-1">{deck.name}</h3>
                                             </div>
 
                                             <div className="flex items-center gap-3 mb-4">
-                                                <span className="px-2.5 py-1 rounded text-xs font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase tracking-wide">
+                                                <span className="px-2.5 py-1 rounded text-xs font-bold bg-primary-500/20 text-primary-300 border border-primary-500/30 uppercase tracking-wide">
                                                     {deck.format}
                                                 </span>
                                                 <span className="text-xs text-slate-400 font-medium flex items-center gap-1">
@@ -280,7 +280,7 @@ const ProfilePage = () => {
                                             </div>
 
                                             <div className="w-full bg-slate-700/50 h-1.5 rounded-full overflow-hidden">
-                                                <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 w-2/3"></div>
+                                                <div className="h-full bg-gradient-to-r from-primary-500 to-purple-500 w-2/3"></div>
                                             </div>
                                         </div>
                                     </div>

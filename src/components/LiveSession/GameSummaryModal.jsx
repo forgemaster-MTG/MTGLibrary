@@ -69,7 +69,7 @@ const GameSummaryModal = ({ isOpen, onClose, finalState, onSave, roomId }) => {
             <div className="bg-gray-900 border border-white/10 rounded-xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
 
                 {/* Header */}
-                <div className="bg-gradient-to-r from-indigo-900/50 to-purple-900/50 p-6 text-center border-b border-white/5">
+                <div className="bg-gradient-to-r from-primary-900/50 to-purple-900/50 p-6 text-center border-b border-white/5">
                     <h2 className="text-2xl font-black text-white uppercase tracking-widest flex items-center justify-center gap-3">
                         <Trophy className="w-8 h-8 text-yellow-500" />
                         Game Over
@@ -84,13 +84,13 @@ const GameSummaryModal = ({ isOpen, onClose, finalState, onSave, roomId }) => {
                     <div className="flex p-1 bg-gray-800 rounded-lg">
                         <button
                             onClick={() => setActiveTab('summary')}
-                            className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${activeTab === 'summary' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
+                            className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${activeTab === 'summary' ? 'bg-primary-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
                         >
                             Summary
                         </button>
                         <button
                             onClick={() => setActiveTab('report')}
-                            className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${activeTab === 'report' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
+                            className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${activeTab === 'report' ? 'bg-primary-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
                         >
                             Combat Report
                         </button>
@@ -144,7 +144,7 @@ const GameSummaryModal = ({ isOpen, onClose, finalState, onSave, roomId }) => {
                     <button
                         onClick={handleSave}
                         disabled={!winnerId || isSaving}
-                        className="flex-[2] py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-2 shadow-lg shadow-indigo-900/20"
+                        className="flex-[2] py-3 bg-primary-600 hover:bg-primary-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-2 shadow-lg shadow-primary-900/20"
                     >
                         {isSaving ? 'Saving...' : (
                             <>

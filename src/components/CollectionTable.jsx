@@ -47,8 +47,8 @@ const CollectionTable = ({ cards, isMixed }) => {
     const getSortIndicator = (name) => {
         if (sortConfig.key !== name) return <svg className="w-3 h-3 text-gray-700 opacity-0 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" /></svg>;
         return sortConfig.direction === 'asc'
-            ? <svg className="w-3 h-3 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>
-            : <svg className="w-3 h-3 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>;
+            ? <svg className="w-3 h-3 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>
+            : <svg className="w-3 h-3 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>;
     };
 
     const HeaderCell = ({ label, sortKey, className = "" }) => (
@@ -96,14 +96,14 @@ const CollectionTable = ({ cards, isMixed }) => {
                                     />
                                 </div>
                                 <div className="ml-0">
-                                    <div className="text-sm font-bold text-white group-hover:text-indigo-300 transition-colors">{card.name}</div>
+                                    <div className="text-sm font-bold text-white group-hover:text-primary-300 transition-colors">{card.name}</div>
                                     <div className="text-xs text-gray-500 font-mono">x{card.count}</div>
                                 </div>
                             </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-800 text-gray-300 border border-gray-700">
-                                <svg className="mr-1.5 h-3 w-3 text-indigo-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zm0 9l2.5-1.25L12 8.5l-2.5 1.25L12 11zm0 2.5l-5-2.5-5 2.5L12 22l10-8.5-5-2.5-5 2.5z" /></svg>
+                                <svg className="mr-1.5 h-3 w-3 text-primary-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zm0 9l2.5-1.25L12 8.5l-2.5 1.25L12 11zm0 2.5l-5-2.5-5 2.5L12 22l10-8.5-5-2.5-5 2.5z" /></svg>
                                 {card.set_name}
                             </span>
                         </td>
@@ -130,7 +130,7 @@ const CollectionTable = ({ cards, isMixed }) => {
                         {isMixed && (
                             <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="flex items-center gap-2" title={card.owner_username}>
-                                    <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center text-white text-[10px] font-bold">
+                                    <div className="w-6 h-6 rounded-full bg-primary-600 flex items-center justify-center text-white text-[10px] font-bold">
                                         {card.owner_username ? card.owner_username[0].toUpperCase() : '?'}
                                     </div>
                                     <span className="text-xs text-gray-400 truncate max-w-[80px]">{card.owner_username}</span>
@@ -140,7 +140,7 @@ const CollectionTable = ({ cards, isMixed }) => {
                         <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex flex-wrap gap-1">
                                 {(card.tags && typeof card.tags === 'string' ? JSON.parse(card.tags) : (card.tags || [])).map((tag, i) => (
-                                    <span key={i} className="px-2 py-0.5 rounded text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                                    <span key={i} className="px-2 py-0.5 rounded text-[10px] bg-primary-500/20 text-primary-300 border border-primary-500/30">
                                         {tag}
                                     </span>
                                 ))}

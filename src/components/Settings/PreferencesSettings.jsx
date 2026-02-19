@@ -6,6 +6,7 @@ import HelperSettingsModal from '../../components/modals/HelperSettingsModal';
 import OrganizationWizardModal from '../../components/modals/OrganizationWizardModal';
 import ThemePicker from './ThemePicker';
 import { useNavigate } from 'react-router-dom';
+import { useTheme } from '../../contexts/ThemeContext';
 
 const PreferencesSettings = () => {
     const { userProfile, refreshUserProfile } = useAuth();
@@ -40,6 +41,8 @@ const PreferencesSettings = () => {
         }
     }, [userProfile]);
 
+    const { theme } = useTheme();
+
     const handleSave = async () => {
         setSaving(true);
         try {
@@ -49,7 +52,8 @@ const PreferencesSettings = () => {
                 geminiApiKey: geminiKeys[0],
                 geminiApiKeys: geminiKeys,
                 viewMode,
-                gridSize
+                gridSize,
+                theme
             };
 
             await api.updateUser(userProfile.id, { settings: newSettings });
@@ -76,7 +80,7 @@ const PreferencesSettings = () => {
                     <button
                         onClick={handleSave}
                         disabled={saving}
-                        className={`bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-6 rounded-lg shadow-lg shadow-indigo-500/20 transition-all ${saving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`bg-primary-600 hover:bg-primary-500 text-white font-bold py-2 px-6 rounded-lg shadow-lg shadow-primary-500/20 transition-all ${saving ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                         {saving ? 'Saving...' : 'Save Changes'}
                     </button>
@@ -85,24 +89,24 @@ const PreferencesSettings = () => {
                 <ThemePicker />
 
                 {/* Organization Profile */}
-                <div className="bg-indigo-900/20 border border-indigo-500/30 rounded-xl p-4 md:p-6">
+                <div className="bg-primary-900/20 border border-primary-500/30 rounded-xl p-4 md:p-6">
                     <div className="flex justify-between items-start">
                         <div>
                             <h3 className="text-lg font-bold text-white mb-1">Organization Profile</h3>
                             <p className="text-sm text-gray-400 mb-4">
-                                Current Mode: <span className="text-indigo-400 font-bold capitalize">{userProfile?.settings?.organization?.mode || 'Default'}</span>
+                                Current Mode: <span className="text-primary-400 font-bold capitalize">{userProfile?.settings?.organization?.mode || 'Default'}</span>
                             </p>
                             <p className="text-xs text-gray-500 max-w-lg mb-4">
                                 Your organization profile determines how your collection is sorted and grouped by default.
                             </p>
                         </div>
-                        <div className="p-3 bg-indigo-500/10 rounded-lg text-indigo-400">
+                        <div className="p-3 bg-primary-500/10 rounded-lg text-primary-400">
                             <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                         </div>
                     </div>
                     <button
                         onClick={() => setIsOrgWizardOpen(true)}
-                        className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors"
+                        className="bg-primary-600 hover:bg-primary-500 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors"
                     >
                         Configure Organization...
                     </button>
@@ -112,12 +116,12 @@ const PreferencesSettings = () => {
                     <div>
                         <label className="block text-sm font-medium text-gray-300 mb-3">Default View </label>
                         <div className="flex gap-4">
-                            <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg border cursor-pointer transition-all ${viewMode === 'grid' ? 'bg-indigo-600/20 border-indigo-500 text-white' : 'bg-gray-900 border-gray-700 hover:border-gray-600 text-gray-400'}`}>
+                            <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg border cursor-pointer transition-all ${viewMode === 'grid' ? 'bg-primary-600/20 border-primary-500 text-white' : 'bg-gray-900 border-gray-700 hover:border-gray-600 text-gray-400'}`}>
                                 <input type="radio" name="viewMode" value="grid" checked={viewMode === 'grid'} onChange={() => setViewMode('grid')} className="sr-only" />
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
                                 <span>Grid</span>
                             </label>
-                            <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg border cursor-pointer transition-all ${viewMode === 'table' ? 'bg-indigo-600/20 border-indigo-500 text-white' : 'bg-gray-900 border-gray-700 hover:border-gray-600 text-gray-400'}`}>
+                            <label className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg border cursor-pointer transition-all ${viewMode === 'table' ? 'bg-primary-600/20 border-primary-500 text-white' : 'bg-gray-900 border-gray-700 hover:border-gray-600 text-gray-400'}`}>
                                 <input type="radio" name="viewMode" value="table" checked={viewMode === 'table'} onChange={() => setViewMode('table')} className="sr-only" />
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
                                 <span>Table</span>
@@ -130,7 +134,7 @@ const PreferencesSettings = () => {
                         <select
                             value={gridSize}
                             onChange={(e) => setGridSize(e.target.value)}
-                            className="bg-gray-900 border border-gray-600 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 w-full"
+                            className="bg-gray-900 border border-gray-600 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-primary-500 w-full"
                         >
                             <option value="sm">Small</option>
                             <option value="md">Medium</option>
@@ -186,7 +190,7 @@ const PreferencesSettings = () => {
             <section className="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-lg space-y-6">
                 <div className="flex justify-between items-start">
                     <h2 className="text-xl font-semibold text-white">AI Integrations</h2>
-                    <span className="bg-indigo-900/50 text-indigo-300 text-xs px-2 py-1 rounded border border-indigo-700/50">Gemini</span>
+                    <span className="bg-primary-900/50 text-primary-300 text-xs px-2 py-1 rounded border border-primary-700/50">Gemini</span>
                 </div>
 
                 <p className="text-gray-400 text-sm">
@@ -199,7 +203,7 @@ const PreferencesSettings = () => {
                         <label className="text-sm font-medium text-gray-300">Google Gemini API Keys (Up to 4)</label>
                         <button
                             onClick={() => setIsUsageModalOpen(true)}
-                            className="text-xs bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-400 px-3 py-1 rounded-lg border border-indigo-500/30 transition-all font-bold"
+                            className="text-xs bg-primary-600/20 hover:bg-primary-600/40 text-primary-400 px-3 py-1 rounded-lg border border-primary-500/30 transition-all font-bold"
                         >
                             View Usage & Costs
                         </button>
@@ -221,7 +225,7 @@ const PreferencesSettings = () => {
                                             setGeminiKeys(newKeys);
                                         }}
                                         placeholder={`Enter Key ${idx + 1}...`}
-                                        className="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm"
+                                        className="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all text-sm"
                                     />
                                 </div>
                             ))}
@@ -244,7 +248,7 @@ const PreferencesSettings = () => {
 
                     <div className="text-xs text-gray-500 flex justify-between bg-gray-900/50 p-3 rounded-lg border border-gray-700">
                         <span>Multiple keys enable automatic rotation when rate limits (429) are hit on free tiers.</span>
-                        <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-indigo-400 hover:text-indigo-300 hover:underline">
+                        <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-primary-400 hover:text-primary-300 hover:underline">
                             Get more keys &rarr;
                         </a>
                     </div>

@@ -96,12 +96,12 @@ export default function DeckToolsMenu({
                             if (canUseDoctor) { onOpenDoctor(); onClose(); }
                         }}
                         className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all group ${canUseDoctor
-                            ? 'bg-indigo-500/10 hover:bg-indigo-500/30 border-indigo-500/20'
+                            ? 'bg-primary-500/10 hover:bg-primary-500/30 border-primary-500/20'
                             : 'bg-gray-900 border-gray-800 opacity-40 cursor-not-allowed'
                             }`}
                     >
                         <span className="text-xl group-hover:scale-110 transition-transform">🩺</span>
-                        <span className="text-[10px] font-bold text-indigo-300">Doctor</span>
+                        <span className="text-[10px] font-bold text-primary-300">Doctor</span>
                     </button>
 
                     {isEditMode && (

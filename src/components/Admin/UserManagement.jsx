@@ -134,7 +134,7 @@ const UserManagement = () => {
                 <div>
                     <h1 className="text-3xl font-black text-white tracking-tight flex items-center gap-3">
                         User Management
-                        {loading && <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>}
+                        {loading && <div className="w-5 h-5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>}
                     </h1>
                     <p className="text-gray-500 text-sm mt-1">Manage users, permissions, and subscription overrides.</p>
                 </div>
@@ -142,7 +142,7 @@ const UserManagement = () => {
                     <input
                         type="text"
                         placeholder="Filter by name / email / ID..."
-                        className="bg-gray-900 border border-gray-800 rounded-xl px-4 py-2 text-sm w-full md:w-80 focus:outline-none focus:border-indigo-500 transition-all font-medium"
+                        className="bg-gray-900 border border-gray-800 rounded-xl px-4 py-2 text-sm w-full md:w-80 focus:outline-none focus:border-primary-500 transition-all font-medium"
                         value={filter}
                         onChange={(e) => setFilter(e.target.value)}
                     />
@@ -224,17 +224,17 @@ const UserManagement = () => {
                                                 );
                                             })()}
                                         </td>
-                                        <td className="py-3 px-4 text-center font-mono text-indigo-300">{u.card_count || 0}</td>
+                                        <td className="py-3 px-4 text-center font-mono text-primary-300">{u.card_count || 0}</td>
                                         <td className="py-3 px-4 text-center font-mono text-purple-300">{u.deck_count || 0}</td>
                                         <td className="py-3 px-4 text-center text-[10px] text-gray-500">
                                             {u.created_at ? new Date(u.created_at).toLocaleDateString() : '-'}
                                         </td>
-                                        <td className="py-3 px-4 text-center text-xs text-indigo-400 font-medium">
+                                        <td className="py-3 px-4 text-center text-xs text-primary-400 font-medium">
                                             {u.last_active_at ? new Date(u.last_active_at).toLocaleDateString() : '-'}
                                         </td>
                                         <td className="py-3 px-4">
                                             <div className="flex items-center justify-center gap-2">
-                                                <button onClick={() => toggleAdmin(u)} title="Toggle Admin" className={`w-2.5 h-2.5 rounded-full ${u.settings?.isAdmin ? 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]' : 'bg-gray-700'}`}></button>
+                                                <button onClick={() => toggleAdmin(u)} title="Toggle Admin" className={`w-2.5 h-2.5 rounded-full ${u.settings?.isAdmin ? 'bg-primary-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]' : 'bg-gray-700'}`}></button>
                                                 <button onClick={() => togglePermission(u, 'manage_tickets')} title="Toggle Ticket Mgr" className={`w-2.5 h-2.5 rounded-full ${u.settings?.permissions?.includes('manage_tickets') ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-gray-700'}`}></button>
                                                 <button onClick={() => togglePermission(u, 'bypass_tier_limits')} title="Toggle Feature Override" className={`w-2.5 h-2.5 rounded-full ${u.settings?.permissions?.includes('bypass_tier_limits') ? 'bg-pink-500 shadow-[0_0_8px_rgba(236,72,153,0.5)]' : 'bg-gray-700'}`}></button>
                                             </div>
@@ -243,7 +243,7 @@ const UserManagement = () => {
                                             <div className="flex items-center justify-end gap-2 outline-none text-right">
                                                 <button onClick={() => { localStorage.setItem('impersonate_user_id', u.id); window.location.href = '/dashboard'; }} className="text-[10px] bg-amber-900/30 hover:bg-amber-800 text-amber-400 border border-amber-700/50 px-2 py-1 rounded transition-colors">View</button>
                                                 <button onClick={() => handleSyncUser(u)} disabled={syncingUser === u.id} className="text-[10px] bg-cyan-900/30 hover:bg-cyan-800 text-cyan-400 border border-cyan-700/50 px-2 py-1 rounded transition-colors disabled:opacity-50">Push FS</button>
-                                                <button onClick={() => handleResetCredits(u)} className="text-[10px] bg-indigo-900/30 hover:bg-indigo-800 text-indigo-400 border border-indigo-700/50 px-2 py-1 rounded transition-colors" title="Reset Monthly Credits">Reset</button>
+                                                <button onClick={() => handleResetCredits(u)} className="text-[10px] bg-primary-900/30 hover:bg-primary-800 text-primary-400 border border-primary-700/50 px-2 py-1 rounded transition-colors" title="Reset Monthly Credits">Reset</button>
                                                 <button onClick={() => handleDeleteUser(u)} className="text-red-500 hover:text-red-400 p-1" title="Delete User">
                                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 0 00-1-1h-4a1 0 00-1 1v3M4 7h16" /></svg>
                                                 </button>
@@ -266,7 +266,7 @@ const UserManagement = () => {
                             <div key={u.id} className="bg-gray-900 border border-gray-800 rounded-2xl p-5 space-y-4 shadow-lg">
                                 <div className="flex justify-between items-start">
                                     <div className="flex gap-3">
-                                        <div className="w-10 h-10 bg-indigo-500/10 rounded-lg flex items-center justify-center text-lg border border-indigo-500/20">
+                                        <div className="w-10 h-10 bg-primary-500/10 rounded-lg flex items-center justify-center text-lg border border-primary-500/20">
                                             👤
                                         </div>
                                         <div>
@@ -289,7 +289,7 @@ const UserManagement = () => {
                                     </div>
                                     <div className="space-y-1">
                                         <p className="text-gray-500 text-[9px] uppercase font-bold tracking-wider">Last Seen</p>
-                                        <p className="text-indigo-400 text-xs font-bold">{u.last_active_at ? new Date(u.last_active_at).toLocaleDateString() : 'Never'}</p>
+                                        <p className="text-primary-400 text-xs font-bold">{u.last_active_at ? new Date(u.last_active_at).toLocaleDateString() : 'Never'}</p>
                                     </div>
                                     <div className="space-y-1 border-t border-gray-800/50 pt-2">
                                         <p className="text-gray-500 text-[9px] uppercase font-bold tracking-wider">Collection</p>
@@ -297,7 +297,7 @@ const UserManagement = () => {
                                     </div>
                                     <div className="space-y-1 border-t border-gray-800/50 pt-2 text-right">
                                         <div className="flex items-center justify-end gap-1.5">
-                                            <div title="Admin" className={`w-2 h-2 rounded-full ${u.settings?.isAdmin ? 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]' : 'bg-gray-800'}`}></div>
+                                            <div title="Admin" className={`w-2 h-2 rounded-full ${u.settings?.isAdmin ? 'bg-primary-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]' : 'bg-gray-800'}`}></div>
                                             <div title="Staff" className={`w-2 h-2 rounded-full ${isTicketMgr ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-gray-800'}`}></div>
                                             <div title="Bypass" className={`w-2 h-2 rounded-full ${isBypass ? 'bg-pink-500 shadow-[0_0_8px_rgba(236,72,153,0.5)]' : 'bg-gray-800'}`}></div>
                                         </div>
@@ -321,7 +321,7 @@ const UserManagement = () => {
                                     </button>
                                     <button
                                         onClick={() => handleResetCredits(u)}
-                                        className="flex-1 min-w-[80px] bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-500 border border-indigo-600/30 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all"
+                                        className="flex-1 min-w-[80px] bg-primary-600/10 hover:bg-primary-600/20 text-primary-500 border border-primary-600/30 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all"
                                     >
                                         Reset
                                     </button>
@@ -334,7 +334,7 @@ const UserManagement = () => {
                                 </div>
 
                                 <div className="flex items-center gap-3 pt-2">
-                                    <button onClick={() => toggleAdmin(u)} className={`text-[9px] uppercase font-black px-3 py-1.5 rounded-lg border transition-all ${u.settings?.isAdmin ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/40' : 'bg-gray-800 text-gray-600 border-gray-700'}`}>Admin</button>
+                                    <button onClick={() => toggleAdmin(u)} className={`text-[9px] uppercase font-black px-3 py-1.5 rounded-lg border transition-all ${u.settings?.isAdmin ? 'bg-primary-500/20 text-primary-400 border-primary-500/40' : 'bg-gray-800 text-gray-600 border-gray-700'}`}>Admin</button>
                                     <button onClick={() => togglePermission(u, 'manage_tickets')} className={`text-[9px] uppercase font-black px-3 py-1.5 rounded-lg border transition-all ${isTicketMgr ? 'bg-green-500/20 text-green-400 border-green-500/40' : 'bg-gray-800 text-gray-600 border-gray-700'}`}>Staff</button>
                                     <button onClick={() => togglePermission(u, 'bypass_tier_limits')} className={`text-[9px] uppercase font-black px-3 py-1.5 rounded-lg border transition-all ${isBypass ? 'bg-pink-500/20 text-pink-400 border-pink-500/40' : 'bg-gray-800 text-gray-600 border-gray-700'}`}>Bypass</button>
                                 </div>

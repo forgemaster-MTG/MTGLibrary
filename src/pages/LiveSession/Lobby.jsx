@@ -59,12 +59,12 @@ const Lobby = () => {
     return (
         <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center p-4 relative overflow-hidden">
             {/* Background Ambience */}
-            <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/20 via-gray-900 to-black z-0" />
+            <div className="absolute inset-0 bg-gradient-to-br from-primary-900/20 via-gray-900 to-black z-0" />
 
             <div className="relative z-10 w-full max-w-md space-y-8">
                 <div className="text-center space-y-2">
                     <h1 className="text-4xl font-black text-white uppercase tracking-wider">The War Room</h1>
-                    <p className="text-indigo-300 font-medium">MTG Live Session</p>
+                    <p className="text-primary-300 font-medium">MTG Live Session</p>
                 </div>
 
                 {error && (
@@ -84,7 +84,7 @@ const Lobby = () => {
                                     type="text"
                                     maxLength="6"
                                     placeholder="000000"
-                                    className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-4 text-center text-3xl font-mono text-white tracking-[0.5em] focus:outline-none focus:border-indigo-500 transition-colors"
+                                    className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-4 text-center text-3xl font-mono text-white tracking-[0.5em] focus:outline-none focus:border-primary-500 transition-colors"
                                     value={joinPin}
                                     onChange={(e) => setJoinPin(e.target.value.replace(/\D/g, ''))}
                                 />
@@ -92,7 +92,7 @@ const Lobby = () => {
                             <button
                                 type="submit"
                                 disabled={joinPin.length !== 6}
-                                className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-500/20 transition-all transform active:scale-95 uppercase tracking-wider"
+                                className="w-full bg-primary-600 hover:bg-primary-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl shadow-lg shadow-primary-500/20 transition-all transform active:scale-95 uppercase tracking-wider"
                             >
                                 Enter Battlefield
                             </button>
@@ -111,7 +111,7 @@ const Lobby = () => {
                         className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold py-4 rounded-xl transition-all flex flex-col items-center justify-center gap-1 group"
                     >
                         <span className="uppercase tracking-wider">Host New Session</span>
-                        <span className="text-[10px] text-gray-400 font-normal group-hover:text-indigo-300">Generate a PIN for friends to join</span>
+                        <span className="text-[10px] text-gray-400 font-normal group-hover:text-primary-300">Generate a PIN for friends to join</span>
                     </button>
                 </div>
 

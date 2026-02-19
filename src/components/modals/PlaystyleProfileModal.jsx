@@ -36,7 +36,7 @@ const PlaystyleProfileModal = ({ isOpen, onClose, profile, onRetake, userImage }
 
                     <button
                         onClick={onRetake}
-                        className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-indigo-500/25 transition-all transform hover:-translate-y-0.5"
+                        className="w-full bg-primary-600 hover:bg-primary-500 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-primary-500/25 transition-all transform hover:-translate-y-0.5"
                     >
                         Start Assessment
                     </button>
@@ -62,7 +62,7 @@ const PlaystyleProfileModal = ({ isOpen, onClose, profile, onRetake, userImage }
                 {/* Export Button */}
                 <button
                     onClick={() => PdfService.generatePlaystyleReport(profile, userProfile)}
-                    className="absolute top-4 right-16 text-gray-400 hover:text-indigo-400 z-10 p-2 bg-black/20 rounded-full hover:bg-black/40 transition-colors"
+                    className="absolute top-4 right-16 text-gray-400 hover:text-primary-400 z-10 p-2 bg-black/20 rounded-full hover:bg-black/40 transition-colors"
                     title="Export Profile to PDF"
                 >
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
@@ -71,7 +71,7 @@ const PlaystyleProfileModal = ({ isOpen, onClose, profile, onRetake, userImage }
                 <div className="flex flex-col md:flex-row h-full">
                     {/* Sidebar / Header */}
                     <div className="w-full md:w-80 flex-shrink-0 bg-gray-800/50 p-8 border-b md:border-b-0 md:border-r border-gray-700 flex flex-col items-center text-center">
-                        <div className="w-24 h-24 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg mb-6 ring-4 ring-gray-800 overflow-hidden">
+                        <div className="w-24 h-24 bg-gradient-to-br from-primary-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg mb-6 ring-4 ring-gray-800 overflow-hidden">
                             {userImage ? (
                                 <img src={userImage} alt="User" className="w-full h-full object-cover" />
                             ) : (
@@ -81,7 +81,7 @@ const PlaystyleProfileModal = ({ isOpen, onClose, profile, onRetake, userImage }
                         <h2 className="text-2xl font-bold text-white mb-2">Your Playstyle</h2>
                         <div className="flex flex-wrap justify-center gap-2 mb-6">
                             {tags && tags.map((tag, i) => (
-                                <span key={i} className="px-3 py-1 bg-indigo-500/20 text-indigo-300 text-xs font-bold uppercase rounded-full border border-indigo-500/30">
+                                <span key={i} className="px-3 py-1 bg-primary-500/20 text-primary-300 text-xs font-bold uppercase rounded-full border border-primary-500/30">
                                     {tag}
                                 </span>
                             ))}
@@ -99,7 +99,7 @@ const PlaystyleProfileModal = ({ isOpen, onClose, profile, onRetake, userImage }
                         {/* Summary */}
                         <section className="mb-8">
                             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Analysis Summary</h3>
-                            <p className="text-gray-300 leading-relaxed text-lg font-serif italic border-l-4 border-indigo-500 pl-4 bg-gray-800/30 py-4 pr-4 rounded-r">
+                            <p className="text-gray-300 leading-relaxed text-lg font-serif italic border-l-4 border-primary-500 pl-4 bg-gray-800/30 py-4 pr-4 rounded-r">
                                 "{summary}"
                             </p>
                         </section>

@@ -274,7 +274,7 @@ const PreconDeckPage = () => {
         }
     };
 
-    if (loading) return <div className="min-h-screen bg-gray-950 flex justify-center items-center"><div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-500"></div></div>;
+    if (loading) return <div className="min-h-screen bg-gray-950 flex justify-center items-center"><div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-500"></div></div>;
     if (!deck) return null;
 
     return (
@@ -307,7 +307,7 @@ const PreconDeckPage = () => {
                     <div className="flex flex-col md:flex-row justify-between gap-6 items-start md:items-center">
                         <div>
                             <div className="flex items-center gap-3 mb-2">
-                                <span className="px-2 py-0.5 bg-indigo-500/20 text-indigo-300 text-[10px] font-black uppercase tracking-widest rounded border border-indigo-500/30">
+                                <span className="px-2 py-0.5 bg-primary-500/20 text-primary-300 text-[10px] font-black uppercase tracking-widest rounded border border-primary-500/30">
                                     {deck.type || 'Commander'}
                                 </span>
                                 <span className="text-gray-500 text-xs font-bold uppercase tracking-wide">
@@ -385,7 +385,7 @@ const PreconDeckPage = () => {
                         <div className="bg-gray-950/10 backdrop-blur-md rounded-3xl border border-white/5 overflow-hidden">
                             <div className="p-4 bg-white/5 border-b border-white/5 flex justify-between items-center">
                                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                    <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                                    <svg className="w-5 h-5 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                                     Decklist
                                 </h3>
                                 <div className="flex bg-gray-900/50 rounded-lg p-1 gap-1 border border-gray-700">
@@ -401,7 +401,7 @@ const PreconDeckPage = () => {
                             <div className="p-4 space-y-8">
                                 {Object.entries(groupedCards).map(([type, cards]) => (
                                     <div key={type}>
-                                        <h4 className="text-xs font-black text-indigo-300 uppercase tracking-widest border-b border-indigo-500/20 mb-3 pb-1 flex justify-between">
+                                        <h4 className="text-xs font-black text-primary-300 uppercase tracking-widest border-b border-primary-500/20 mb-3 pb-1 flex justify-between">
                                             <span>{type}</span>
                                             <span className="text-gray-500">
                                                 {cards.reduce((acc, c) => acc + (c.count || c.quantity || 1), 0)}
@@ -458,7 +458,7 @@ const PreconDeckPage = () => {
                             {partnerCard && (
                                 <button
                                     onClick={() => setActivePartnerIndex(i => i === 0 ? 1 : 0)}
-                                    className="mt-4 w-full py-2 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 text-xs font-bold uppercase rounded-lg border border-indigo-500/20 transition-colors"
+                                    className="mt-4 w-full py-2 bg-primary-600/20 hover:bg-primary-600/40 text-primary-300 text-xs font-bold uppercase rounded-lg border border-primary-500/20 transition-colors"
                                 >
                                     {activePartnerIndex === 0 ? 'View Partner' : 'View Commander'}
                                 </button>

@@ -52,8 +52,8 @@ export const SubscriptionStep = ({ onNext, onBack, currentTier }) => {
 
 export const WelcomeStep = ({ onNext }) => (
     <div className="max-w-2xl w-full text-center space-y-8 animate-fade-in-up">
-        <div className="w-24 h-24 mx-auto bg-indigo-500/20 rounded-full flex items-center justify-center ring-1 ring-indigo-500/50 shadow-[0_0_30px_rgba(99,102,241,0.3)]">
-            <svg className="w-12 h-12 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
+        <div className="w-24 h-24 mx-auto bg-primary-500/20 rounded-full flex items-center justify-center ring-1 ring-primary-500/50 shadow-[0_0_30px_rgba(99,102,241,0.3)]">
+            <svg className="w-12 h-12 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
         </div>
         <div>
             <h2 className="text-4xl font-extrabold text-white mb-4">Welcome to MTG-Forge</h2>
@@ -62,7 +62,7 @@ export const WelcomeStep = ({ onNext }) => (
                 <br />Let's get everything set up in just a few clicks.
             </p>
         </div>
-        <button onClick={onNext} className="px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-indigo-500/25 transition-all transform hover:-translate-y-1">
+        <button onClick={onNext} className="px-8 py-4 bg-primary-600 hover:bg-primary-500 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-primary-500/25 transition-all transform hover:-translate-y-1">
             Let's Go
         </button>
     </div>
@@ -85,7 +85,7 @@ export const SupportStep = ({ onNext, onBack }) => {
                 <div className="bg-gray-800/40 border border-gray-700 rounded-3xl p-8 flex flex-col justify-between hover:border-pink-500/50 transition-colors group">
                     <div>
                         <h3 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
-                            <span className="text-indigo-400">✨</span> Community Power
+                            <span className="text-primary-400">✨</span> Community Power
                         </h3>
                         <p className="text-gray-400 text-sm leading-relaxed mb-6">
                             Every donation goes directly towards API costs (Scryfall, Gemini) and server maintenance. You help us stay independent and ad-free.
@@ -173,8 +173,8 @@ export const AISetupStep = ({ onNext, onBack }) => {
                                 To ensure usage, privacy, and zero rampingsubscription fees, we ask users to provide their own free API key.
                                 Your key is stored locally on your device and is never shared with us.
                             </p>
-                            <div className="mt-4 p-3 bg-indigo-900/40 border border-indigo-500/30 rounded-lg">
-                                <h4 className="font-bold text-indigo-200 mb-1 flex items-center gap-2">
+                            <div className="mt-4 p-3 bg-primary-900/40 border border-primary-500/30 rounded-lg">
+                                <h4 className="font-bold text-primary-200 mb-1 flex items-center gap-2">
                                     <span className="text-amber-400">⚠️</span> AI is Experimental
                                 </h4>
                                 <p className="text-sm text-gray-300">
@@ -301,7 +301,7 @@ export const WalkthroughStep = ({ onNext, onBack }) => {
                     <ul className="space-y-4 text-left w-full max-w-md">
                         {current.details.map((step, idx) => (
                             <li key={idx} className="flex gap-3 text-gray-300 text-sm">
-                                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-xs border border-indigo-500/30">{idx + 1}</span>
+                                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary-500/20 text-primary-400 flex items-center justify-center font-bold text-xs border border-primary-500/30">{idx + 1}</span>
                                 <span className="leading-relaxed">{step}</span>
                             </li>
                         ))}
@@ -320,7 +320,7 @@ export const WalkthroughStep = ({ onNext, onBack }) => {
                     <p className="text-lg text-gray-400 max-w-md mb-6">{current.desc}</p>
                     <button
                         onClick={() => setShowDetails(true)}
-                        className="text-sm font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors px-4 py-2 rounded-lg hover:bg-indigo-500/10"
+                        className="text-sm font-bold text-primary-400 hover:text-primary-300 flex items-center gap-1 transition-colors px-4 py-2 rounded-lg hover:bg-primary-500/10"
                     >
                         <span>View Walkthrough</span>
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -331,7 +331,7 @@ export const WalkthroughStep = ({ onNext, onBack }) => {
             <div className="flex flex-col items-center gap-6">
                 <div className="flex gap-2">
                     {slides.map((_, i) => (
-                        <div key={i} className={`h-2 rounded-full transition-all duration-300 ${i === slide ? 'w-8 bg-indigo-500' : 'w-2 bg-gray-700'}`} />
+                        <div key={i} className={`h-2 rounded-full transition-all duration-300 ${i === slide ? 'w-8 bg-primary-500' : 'w-2 bg-gray-700'}`} />
                     ))}
                 </div>
 

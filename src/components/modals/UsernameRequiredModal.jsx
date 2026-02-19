@@ -49,7 +49,7 @@ const UsernameRequiredModal = ({ isOpen, onClose, onSuccess }) => {
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             placeholder="e.g. Planeswalker99"
-                            className="w-full bg-gray-950 border border-gray-800 text-white px-4 py-3 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:border-transparent outline-none transition-all"
+                            className="w-full bg-gray-950 border border-gray-800 text-white px-4 py-3 rounded-xl focus:ring-2 focus:ring-primary-600 focus:border-transparent outline-none transition-all"
                             autoFocus
                         />
                     </div>
@@ -71,7 +71,7 @@ const UsernameRequiredModal = ({ isOpen, onClose, onSuccess }) => {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-6 rounded-xl shadow-lg shadow-indigo-600/20 transition-all disabled:opacity-50 flex items-center gap-2"
+                            className="bg-primary-600 hover:bg-primary-500 text-white font-bold py-2 px-6 rounded-xl shadow-lg shadow-primary-600/20 transition-all disabled:opacity-50 flex items-center gap-2"
                         >
                             {loading ? 'Saving...' : 'Save & Continue'}
                         </button>

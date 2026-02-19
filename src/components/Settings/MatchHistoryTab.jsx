@@ -79,7 +79,7 @@ const MatchHistoryTab = () => {
     if (loading) {
         return (
             <div className="flex justify-center p-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
             </div>
         );
     }
@@ -119,7 +119,7 @@ const MatchHistoryTab = () => {
                 </div>
                 <div className="bg-gray-900/50 p-4 rounded-xl border border-gray-700">
                     <div className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Wins</div>
-                    <div className="text-3xl font-black text-indigo-400">{wins}</div>
+                    <div className="text-3xl font-black text-primary-400">{wins}</div>
                 </div>
                 <div className="bg-gray-900/50 p-4 rounded-xl border border-gray-700">
                     <div className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Win Rate</div>
@@ -181,7 +181,7 @@ const MatchHistoryTab = () => {
                                                     {match.deck_name || 'Generic Deck'}
                                                 </h4>
                                                 {match.deck_commander && (
-                                                    <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-500/30 truncate max-w-[150px]">
+                                                    <span className="text-[10px] bg-primary-500/20 text-primary-300 px-1.5 py-0.5 rounded border border-primary-500/30 truncate max-w-[150px]">
                                                         {typeof match.deck_commander === 'object' ? match.deck_commander.name : match.deck_commander}
                                                     </span>
                                                 )}
@@ -225,7 +225,7 @@ const MatchHistoryTab = () => {
                                     <div className="flex items-center gap-2">
                                         <button
                                             onClick={() => handleViewReport(match)}
-                                            className="p-2 text-indigo-400 hover:text-white bg-indigo-500/10 hover:bg-indigo-500 rounded-lg transition-colors flex items-center gap-2 border border-indigo-500/20"
+                                            className="p-2 text-primary-400 hover:text-white bg-primary-500/10 hover:bg-primary-500 rounded-lg transition-colors flex items-center gap-2 border border-primary-500/20"
                                         >
                                             <BarChart2 className="w-4 h-4" />
                                             <span className="text-xs font-bold hidden md:inline">Report</span>

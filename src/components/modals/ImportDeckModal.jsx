@@ -75,7 +75,7 @@ const ImportDeckModal = ({ isOpen, onClose, onImport }) => {
     };
 
     const CardTile = ({ card, listType }) => (
-        <div className={`relative group aspect-[2.5/3.5] bg-gray-800 rounded-lg overflow-hidden shadow-lg border transition-all hover:scale-105 hover:z-10 cursor-pointer ${card.isCommander ? 'border-amber-500 ring-2 ring-amber-500/50' : 'border-white/5 hover:border-indigo-500/50'}`}>
+        <div className={`relative group aspect-[2.5/3.5] bg-gray-800 rounded-lg overflow-hidden shadow-lg border transition-all hover:scale-105 hover:z-10 cursor-pointer ${card.isCommander ? 'border-amber-500 ring-2 ring-amber-500/50' : 'border-white/5 hover:border-primary-500/50'}`}>
             {card.image_uri ? (
                 <img src={card.image_uri} alt={card.name} className="w-full h-full object-cover" />
             ) : (
@@ -144,7 +144,7 @@ const ImportDeckModal = ({ isOpen, onClose, onImport }) => {
                                         type="text"
                                         value={parsedData.name || 'Untitled Deck'}
                                         onChange={(e) => setParsedData(prev => ({ ...prev, name: e.target.value }))}
-                                        className="text-sm font-normal text-gray-300 bg-gray-800/50 px-3 py-1 rounded-full border border-white/5 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all placeholder-gray-500 hover:bg-gray-800 min-w-[200px]"
+                                        className="text-sm font-normal text-gray-300 bg-gray-800/50 px-3 py-1 rounded-full border border-white/5 focus:ring-2 focus:ring-primary-500 focus:outline-none transition-all placeholder-gray-500 hover:bg-gray-800 min-w-[200px]"
                                         placeholder="Deck Name"
                                     />
                                 )}
@@ -162,13 +162,13 @@ const ImportDeckModal = ({ isOpen, onClose, onImport }) => {
                                 <div className="w-48 flex flex-col gap-2 border-r border-white/5 pr-4 shrink-0">
                                     <button
                                         onClick={() => setActiveTab('paste')}
-                                        className={`text-left px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'paste' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+                                        className={`text-left px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'paste' ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/20' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
                                     >
                                         Paste Text
                                     </button>
                                     <button
                                         onClick={() => setActiveTab('url')}
-                                        className={`text-left px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'url' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+                                        className={`text-left px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'url' ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/20' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
                                     >
                                         From URL
                                     </button>
@@ -188,7 +188,7 @@ const ImportDeckModal = ({ isOpen, onClose, onImport }) => {
                                     {/* Loading Overlay */}
                                     {loadingStatus && (
                                         <div className="absolute inset-0 z-20 bg-gray-900/90 backdrop-blur-sm flex flex-col items-center justify-center animate-in fade-in duration-200 rounded-xl">
-                                            <div className="w-16 h-16 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mb-6"></div>
+                                            <div className="w-16 h-16 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin mb-6"></div>
                                             <h4 className="text-xl font-bold text-white mb-2">{loadingStatus}</h4>
                                             <p className="text-gray-400 text-sm">This may take a few seconds...</p>
                                         </div>
@@ -200,14 +200,14 @@ const ImportDeckModal = ({ isOpen, onClose, onImport }) => {
                                                 value={rawText}
                                                 onChange={(e) => setRawText(e.target.value)}
                                                 placeholder={`Paste your decklist here...\n\nExample:\n1 Sol Ring\n1 Command Tower\n1 Arcane Signet`}
-                                                className="w-full flex-1 bg-gray-950 border border-white/10 rounded-xl p-5 text-gray-300 font-mono text-sm focus:ring-2 focus:ring-indigo-500 outline-none resize-none shadow-inner custom-scrollbar"
+                                                className="w-full flex-1 bg-gray-950 border border-white/10 rounded-xl p-5 text-gray-300 font-mono text-sm focus:ring-2 focus:ring-primary-500 outline-none resize-none shadow-inner custom-scrollbar"
                                                 disabled={!!loadingStatus}
                                             />
                                             <div className="flex justify-end mt-4 shrink-0">
                                                 <button
                                                     onClick={handleParse}
                                                     disabled={!rawText.trim() || !!loadingStatus}
-                                                    className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-indigo-500/20 transition-all hover:scale-105 active:scale-95"
+                                                    className="bg-primary-600 hover:bg-primary-500 disabled:opacity-50 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-primary-500/20 transition-all hover:scale-105 active:scale-95"
                                                 >
                                                     Parse Deck
                                                 </button>
@@ -218,13 +218,13 @@ const ImportDeckModal = ({ isOpen, onClose, onImport }) => {
                                     {activeTab === 'url' && (
                                         <div className="flex flex-col items-center justify-center h-full text-center animate-in fade-in slide-in-from-right-4 duration-300">
                                             <div className="w-20 h-20 bg-gray-800/50 rounded-2xl flex items-center justify-center mb-6 border border-white/5 shadow-xl">
-                                                <svg className="w-10 h-10 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+                                                <svg className="w-10 h-10 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
                                             </div>
                                             <h3 className="text-2xl font-bold text-white mb-2">Import from Website</h3>
                                             <p className="text-gray-400 mb-8 max-w-sm">Use a public URL to instantly import your deck list with full visuals.</p>
 
                                             <div className="w-full max-w-xl group relative">
-                                                <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
+                                                <div className="absolute -inset-0.5 bg-gradient-to-r from-primary-500 to-primary-400 rounded-xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
                                                 <div className="relative flex gap-2 p-1 bg-gray-900 rounded-xl">
                                                     <input
                                                         type="text"
@@ -237,7 +237,7 @@ const ImportDeckModal = ({ isOpen, onClose, onImport }) => {
                                                     <button
                                                         onClick={handleParse}
                                                         disabled={!url || !!loadingStatus}
-                                                        className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded-lg font-bold disabled:opacity-50 transition-all"
+                                                        className="bg-primary-600 hover:bg-primary-500 text-white px-6 py-2 rounded-lg font-bold disabled:opacity-50 transition-all"
                                                     >
                                                         Fetch
                                                     </button>
@@ -325,10 +325,10 @@ const ImportDeckModal = ({ isOpen, onClose, onImport }) => {
                                                     onChange={(e) => setIsWishlist(e.target.checked)}
                                                     className="sr-only peer"
                                                 />
-                                                <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                                <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
                                             </div>
                                             <div className="flex flex-col">
-                                                <span className="text-sm font-bold text-white group-hover:text-indigo-300 transition-colors">Import as Wishlist</span>
+                                                <span className="text-sm font-bold text-white group-hover:text-primary-300 transition-colors">Import as Wishlist</span>
                                                 <span className="text-[10px] text-gray-500">Don't add to collection</span>
                                             </div>
                                         </label>

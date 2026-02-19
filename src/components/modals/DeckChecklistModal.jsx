@@ -119,8 +119,8 @@ const DeckChecklistModal = ({ isOpen, onClose, deckCards, initialTab = 'missing'
                                         <button
                                             onClick={() => setActiveTab('missing')}
                                             className={`pb-3 text-sm font-bold uppercase tracking-wider transition-all border-b-2 ${activeTab === 'missing'
-                                                    ? 'text-indigo-400 border-indigo-400'
-                                                    : 'text-gray-500 border-transparent hover:text-gray-300'
+                                                ? 'text-primary-400 border-primary-400'
+                                                : 'text-gray-500 border-transparent hover:text-gray-300'
                                                 }`}
                                         >
                                             Missing Cards ({missingCards.length})
@@ -128,8 +128,8 @@ const DeckChecklistModal = ({ isOpen, onClose, deckCards, initialTab = 'missing'
                                         <button
                                             onClick={() => setActiveTab('tokens')}
                                             className={`pb-3 text-sm font-bold uppercase tracking-wider transition-all border-b-2 ${activeTab === 'tokens'
-                                                    ? 'text-pink-400 border-pink-400'
-                                                    : 'text-gray-500 border-transparent hover:text-gray-300'
+                                                ? 'text-pink-400 border-pink-400'
+                                                : 'text-gray-500 border-transparent hover:text-gray-300'
                                                 }`}
                                         >
                                             Required Tokens ({tokens.length})
@@ -151,9 +151,9 @@ const DeckChecklistModal = ({ isOpen, onClose, deckCards, initialTab = 'missing'
                                                 </div>
                                             ) : (
                                                 <div className="space-y-6">
-                                                    <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-indigo-900/10 p-4 rounded-xl border border-indigo-500/20">
+                                                    <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-primary-900/10 p-4 rounded-xl border border-primary-500/20">
                                                         <div className="text-left w-full md:w-auto">
-                                                            <h4 className="text-sm font-bold text-indigo-300 uppercase tracking-wider mb-1">Acquisition Summary</h4>
+                                                            <h4 className="text-sm font-bold text-primary-300 uppercase tracking-wider mb-1">Acquisition Summary</h4>
                                                             <p className="text-gray-400 text-xs">You need <span className="text-white font-bold">{missingCards.length}</span> more cards to finish this deck.</p>
                                                         </div>
                                                         <div className="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end">
@@ -191,7 +191,7 @@ const DeckChecklistModal = ({ isOpen, onClose, deckCards, initialTab = 'missing'
                                                                             <span className="text-[10px] text-gray-500 truncate max-w-[100px]">{card.set_name}</span>
                                                                         </div>
                                                                     </div>
-                                                                    <span className="text-xs font-mono text-indigo-400 shrink-0 bg-gray-950 px-2 py-1 rounded border border-gray-800 ml-2">
+                                                                    <span className="text-xs font-mono text-primary-400 shrink-0 bg-gray-950 px-2 py-1 rounded border border-gray-800 ml-2">
                                                                         ${(parseFloat(card.prices?.[card.finish === 'foil' ? 'usd_foil' : 'usd']) || 0).toFixed(2)}
                                                                     </span>
                                                                 </div>

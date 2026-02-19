@@ -212,7 +212,7 @@ const PlaystyleWizardModal = ({ isOpen, onClose, onComplete, helperName = "The O
                 {mode === 'selection' && (
                     <div className="flex-1 flex flex-col items-center justify-center p-8 space-y-12 animate-fade-in">
                         <div className="text-center space-y-4">
-                            <h2 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
+                            <h2 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-purple-400">
                                 Choose Your Path
                             </h2>
                             <p className="text-gray-400 text-lg max-w-2xl">
@@ -224,20 +224,20 @@ const PlaystyleWizardModal = ({ isOpen, onClose, onComplete, helperName = "The O
                             {/* Quick Setup Card */}
                             <button
                                 onClick={startQuickMode}
-                                className="group relative bg-gray-800/50 hover:bg-indigo-900/20 border border-gray-700 hover:border-indigo-500 rounded-2xl p-8 text-left transition-all duration-300 transform hover:-translate-y-1 hover:shadow-2xl hover:shadow-indigo-500/10"
+                                className="group relative bg-gray-800/50 hover:bg-primary-900/20 border border-gray-700 hover:border-primary-500 rounded-2xl p-8 text-left transition-all duration-300 transform hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary-500/10"
                             >
                                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                                    <svg className="w-32 h-32 text-indigo-500" fill="currentColor" viewBox="0 0 24 24"><path d="M13 2L3 14h9v8l10-12h-9l9-8z" /></svg>
+                                    <svg className="w-32 h-32 text-primary-500" fill="currentColor" viewBox="0 0 24 24"><path d="M13 2L3 14h9v8l10-12h-9l9-8z" /></svg>
                                 </div>
                                 <div className="relative z-10 space-y-4">
-                                    <div className="w-12 h-12 bg-indigo-500/20 rounded-lg flex items-center justify-center">
-                                        <svg className="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                                    <div className="w-12 h-12 bg-primary-500/20 rounded-lg flex items-center justify-center">
+                                        <svg className="w-6 h-6 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                                     </div>
-                                    <h3 className="text-2xl font-bold text-white group-hover:text-indigo-300 transition-colors">Quick Setup</h3>
+                                    <h3 className="text-2xl font-bold text-white group-hover:text-primary-300 transition-colors">Quick Setup</h3>
                                     <p className="text-gray-400 group-hover:text-gray-300">
                                         Answer {MAX_QUICK_QUESTIONS} rapid-fire questions to generate a baseline profile. Best for getting started quickly.
                                     </p>
-                                    <div className="pt-4 flex items-center text-sm font-bold text-indigo-400 uppercase tracking-wider">
+                                    <div className="pt-4 flex items-center text-sm font-bold text-primary-400 uppercase tracking-wider">
                                         Start Assessment <span className="ml-2 group-hover:ml-3 transition-all">→</span>
                                     </div>
                                 </div>
@@ -278,10 +278,10 @@ const PlaystyleWizardModal = ({ isOpen, onClose, onComplete, helperName = "The O
                         {/* Header */}
                         <div className="h-16 border-b border-gray-800 flex items-center justify-between px-8 bg-gray-900/50">
                             <h3 className="text-lg font-bold text-white flex items-center">
-                                <span className="w-2 h-2 rounded-full bg-indigo-500 mr-3"></span>
+                                <span className="w-2 h-2 rounded-full bg-primary-500 mr-3"></span>
                                 Quick Assessment
                             </h3>
-                            <div className="text-sm font-mono text-indigo-400">
+                            <div className="text-sm font-mono text-primary-400">
                                 Q{quickAnswers.length + 1} / {MAX_QUICK_QUESTIONS}
                             </div>
                         </div>
@@ -290,8 +290,8 @@ const PlaystyleWizardModal = ({ isOpen, onClose, onComplete, helperName = "The O
                         <div className="flex-1 overflow-y-auto p-8 flex flex-col items-center justify-center">
                             {subStep === 'loading' ? (
                                 <div className="flex flex-col items-center space-y-4 animate-pulse">
-                                    <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-                                    <p className="text-indigo-300 font-medium">Consulting the archives...</p>
+                                    <div className="w-16 h-16 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+                                    <p className="text-primary-300 font-medium">Consulting the archives...</p>
                                 </div>
                             ) : (
                                 currentQuestionData && (
@@ -300,7 +300,7 @@ const PlaystyleWizardModal = ({ isOpen, onClose, onComplete, helperName = "The O
                                         {/* Progress Bar */}
                                         <div className="w-full h-1 bg-gray-800 rounded-full overflow-hidden">
                                             <div
-                                                className="h-full bg-indigo-500 transition-all duration-500 ease-out"
+                                                className="h-full bg-primary-500 transition-all duration-500 ease-out"
                                                 style={{ width: `${((quickAnswers.length) / MAX_QUICK_QUESTIONS) * 100}%` }}
                                             ></div>
                                         </div>
@@ -320,7 +320,7 @@ const PlaystyleWizardModal = ({ isOpen, onClose, onComplete, helperName = "The O
                                                         className={`
                                                             group flex items-center p-4 rounded-xl border transition-all duration-200 text-left
                                                             ${isSelected
-                                                                ? 'bg-indigo-600/20 border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.3)]'
+                                                                ? 'bg-primary-600/20 border-primary-500 shadow-[0_0_15px_rgba(99,102,241,0.3)]'
                                                                 : 'bg-gray-800 border-gray-700 hover:bg-gray-750 hover:border-gray-600'
                                                             }
                                                             ${selectedChoice && !isSelected ? 'opacity-50' : ''}
@@ -328,7 +328,7 @@ const PlaystyleWizardModal = ({ isOpen, onClose, onComplete, helperName = "The O
                                                     >
                                                         <span className={`
                                                             w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold mr-4 transition-colors
-                                                            ${isSelected ? 'bg-indigo-500 text-white' : 'bg-gray-700 text-gray-400 group-hover:bg-gray-600'}
+                                                            ${isSelected ? 'bg-primary-500 text-white' : 'bg-gray-700 text-gray-400 group-hover:bg-gray-600'}
                                                         `}>
                                                             {String.fromCharCode(65 + idx)}
                                                         </span>
@@ -457,7 +457,7 @@ const PlaystyleWizardModal = ({ isOpen, onClose, onComplete, helperName = "The O
                                                     </div>
                                                     <div className="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
                                                         <div
-                                                            className="h-full bg-gradient-to-r from-purple-600 to-indigo-500"
+                                                            className="h-full bg-gradient-to-r from-purple-600 to-primary-500"
                                                             style={{ width: `${val}%` }}
                                                         ></div>
                                                     </div>

@@ -69,7 +69,7 @@ export const TotalCardsWidget = ({ data, size }) => {
                 {isMedium && (
                     <div className="absolute top-4 right-4 text-right">
                         <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Distinct</div>
-                        <div className="text-xl font-bold text-indigo-400">{collection?.length || 0}</div>
+                        <div className="text-xl font-bold text-primary-400">{collection?.length || 0}</div>
                     </div>
                 )}
 
@@ -94,7 +94,7 @@ export const TotalCardsWidget = ({ data, size }) => {
                 {size === 'xlarge' && (
                     <div className="md:absolute md:inset-y-0 md:right-0 md:w-[70%] w-full mt-4 md:mt-0 h-auto md:h-full flex items-center justify-around md:border-l border-t md:border-t-0 border-white/5 bg-gray-950/20 px-2 md:px-8 py-3 md:py-0 order-last">
                         <div className="flex flex-col items-center">
-                            <span className="text-lg md:text-xl font-black text-indigo-400">{collection?.length || 0}</span>
+                            <span className="text-lg md:text-xl font-black text-primary-400">{collection?.length || 0}</span>
                             <span className="text-[8px] md:text-[9px] font-bold text-gray-500 uppercase tracking-tighter">Distinct</span>
                         </div>
                         <div className="flex flex-col items-center">
@@ -169,7 +169,7 @@ const FlippableAsset = ({ card, onViewDetails }) => {
             onClick={handleCardClick}
             onMouseLeave={() => setIsTouched(false)} // Reset on mouse leave (desktop)
         >
-            <div className="aspect-[2.5/3.5] rounded-lg overflow-hidden border border-white/10 mb-2 relative bg-gray-900 shadow-lg group-hover/card:shadow-indigo-500/20 transition-all">
+            <div className="aspect-[2.5/3.5] rounded-lg overflow-hidden border border-white/10 mb-2 relative bg-gray-900 shadow-lg group-hover/card:shadow-primary-500/20 transition-all">
                 {currentImage ? (
                     <img src={currentImage} alt={card.name} className="w-full h-full object-cover group-hover/card:scale-110 transition-transform duration-500" />
                 ) : (
@@ -216,7 +216,7 @@ const FlippableAsset = ({ card, onViewDetails }) => {
                                 e.stopPropagation();
                                 onViewDetails(card);
                             }}
-                            className={`w-full py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[9px] font-black uppercase tracking-wider rounded shadow-lg transform transition-all duration-300 delay-75
+                            className={`w-full py-1.5 bg-primary-600 hover:bg-primary-500 text-white text-[9px] font-black uppercase tracking-wider rounded shadow-lg transform transition-all duration-300 delay-75
                                 ${isTouched ? 'translate-y-0' : 'translate-y-2 group-hover/card:translate-y-0'}
                             `}
                         >

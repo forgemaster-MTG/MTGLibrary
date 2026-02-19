@@ -40,7 +40,7 @@ export function ToastProvider({ children }) {
                                 w-full h-auto min-h-[50px] text-center backdrop-blur-xl border-y border-white/10 flex items-center justify-center px-6 py-4
                                 ${toast.type === 'success' ? 'bg-green-600/90 text-white' : ''}
                                 ${toast.type === 'error' ? 'bg-red-600/90 text-white' : ''}
-                                ${toast.type === 'info' ? 'bg-indigo-600/90 text-white shadow-indigo-500/30' : ''}
+                                ${toast.type === 'info' ? 'bg-primary-600/90 text-white shadow-primary-500/30' : ''}
                                 ${toast.type === 'warning' ? 'bg-yellow-500 text-black' : ''}
                                 md:w-auto md:rounded-xl md:border md:text-left md:px-4 md:py-3 md:animate-fade-in-up md:min-h-0
                             `}

@@ -65,7 +65,7 @@ const MarketTicker = () => {
                 <div className="flex gap-6 animate-scroll-subtle hover:pause-scroll">
                     {topCards.map(card => (
                         <div key={card.id || card.firestoreId} className="flex items-center gap-2 group flex-shrink-0 cursor-pointer">
-                            <div className="w-8 h-8 rounded overflow-hidden relative border border-white/10 group-hover:border-indigo-500 transition-colors">
+                            <div className="w-8 h-8 rounded overflow-hidden relative border border-white/10 group-hover:border-primary-500 transition-colors">
                                 <img src={card.image_uris?.small || card.image_uri} className="w-full h-full object-cover" alt="" />
                             </div>
                             <div>

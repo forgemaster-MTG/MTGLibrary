@@ -104,7 +104,7 @@ const ImportDataModal = ({ isOpen, onClose, mode = 'global' }) => { // mode: 'gl
             <div className="bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl border border-gray-700 overflow-hidden">
                 <div className="p-6 border-b border-gray-700 bg-gray-900/50 flex justify-between items-center">
                     <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                        <svg className="w-6 h-6 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                        <svg className="w-6 h-6 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                         Import Data
                     </h2>
                     <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
@@ -116,10 +116,10 @@ const ImportDataModal = ({ isOpen, onClose, mode = 'global' }) => { // mode: 'gl
                     {/* File Upload Area */}
                     {!fileData ? (
                         <div
-                            className="border-2 border-dashed border-gray-600 rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 hover:bg-gray-700/30 transition-all group"
+                            className="border-2 border-dashed border-gray-600 rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer hover:border-primary-500 hover:bg-gray-700/30 transition-all group"
                             onClick={() => fileInputRef.current?.click()}
                         >
-                            <svg className="w-12 h-12 text-gray-500 group-hover:text-indigo-400 mb-4 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+                            <svg className="w-12 h-12 text-gray-500 group-hover:text-primary-400 mb-4 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
                             <p className="text-gray-300 font-medium">Click to select backup JSON</p>
                             <p className="text-gray-500 text-sm mt-1">Supports Collection exports and Deck exports</p>
                             <input
@@ -159,7 +159,7 @@ const ImportDataModal = ({ isOpen, onClose, mode = 'global' }) => { // mode: 'gl
                                                 name="replaceMode"
                                                 checked={replaceMode === 'merge'}
                                                 onChange={() => setReplaceMode('merge')}
-                                                className="mt-1 bg-gray-900 border-gray-600 text-indigo-600 focus:ring-indigo-500"
+                                                className="mt-1 bg-gray-900 border-gray-600 text-primary-600 focus:ring-primary-500"
                                             />
                                             <div>
                                                 <span className="block text-white font-medium">Merge (Recommended)</span>
@@ -195,7 +195,7 @@ const ImportDataModal = ({ isOpen, onClose, mode = 'global' }) => { // mode: 'gl
                                                 type="checkbox"
                                                 checked={deckOptions.checkCollection}
                                                 onChange={(e) => setDeckOptions(prev => ({ ...prev, checkCollection: e.target.checked }))}
-                                                className="rounded bg-gray-700 border-gray-600 text-indigo-600 focus:ring-indigo-500"
+                                                className="rounded bg-gray-700 border-gray-600 text-primary-600 focus:ring-primary-500"
                                             />
                                             <span className="text-gray-300">Use existing unassigned copies from collection</span>
                                         </label>
@@ -204,7 +204,7 @@ const ImportDataModal = ({ isOpen, onClose, mode = 'global' }) => { // mode: 'gl
                                                 type="checkbox"
                                                 checked={deckOptions.addToCollection}
                                                 onChange={(e) => setDeckOptions(prev => ({ ...prev, addToCollection: e.target.checked }))}
-                                                className="rounded bg-gray-700 border-gray-600 text-indigo-600 focus:ring-indigo-500"
+                                                className="rounded bg-gray-700 border-gray-600 text-primary-600 focus:ring-primary-500"
                                             />
                                             <span className="text-gray-300">Add missing cards to collection automatically</span>
                                         </label>
@@ -227,10 +227,10 @@ const ImportDataModal = ({ isOpen, onClose, mode = 'global' }) => { // mode: 'gl
                         onClick={handleImport}
                         disabled={!fileData || loading}
                         className={`px-6 py-2 rounded-lg font-bold text-white transition-all shadow-lg ${loading
-                            ? 'bg-indigo-800 cursor-wait'
+                            ? 'bg-primary-800 cursor-wait'
                             : replaceMode === 'replace' && importType === 'cards'
                                 ? 'bg-red-600 hover:bg-red-500 shadow-red-500/20'
-                                : 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-500/20'
+                                : 'bg-primary-600 hover:bg-primary-500 shadow-primary-500/20'
                             }`}
                     >
                         {loading ? 'Importing...' : 'Start Import'}

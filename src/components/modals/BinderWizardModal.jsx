@@ -205,7 +205,7 @@ const BinderWizardModal = ({ isOpen, onClose, selectedCards = [], editingBinder 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button
                     onClick={() => { setIsSmartBinder(false); setStep(STEPS.CONFIG); }}
-                    className="p-6 bg-gray-950/40 hover:bg-indigo-900/10 border border-white/5 hover:border-indigo-500/50 rounded-3xl text-left transition-all group relative overflow-hidden"
+                    className="p-6 bg-gray-950/40 hover:bg-primary-900/10 border border-white/5 hover:border-primary-500/50 rounded-3xl text-left transition-all group relative overflow-hidden"
                 >
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                         <svg className="w-24 h-24" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" /></svg>
@@ -215,15 +215,15 @@ const BinderWizardModal = ({ isOpen, onClose, selectedCards = [], editingBinder 
                     <p className="text-gray-400 text-sm leading-relaxed">Classic storage. Move cards in and out exactly how you want.</p>
                 </button>
 
-                <div className="p-6 bg-indigo-950/20 border border-indigo-500/20 rounded-3xl relative overflow-hidden flex flex-col h-full">
+                <div className="p-6 bg-primary-900/20 border border-primary-500/20 rounded-3xl relative overflow-hidden flex flex-col h-full">
                     <div className="absolute top-0 right-0 p-4 opacity-10">
                         <svg className="w-24 h-24" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.381z" clipRule="evenodd" /></svg>
                     </div>
 
                     <div className="relative z-10 flex flex-col h-full">
-                        <div className="w-14 h-14 bg-indigo-600/20 text-indigo-400 rounded-2xl flex items-center justify-center text-3xl mb-4 shadow-xl shadow-indigo-900/20">✨</div>
+                        <div className="w-14 h-14 bg-primary-600/20 text-primary-400 rounded-2xl flex items-center justify-center text-3xl mb-4 shadow-xl shadow-primary-900/20">✨</div>
                         <h3 className="text-xl font-black text-white mb-2">Smart Creator</h3>
-                        <p className="text-gray-400 text-sm leading-relaxed mb-6">Describe what you want, and AI will build the rules for you. <button onClick={() => window.open('https://github.com/TristinParker/MTGLibrary/blob/main/docs/SMART_BINDERS.md', '_blank')} className="text-indigo-400 hover:text-indigo-300 underline md:hidden">What is this?</button></p>
+                        <p className="text-gray-400 text-sm leading-relaxed mb-6">Describe what you want, and AI will build the rules for you. <button onClick={() => window.open('https://github.com/TristinParker/MTGLibrary/blob/main/docs/SMART_BINDERS.md', '_blank')} className="text-primary-400 hover:text-primary-300 underline md:hidden">What is this?</button></p>
 
                         <div className="mt-auto">
                             <div className="relative">
@@ -232,13 +232,13 @@ const BinderWizardModal = ({ isOpen, onClose, selectedCards = [], editingBinder 
                                     value={aiPrompt}
                                     onChange={(e) => setAiPrompt(e.target.value)}
                                     placeholder='e.g., "Red Goblins over $5"'
-                                    className="w-full bg-black/40 border border-indigo-500/30 rounded-xl pl-4 pr-12 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-sm"
+                                    className="w-full bg-black/40 border border-primary-500/30 rounded-xl pl-4 pr-12 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all text-sm"
                                     onKeyDown={(e) => e.key === 'Enter' && handleAiGenerate()}
                                 />
                                 <button
                                     onClick={handleAiGenerate}
                                     disabled={!aiPrompt.trim() || isGenerating}
-                                    className="absolute right-1 top-1 bottom-1 px-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-all flex items-center justify-center"
+                                    className="absolute right-1 top-1 bottom-1 px-3 bg-primary-600 hover:bg-primary-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-all flex items-center justify-center"
                                 >
                                     {isGenerating ? (
                                         <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
@@ -257,17 +257,17 @@ const BinderWizardModal = ({ isOpen, onClose, selectedCards = [], editingBinder 
                 <div className="mt-8 space-y-4 animate-fade-in-up">
                     <div className="flex items-center gap-4">
                         <div className="h-px bg-white/10 flex-1" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400">Suggested Blueprints</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-primary-400">Suggested Blueprints</span>
                         <div className="h-px bg-white/10 flex-1" />
                     </div>
 
                     {isGenerating ? (
                         <div className="py-8 flex flex-col items-center">
                             <div className="relative w-16 h-16">
-                                <div className="absolute inset-0 border-4 border-indigo-500/20 rounded-full" />
-                                <div className="absolute inset-0 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                                <div className="absolute inset-0 border-4 border-primary-500/20 rounded-full" />
+                                <div className="absolute inset-0 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
                             </div>
-                            <p className="mt-4 text-indigo-400 font-mono text-xs animate-pulse">Generating rules...</p>
+                            <p className="mt-4 text-primary-400 font-mono text-xs animate-pulse">Generating rules...</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -275,7 +275,7 @@ const BinderWizardModal = ({ isOpen, onClose, selectedCards = [], editingBinder 
                                 <button
                                     key={suggest.id}
                                     onClick={() => handleSuggestionSelect(suggest)}
-                                    className="p-4 bg-gray-900/60 hover:bg-gray-800 border border-white/5 hover:border-indigo-500/30 rounded-2xl flex items-center gap-4 transition-all text-left group shadow-lg"
+                                    className="p-4 bg-gray-900/60 hover:bg-gray-800 border border-white/5 hover:border-primary-500/30 rounded-2xl flex items-center gap-4 transition-all text-left group shadow-lg"
                                 >
                                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl transition-transform group-hover:scale-110`} style={{ backgroundColor: `rgba(${suggest.color === 'purple' ? '139, 92, 246' : suggest.color === 'green' ? '16, 185, 129' : suggest.color === 'orange' ? '249, 115, 22' : '239, 68, 68'}, 0.1)` }}>
                                         {suggest.icon}
@@ -284,7 +284,7 @@ const BinderWizardModal = ({ isOpen, onClose, selectedCards = [], editingBinder 
                                         <div className="font-bold text-white text-sm">{suggest.name}</div>
                                         <div className="text-[10px] text-gray-500 leading-tight">{suggest.description}</div>
                                     </div>
-                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity text-indigo-500">
+                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity text-primary-500">
                                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg>
                                     </div>
                                 </button>
@@ -308,7 +308,7 @@ const BinderWizardModal = ({ isOpen, onClose, selectedCards = [], editingBinder 
                         onChange={(e) => setName(e.target.value)}
                         placeholder="e.g., The Vault"
                         autoFocus
-                        className="w-full bg-gray-950 border-2 border-white/5 focus:border-indigo-500/50 text-white px-5 py-4 rounded-2xl focus:outline-none font-black text-xl transition-all shadow-inner shadow-black/40 placeholder:text-gray-800"
+                        className="w-full bg-gray-950 border-2 border-white/5 focus:border-primary-500/50 text-white px-5 py-4 rounded-2xl focus:outline-none font-black text-xl transition-all shadow-inner shadow-black/40 placeholder:text-gray-800"
                     />
                 </div>
 
@@ -316,8 +316,8 @@ const BinderWizardModal = ({ isOpen, onClose, selectedCards = [], editingBinder 
                     <div>
                         <label className="block text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2 ml-1">Icon Type</label>
                         <div className="flex bg-gray-950 p-1 rounded-xl border border-white/5">
-                            <button onClick={() => setIconType('emoji')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${iconType === 'emoji' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}>Emoji</button>
-                            <button onClick={() => setIconType('mtg')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${iconType === 'mtg' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}>Symbols</button>
+                            <button onClick={() => setIconType('emoji')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${iconType === 'emoji' ? 'bg-primary-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}>Emoji</button>
+                            <button onClick={() => setIconType('mtg')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${iconType === 'mtg' ? 'bg-primary-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}>Symbols</button>
                         </div>
                     </div>
                     <div>
@@ -355,7 +355,7 @@ const BinderWizardModal = ({ isOpen, onClose, selectedCards = [], editingBinder 
                             <button
                                 key={icon}
                                 onClick={() => setIconValue(icon)}
-                                className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all ${iconValue === icon ? 'bg-indigo-600 shadow-lg shadow-indigo-900/40' : 'bg-gray-900 border border-white/5 text-gray-500 hover:bg-gray-800 hover:text-white'}`}
+                                className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all ${iconValue === icon ? 'bg-primary-600 shadow-lg shadow-primary-900/40' : 'bg-gray-900 border border-white/5 text-gray-500 hover:bg-gray-800 hover:text-white'}`}
                             >
                                 {icon}
                             </button>
@@ -380,7 +380,7 @@ const BinderWizardModal = ({ isOpen, onClose, selectedCards = [], editingBinder 
                             <button
                                 key={icon}
                                 onClick={() => setIconValue(icon)}
-                                className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all ${iconValue === icon ? 'bg-indigo-600 shadow-lg shadow-indigo-900/40 text-white' : 'bg-gray-900 border border-white/5 text-gray-400 hover:bg-gray-800 hover:text-white'}`}
+                                className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all ${iconValue === icon ? 'bg-primary-600 shadow-lg shadow-primary-900/40 text-white' : 'bg-gray-900 border border-white/5 text-gray-400 hover:bg-gray-800 hover:text-white'}`}
                             >
                                 <i className={`ms ${icon} ms-cost`}></i>
                             </button>
@@ -393,7 +393,7 @@ const BinderWizardModal = ({ isOpen, onClose, selectedCards = [], editingBinder 
             <div className="bg-gray-950 rounded-3xl p-6 border border-white/5 space-y-4">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-xl transition-colors ${isSmartBinder ? 'bg-indigo-600/20 text-indigo-400' : 'bg-gray-800 text-gray-500'}`}>
+                        <div className={`p-2 rounded-xl transition-colors ${isSmartBinder ? 'bg-primary-600/20 text-primary-400' : 'bg-gray-800 text-gray-500'}`}>
                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                         </div>
                         <div>
@@ -403,7 +403,7 @@ const BinderWizardModal = ({ isOpen, onClose, selectedCards = [], editingBinder 
                     </div>
                     <button
                         onClick={() => setIsSmartBinder(!isSmartBinder)}
-                        className={`w-12 h-6 rounded-full transition-all relative ${isSmartBinder ? 'bg-indigo-600' : 'bg-gray-800'}`}
+                        className={`w-12 h-6 rounded-full transition-all relative ${isSmartBinder ? 'bg-primary-600' : 'bg-gray-800'}`}
                     >
                         <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-md ${isSmartBinder ? 'left-7' : 'left-1'}`} />
                     </button>
@@ -458,7 +458,7 @@ const BinderWizardModal = ({ isOpen, onClose, selectedCards = [], editingBinder 
                     <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
                     {iconValue.startsWith('ms') ? <i className={`ms ${iconValue} ms-2x`}></i> : iconValue}
                 </div>
-                <div className={`absolute -bottom-2 -right-2 px-3 py-1 bg-indigo-600 text-white text-[10px] font-black uppercase rounded-full shadow-lg border border-white/20 z-20`}>
+                <div className={`absolute -bottom-2 -right-2 px-3 py-1 bg-primary-600 text-white text-[10px] font-black uppercase rounded-full shadow-lg border border-white/20 z-20`}>
                     {isSmartBinder ? 'Smart' : 'Manual'}
                 </div>
             </div>
@@ -472,15 +472,15 @@ const BinderWizardModal = ({ isOpen, onClose, selectedCards = [], editingBinder 
             <div className="bg-gray-950/40 rounded-3xl p-6 border border-white/5 max-w-sm mx-auto shadow-inner shadow-black/60">
                 {isSmartBinder ? (
                     <div className="space-y-4">
-                        <div className="flex items-center gap-2 text-indigo-400">
-                            <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse" />
+                        <div className="flex items-center gap-2 text-primary-400">
+                            <div className="w-2 h-2 bg-primary-500 rounded-full animate-pulse" />
                             <span className="text-[10px] font-black uppercase tracking-widest">Recipe Preview</span>
                         </div>
                         <div className="space-y-2">
                             {rules.map((r, i) => (
                                 <div key={i} className="text-xs text-gray-400 bg-black/40 p-2 rounded-xl border border-white/5 flex gap-2">
                                     <span className="font-bold text-gray-500 uppercase">{i === 0 ? 'IF' : 'AND'}</span>
-                                    <span>{r.field} <span className="text-indigo-400">{r.operator}</span> '{Array.isArray(r.value) ? r.value.join(', ') : r.value}'</span>
+                                    <span>{r.field} <span className="text-primary-400">{r.operator}</span> '{Array.isArray(r.value) ? r.value.join(', ') : r.value}'</span>
                                 </div>
                             ))}
                             {rules.length === 0 && <p className="text-xs text-red-400 italic">Warning: No rules defined! This binder will be empty.</p>}
@@ -545,8 +545,8 @@ const BinderWizardModal = ({ isOpen, onClose, selectedCards = [], editingBinder 
                 <div className="p-8 pb-4 flex justify-between items-center">
                     <div>
                         <div className="flex items-center gap-2 mb-1">
-                            <span className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.3em]">Step 0{step}</span>
-                            <div className="h-px w-8 bg-indigo-500/30" />
+                            <span className="text-[10px] font-black text-primary-500 uppercase tracking-[0.3em]">Step 0{step}</span>
+                            <div className="h-px w-8 bg-primary-500/30" />
                         </div>
                         <h2 className="text-3xl font-black text-white tracking-tight">
                             {step === STEPS.METHOD ? 'Initialize Binder' : step === STEPS.CONFIG ? 'Configure Profile' : 'Final Review'}
@@ -594,7 +594,7 @@ const BinderWizardModal = ({ isOpen, onClose, selectedCards = [], editingBinder 
                         disabled={loading || (step === STEPS.CONFIG && !name)}
                         className={`group px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${loading
                             ? 'bg-gray-800 text-gray-600 cursor-not-allowed'
-                            : `bg-indigo-600 hover:bg-indigo-500 text-white shadow-2xl shadow-indigo-900/40 active:scale-95 flex items-center gap-3`
+                            : `bg-primary-600 hover:bg-primary-500 text-white shadow-2xl shadow-primary-900/40 active:scale-95 flex items-center gap-3`
                             }`}
                     >
                         {loading ? (

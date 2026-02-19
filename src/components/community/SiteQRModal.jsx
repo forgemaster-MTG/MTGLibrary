@@ -27,7 +27,7 @@ const SiteQRModal = ({ isOpen, onClose, referralUrl, username }) => {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose}></div>
 
-            <div className="relative bg-[#1a1c23] border border-indigo-500/30 w-full max-w-sm rounded-3xl p-8 shadow-2xl animate-fade-in pointer-events-auto">
+            <div className="relative bg-[#1a1c23] border border-primary-500/30 w-full max-w-sm rounded-3xl p-8 shadow-2xl animate-fade-in pointer-events-auto">
                 <button
                     onClick={onClose}
                     className="absolute top-4 right-4 text-gray-500 hover:text-white p-2 transition-colors"
@@ -62,7 +62,7 @@ const SiteQRModal = ({ isOpen, onClose, referralUrl, username }) => {
                     <div className="space-y-3">
                         <button
                             onClick={downloadQR}
-                            className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold py-3 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
+                            className="w-full bg-gradient-to-r from-primary-600 to-purple-600 hover:from-primary-500 hover:to-purple-500 text-white font-bold py-3 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
                         >
                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                             Download QR Code

@@ -195,15 +195,15 @@ const SubscriptionSelection = ({
                             {/* Credit & Breakdown Section */}
                             <div className="bg-gray-900/50 rounded-xl p-3 mb-4 border border-gray-700/50">
                                 <div className="text-xs text-gray-400 mb-1 font-medium">Monthly AI Credits</div>
-                                <div className="text-xl font-bold text-indigo-400 mb-2">{formatCredits(creditLimit)}</div>
+                                <div className="text-xl font-bold text-primary-400 mb-2">{formatCredits(creditLimit)}</div>
 
                                 <div className="space-y-1.5 pt-2 border-t border-gray-700/50">
                                     <div className="flex items-center text-[10px] text-gray-300">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 mr-2"></div>
+                                        <div className="w-1.5 h-1.5 rounded-full bg-primary-500 mr-2"></div>
                                         <span>Build ~<strong className="text-white">{breakdown.decks}</strong> AI Decks</span>
                                     </div>
                                     <div className="flex items-center text-[10px] text-gray-300">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 mr-2"></div>
+                                        <div className="w-1.5 h-1.5 rounded-full bg-primary-500 mr-2"></div>
                                         <span>Or ~<strong className="text-white">{breakdown.chats.toLocaleString()}</strong> AI Chats</span>
                                     </div>
                                 </div>
@@ -244,14 +244,14 @@ const SubscriptionSelection = ({
                     </p>
                     {rate && (
                         <p className="text-sm text-gray-400 mt-2">
-                            Average Value: <span className="text-indigo-400 font-mono">{(rate / 1000000).toFixed(2)}M Credits</span> / $1.00
+                            Average Value: <span className="text-primary-400 font-mono">{(rate / 1000000).toFixed(2)}M Credits</span> / $1.00
                         </p>
                     )}
                 </div>
 
                 <div className="flex flex-wrap justify-center gap-6">
                     {displayPacks.map((pack, i) => (
-                        <div key={i} className="bg-gray-800/50 border border-gray-700/50 rounded-xl p-5 w-full max-w-[280px] hover:border-indigo-500/50 transition-all group flex flex-col items-center text-center">
+                        <div key={i} className="bg-gray-800/50 border border-gray-700/50 rounded-xl p-5 w-full max-w-[280px] hover:border-primary-500/50 transition-all group flex flex-col items-center text-center">
 
                             <img
                                 src={getTopUpImage(i)}
@@ -264,8 +264,8 @@ const SubscriptionSelection = ({
                                 <div className="text-2xl font-bold text-white">${typeof pack.price === 'number' ? pack.price.toFixed(2) : pack.price}</div>
                             </div>
 
-                            <div className="bg-indigo-500/10 rounded-lg px-4 py-3 mb-6 border border-indigo-500/20 w-full">
-                                <div className="text-xs text-indigo-300 uppercase tracking-wider font-bold mb-1">Includes</div>
+                            <div className="bg-primary-500/10 rounded-lg px-4 py-3 mb-6 border border-primary-500/20 w-full">
+                                <div className="text-xs text-primary-300 uppercase tracking-wider font-bold mb-1">Includes</div>
                                 <div className="text-xl font-mono font-bold text-white">{formatCredits(pack.creditLimit)}</div>
                                 <div className="text-xs text-gray-400">AI Credits</div>
                             </div>
@@ -281,7 +281,7 @@ const SubscriptionSelection = ({
                                 disabled={buyingPackIndex !== null}
                                 className={`w-full py-2.5 rounded-lg text-sm font-bold text-white transition-colors shadow-lg ${buyingPackIndex === i
                                     ? 'bg-gray-600 cursor-not-allowed'
-                                    : 'bg-gray-700 hover:bg-indigo-500 group-hover:bg-indigo-600 group-hover:hover:bg-indigo-500 group-hover:text-white'
+                                    : 'bg-gray-700 hover:bg-primary-500 group-hover:bg-primary-600 group-hover:hover:bg-primary-500 group-hover:text-white'
                                     }`}
                             >
                                 {buyingPackIndex === i ? 'Processing...' : 'Purchase in App'}

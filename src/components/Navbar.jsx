@@ -216,7 +216,7 @@ const Navbar = () => {
 
                                     {/* Desktop Title & Badges */}
                                     <div className="hidden sm:flex flex-col justify-center">
-                                        <span className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent leading-none pb-1">
+                                        <span className="text-xl font-bold bg-gradient-to-r from-primary-400 to-primary-600 bg-clip-text text-transparent leading-none pb-1">
                                             MTG-Forge
                                         </span>
                                         <div className="flex items-center gap-2 mt-1">
@@ -341,7 +341,7 @@ const Navbar = () => {
                                     <>
                                         <button
                                             onClick={() => setIsSearchOpen(true)}
-                                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-colors shadow-lg shadow-indigo-500/20 flex items-center gap-2"
+                                            className="bg-primary-600 hover:bg-primary-700 text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-colors shadow-lg shadow-primary-500/20 flex items-center gap-2"
                                         >
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                                             <span className="hidden xl:inline">Add Card</span>
@@ -350,7 +350,7 @@ const Navbar = () => {
                                         {/* Help Button */}
                                         <button
                                             onClick={() => setIsHelpOpen(true)}
-                                            className="w-8 h-8 rounded-full bg-gray-800 border border-gray-700 hover:border-indigo-500 hover:text-white text-gray-400 flex items-center justify-center transition-all shadow-lg"
+                                            className="w-8 h-8 rounded-full bg-gray-800 border border-gray-700 hover:border-primary-500 hover:text-white text-gray-400 flex items-center justify-center transition-all shadow-lg"
                                             title="Help Center"
                                         >
                                             <span className="font-bold text-lg">?</span>
@@ -393,12 +393,12 @@ const Navbar = () => {
                                                     <img
                                                         src={userProfile?.photo_url || currentUser.photoURL}
                                                         alt="Profile"
-                                                        className="h-8 w-8 rounded-full object-cover ring-2 ring-transparent hover:ring-indigo-500 transition-all border border-gray-600"
+                                                        className="h-8 w-8 rounded-full object-cover ring-2 ring-transparent hover:ring-primary-500 transition-all border border-gray-600"
                                                         onError={() => setImageError(true)}
                                                     />
                                                 ) : (
-                                                    <div className="h-8 w-8 rounded-full bg-indigo-500/20 border border-indigo-500/50 flex items-center justify-center ring-2 ring-transparent hover:ring-indigo-500 transition-all">
-                                                        <span className="text-xs font-bold text-indigo-300">
+                                                    <div className="h-8 w-8 rounded-full bg-primary-500/20 border border-primary-500/50 flex items-center justify-center ring-2 ring-transparent hover:ring-primary-500 transition-all">
+                                                        <span className="text-xs font-bold text-primary-300">
                                                             {currentUser.email ? currentUser.email[0].toUpperCase() : 'U'}
                                                         </span>
                                                     </div>
@@ -473,7 +473,7 @@ const Navbar = () => {
                                                     <Link
                                                         to="/admin"
                                                         onClick={() => setIsUserMenuOpen(false)}
-                                                        className="block px-4 py-2 text-sm text-indigo-400 hover:bg-gray-700 hover:text-indigo-300 font-bold"
+                                                        className="block px-4 py-2 text-sm text-primary-400 hover:bg-gray-700 hover:text-primary-300 font-bold"
                                                     >
                                                         Admin Console
                                                     </Link>
@@ -506,7 +506,7 @@ const Navbar = () => {
                                         )}
                                     </div>
                                 ) : (
-                                    <Link to="/login" className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-lg shadow-indigo-500/20">
+                                    <Link to="/login" className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-lg shadow-primary-500/20">
                                         Sign In
                                     </Link>
                                 )}
@@ -596,22 +596,22 @@ const Navbar = () => {
                     <>
                         <div className="xl:hidden fixed bottom-0 left-0 w-full bg-gray-900/95 backdrop-blur-xl border-t border-gray-800 z-50 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
                             <div className="flex justify-around items-center h-16">
-                                <Link to="/dashboard" className={`flex flex-col items-center justify-center w-full h-full ${location.pathname === '/dashboard' ? 'text-indigo-400' : 'text-gray-400 hover:text-gray-200'} `}>
+                                <Link to="/dashboard" className={`flex flex-col items-center justify-center w-full h-full ${location.pathname === '/dashboard' ? 'text-primary-400' : 'text-gray-400 hover:text-gray-200'} `}>
                                     <svg className="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
                                     <span className="text-[10px] uppercase font-bold tracking-wide">Home</span>
                                 </Link>
-                                <Link to="/collection" className={`flex flex-col items-center justify-center w-full h-full ${location.pathname === '/collection' ? 'text-indigo-400' : 'text-gray-400 hover:text-gray-200'} `}>
+                                <Link to="/collection" className={`flex flex-col items-center justify-center w-full h-full ${location.pathname === '/collection' ? 'text-primary-400' : 'text-gray-400 hover:text-gray-200'} `}>
                                     <svg className="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                                     <span className="text-[10px] uppercase font-bold tracking-wide">Cards</span>
                                 </Link>
                                 {/* Center Action Button - Scan/Add? Or just Decks */}
-                                <Link to="/decks" className={`flex flex-col items-center justify-center w-full h-full ${location.pathname.startsWith('/decks') ? 'text-indigo-400' : 'text-gray-400 hover:text-gray-200'} `}>
+                                <Link to="/decks" className={`flex flex-col items-center justify-center w-full h-full ${location.pathname.startsWith('/decks') ? 'text-primary-400' : 'text-gray-400 hover:text-gray-200'} `}>
                                     <svg className="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
                                     <span className="text-[10px] uppercase font-bold tracking-wide">Decks</span>
                                 </Link>
 
                                 {/* Settings (Moved to Main Bar) */}
-                                <Link to="/settings" className={`flex flex-col items-center justify-center w-full h-full ${location.pathname === '/settings' ? 'text-indigo-400' : 'text-gray-400 hover:text-gray-200'} `}>
+                                <Link to="/settings" className={`flex flex-col items-center justify-center w-full h-full ${location.pathname === '/settings' ? 'text-primary-400' : 'text-gray-400 hover:text-gray-200'} `}>
                                     <svg className="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                                     <span className="text-[10px] uppercase font-bold tracking-wide">Settings</span>
                                 </Link>
@@ -644,7 +644,7 @@ const Navbar = () => {
 
                                     <div className="grid grid-cols-4 gap-4">
                                         {[
-                                            { path: '/social', label: 'Social', iconPath: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z', color: 'indigo' },
+                                            { path: '/social', label: 'Social', iconPath: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z', color: 'primary' },
                                             { path: '/wishlist', label: 'Wishlist', iconPath: 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z', color: 'orange' },
                                             { path: '/binders', label: 'Binders', iconPath: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10', color: 'blue' },
                                             { path: '/precons', label: 'Precons', iconPath: 'M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4', color: 'purple' },

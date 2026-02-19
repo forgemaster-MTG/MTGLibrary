@@ -142,7 +142,7 @@ const TradeDetail = () => {
 
     const calculateTotal = (items) => items.reduce((sum, item) => sum + (Number(item.details?.prices?.usd) || 0) * (item.quantity || 1), 0);
 
-    if (loading) return <div className="text-center py-20 animate-pulse text-indigo-400">Loading Negotiation...</div>;
+    if (loading) return <div className="text-center py-20 animate-pulse text-primary-400">Loading Negotiation...</div>;
     if (!trade) return <div className="text-center py-20">Trade not found.</div>;
 
     const myId = userProfile.id;
@@ -262,7 +262,7 @@ const TradeDetail = () => {
                 <div className="grid grid-cols-3 gap-2 xl:gap-4 text-center bg-gray-900/50 p-2 xl:p-3 rounded-lg">
                     <div>
                         <div className="text-[10px] xl:text-xs text-gray-400 uppercase">You</div>
-                        <div className="text-sm xl:text-xl font-bold text-indigo-400">${myTotal.toFixed(2)}</div>
+                        <div className="text-sm xl:text-xl font-bold text-primary-400">${myTotal.toFixed(2)}</div>
                     </div>
                     <div className="flex flex-col justify-center items-center border-x border-gray-700/50">
                         <div className="text-[10px] xl:text-xs text-gray-400 uppercase">Diff</div>
@@ -281,7 +281,7 @@ const TradeDetail = () => {
             <div className="xl:hidden p-1 bg-gray-800 rounded-lg mb-3 flex gap-1 shrink-0">
                 <button
                     onClick={() => setActiveTab('my')}
-                    className={`flex-1 py-1.5 rounded-md text-xs font-bold transition-all ${activeTab === 'my' ? 'bg-indigo-600 text-white shadow' : 'text-gray-400 hover:text-gray-200'}`}
+                    className={`flex-1 py-1.5 rounded-md text-xs font-bold transition-all ${activeTab === 'my' ? 'bg-primary-600 text-white shadow' : 'text-gray-400 hover:text-gray-200'}`}
                 >
                     My Offer
                     {myItems.length > 0 && <span className="ml-1 opacity-75">({myItems.length})</span>}
@@ -306,15 +306,15 @@ const TradeDetail = () => {
 
                 {/* Left: My Offer */}
                 <div className={`xl:col-span-4 xl:flex flex-col gap-4 overflow-hidden bg-gray-800 border border-gray-700 rounded-xl ${activeTab === 'my' ? 'flex h-full' : 'hidden'}`}>
-                    <div className={`p-3 xl:p-4 border-b border-gray-700 flex justify-between items-center ${myAccepted ? 'bg-indigo-900/20' : ''}`}>
-                        <h2 className="text-sm xl:text-lg font-bold text-indigo-400 flex items-center gap-2">
+                    <div className={`p-3 xl:p-4 border-b border-gray-700 flex justify-between items-center ${myAccepted ? 'bg-primary-900/20' : ''}`}>
+                        <h2 className="text-sm xl:text-lg font-bold text-primary-400 flex items-center gap-2">
                             Your Offer
                             {myAccepted && <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>}
                         </h2>
                         {isPending && !items.some(i => i.item_type === 'deck') && (
                             <button
                                 onClick={() => { setModalSource(null); setIsAddModalOpen(true); }}
-                                className="text-xs bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 rounded text-white font-bold"
+                                className="text-xs bg-primary-600 hover:bg-primary-500 px-3 py-1.5 rounded text-white font-bold"
                             >
                                 + Items
                             </button>
@@ -358,7 +358,7 @@ const TradeDetail = () => {
                             {messages.map(msg => (
                                 <div key={msg.id} className={`flex ${msg.user_id === myId ? 'justify-end' : 'justify-start'}`}>
                                     <div className={`max-w-[90%] rounded-lg p-2 text-xs ${msg.user_id === myId
-                                        ? 'bg-indigo-600 text-white'
+                                        ? 'bg-primary-600 text-white'
                                         : 'bg-gray-700 text-gray-200'
                                         }`}>
                                         <div className="font-bold text-[10px] opacity-50 mb-0.5">{msg.username}</div>
@@ -374,9 +374,9 @@ const TradeDetail = () => {
                                 value={newMessage}
                                 onChange={e => setNewMessage(e.target.value)}
                                 placeholder="Message..."
-                                className="flex-1 bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-white focus:ring-1 focus:ring-indigo-500 outline-none"
+                                className="flex-1 bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-white focus:ring-1 focus:ring-primary-500 outline-none"
                             />
-                            <button type="submit" className="p-2 bg-indigo-600 text-white rounded hover:bg-indigo-500">
+                            <button type="submit" className="p-2 bg-primary-600 text-white rounded hover:bg-primary-500">
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
                             </button>
                         </form>
@@ -426,7 +426,7 @@ const TradeDetail = () => {
                                     onClick={handleToggleAccept}
                                     className={`w-full py-3 rounded-lg font-bold text-lg transition-all ${myAccepted
                                         ? 'bg-red-500/10 text-red-400 border border-red-500/50 hover:bg-red-500/20'
-                                        : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20'
+                                        : 'bg-primary-600 hover:bg-primary-500 text-white shadow-lg shadow-primary-500/20'
                                         }`}
                                 >
                                     {myAccepted ? 'Cancel Readiness' : 'Accept Trade'}

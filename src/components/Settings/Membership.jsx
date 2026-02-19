@@ -249,7 +249,7 @@ const Membership = () => {
         return (
             <div
                 onClick={isInteractive ? handleClick : undefined}
-                className={`bg-gray-800/30 border border-gray-700/50 rounded-xl p-4 flex flex-col justify-between min-w-0 ${isInteractive ? 'cursor-pointer hover:bg-gray-800/50 hover:border-indigo-500/30 transition-all' : ''}`}
+                className={`bg-gray-800/30 border border-gray-700/50 rounded-xl p-4 flex flex-col justify-between min-w-0 ${isInteractive ? 'cursor-pointer hover:bg-gray-800/50 hover:border-primary-500/30 transition-all' : ''}`}
             >
                 <div className="flex items-center justify-between mb-3 gap-3 overflow-hidden">
                     <span className="text-gray-300 text-xs font-black uppercase tracking-wider flex items-center gap-2 overflow-hidden">
@@ -369,7 +369,7 @@ const Membership = () => {
                     </h3>
                     <button
                         onClick={() => setShowHistoryModal(true)}
-                        className="text-xs flex items-center gap-1.5 text-indigo-400 hover:text-indigo-300 font-medium transition-colors bg-indigo-500/10 hover:bg-indigo-500/20 px-3 py-1.5 rounded-lg border border-indigo-500/20"
+                        className="text-xs flex items-center gap-1.5 text-primary-400 hover:text-primary-300 font-medium transition-colors bg-primary-500/10 hover:bg-primary-500/20 px-3 py-1.5 rounded-lg border border-primary-500/20"
                     >
                         <History className="w-3.5 h-3.5" />
                         View History

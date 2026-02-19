@@ -7,7 +7,7 @@ const AIStrategyPage = () => {
         <div className="min-h-screen bg-gray-950 text-white relative flex flex-col pt-16">
             {/* Background Effects */}
             <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-600/10 blur-[120px] rounded-full"></div>
+                <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary-600/10 blur-[120px] rounded-full"></div>
                 <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-orange-600/10 blur-[120px] rounded-full"></div>
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(30,27,75,0.2)_0%,transparent_70%)]"></div>
             </div>
@@ -20,13 +20,13 @@ const AIStrategyPage = () => {
                 </Link>
 
                 <div className="max-w-4xl">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 mb-6 text-indigo-400">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-500/10 border border-primary-500/20 mb-6 text-primary-400">
                         <Sparkles className="w-4 h-4" />
                         <span className="text-[10px] font-black uppercase tracking-widest">Actionable Intelligence</span>
                     </div>
                     <h1 className="text-5xl md:text-7xl font-black tracking-tight mb-8 leading-tight">
                         The AI Strategic<br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-500 to-orange-500">
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-400 via-purple-500 to-orange-500">
                             Companion Guide
                         </span>
                     </h1>
@@ -42,11 +42,11 @@ const AIStrategyPage = () => {
                 {/* 0. The Neural Architect (NEW FLAGSHIP) */}
                 <section className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
                     <div className="relative group">
-                        <div className="absolute inset-0 bg-indigo-600/30 blur-[80px] rounded-full scale-75 group-hover:scale-100 transition-transform duration-1000"></div>
+                        <div className="absolute inset-0 bg-primary-600/30 blur-[80px] rounded-full scale-75 group-hover:scale-100 transition-transform duration-1000"></div>
                         <div className="relative bg-black/60 border border-white/10 rounded-[3rem] p-12 backdrop-blur-3xl shadow-2xl">
                             <div className="space-y-8">
                                 <div className="flex justify-between items-center">
-                                    <div className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Neural Synthesis Engine</div>
+                                    <div className="text-[10px] font-black text-primary-400 uppercase tracking-widest">Neural Synthesis Engine</div>
                                     <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
                                 </div>
                                 <div className="space-y-4">
@@ -61,16 +61,16 @@ const AIStrategyPage = () => {
                                         ].map((step, i) => (
                                             <div key={i} className="flex justify-between items-center text-[10px] uppercase font-black tracking-widest text-gray-500">
                                                 <span>{step.l}</span>
-                                                <span className={step.s === '100%' ? 'text-green-400' : 'text-indigo-400'}>{step.s}</span>
+                                                <span className={step.s === '100%' ? 'text-green-400' : 'text-primary-400'}>{step.s}</span>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
-                                <div className="p-6 bg-indigo-500/10 rounded-2xl border border-indigo-500/20">
+                                <div className="p-6 bg-primary-500/10 rounded-2xl border border-primary-500/20">
                                     <div className="text-white font-black text-lg mb-2">The Neural Architect</div>
                                     <div className="text-gray-400 text-sm leading-relaxed">
                                         Generating 100-card Commander list... <br />
-                                        <span className="text-indigo-300">62/100 Cards found in your collection.</span> <br />
+                                        <span className="text-primary-300">62/100 Cards found in your collection.</span> <br />
                                         <span className="text-orange-300">38/100 Cards required for purchase.</span>
                                     </div>
                                 </div>
@@ -78,7 +78,7 @@ const AIStrategyPage = () => {
                         </div>
                     </div>
                     <div className="space-y-8">
-                        <div className="w-20 h-20 bg-indigo-500/20 rounded-3xl flex items-center justify-center text-indigo-400 border border-indigo-500/20 shadow-[0_0_40px_rgba(79,70,229,0.3)]">
+                        <div className="w-20 h-20 bg-primary-500/20 rounded-3xl flex items-center justify-center text-primary-400 border border-primary-500/20 shadow-[0_0_40px_rgba(79,70,229,0.3)]">
                             <Zap className="w-10 h-10" />
                         </div>
                         <h2 className="text-5xl font-black leading-tight">Zero-to-Brews:<br />The Neural Architect</h2>
@@ -92,7 +92,7 @@ const AIStrategyPage = () => {
                                 { t: "Bracket-Targeting", d: "Specify exactly which pod power level you want to compete in." }
                             ].map((item, i) => (
                                 <li key={i} className="flex gap-4">
-                                    <div className="mt-1 w-5 h-5 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 text-[10px] font-black border border-indigo-500/30 shrink-0">
+                                    <div className="mt-1 w-5 h-5 rounded-full bg-primary-500/20 flex items-center justify-center text-primary-400 text-[10px] font-black border border-primary-500/30 shrink-0">
                                         {i + 1}
                                     </div>
                                     <div>
@@ -118,7 +118,7 @@ const AIStrategyPage = () => {
 
                         <div className="space-y-6">
                             <h3 className="text-xl font-bold flex items-center gap-3">
-                                <Target className="w-5 h-5 text-indigo-400" />
+                                <Target className="w-5 h-5 text-primary-400" />
                                 The 1-5 Bracket System
                             </h3>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -129,7 +129,7 @@ const AIStrategyPage = () => {
                                     { t: "0.01 PL Step", d: "Precision tracking of deck shifts." }
                                 ].map((item, i) => (
                                     <div key={i} className="p-4 bg-white/5 rounded-xl border border-white/10">
-                                        <div className="font-black text-indigo-400 text-sm mb-1 uppercase tracking-wider">{item.t}</div>
+                                        <div className="font-black text-primary-400 text-sm mb-1 uppercase tracking-wider">{item.t}</div>
                                         <div className="text-sm text-gray-400">{item.d}</div>
                                     </div>
                                 ))}
@@ -137,7 +137,7 @@ const AIStrategyPage = () => {
                         </div>
                     </div>
                     <div className="relative order-1 lg:order-2 group">
-                        <div className="absolute inset-0 bg-indigo-600/20 blur-[60px] rounded-full scale-75 group-hover:scale-100 transition-transform duration-1000"></div>
+                        <div className="absolute inset-0 bg-primary-600/20 blur-[60px] rounded-full scale-75 group-hover:scale-100 transition-transform duration-1000"></div>
                         <div className="relative bg-gray-900/80 border border-white/10 rounded-[2.5rem] p-8 backdrop-blur-xl shadow-2xl">
                             <div className="space-y-6">
                                 <div className="flex justify-between items-end">
@@ -145,12 +145,12 @@ const AIStrategyPage = () => {
                                         <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Power Level</div>
                                         <div className="text-5xl font-black text-white">7.42</div>
                                     </div>
-                                    <div className="px-4 py-2 bg-indigo-500/20 rounded-lg border border-indigo-500/30 text-indigo-400 font-bold uppercase tracking-widest text-xs">
+                                    <div className="px-4 py-2 bg-primary-500/20 rounded-lg border border-primary-500/30 text-primary-400 font-bold uppercase tracking-widest text-xs">
                                         Bracket 3
                                     </div>
                                 </div>
                                 <div className="h-2 w-full bg-gray-800 rounded-full overflow-hidden">
-                                    <div className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-orange-500 w-[74%]"></div>
+                                    <div className="h-full bg-gradient-to-r from-primary-500 via-purple-500 to-orange-500 w-[74%]"></div>
                                 </div>
                                 <div className="p-4 bg-black/40 rounded-2xl border border-white/5 italic text-gray-400 text-sm leading-relaxed">
                                     "Your deck is highly efficient but lacks sufficient early-game interaction. At Bracket 3, you are vulnerable to faster combo strategies."
@@ -183,7 +183,7 @@ const AIStrategyPage = () => {
                         </div>
                     </div>
                     <div className="space-y-8">
-                        <div className="w-16 h-16 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-400 border border-indigo-500/20">
+                        <div className="w-16 h-16 bg-primary-500/10 rounded-2xl flex items-center justify-center text-primary-400 border border-primary-500/20">
                             <Zap className="w-8 h-8" />
                         </div>
                         <h2 className="text-4xl font-black">Surgical Swaps</h2>
@@ -197,7 +197,7 @@ const AIStrategyPage = () => {
                                 "Identify over-committed resources"
                             ].map((text, i) => (
                                 <li key={i} className="flex items-center gap-3 text-white font-medium">
-                                    <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
+                                    <div className="w-2 h-2 rounded-full bg-primary-500"></div>
                                     {text}
                                 </li>
                             ))}
@@ -230,13 +230,13 @@ const AIStrategyPage = () => {
                 </section>
 
                 {/* Final CTA */}
-                <section className="relative overflow-hidden rounded-[3rem] bg-gradient-to-br from-indigo-600 to-purple-800 p-12 md:p-24 text-center">
+                <section className="relative overflow-hidden rounded-[3rem] bg-gradient-to-br from-primary-600 to-purple-800 p-12 md:p-24 text-center">
                     <div className="absolute inset-0 bg-[url(/MTG-Forge_Logo_Background.png)] bg-cover bg-center mix-blend-overlay opacity-20"></div>
                     <div className="relative z-10 max-w-2xl mx-auto space-y-8">
                         <h2 className="text-4xl md:text-6xl font-black text-white leading-tight">Ready to Forge Your Legends?</h2>
-                        <p className="text-xl text-indigo-100 font-medium">Join the new generation of brewers using Actionable Intelligence to dominate their pods.</p>
+                        <p className="text-xl text-primary-100 font-medium">Join the new generation of brewers using Actionable Intelligence to dominate their pods.</p>
                         <div className="flex flex-col sm:flex-row gap-6 justify-center pt-8">
-                            <Link to="/dashboard" className="px-10 py-5 bg-white text-indigo-900 font-black rounded-2xl shadow-xl hover:scale-105 transition-all">
+                            <Link to="/dashboard" className="px-10 py-5 bg-white text-primary-900 font-black rounded-2xl shadow-xl hover:scale-105 transition-all">
                                 Enter The Forge
                             </Link>
                             <Link to="/pricing" className="px-10 py-5 bg-black/30 backdrop-blur-md text-white border border-white/20 font-black rounded-2xl hover:bg-black/40 transition-all">

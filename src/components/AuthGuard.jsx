@@ -37,7 +37,7 @@ const AuthGuard = ({ children }) => {
     }, [currentUser, userProfile, loading, location, navigate, hasChecked]);
 
     if (loading) {
-        return <div className="min-h-screen bg-gray-900 flex items-center justify-center text-indigo-500">Loading...</div>;
+        return <div className="min-h-screen bg-gray-900 flex items-center justify-center text-primary-500">Loading...</div>;
     }
 
     return children;

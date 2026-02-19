@@ -73,7 +73,7 @@ const CheckoutForm = ({ amount, onCancel, onSuccess }) => {
                 </button>
                 <button
                     disabled={processing || !stripe}
-                    className="flex-1 px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/25 disabled:opacity-50"
+                    className="flex-1 px-4 py-3 bg-primary-600 hover:bg-primary-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-primary-500/25 disabled:opacity-50"
                 >
                     {processing ? 'Processing...' : `Donate $${amount}`}
                 </button>
@@ -140,7 +140,7 @@ const DonationModal = ({ isOpen, onClose }) => {
                                             key={val}
                                             onClick={() => setAmount(val)}
                                             className={`py-4 rounded-xl border font-bold transition-all ${amount === val
-                                                ? 'bg-indigo-600 border-indigo-400 text-white shadow-lg shadow-indigo-500/20 scale-105'
+                                                ? 'bg-primary-600 border-primary-400 text-white shadow-lg shadow-primary-500/20 scale-105'
                                                 : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-500'}`}
                                         >
                                             ${val}
@@ -153,7 +153,7 @@ const DonationModal = ({ isOpen, onClose }) => {
                                         type="number"
                                         value={amount}
                                         onChange={(e) => setAmount(parseFloat(e.target.value) || '')}
-                                        className="w-full bg-gray-800 border border-gray-700 rounded-xl py-3 pl-8 pr-4 text-white font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
+                                        className="w-full bg-gray-800 border border-gray-700 rounded-xl py-3 pl-8 pr-4 text-white font-bold focus:ring-2 focus:ring-primary-500 outline-none"
                                         placeholder="Other amount"
                                     />
                                 </div>
@@ -161,7 +161,7 @@ const DonationModal = ({ isOpen, onClose }) => {
                             <button
                                 onClick={() => handleAmountSelect(amount)}
                                 disabled={loading || !amount || amount < 1}
-                                className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl font-bold text-lg shadow-xl hover:shadow-indigo-500/30 transition-all transform hover:-translate-y-1 disabled:opacity-50"
+                                className="w-full py-4 bg-gradient-to-r from-primary-600 to-purple-600 hover:from-primary-500 hover:to-purple-500 text-white rounded-xl font-bold text-lg shadow-xl hover:shadow-primary-500/30 transition-all transform hover:-translate-y-1 disabled:opacity-50"
                             >
                                 {loading ? 'Loading...' : 'Continue to Payment'}
                             </button>
@@ -204,7 +204,7 @@ const DonationModal = ({ isOpen, onClose }) => {
                                     </div>
                                     <button
                                         onClick={() => setActiveTab('stripe')}
-                                        className="text-indigo-400 text-sm hover:underline font-bold"
+                                        className="text-primary-400 text-sm hover:underline font-bold"
                                     >
                                         Back to Card Payment
                                     </button>
@@ -234,7 +234,7 @@ const DonationModal = ({ isOpen, onClose }) => {
                             </div>
                             <div className="grid grid-cols-1 gap-2">
                                 <p className="text-[10px] text-gray-600 uppercase font-black tracking-[0.2em]">Honorary Title Acquired</p>
-                                <div className="bg-indigo-500/10 border border-indigo-500/30 py-2 px-4 rounded-full inline-block mx-auto text-indigo-300 font-bold text-sm">
+                                <div className="bg-primary-500/10 border border-primary-500/30 py-2 px-4 rounded-full inline-block mx-auto text-primary-300 font-bold text-sm">
                                     Guardian of the Forge
                                 </div>
                             </div>

@@ -9,12 +9,12 @@ const PreconImportModal = ({ isOpen, onClose, onConfirm, ownership }) => {
     // Create prompt content
     return createPortal(
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-            <div className="bg-gray-900 border border-indigo-500/30 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-slide-up">
+            <div className="bg-gray-900 border border-primary-500/30 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-slide-up">
 
                 {/* Header */}
                 <div className="p-6 border-b border-gray-800 bg-gray-900/50">
                     <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                        <svg className="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                        <svg className="w-6 h-6 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                         Import Deck Options
                     </h2>
                 </div>
@@ -22,14 +22,14 @@ const PreconImportModal = ({ isOpen, onClose, onConfirm, ownership }) => {
                 {/* Body */}
                 <div className="p-6 space-y-6">
                     {/* Ownership Status */}
-                    <div className="bg-indigo-900/10 border border-indigo-500/20 rounded-xl p-4">
+                    <div className="bg-primary-900/10 border border-primary-500/20 rounded-xl p-4">
                         <div className="flex justify-between items-end mb-2">
                             <span className="text-gray-400 text-sm font-medium uppercase tracking-wider">Ownership</span>
-                            <span className="text-indigo-300 font-mono font-bold">{percentOwned}%</span>
+                            <span className="text-primary-300 font-mono font-bold">{percentOwned}%</span>
                         </div>
                         <div className="w-full bg-gray-800 rounded-full h-2 mb-2">
                             <div
-                                className="bg-indigo-500 h-2 rounded-full transition-all duration-1000"
+                                className="bg-primary-500 h-2 rounded-full transition-all duration-1000"
                                 style={{ width: `${percentOwned}%` }}
                             />
                         </div>
@@ -44,13 +44,13 @@ const PreconImportModal = ({ isOpen, onClose, onConfirm, ownership }) => {
                         {/* Option 1: Use Existing */}
                         <button
                             onClick={() => onConfirm(true)}
-                            className="w-full flex items-start text-left p-4 rounded-xl border border-indigo-500/30 bg-indigo-900/10 hover:bg-indigo-900/20 transition-all group"
+                            className="w-full flex items-start text-left p-4 rounded-xl border border-primary-500/30 bg-primary-900/10 hover:bg-primary-900/20 transition-all group"
                         >
-                            <div className="mt-1 shrink-0 w-6 h-6 rounded-full border-2 border-indigo-500 flex items-center justify-center mr-4 group-hover:scale-110 transition-transform">
-                                <div className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
+                            <div className="mt-1 shrink-0 w-6 h-6 rounded-full border-2 border-primary-500 flex items-center justify-center mr-4 group-hover:scale-110 transition-transform">
+                                <div className="w-2.5 h-2.5 rounded-full bg-primary-500" />
                             </div>
                             <div>
-                                <h4 className="font-bold text-white group-hover:text-indigo-300 transition-colors">Use Existing Cards</h4>
+                                <h4 className="font-bold text-white group-hover:text-primary-300 transition-colors">Use Existing Cards</h4>
                                 <p className="text-xs text-gray-400 mt-1">
                                     Moves cards from your collection (Binder) into this deck. Best for organizing your physical collection.
                                 </p>

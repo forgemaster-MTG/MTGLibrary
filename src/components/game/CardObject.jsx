@@ -91,10 +91,10 @@ const CardObject = memo(function CardObject({ card, zoneId, isOverlay = false, s
                 onContextMenu={!isOverlay ? handleContextMenu : undefined}
                 className={`
                     relative ${sizeClasses[effectiveSize]} bg-gray-900 border-2 transition-all duration-300
-                    ${isOverlay ? 'border-indigo-500 shadow-2xl scale-110' : 'border-white/10 shadow-lg'}
+                    ${isOverlay ? 'border-primary-500 shadow-2xl scale-110' : 'border-white/10 shadow-lg'}
                     ${card.isToken ? 'border-dashed border-emerald-500/50' : ''}
                     ${(affordable || playableLand) && !isDragging ? 'ring-4 ring-emerald-500/30' : ''}
-                    hover:border-indigo-500/50 hover:shadow-indigo-500/40 hover:scale-[1.05] 
+                    hover:border-primary-500/50 hover:shadow-primary-500/40 hover:scale-[1.05] 
                     cursor-grab active:cursor-grabbing group z-[10] hover:z-[50]
                     ${rotateClass}
                     ${isDragging ? 'opacity-0' : 'opacity-100'}
@@ -147,10 +147,10 @@ const CardContent = memo(function CardContent({ card, isOverlay, size, zoneId })
     return (
         <div className="w-full h-full relative pointer-events-none select-none overflow-hidden rounded-inherit">
             {card.faceDown ? (
-                <div className="w-full h-full bg-indigo-950 rounded-inherit flex items-center justify-center border-4 border-white/5 overflow-hidden">
+                <div className="w-full h-full bg-primary-950 rounded-inherit flex items-center justify-center border-4 border-white/5 overflow-hidden">
                     <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20" />
-                    <div className={`${isLarge ? 'w-24 h-24' : 'w-16 h-16'} rounded-full border-2 border-white/20 bg-indigo-900/30 backdrop-blur-md flex items-center justify-center shadow-2xl`}>
-                        <div className={`${isLarge ? 'w-16 h-16' : 'w-10 h-10'} rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 opacity-50 blur-sm animate-pulse`} />
+                    <div className={`${isLarge ? 'w-24 h-24' : 'w-16 h-16'} rounded-full border-2 border-white/20 bg-primary-900/30 backdrop-blur-md flex items-center justify-center shadow-2xl`}>
+                        <div className={`${isLarge ? 'w-16 h-16' : 'w-10 h-10'} rounded-full bg-gradient-to-br from-primary-500 to-purple-600 opacity-50 blur-sm animate-pulse`} />
                     </div>
                 </div>
             ) : (
@@ -189,7 +189,7 @@ const CardContent = memo(function CardContent({ card, isOverlay, size, zoneId })
                             </div>
                         )}
                         {card.summoningSickness && card.type_line?.includes('Creature') && (
-                            <div className={`${isLarge ? 'w-8 h-8' : 'w-6 h-6'} rounded-full bg-indigo-500/90 backdrop-blur-xl flex items-center justify-center shadow-2xl border border-white/20 animate-in zoom-in duration-300`}>
+                            <div className={`${isLarge ? 'w-8 h-8' : 'w-6 h-6'} rounded-full bg-primary-500/90 backdrop-blur-xl flex items-center justify-center shadow-2xl border border-white/20 animate-in zoom-in duration-300`}>
                                 <span className={`${isLarge ? 'text-sm' : 'text-xs'} font-black text-white italic`}>zZz</span>
                             </div>
                         )}
@@ -223,7 +223,7 @@ const CardContent = memo(function CardContent({ card, isOverlay, size, zoneId })
                     {/* HUD: Counters & Tax Overlay (Top Left) */}
                     <div className={`absolute ${isLarge ? 'top-2 left-2 gap-2' : 'top-1 left-1 gap-1'} flex flex-col z-30 pointer-events-none`}>
                         {p1p1 !== 0 && (
-                            <div className={`bg-indigo-600 text-white rounded-xl ${isLarge ? 'px-2.5 py-1 text-xs' : 'px-1.5 py-0.5 text-[10px]'} font-black shadow-2xl border-2 border-white/20 flex items-center gap-2 animate-in slide-in-from-left-4 duration-300`}>
+                            <div className={`bg-primary-600 text-white rounded-xl ${isLarge ? 'px-2.5 py-1 text-xs' : 'px-1.5 py-0.5 text-[10px]'} font-black shadow-2xl border-2 border-white/20 flex items-center gap-2 animate-in slide-in-from-left-4 duration-300`}>
                                 <span className="opacity-70 text-[10px] uppercase tracking-tighter hidden md:inline">Counters</span>
                                 <span className={isLarge ? 'text-sm' : 'text-xs'}>{p1p1 > 0 ? `+${p1p1}` : p1p1}</span>
                             </div>
@@ -238,7 +238,7 @@ const CardContent = memo(function CardContent({ card, isOverlay, size, zoneId })
                 </div>
             )}
             {!isOverlay && !card.faceDown && (
-                <div className="absolute inset-0 bg-indigo-500/0 group-hover:bg-indigo-500/5 transition-colors pointer-events-none rounded-inherit" />
+                <div className="absolute inset-0 bg-primary-500/0 group-hover:bg-primary-500/5 transition-colors pointer-events-none rounded-inherit" />
             )}
         </div>
     );

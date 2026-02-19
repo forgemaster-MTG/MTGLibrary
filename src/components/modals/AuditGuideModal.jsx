@@ -10,9 +10,9 @@ const AuditGuideModal = ({ isOpen, onClose }) => {
             <div className="bg-gray-900 border border-white/10 rounded-3xl w-full max-w-3xl relative z-10 shadow-2xl overflow-hidden animate-fade-in-up flex flex-col max-h-[90vh]">
 
                 {/* Header */}
-                <div className="p-6 border-b border-white/5 bg-gradient-to-r from-indigo-900 to-gray-900 flex justify-between items-center">
+                <div className="p-6 border-b border-white/5 bg-gradient-to-r from-primary-900 to-gray-900 flex justify-between items-center">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 bg-indigo-500/20 rounded-xl text-indigo-400">
+                        <div className="p-2 bg-primary-500/20 rounded-xl text-primary-400">
                             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
                         </div>
                         <div>
@@ -79,15 +79,15 @@ const AuditGuideModal = ({ isOpen, onClose }) => {
                         <p className="text-gray-300 text-sm leading-relaxed mb-4">
                             Once you've touched every card in a section (Deck or Set), mark it as "Finished".
                         </p>
-                        <div className="bg-black/40 p-4 rounded-xl border border-indigo-500/30">
-                            <p className="text-xs text-indigo-300 font-medium">
+                        <div className="bg-black/40 p-4 rounded-xl border border-primary-500/30">
+                            <p className="text-xs text-primary-300 font-medium">
                                 When the entire audit is complete, use the **Finalize Audit** button in the Hub. This will sync all your Mismatches to your actual collection database, ensuring your digital records match your physical boxes.
                             </p>
                         </div>
                     </section>
 
                     {/* Section 4: Pro Tips */}
-                    <section className="bg-gradient-to-br from-indigo-900/40 to-purple-900/40 p-6 rounded-3xl border border-indigo-500/20">
+                    <section className="bg-gradient-to-br from-primary-900/40 to-purple-900/40 p-6 rounded-3xl border border-primary-500/20">
                         <h3 className="text-lg font-bold text-white mb-2">💡 Pro Tips</h3>
                         <div className="space-y-3">
                             <div className="flex gap-3">
@@ -111,7 +111,7 @@ const AuditGuideModal = ({ isOpen, onClose }) => {
                 <div className="p-6 bg-gray-950 border-t border-white/5 flex justify-end">
                     <button
                         onClick={onClose}
-                        className="px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-all font-black text-sm shadow-xl shadow-indigo-900/20 active:scale-95"
+                        className="px-8 py-3 bg-primary-600 hover:bg-primary-500 text-white rounded-xl transition-all font-black text-sm shadow-xl shadow-primary-900/20 active:scale-95"
                     >
                         Start Auditing
                     </button>

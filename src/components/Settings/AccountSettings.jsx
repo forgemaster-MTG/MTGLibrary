@@ -90,7 +90,7 @@ const AccountSettings = () => {
                     <button
                         onClick={handleSaveProfile}
                         disabled={saving}
-                        className={`bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-6 rounded-lg shadow-lg shadow-indigo-500/20 transition-all ${saving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`bg-primary-600 hover:bg-primary-500 text-white font-bold py-2 px-6 rounded-lg shadow-lg shadow-primary-500/20 transition-all ${saving ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                         {saving ? 'Saving...' : 'Save Changes'}
                     </button>
@@ -103,7 +103,7 @@ const AccountSettings = () => {
                             type="text"
                             value={firstName}
                             onChange={(e) => setFirstName(e.target.value)}
-                            className="w-full bg-gray-900 border border-gray-700 p-2.5 rounded-lg text-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                            className="w-full bg-gray-900 border border-gray-700 p-2.5 rounded-lg text-gray-200 focus:ring-2 focus:ring-primary-500 outline-none"
                         />
                     </div>
                     <div className="space-y-1">
@@ -112,7 +112,7 @@ const AccountSettings = () => {
                             type="text"
                             value={lastName}
                             onChange={(e) => setLastName(e.target.value)}
-                            className="w-full bg-gray-900 border border-gray-700 p-2.5 rounded-lg text-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                            className="w-full bg-gray-900 border border-gray-700 p-2.5 rounded-lg text-gray-200 focus:ring-2 focus:ring-primary-500 outline-none"
                         />
                     </div>
                 </div>
@@ -124,7 +124,7 @@ const AccountSettings = () => {
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                         placeholder="Enter username..."
-                        className="w-full bg-gray-900 border border-gray-700 p-2.5 rounded-lg text-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                        className="w-full bg-gray-900 border border-gray-700 p-2.5 rounded-lg text-gray-200 focus:ring-2 focus:ring-primary-500 outline-none"
                     />
                 </div>
 
@@ -143,7 +143,7 @@ const AccountSettings = () => {
                                 onChange={(e) => setIsPublic(e.target.checked)}
                                 className="sr-only peer"
                             />
-                            <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                            <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
                         </label>
                     </div>
 
@@ -156,7 +156,7 @@ const AccountSettings = () => {
                                     value={avatar}
                                     onChange={(e) => setAvatar(e.target.value)}
                                     placeholder="https://example.com/avatar.jpg"
-                                    className="w-full bg-gray-900 border border-gray-700 p-2.5 rounded-lg text-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    className="w-full bg-gray-900 border border-gray-700 p-2.5 rounded-lg text-gray-200 focus:ring-2 focus:ring-primary-500 outline-none"
                                 />
                             </div>
                             <div className="w-10 h-10 rounded-full bg-gray-700 overflow-hidden flex-shrink-0 border border-gray-600">
@@ -176,7 +176,7 @@ const AccountSettings = () => {
                             onChange={(e) => setBio(e.target.value)}
                             placeholder="Tell us about yourself..."
                             rows={3}
-                            className="w-full bg-gray-900 border border-gray-700 p-2.5 rounded-lg text-gray-200 focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
+                            className="w-full bg-gray-900 border border-gray-700 p-2.5 rounded-lg text-gray-200 focus:ring-2 focus:ring-primary-500 outline-none resize-none"
                         />
                     </div>
                 </div>
@@ -210,7 +210,7 @@ const AccountSettings = () => {
                             <button
                                 onClick={handleVerifyEmail}
                                 disabled={verifyLoading}
-                                className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors font-medium"
+                                className="text-xs text-primary-400 hover:text-primary-300 transition-colors font-medium"
                             >
                                 {verifyLoading ? 'Sending...' : 'Send Verification'}
                             </button>
@@ -225,7 +225,7 @@ const AccountSettings = () => {
                         <button
                             onClick={handlePasswordReset}
                             disabled={resetLoading}
-                            className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors font-medium disabled:opacity-50"
+                            className="text-xs text-primary-400 hover:text-primary-300 transition-colors font-medium disabled:opacity-50"
                         >
                             {resetLoading ? 'Sending...' : 'Reset Password'}
                         </button>

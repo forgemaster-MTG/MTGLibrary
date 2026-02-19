@@ -255,7 +255,7 @@ const BulkCollectionImportModal = ({ isOpen, onClose }) => {
                                 value={rawText}
                                 onChange={(e) => setRawText(e.target.value)}
                                 placeholder="Paste your list here..."
-                                className="w-full h-80 bg-gray-800/50 border border-gray-700 text-gray-200 p-4 rounded-xl font-mono focus:ring-2 focus:ring-indigo-500 outline-none resize-none text-sm"
+                                className="w-full h-80 bg-gray-800/50 border border-gray-700 text-gray-200 p-4 rounded-xl font-mono focus:ring-2 focus:ring-primary-500 outline-none resize-none text-sm"
                             />
                         </div>
                     )}
@@ -267,7 +267,7 @@ const BulkCollectionImportModal = ({ isOpen, onClose }) => {
                                 <label className="block text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">Apply Tags to Batch</label>
                                 <div className="flex flex-wrap gap-2 mb-2">
                                     {bulkTags.map(tag => (
-                                        <span key={tag} className="bg-indigo-600 text-white px-2 py-1 rounded text-sm flex items-center gap-1">
+                                        <span key={tag} className="bg-primary-600 text-white px-2 py-1 rounded text-sm flex items-center gap-1">
                                             {tag}
                                             <button onClick={() => setBulkTags(bulkTags.filter(t => t !== tag))} className="hover:text-red-300">×</button>
                                         </span>
@@ -359,7 +359,7 @@ const BulkCollectionImportModal = ({ isOpen, onClose }) => {
                                                 <td className="p-3">
                                                     <div className="flex flex-wrap gap-1">
                                                         {JSON.parse(item.tags).map(t => (
-                                                            <span key={t} className="px-1.5 py-0.5 rounded text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                                                            <span key={t} className="px-1.5 py-0.5 rounded text-[10px] bg-primary-500/20 text-primary-300 border border-primary-500/30">
                                                                 {t}
                                                             </span>
                                                         ))}
@@ -382,7 +382,7 @@ const BulkCollectionImportModal = ({ isOpen, onClose }) => {
                             <button
                                 onClick={handleParse}
                                 disabled={isProcessing || !rawText.trim()}
-                                className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg flex items-center gap-2"
+                                className="bg-primary-600 hover:bg-primary-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg flex items-center gap-2"
                             >
                                 {isProcessing ? (
                                     <>
@@ -411,7 +411,7 @@ const BulkCollectionImportModal = ({ isOpen, onClose }) => {
                             <div />
                             <button
                                 onClick={onClose}
-                                className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg"
+                                className="bg-primary-600 hover:bg-primary-500 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg"
                             >
                                 Done
                             </button>

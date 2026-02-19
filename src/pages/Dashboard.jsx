@@ -217,7 +217,7 @@ const SortableWidget = ({ id, widgetKey, editMode, data, actions, containerId, s
                     <div
                         {...attributes}
                         {...listeners}
-                        className={`bg-indigo-600 rounded-full cursor-grab active:cursor-grabbing hover:bg-indigo-500 border border-indigo-400 text-white shadow-lg transition-transform hover:scale-110 ${size === 'xs' ? 'p-1' : 'p-1.5'}`}
+                        className={`bg-primary-600 rounded-full cursor-grab active:cursor-grabbing hover:bg-primary-500 border border-primary-400 text-white shadow-lg transition-transform hover:scale-110 ${size === 'xs' ? 'p-1' : 'p-1.5'}`}
                         title="Drag to Move"
                     >
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" /></svg>
@@ -226,7 +226,7 @@ const SortableWidget = ({ id, widgetKey, editMode, data, actions, containerId, s
             )}
 
             {/* Widget Content - Add overflow-hidden here */}
-            <div className={`h-full overflow-hidden rounded-3xl ${editMode ? 'ring-2 ring-indigo-500/30 pointer-events-none' : ''}`}>
+            <div className={`h-full overflow-hidden rounded-3xl ${editMode ? 'ring-2 ring-primary-500/30 pointer-events-none' : ''}`}>
                 <Component data={data} actions={actions} size={size} />
             </div>
 
@@ -237,10 +237,10 @@ const SortableWidget = ({ id, widgetKey, editMode, data, actions, containerId, s
                     className="absolute bottom-1 right-1 w-10 h-10 cursor-nwse-resize z-50 flex items-end justify-end p-1 group/resize hover:scale-110 transition-transform pointer-events-auto"
                     title="Drag corner to resize"
                 >
-                    <div className="w-5 h-5 border-r-4 border-b-4 border-indigo-500/50 rounded-br-lg group-hover/resize:border-indigo-400" />
+                    <div className="w-5 h-5 border-r-4 border-b-4 border-primary-500/50 rounded-br-lg group-hover/resize:border-primary-400" />
                     {/* Add diagonal lines icon to look like a resize handle */}
                     <div className="absolute inset-0 flex items-end justify-end p-2 opacity-50 group-hover/resize:opacity-100">
-                        <svg className="w-3 h-3 text-indigo-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                        <svg className="w-3 h-3 text-primary-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
                             <line x1="21" y1="15" x2="15" y2="21" />
                             <line x1="21" y1="9" x2="9" y2="21" />
                         </svg>
@@ -661,11 +661,11 @@ const Dashboard = () => {
                         {isLayoutMenuOpen && (
                             <>
                                 <div className="fixed inset-0 z-40 cursor-default" onClick={() => setIsLayoutMenuOpen(false)}></div>
-                                <div className="absolute bottom-full left-0 mb-4 w-full bg-gray-900 border border-indigo-500/30 rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-slide-up-fast min-w-[200px]">
+                                <div className="absolute bottom-full left-0 mb-4 w-full bg-gray-900 border border-primary-500/30 rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-slide-up-fast min-w-[200px]">
                                     <div className="p-2 border-b border-white/5 bg-gray-950/50">
                                         <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-2 py-1">Presets</div>
                                         {Object.keys(PRESETS).map(key => (
-                                            <button key={key} onClick={() => { handleLoadLayout(key); setIsLayoutMenuOpen(false); }} className="w-full text-left px-2 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg transition-colors active:bg-indigo-600/20">
+                                            <button key={key} onClick={() => { handleLoadLayout(key); setIsLayoutMenuOpen(false); }} className="w-full text-left px-2 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg transition-colors active:bg-primary-600/20">
                                                 {key}
                                             </button>
                                         ))}
@@ -686,7 +686,7 @@ const Dashboard = () => {
                                                             handleLoadLayout(key);
                                                             setIsLayoutMenuOpen(false);
                                                         }}
-                                                        className="flex-grow text-left px-2 py-2 text-sm text-gray-300 group-hover/item:text-white truncate transition-colors font-medium active:text-indigo-400"
+                                                        className="flex-grow text-left px-2 py-2 text-sm text-gray-300 group-hover/item:text-white truncate transition-colors font-medium active:text-primary-400"
                                                     >
                                                         {key}
                                                     </button>
@@ -714,15 +714,15 @@ const Dashboard = () => {
                                     </div>
 
                                     <div className="p-2 border-t border-white/5 bg-gray-950/50 grid grid-cols-3 gap-2">
-                                        <button onClick={() => { handleImport(); setIsLayoutMenuOpen(false); }} className="p-2 rounded-lg bg-indigo-500/5 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 flex flex-col items-center gap-1 text-[10px] font-bold transition-all border border-indigo-500/10" title="Import">
+                                        <button onClick={() => { handleImport(); setIsLayoutMenuOpen(false); }} className="p-2 rounded-lg bg-primary-500/5 hover:bg-primary-500/20 text-primary-400 hover:text-primary-300 flex flex-col items-center gap-1 text-[10px] font-bold transition-all border border-primary-500/10" title="Import">
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                                             Import
                                         </button>
-                                        <button onClick={() => { handleSaveAs(); setIsLayoutMenuOpen(false); }} className="p-2 rounded-lg bg-indigo-500/5 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 flex flex-col items-center gap-1 text-[10px] font-bold transition-all border border-indigo-500/10" title="Save">
+                                        <button onClick={() => { handleSaveAs(); setIsLayoutMenuOpen(false); }} className="p-2 rounded-lg bg-primary-500/5 hover:bg-primary-500/20 text-primary-400 hover:text-primary-300 flex flex-col items-center gap-1 text-[10px] font-bold transition-all border border-primary-500/10" title="Save">
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                                             Save New
                                         </button>
-                                        <button onClick={() => { handleShare(); setIsLayoutMenuOpen(false); }} className="p-2 rounded-lg bg-indigo-500/5 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 flex flex-col items-center gap-1 text-[10px] font-bold transition-all border border-indigo-500/10" title="Share">
+                                        <button onClick={() => { handleShare(); setIsLayoutMenuOpen(false); }} className="p-2 rounded-lg bg-primary-500/5 hover:bg-primary-500/20 text-primary-400 hover:text-primary-300 flex flex-col items-center gap-1 text-[10px] font-bold transition-all border border-primary-500/10" title="Share">
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
                                             Share
                                         </button>
@@ -735,11 +735,11 @@ const Dashboard = () => {
 
                         <div className="flex items-center gap-4">
                             <div className="flex items-center gap-2 min-w-fit">
-                                <span className={`text-xs font-black uppercase tracking-tighter ${editMode ? 'text-indigo-400' : 'text-gray-500'}`}>{editMode ? 'Done' : 'Edit'}</span>
+                                <span className={`text-xs font-black uppercase tracking-tighter ${editMode ? 'text-primary-400' : 'text-gray-500'}`}>{editMode ? 'Done' : 'Edit'}</span>
                                 <Switch
                                     checked={editMode}
                                     onChange={toggleEditMode}
-                                    className={`${editMode ? 'bg-indigo-600' : 'bg-gray-700'} relative inline-flex h-5 w-9 items-center rounded-full transition-colors shadow-inner`}
+                                    className={`${editMode ? 'bg-primary-600' : 'bg-gray-700'} relative inline-flex h-5 w-9 items-center rounded-full transition-colors shadow-inner`}
                                 >
                                     <span className={`${editMode ? 'translate-x-5' : 'translate-x-1'} inline-block h-3 w-3 transform rounded-full bg-white transition-transform`} />
                                 </Switch>
@@ -749,8 +749,8 @@ const Dashboard = () => {
                                 <button
                                     onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                                     className={`p-1.5 rounded border transition-all ${editMode && !isSidebarOpen
-                                        ? 'bg-indigo-600/20 text-indigo-400 border-indigo-500/50 animate-bounce'
-                                        : 'hover:bg-indigo-600/20 text-indigo-400 border-indigo-500/30'
+                                        ? 'bg-primary-600/20 text-primary-400 border-primary-500/50 animate-bounce'
+                                        : 'hover:bg-primary-600/20 text-primary-400 border-primary-500/30'
                                         }`}
                                     title="Forge Library"
                                 >
@@ -802,7 +802,7 @@ const Dashboard = () => {
                                         w-full md:w-auto px-6 py-2 rounded-lg font-bold transition-all shadow-lg whitespace-nowrap
                                         ${isLow
                                             ? 'bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white'
-                                            : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white'
+                                            : 'bg-gradient-to-r from-blue-600 to-primary-600 hover:from-blue-500 hover:to-primary-500 text-white'
                                         }
                                     `}
                                 >
@@ -816,10 +816,10 @@ const Dashboard = () => {
 
             <div className="relative z-10 max-w-7xl mx-auto px-6 py-12 space-y-8 animate-fade-in w-full">
                 {/* Feedback Banner */}
-                <div className="bg-indigo-500/10 border border-indigo-500/30 rounded-xl p-4 flex items-start gap-3 backdrop-blur-md">
+                <div className="bg-primary-500/10 border border-primary-500/30 rounded-xl p-4 flex items-start gap-3 backdrop-blur-md">
                     <span className="text-xl">💡</span>
                     <div>
-                        <h3 className="font-bold text-indigo-400 text-sm">Looking for Default Layout suggestions!</h3>
+                        <h3 className="font-bold text-primary-400 text-sm">Looking for Default Layout suggestions!</h3>
                         <p className="text-xs text-gray-300 mt-1 leading-relaxed">
                             Layouts are awkward atm to promote suggestions. When editing, click the share icon up at the top and send me your suggestion with a description of what it is.
                         </p>
@@ -830,7 +830,7 @@ const Dashboard = () => {
                 <div className={`relative z-50 flex flex-col md:flex-row gap-4 ${editMode ? 'justify-center items-center' : 'justify-between items-end'}`}>
                     <div className={`text-center md:text-left ${editMode ? 'opacity-50 scale-90 transition-all' : ''}`}>
                         <h1 className="text-4xl font-black text-white tracking-tight mb-2">Dashboard</h1>
-                        <p className="text-gray-400">Welcome back, <span className="text-indigo-400 font-bold">{currentUser ? (currentUser.displayName || currentUser.email) : 'Guest'}</span>.</p>
+                        <p className="text-gray-400">Welcome back, <span className="text-primary-400 font-bold">{currentUser ? (currentUser.displayName || currentUser.email) : 'Guest'}</span>.</p>
                     </div>
                     {/* Dashboard Controls: Desktop Only (Hidden on Mobile) */}
                     <div className={`hidden md:flex items-center gap-3 bg-gray-900/50 p-2 rounded-xl backdrop-blur-md border border-white/5`}>
@@ -844,11 +844,11 @@ const Dashboard = () => {
                         <div className="h-4 w-px bg-white/10 mx-1" />
 
                         <div className="flex items-center gap-2">
-                            <span className={`text-[10px] font-bold uppercase tracking-wider ${editMode ? 'text-indigo-400' : 'text-gray-500'}`}>{editMode ? 'Done' : 'Customize'}</span>
+                            <span className={`text-[10px] font-bold uppercase tracking-wider ${editMode ? 'text-primary-400' : 'text-gray-500'}`}>{editMode ? 'Done' : 'Customize'}</span>
                             <Switch
                                 checked={editMode}
                                 onChange={toggleEditMode}
-                                className={`${editMode ? 'bg-indigo-600' : 'bg-gray-700'} relative inline-flex h-5 w-10 items-center rounded-full transition-colors`}
+                                className={`${editMode ? 'bg-primary-600' : 'bg-gray-700'} relative inline-flex h-5 w-10 items-center rounded-full transition-colors`}
                             >
                                 <span className={`${editMode ? 'translate-x-6' : 'translate-x-1'} inline-block h-3 w-3 transform rounded-full bg-white transition-transform`} />
                             </Switch>
@@ -858,11 +858,11 @@ const Dashboard = () => {
                         {isLayoutMenuOpen && (
                             <>
                                 <div className="fixed inset-0 z-40 cursor-default" onClick={() => setIsLayoutMenuOpen(false)}></div>
-                                <div className={`absolute top-full mt-2 w-72 bg-gray-900 border border-indigo-500/30 rounded-xl shadow-2xl z-[100] overflow-hidden flex flex-col animate-fade-in-down ${editMode ? 'left-1/2 -translate-x-1/2 origin-top' : 'right-0 origin-top-right'}`}>
+                                <div className={`absolute top-full mt-2 w-72 bg-gray-900 border border-primary-500/30 rounded-xl shadow-2xl z-[100] overflow-hidden flex flex-col animate-fade-in-down ${editMode ? 'left-1/2 -translate-x-1/2 origin-top' : 'right-0 origin-top-right'}`}>
                                     <div className="p-2 border-b border-white/5 bg-gray-950/50">
                                         <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-2 py-1">Presets</div>
                                         {Object.keys(PRESETS).map(key => (
-                                            <button key={key} onClick={() => { handleLoadLayout(key); setIsLayoutMenuOpen(false); }} className="w-full text-left px-2 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg transition-colors active:bg-indigo-600/20">
+                                            <button key={key} onClick={() => { handleLoadLayout(key); setIsLayoutMenuOpen(false); }} className="w-full text-left px-2 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg transition-colors active:bg-primary-600/20">
                                                 {key}
                                             </button>
                                         ))}
@@ -883,7 +883,7 @@ const Dashboard = () => {
                                                             handleLoadLayout(key);
                                                             setIsLayoutMenuOpen(false);
                                                         }}
-                                                        className="flex-grow text-left px-2 py-2 text-sm text-gray-300 group-hover/item:text-white truncate transition-colors font-medium active:text-indigo-400"
+                                                        className="flex-grow text-left px-2 py-2 text-sm text-gray-300 group-hover/item:text-white truncate transition-colors font-medium active:text-primary-400"
                                                     >
                                                         {key}
                                                     </button>
@@ -911,15 +911,15 @@ const Dashboard = () => {
                                     </div>
 
                                     <div className="p-2 border-t border-white/5 bg-gray-950/50 grid grid-cols-3 gap-2">
-                                        <button onClick={() => { handleImport(); setIsLayoutMenuOpen(false); }} className="p-2 rounded-lg bg-indigo-500/5 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 flex flex-col items-center gap-1 text-[10px] font-bold transition-all border border-indigo-500/10" title="Import">
+                                        <button onClick={() => { handleImport(); setIsLayoutMenuOpen(false); }} className="p-2 rounded-lg bg-primary-500/5 hover:bg-primary-500/20 text-primary-400 hover:text-primary-300 flex flex-col items-center gap-1 text-[10px] font-bold transition-all border border-primary-500/10" title="Import">
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                                             Import
                                         </button>
-                                        <button onClick={() => { handleSaveAs(); setIsLayoutMenuOpen(false); }} className="p-2 rounded-lg bg-indigo-500/5 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 flex flex-col items-center gap-1 text-[10px] font-bold transition-all border border-indigo-500/10" title="Save As">
+                                        <button onClick={() => { handleSaveAs(); setIsLayoutMenuOpen(false); }} className="p-2 rounded-lg bg-primary-500/5 hover:bg-primary-500/20 text-primary-400 hover:text-primary-300 flex flex-col items-center gap-1 text-[10px] font-bold transition-all border border-primary-500/10" title="Save As">
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                                             Save New
                                         </button>
-                                        <button onClick={() => { handleShare(); setIsLayoutMenuOpen(false); }} className="p-2 rounded-lg bg-indigo-500/5 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 flex flex-col items-center gap-1 text-[10px] font-bold transition-all border border-indigo-500/10" title="Share (Copy Code)">
+                                        <button onClick={() => { handleShare(); setIsLayoutMenuOpen(false); }} className="p-2 rounded-lg bg-primary-500/5 hover:bg-primary-500/20 text-primary-400 hover:text-primary-300 flex flex-col items-center gap-1 text-[10px] font-bold transition-all border border-primary-500/10" title="Share (Copy Code)">
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
                                             Share
                                         </button>
@@ -959,8 +959,8 @@ const Dashboard = () => {
                             {/* Empty State */}
                             {(!layout.grid || layout.grid.length === 0) && (
                                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-20">
-                                    <div className="bg-gray-900/90 backdrop-blur-xl border border-indigo-500/30 p-8 rounded-3xl text-center shadow-2xl max-w-lg pointer-events-auto">
-                                        <div className="w-20 h-20 bg-indigo-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                                    <div className="bg-gray-900/90 backdrop-blur-xl border border-primary-500/30 p-8 rounded-3xl text-center shadow-2xl max-w-lg pointer-events-auto">
+                                        <div className="w-20 h-20 bg-primary-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
                                             <span className="text-4xl">✨</span>
                                         </div>
                                         <h2 className="text-2xl font-bold text-white mb-2">Your Dashboard is Empty</h2>
@@ -969,7 +969,7 @@ const Dashboard = () => {
                                         <div className="flex gap-4 justify-center">
                                             <button
                                                 onClick={() => handleLoadLayout('Starter Standard')} // Assuming 'Starter Standard' exists in presets? Checking file... DEFAULT_PRESETS usually has 'Default'
-                                                className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-500/20 transition-all flex items-center gap-2"
+                                                className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold shadow-lg shadow-primary-500/20 transition-all flex items-center gap-2"
                                             >
                                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                                                 Load Preset
@@ -990,8 +990,8 @@ const Dashboard = () => {
                             {editMode && (
                                 <div className="absolute inset-0 grid grid-cols-12 gap-3 pointer-events-none z-0 select-none">
                                     {Array.from({ length: 12 }).map((_, i) => (
-                                        <div key={i} className="h-full border-x border-dashed border-indigo-500/10 bg-indigo-500/5 flex items-start justify-center pt-2 -mt-6">
-                                            <span className="text-[9px] font-black text-indigo-400/50 uppercase tracking-wider">Col {i + 1}</span>
+                                        <div key={i} className="h-full border-x border-dashed border-primary-500/10 bg-primary-500/5 flex items-start justify-center pt-2 -mt-6">
+                                            <span className="text-[9px] font-black text-primary-400/50 uppercase tracking-wider">Col {i + 1}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -1052,7 +1052,7 @@ const Dashboard = () => {
                                 }[size] || 'w-[400px] h-[200px]';
 
                                 return (
-                                    <div className={`${sizeClass} overflow-hidden rounded-3xl shadow-2xl ring-2 ring-indigo-500/50 cursor-grabbing bg-gray-900 z-50`}>
+                                    <div className={`${sizeClass} overflow-hidden rounded-3xl shadow-2xl ring-2 ring-primary-500/50 cursor-grabbing bg-gray-900 z-50`}>
                                         {Component ? (
                                             <div className="h-full pointer-events-none p-1">
                                                 <Component data={dashboardData} actions={dashboardActions} size={size} />

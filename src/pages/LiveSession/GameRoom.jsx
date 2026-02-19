@@ -353,7 +353,7 @@ const GameRoom = () => {
                         <select
                             value={selectedDeckId || ''}
                             onChange={(e) => setSelectedDeckId(e.target.value)}
-                            className="w-full bg-gray-900 border border-gray-700 rounded-xl p-4 text-white focus:ring-2 focus:ring-indigo-500 outline-none text-lg"
+                            className="w-full bg-gray-900 border border-gray-700 rounded-xl p-4 text-white focus:ring-2 focus:ring-primary-500 outline-none text-lg"
                         >
                             <option value="">-- Select a Deck --</option>
                             <option value="generic">Generic Deck (No stats)</option>
@@ -372,7 +372,7 @@ const GameRoom = () => {
                                 }
                             }}
                             disabled={!selectedDeckId}
-                            className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold text-lg shadow-lg shadow-indigo-900/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                            className="w-full py-4 bg-primary-600 hover:bg-primary-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold text-lg shadow-lg shadow-primary-900/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
                         >
                             <Play className="w-5 h-5 fill-current" />
                             Join Game
@@ -395,7 +395,7 @@ const GameRoom = () => {
     if (isLoading || !gameState) {
         return (
             <div className="flex flex-col items-center justify-center min-h-screen bg-gray-950 space-y-4">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
                 <div className="text-gray-500 text-xs uppercase tracking-widest font-bold">Connecting to War Room...</div>
             </div>
         );
@@ -411,7 +411,7 @@ const GameRoom = () => {
             {/* Top Bar: Opponents */}
             <div className="flex-1 bg-gray-900 grid grid-cols-2 gap-px border-b border-gray-800">
                 {opponents.length > 0 ? opponents.map(opp => (
-                    <div key={opp.id} className={`relative flex flex-col items-center justify-center bg-gray-900 p-2 border group transition-colors duration-500 ${gameState.activePlayerId === opp.id ? 'border-indigo-500 shadow-[inset_0_0_20px_rgba(79,70,229,0.2)]' : 'border-black/20'}`}>
+                    <div key={opp.id} className={`relative flex flex-col items-center justify-center bg-gray-900 p-2 border group transition-colors duration-500 ${gameState.activePlayerId === opp.id ? 'border-primary-500 shadow-[inset_0_0_20px_rgba(79,70,229,0.2)]' : 'border-black/20'}`}>
                         <span className="text-gray-500 text-[10px] font-bold uppercase tracking-widest absolute top-2 w-full text-center truncate px-2">{opp.name}</span>
                         <span className="text-4xl font-black text-white/90 mb-2">{opp.life}</span>
                         {renderOpponentCounters(opp)}
@@ -427,7 +427,7 @@ const GameRoom = () => {
             {/* Middle Info Bar (Turn, PIN) */}
             <div className="h-12 bg-gray-950 shrink-0 flex items-center justify-between px-4 border-y border-white/5 z-20">
                 <div className="text-xs font-bold text-gray-500 flex items-center gap-4">
-                    <span>PIN: <span className="text-indigo-400 font-mono tracking-widest ml-1">{pin}</span></span>
+                    <span>PIN: <span className="text-primary-400 font-mono tracking-widest ml-1">{pin}</span></span>
                     {gameState.turnCount > 0 && (
                         <span className="bg-white/10 px-2 py-0.5 rounded text-gray-300">Turn {gameState.turnCount}</span>
                     )}
@@ -459,7 +459,7 @@ const GameRoom = () => {
             </div>
 
             {/* Bottom Bar: My Stats */}
-            <div className={`flex-[2] bg-gray-950 relative group transition-all duration-500 ${gameState.activePlayerId === myPlayerId ? 'shadow-[inset_0_0_30px_rgba(79,70,229,0.15)] border-t-2 border-indigo-500' : ''}`}>
+            <div className={`flex-[2] bg-gray-950 relative group transition-all duration-500 ${gameState.activePlayerId === myPlayerId ? 'shadow-[inset_0_0_30px_rgba(79,70,229,0.15)] border-t-2 border-primary-500' : ''}`}>
                 <LifeCounter
                     life={myPlayer.life}
                     isSelf={true}
@@ -482,7 +482,7 @@ const GameRoom = () => {
                         onClick={handleUndo}
                         className="bg-gray-800/90 text-white px-6 py-3 rounded-full shadow-2xl border border-white/10 flex items-center gap-3 hover:bg-gray-700 transition-colors backdrop-blur-md"
                     >
-                        <svg className="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
+                        <svg className="w-5 h-5 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
                         <div className="flex flex-col items-start leading-none">
                             <span className="text-xs font-bold uppercase text-gray-400">Undo</span>
                             <span className="font-bold text-sm">
@@ -517,7 +517,7 @@ const GameRoom = () => {
                         <div className="pt-2">
                             <div className="inline-block bg-white/10 rounded px-4 py-2 border border-white/20">
                                 <span className="text-gray-400 text-xs font-bold uppercase tracking-widest mr-2">Session PIN</span>
-                                <span className="text-2xl font-mono font-bold text-indigo-400 tracking-widest">{pin}</span>
+                                <span className="text-2xl font-mono font-bold text-primary-400 tracking-widest">{pin}</span>
                             </div>
                         </div>
                     </div>
@@ -532,10 +532,10 @@ const GameRoom = () => {
                                     <button
                                         key={p.id}
                                         onClick={() => handleStartGame(p.id)}
-                                        className="w-full p-4 bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-indigo-500 text-left rounded-xl transition-all flex items-center justify-between group"
+                                        className="w-full p-4 bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-primary-500 text-left rounded-xl transition-all flex items-center justify-between group"
                                     >
                                         <span className="font-bold text-gray-200 group-hover:text-white">{p.name}</span>
-                                        <Play className="w-4 h-4 text-gray-600 group-hover:text-indigo-400" />
+                                        <Play className="w-4 h-4 text-gray-600 group-hover:text-primary-400" />
                                     </button>
                                 ))}
                             </div>
@@ -549,7 +549,7 @@ const GameRoom = () => {
                 <div className="absolute bottom-32 md:bottom-24 left-1/2 -translate-x-1/2 z-50 animate-bounce-message">
                     <button
                         onClick={handlePassTurn}
-                        className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3 rounded-full font-bold shadow-lg shadow-indigo-900/50 flex items-center gap-2 transition-transform active:scale-95 border-2 border-indigo-400/50"
+                        className="bg-primary-600 hover:bg-primary-500 text-white px-8 py-3 rounded-full font-bold shadow-lg shadow-primary-900/50 flex items-center gap-2 transition-transform active:scale-95 border-2 border-primary-400/50"
                     >
                         <SkipForward className="w-5 h-5" />
                         Pass Turn

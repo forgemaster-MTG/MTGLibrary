@@ -42,7 +42,7 @@ const BadgeSelectionModal = ({ isOpen, onClose, currentBadgeId, onSelect, isMast
                                 key={badge.id}
                                 onClick={() => onSelect(badge)}
                                 className={`flex items-center gap-4 p-4 rounded-xl border text-left transition-all ${currentBadgeId === badge.id
-                                    ? 'bg-indigo-900/30 border-indigo-500 ring-1 ring-indigo-500/50'
+                                    ? 'bg-primary-900/30 border-primary-500 ring-1 ring-primary-500/50'
                                     : 'bg-gray-800/30 border-gray-700 hover:bg-gray-800 hover:border-gray-600'
                                     }`}
                             >
@@ -50,7 +50,7 @@ const BadgeSelectionModal = ({ isOpen, onClose, currentBadgeId, onSelect, isMast
                                     {badge.icon}
                                 </div>
                                 <div>
-                                    <h3 className={`font-bold ${currentBadgeId === badge.id ? 'text-indigo-300' : 'text-white'}`}>
+                                    <h3 className={`font-bold ${currentBadgeId === badge.id ? 'text-primary-300' : 'text-white'}`}>
                                         {badge.label}
                                     </h3>
                                     <p className="text-xs text-gray-400 mt-1">{badge.description}</p>

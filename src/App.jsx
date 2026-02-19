@@ -1,3 +1,4 @@
+import React, { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 
 import ScrollToTop from './components/ScrollToTop';
@@ -61,6 +62,23 @@ import AchievementMonitor from './components/common/AchievementMonitor';
 import ImpersonationBanner from './components/Admin/ImpersonationBanner';
 import AdminGuard from './components/Admin/AdminGuard';
 import UsernamePrompt from './components/onboarding/UsernamePrompt';
+import { useTheme } from './contexts/ThemeContext';
+import { useAuth } from './contexts/AuthContext';
+
+// Syncs ThemeContext with UserProfile settings
+const ThemeSync = () => {
+    const { userProfile } = useAuth();
+    const { theme, setTheme } = useTheme();
+
+    useEffect(() => {
+        if (userProfile?.settings?.theme && userProfile.settings.theme !== theme) {
+            console.log(`[ThemeSync] Syncing theme from profile: ${userProfile.settings.theme}`);
+            setTheme(userProfile.settings.theme);
+        }
+    }, [userProfile?.settings?.theme]);
+
+    return null;
+};
 
 function App() {
     // Global Shortcuts
@@ -81,13 +99,14 @@ function App() {
             client={queryClient}
             persistOptions={{ persister, maxAge: 1000 * 60 * 60 * 24 * 7 }}
             onSuccess={() => console.log('Query cache restored successfully')}
-            loadingComponent={<div className="min-h-screen bg-gray-950 flex items-center justify-center text-indigo-500 font-bold tracking-widest animate-pulse">LOADING MAGIC...</div>}
+            loadingComponent={<div className="min-h-screen bg-gray-950 flex items-center justify-center text-primary-500 font-bold tracking-widest animate-pulse">LOADING MAGIC...</div>}
         >
             <ToastProvider>
                 <ThemeProvider>
                     <OfflineNotifier />
                     <AchievementToast />
                     <AuthProvider>
+                        <ThemeSync />
                         <AchievementMonitor />
                         <CardModalProvider>
                             <div className="bg-gray-900 text-gray-200 font-sans min-h-screen flex flex-col transition-colors duration-500">

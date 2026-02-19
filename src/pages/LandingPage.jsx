@@ -35,7 +35,7 @@ const LandingPage = () => {
                 <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-950/80 to-black z-10"></div>
 
                 {/* Growing Ethereal Accents (Subtle movement or fixed glow) */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[100vw] h-[100vh] bg-indigo-600/10 blur-[150px] rounded-full z-0 opacity-40"></div>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[100vw] h-[100vh] bg-primary-600/10 blur-[150px] rounded-full z-0 opacity-40"></div>
                 <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-orange-500/5 blur-[120px] rounded-full z-0 opacity-20"></div>
             </div>
 
@@ -53,12 +53,12 @@ const LandingPage = () => {
             <div className="relative z-10 bg-transparent min-h-[80vh] flex flex-col items-center">
 
                 <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32 md:py-48 flex flex-col items-center text-center">
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/20 mb-8 animate-fade-in">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-500/10 border border-primary-500/20 mb-8 animate-fade-in">
                         <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-primary-500"></span>
                         </span>
-                        <span className="text-xs font-bold text-indigo-400 uppercase tracking-widest leading-none">The Future of MTG Strategy</span>
+                        <span className="text-xs font-bold text-primary-400 uppercase tracking-widest leading-none">The Future of MTG Strategy</span>
                     </div>
 
                     <h1 className="text-5xl md:text-8xl font-black tracking-tight text-white mb-8 leading-tight">
@@ -74,7 +74,7 @@ const LandingPage = () => {
                     </p>
 
                     <div className="flex flex-col sm:flex-row gap-6 justify-center w-full max-w-lg">
-                        <Link to="/dashboard" className="group relative px-10 py-5 rounded-2xl bg-indigo-600 text-white font-black text-xl transition-all shadow-[0_20px_40px_-15px_rgba(79,70,229,0.5)] hover:shadow-[0_25px_50px_-12px_rgba(79,70,229,0.6)] transform hover:-translate-y-1 hover:scale-[1.02] flex items-center justify-center gap-3">
+                        <Link to="/dashboard" className="group relative px-10 py-5 rounded-2xl bg-primary-600 text-white font-black text-xl transition-all shadow-lg shadow-primary-600/50 hover:shadow-primary-600/60 transform hover:-translate-y-1 hover:scale-[1.02] flex items-center justify-center gap-3">
                             <span>Enter The Forge</span>
                             <svg className="w-6 h-6 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                         </Link>

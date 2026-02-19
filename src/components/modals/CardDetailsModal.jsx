@@ -201,7 +201,7 @@ const CardDetailsModal = () => {
                         {isDoubleSided && (
                             <button
                                 onClick={() => setIsFlipped(!isFlipped)}
-                                className="absolute top-4 right-4 bg-black/60 hover:bg-indigo-600 text-white p-3 rounded-full shadow-lg border border-white/20 hover:border-indigo-400 transition-all group backdrop-blur-md"
+                                className="absolute top-4 right-4 bg-black/60 hover:bg-primary-600 text-white p-3 rounded-full shadow-lg border border-white/20 hover:border-primary-400 transition-all group backdrop-blur-md"
                                 title="Flip Card"
                             >
                                 <svg className={`w-6 h-6 transform transition-transform duration-500 ${isFlipped ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -226,7 +226,7 @@ const CardDetailsModal = () => {
                         {/* Edit Action (Pencil) */}
                         <button
                             onClick={() => setIsEditing(!isEditing)}
-                            className={`absolute top-6 right-16 p-2 rounded-full transition-all ${isEditing ? 'text-indigo-400 bg-indigo-500/20' : 'text-gray-500 hover:text-white hover:bg-gray-700'}`}
+                            className={`absolute top-6 right-16 p-2 rounded-full transition-all ${isEditing ? 'text-primary-400 bg-primary-500/20' : 'text-gray-500 hover:text-white hover:bg-gray-700'}`}
                             title={isEditing ? "Cancel Editing" : "Edit Card Details"}
                         >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
@@ -241,7 +241,7 @@ const CardDetailsModal = () => {
                                 </span>
                             )}
                             <div className="flex items-center gap-1">
-                                <span className="text-indigo-400 font-bold">{data.set_name || data.set?.toUpperCase()}</span>
+                                <span className="text-primary-400 font-bold">{data.set_name || data.set?.toUpperCase()}</span>
                                 <span className="text-gray-600">•</span>
                                 <span className="capitalize">{data.rarity}</span>
                                 <span className="text-gray-600">•</span>
@@ -308,7 +308,7 @@ const CardDetailsModal = () => {
                         <div className="space-y-4 pt-4 border-t border-gray-700/50">
                             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
-                                Status & Ownership {isEditing && <span className="text-indigo-400 text-[10px] ml-2 font-normal animate-pulse">(Editing)</span>}
+                                Status & Ownership {isEditing && <span className="text-primary-400 text-[10px] ml-2 font-normal animate-pulse">(Editing)</span>}
                             </h3>
 
                             {/* Wishlist Indicator Badge */}
@@ -350,14 +350,14 @@ const CardDetailsModal = () => {
                                     <div className="space-y-4">
                                         {/* Status Row */}
                                         <div className="grid grid-cols-3 gap-3">
-                                            <div className={`p-2.5 rounded-xl border transition-all ${ownedNormal > 0 ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-gray-800/20 border-gray-700/30 opacity-40'}`}>
+                                            <div className={`p-2.5 rounded-xl border transition-all ${ownedNormal > 0 ? 'bg-primary-500/10 border-primary-500/30' : 'bg-gray-800/20 border-gray-700/30 opacity-40'}`}>
                                                 <div className="text-[10px] font-black uppercase tracking-tighter text-gray-400 mb-0.5">Normal</div>
                                                 <div className="text-xl font-black text-white">{ownedNormal}</div>
                                                 <div className="text-[9px] text-gray-500 font-bold uppercase">Owned</div>
                                             </div>
                                             <div className={`p-2.5 rounded-xl border transition-all ${ownedFoil > 0 ? 'bg-purple-500/10 border-purple-500/30' : 'bg-gray-800/20 border-gray-700/30 opacity-40'}`}>
                                                 <div className="text-[10px] font-black uppercase tracking-tighter text-gray-400 mb-0.5">Foil</div>
-                                                <div className="text-xl font-black text-indigo-400">{ownedFoil}</div>
+                                                <div className="text-xl font-black text-primary-400">{ownedFoil}</div>
                                                 <div className="text-[9px] text-gray-500 font-bold uppercase">Owned</div>
                                             </div>
                                             <div className={`p-2.5 rounded-xl border transition-all ${wishCopies > 0 ? 'bg-orange-500/10 border-orange-500/30' : 'bg-gray-800/20 border-gray-700/30 opacity-40'}`}>
@@ -403,7 +403,7 @@ const CardDetailsModal = () => {
                                                                 </span>
                                                                 <div className="flex gap-2">
                                                                     {binderN > 0 && <span className="text-gray-400 font-mono">{binderN} Normal</span>}
-                                                                    {binderF > 0 && <span className="text-indigo-400 font-mono">{binderF} Foil</span>}
+                                                                    {binderF > 0 && <span className="text-primary-400 font-mono">{binderF} Foil</span>}
                                                                 </div>
                                                             </div>
                                                         );
@@ -413,12 +413,12 @@ const CardDetailsModal = () => {
                                                         locs.push(
                                                             <div key={d.name} className="flex justify-between items-center text-xs">
                                                                 <span className="text-gray-300 flex items-center gap-2">
-                                                                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                                                                    <span className="w-1.5 h-1.5 rounded-full bg-primary-500"></span>
                                                                     {d.name}
                                                                 </span>
                                                                 <div className="flex gap-2">
                                                                     {d.n > 0 && <span className="text-gray-400 font-mono">{d.n} Normal</span>}
-                                                                    {d.f > 0 && <span className="text-indigo-400 font-mono">{d.f} Foil</span>}
+                                                                    {d.f > 0 && <span className="text-primary-400 font-mono">{d.f} Foil</span>}
                                                                 </div>
                                                             </div>
                                                         );
@@ -471,7 +471,7 @@ const CardDetailsModal = () => {
                                                                                 placeholder="0.00"
                                                                                 value={editForm.price_bought}
                                                                                 onChange={(e) => setEditForm({ ...editForm, price_bought: e.target.value })}
-                                                                                className="bg-gray-800 border-none rounded px-2 py-0.5 text-[10px] text-white w-20 focus:ring-1 focus:ring-indigo-500"
+                                                                                className="bg-gray-800 border-none rounded px-2 py-0.5 text-[10px] text-white w-20 focus:ring-1 focus:ring-primary-500"
                                                                             />
                                                                         </div>
 
@@ -479,7 +479,7 @@ const CardDetailsModal = () => {
                                                                         <div className="space-y-1">
                                                                             <div className="flex flex-wrap gap-1">
                                                                                 {editForm.tags && editForm.tags.map(tag => (
-                                                                                    <span key={tag} className="bg-indigo-600/50 text-white px-1.5 rounded text-[9px] flex items-center gap-1 border border-indigo-500/30">
+                                                                                    <span key={tag} className="bg-primary-600/50 text-white px-1.5 rounded text-[9px] flex items-center gap-1 border border-primary-500/30">
                                                                                         {tag}
                                                                                         <button onClick={() => removeTag(tag)} className="hover:text-red-300">×</button>
                                                                                     </span>
@@ -491,7 +491,7 @@ const CardDetailsModal = () => {
                                                                                 value={editForm.currentTag}
                                                                                 onChange={(e) => setEditForm({ ...editForm, currentTag: e.target.value })}
                                                                                 onKeyDown={addTag}
-                                                                                className="bg-gray-800 border border-gray-600 rounded px-2 py-0.5 text-[10px] text-white w-full focus:ring-1 focus:ring-indigo-500"
+                                                                                className="bg-gray-800 border border-gray-600 rounded px-2 py-0.5 text-[10px] text-white w-full focus:ring-1 focus:ring-primary-500"
                                                                             />
                                                                         </div>
                                                                     </div>
@@ -514,7 +514,7 @@ const CardDetailsModal = () => {
                                                                         type="checkbox"
                                                                         checked={editForm.finish === 'foil'}
                                                                         onChange={(e) => setEditForm({ ...editForm, finish: e.target.checked ? 'foil' : 'nonfoil' })}
-                                                                        className="rounded bg-gray-700 border-gray-600 text-indigo-600"
+                                                                        className="rounded bg-gray-700 border-gray-600 text-primary-600"
                                                                         title="Is Foil?"
                                                                     />
                                                                 ) : (
@@ -613,7 +613,7 @@ const CardDetailsModal = () => {
                             <div className="bg-gray-900/30 rounded-xl p-4 border border-gray-700/50 space-y-2 text-sm font-mono">
                                 <div className="flex justify-between">
                                     <span className="text-gray-500">External Links</span>
-                                    <a href={data.scryfall_uri} target="_blank" rel="noreferrer" className="text-indigo-400 hover:text-indigo-300 underline">
+                                    <a href={data.scryfall_uri} target="_blank" rel="noreferrer" className="text-primary-400 hover:text-primary-300 underline">
                                         View on Scryfall
                                     </a>
                                 </div>

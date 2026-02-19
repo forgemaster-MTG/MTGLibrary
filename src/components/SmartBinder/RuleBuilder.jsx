@@ -84,7 +84,7 @@ const RuleBuilder = ({ rules: propRules = [], onChange }) => {
                 <h3 className="text-xs font-black uppercase tracking-[0.2em] text-gray-500">Logic Rules</h3>
                 <button
                     onClick={addRule}
-                    className="text-[10px] font-bold bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 px-3 py-1 rounded-full hover:bg-indigo-600 hover:text-white transition-all"
+                    className="text-[10px] font-bold bg-primary-600/20 text-primary-400 border border-primary-500/30 px-3 py-1 rounded-full hover:bg-primary-600 hover:text-white transition-all"
                 >
                     + Add Condition
                 </button>
@@ -98,7 +98,7 @@ const RuleBuilder = ({ rules: propRules = [], onChange }) => {
                     return (
                         <div key={idx} className="group flex flex-col sm:flex-row items-start sm:items-center gap-2 bg-gray-950/40 p-3 rounded-2xl border border-gray-800/50 hover:border-gray-700 transition-all">
                             {/* IF / AND Prefix */}
-                            <div className="w-12 text-[10px] font-black uppercase text-indigo-500/60">
+                            <div className="w-12 text-[10px] font-black uppercase text-primary-500/60">
                                 {idx === 0 ? 'IF' : 'AND'}
                             </div>
 
@@ -106,7 +106,7 @@ const RuleBuilder = ({ rules: propRules = [], onChange }) => {
                             <select
                                 value={rule.field}
                                 onChange={(e) => updateRule(idx, { field: e.target.value })}
-                                className="bg-gray-950/50 border border-white/5 text-white text-xs font-black rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                                className="bg-gray-950/50 border border-white/5 text-white text-xs font-black rounded-xl px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none transition-all"
                             >
                                 {FIELDS.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
                             </select>
@@ -115,7 +115,7 @@ const RuleBuilder = ({ rules: propRules = [], onChange }) => {
                             <select
                                 value={rule.operator}
                                 onChange={(e) => updateRule(idx, { operator: e.target.value })}
-                                className="bg-gray-950/50 border border-white/5 text-indigo-400 text-xs font-bold rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                                className="bg-gray-950/50 border border-white/5 text-primary-400 text-xs font-bold rounded-xl px-3 py-2 focus:ring-2 focus:ring-primary-500 outline-none transition-all"
                             >
                                 {ops.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
                             </select>
@@ -129,7 +129,7 @@ const RuleBuilder = ({ rules: propRules = [], onChange }) => {
                                                 key={c}
                                                 onClick={() => handleColorToggle(idx, c)}
                                                 className={`w-7 h-7 rounded-full flex items-center justify-center transition-all border ${rule.value?.includes(c)
-                                                    ? 'bg-indigo-600 border-indigo-400 shadow-[0_0_10px_rgba(79,70,229,0.4)]'
+                                                    ? 'bg-primary-600 border-primary-400 shadow-[0_0_10px_rgba(79,70,229,0.4)]'
                                                     : 'bg-gray-800 border-gray-700 text-gray-500 hover:border-gray-500'
                                                     }`}
                                             >
@@ -148,7 +148,7 @@ const RuleBuilder = ({ rules: propRules = [], onChange }) => {
                                                     updateRule(idx, { value: next });
                                                 }}
                                                 className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase transition-all border ${rule.value?.includes(opt)
-                                                    ? 'bg-indigo-600/20 border-indigo-500 text-indigo-400'
+                                                    ? 'bg-primary-600/20 border-primary-500 text-primary-400'
                                                     : 'bg-gray-800 border-gray-700 text-gray-500'
                                                     }`}
                                             >
@@ -163,7 +163,7 @@ const RuleBuilder = ({ rules: propRules = [], onChange }) => {
                                                 key={opt.id}
                                                 onClick={() => updateRule(idx, { value: opt.id })}
                                                 className={`px-3 py-1 rounded-lg text-[10px] font-bold transition-all border ${rule.value === opt.id
-                                                    ? 'bg-indigo-600 border-indigo-400 text-white'
+                                                    ? 'bg-primary-600 border-primary-400 text-white'
                                                     : 'bg-gray-800 border-gray-700 text-gray-500 hover:border-gray-600'
                                                     }`}
                                             >
@@ -177,7 +177,7 @@ const RuleBuilder = ({ rules: propRules = [], onChange }) => {
                                         value={rule.value}
                                         placeholder="Value..."
                                         onChange={(e) => updateRule(idx, { value: e.target.value })}
-                                        className="w-full bg-gray-900/50 border-none text-white text-xs rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                        className="w-full bg-gray-900/50 border-none text-white text-xs rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-primary-500 outline-none"
                                     />
                                 )}
                             </div>
@@ -199,7 +199,7 @@ const RuleBuilder = ({ rules: propRules = [], onChange }) => {
                         <p className="text-gray-600 text-sm font-medium italic">No rules defined. This binder will be empty or use manual selection.</p>
                         <button
                             onClick={addRule}
-                            className="text-indigo-400 text-xs font-bold mt-2 hover:underline"
+                            className="text-primary-400 text-xs font-bold mt-2 hover:underline"
                         >
                             + Click to create your first rule
                         </button>
@@ -207,11 +207,11 @@ const RuleBuilder = ({ rules: propRules = [], onChange }) => {
                 )}
             </div>
 
-            <div className="mt-4 p-4 bg-indigo-950/10 border border-indigo-900/20 rounded-2xl">
+            <div className="mt-4 p-4 bg-primary-950/10 border border-primary-900/20 rounded-2xl">
                 <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400">Binder Recipe Output</span>
+                        <div className="w-1.5 h-1.5 bg-primary-500 rounded-full animate-pulse" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-primary-400">Binder Recipe Output</span>
                     </div>
                     <button
                         onClick={() => setShowRaw(!showRaw)}
@@ -235,7 +235,7 @@ const RuleBuilder = ({ rules: propRules = [], onChange }) => {
                                     // Allow typing, but don't update if invalid JSON yet
                                 }
                             }}
-                            className="w-full h-32 bg-gray-900/50 border border-indigo-500/30 rounded-xl p-3 text-[10px] font-mono text-indigo-300 focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-y"
+                            className="w-full h-32 bg-gray-900/50 border border-primary-500/30 rounded-xl p-3 text-[10px] font-mono text-primary-300 focus:outline-none focus:ring-1 focus:ring-primary-500 resize-y"
                             placeholder="Paste rule JSON here..."
                         />
                         <p className="text-[10px] text-gray-500 mt-1">
@@ -243,7 +243,7 @@ const RuleBuilder = ({ rules: propRules = [], onChange }) => {
                         </p>
                     </div>
                 ) : (
-                    <div className="font-mono text-[10px] text-gray-500 break-all leading-relaxed select-text cursor-text active:text-indigo-400 transition-colors"
+                    <div className="font-mono text-[10px] text-gray-500 break-all leading-relaxed select-text cursor-text active:text-primary-400 transition-colors"
                         onClick={() => {
                             navigator.clipboard.writeText(JSON.stringify(rules, null, 2));
                             // Optional: Could show a small toast here if we had access to addToast context easily, 
@@ -255,7 +255,7 @@ const RuleBuilder = ({ rules: propRules = [], onChange }) => {
                             <>
                                 SELECT * FROM collection WHERE user_id = current_user
                                 {rules.map((r, i) => (
-                                    <span key={i} className="text-indigo-300/60 block ml-4">
+                                    <span key={i} className="text-primary-300/60 block ml-4">
                                         AND {r.field} {r.operator} '{Array.isArray(r.value) ? r.value.join(', ') : r.value}'
                                     </span>
                                 ))}

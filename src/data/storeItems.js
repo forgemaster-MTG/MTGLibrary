@@ -8,9 +8,9 @@ export const STATIC_STORE_ITEMS = [
         desc: "High-quality surfaces for smooth gameplay and card protection.",
         query: "magic the gathering playmat",
         directUrl: "https://amzn.to/4qT3NiV",
-        color: "text-indigo-400",
-        bg: "bg-indigo-500/10",
-        border: "border-indigo-500/20",
+        color: "text-primary-400",
+        bg: "bg-primary-500/10",
+        border: "border-primary-500/20",
         category: "accessory"
     },
     {

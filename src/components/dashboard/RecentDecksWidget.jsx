@@ -23,7 +23,7 @@ const DeckItem = ({ deck, navigate }) => {
     return (
         <div
             onClick={() => navigate(`/decks/${deck.id}`)}
-            className={`group relative rounded-xl overflow-hidden cursor-pointer shadow-lg hover:shadow-indigo-500/30 transition-all hover:-translate-y-1 border border-white/5 bg-gray-900 h-full min-h-[140px]`}
+            className={`group relative rounded-xl overflow-hidden cursor-pointer shadow-lg hover:shadow-primary-500/30 transition-all hover:-translate-y-1 border border-white/5 bg-gray-900 h-full min-h-[140px]`}
         >
             <div className="absolute inset-0 bg-gray-950">
                 {deck.commander_partner ? (
@@ -68,7 +68,7 @@ const DeckItem = ({ deck, navigate }) => {
 
             <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/20 to-transparent opacity-90 pointer-events-none" />
             <div className="absolute inset-0 p-3 flex flex-col justify-end pointer-events-none">
-                <h3 className="text-sm font-bold text-white leading-tight mb-0.5 group-hover:text-indigo-400 transition-colors line-clamp-1">{deck.name}</h3>
+                <h3 className="text-sm font-bold text-white leading-tight mb-0.5 group-hover:text-primary-400 transition-colors line-clamp-1">{deck.name}</h3>
                 <div className="flex gap-0.5">
                     {(() => {
                         const mainColors = deck?.commander?.color_identity || [];
@@ -127,7 +127,7 @@ const RecentDecksWidget = ({ data, size }) => {
                     <span className="text-gray-700">—</span>
                     <span className="text-xs font-bold text-white truncate max-w-[120px]">{topDeck?.name || 'No decks'}</span>
                 </div>
-                <div className="p-1.5 bg-indigo-500/20 rounded-lg text-indigo-400 group-hover:scale-110 transition-transform flex-shrink-0">
+                <div className="p-1.5 bg-primary-500/20 rounded-lg text-primary-400 group-hover:scale-110 transition-transform flex-shrink-0">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 </div>
             </div>
@@ -137,7 +137,7 @@ const RecentDecksWidget = ({ data, size }) => {
     return (
         <div className={`bg-gray-950/40 border border-white/5 rounded-3xl ${isSmall ? 'p-4' : 'p-6'} backdrop-blur-md shadow-xl h-full flex flex-col`}>
             <h2 className="text-lg md:text-xl font-bold text-white mb-2 md:mb-4 flex items-center gap-2 md:gap-3 shrink-0">
-                <span className="p-2 bg-indigo-500/20 rounded-lg text-indigo-400">
+                <span className="p-2 bg-primary-500/20 rounded-lg text-primary-400">
                     <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 </span>
                 <span className={isSmall ? 'hidden' : 'inline'}>Recent Decks</span>
@@ -156,19 +156,19 @@ const RecentDecksWidget = ({ data, size }) => {
                         {isXL && (
                             <div
                                 onClick={() => navigate('/decks/new')}
-                                className="border-2 border-dashed border-indigo-500/20 rounded-xl flex flex-col items-center justify-center text-center p-4 hover:border-indigo-500/40 hover:bg-indigo-500/5 transition-all group cursor-pointer"
+                                className="border-2 border-dashed border-primary-500/20 rounded-xl flex flex-col items-center justify-center text-center p-4 hover:border-primary-500/40 hover:bg-primary-500/5 transition-all group cursor-pointer"
                             >
-                                <div className="p-3 rounded-full bg-indigo-500/10 text-indigo-400 group-hover:scale-110 transition-transform mb-2">
+                                <div className="p-3 rounded-full bg-primary-500/10 text-primary-400 group-hover:scale-110 transition-transform mb-2">
                                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                                 </div>
-                                <span className="text-sm font-bold text-indigo-300">New Deck</span>
+                                <span className="text-sm font-bold text-primary-300">New Deck</span>
                             </div>
                         )}
                     </div>
                 ) : (
                     <div className="h-full flex flex-col items-center justify-center text-center p-4 bg-gray-900/30 rounded-2xl border border-dashed border-gray-800">
                         <p className="text-gray-500 text-sm">No decks.</p>
-                        <Link to="/decks/new" className="text-indigo-400 text-xs font-bold hover:text-indigo-300 mt-1">Create &rarr;</Link>
+                        <Link to="/decks/new" className="text-primary-400 text-xs font-bold hover:text-primary-300 mt-1">Create &rarr;</Link>
                     </div>
                 )}
             </div>

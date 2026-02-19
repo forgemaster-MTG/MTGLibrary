@@ -103,7 +103,7 @@ const TopUpCalculator = ({ dynamicConfig, currentTier, billingInterval, rate, on
                 ⚡ Custom Top-Up Amount
             </h2>
             <p className="text-center text-gray-400 mb-8">
-                Average Value: <span className="text-indigo-300 font-mono font-bold">{(rate / 1000000).toFixed(2)}M Credits</span> per <span className="text-green-400 font-bold">$1.00</span>
+                Average Value: <span className="text-primary-300 font-mono font-bold">{(rate / 1000000).toFixed(2)}M Credits</span> per <span className="text-green-400 font-bold">$1.00</span>
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
@@ -136,14 +136,14 @@ const TopUpCalculator = ({ dynamicConfig, currentTier, billingInterval, rate, on
                                 setCustomCredits(parseInt(e.target.value) || 0);
                                 setDesiredDecks(Math.floor((parseInt(e.target.value) || 0) / 675000));
                             }}
-                            className="w-full bg-gray-900 border border-gray-600 rounded-lg py-3 px-4 text-white font-mono focus:ring-2 focus:ring-indigo-500 outline-none"
+                            className="w-full bg-gray-900 border border-gray-600 rounded-lg py-3 px-4 text-white font-mono focus:ring-2 focus:ring-primary-500 outline-none"
                         />
                         <span className="absolute right-4 top-3.5 text-gray-500 text-sm">Credits</span>
                     </div>
 
                     <div className="mt-6 p-4 bg-gray-900 rounded-lg border border-gray-700 flex justify-between items-center">
                         <div className="text-gray-400 text-sm">Total Power</div>
-                        <div className="text-2xl font-mono text-indigo-400 font-bold">
+                        <div className="text-2xl font-mono text-primary-400 font-bold">
                             {(effectiveCredits / 1000000).toFixed(1)}M <span className="text-sm text-gray-500">Credits</span>
                         </div>
                     </div>
@@ -171,7 +171,7 @@ const TopUpCalculator = ({ dynamicConfig, currentTier, billingInterval, rate, on
 
                     {/* Upgrade Option Recommendation */}
                     {upgradeOption && (
-                        <div className={`relative p-4 rounded-xl border transition-all ${isUpgradeCheaper ? 'bg-gradient-to-br from-indigo-900 to-purple-900 border-indigo-400 shadow-xl shadow-indigo-900/40 scale-105 z-10' : 'bg-gray-900 border-gray-700 opacity-75'}`}>
+                        <div className={`relative p-4 rounded-xl border transition-all ${isUpgradeCheaper ? 'bg-gradient-to-br from-primary-900 to-purple-900 border-primary-400 shadow-xl shadow-primary-900/40 scale-105 z-10' : 'bg-gray-900 border-gray-700 opacity-75'}`}>
                             {isUpgradeCheaper && (
                                 <div className="absolute -top-3 right-4 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg animate-bounce">
                                     SAVE MONEY
@@ -186,12 +186,12 @@ const TopUpCalculator = ({ dynamicConfig, currentTier, billingInterval, rate, on
                                 </div>
                                 <div className="text-right">
                                     <div className="text-sm text-gray-400">Gets you</div>
-                                    <div className="font-bold text-indigo-300">{(upgradeOption.extraCredits / 1000000).toFixed(1)}M More</div>
+                                    <div className="font-bold text-primary-300">{(upgradeOption.extraCredits / 1000000).toFixed(1)}M More</div>
                                 </div>
                             </div>
                             <button
                                 onClick={() => onUpgrade && onUpgrade(upgradeOption.key)}
-                                className="mt-2 w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 rounded transition"
+                                className="mt-2 w-full bg-primary-600 hover:bg-primary-500 text-white font-bold py-2 rounded transition"
                             >
                                 Upgrade Plan
                             </button>

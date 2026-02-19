@@ -15,7 +15,7 @@ const DeckDoctorModal = ({ isOpen, onClose, deck, cards, isOwner }) => {
     const { addToast } = useToast();
     const navigate = useNavigate();
     const helperName = userProfile?.settings?.helper?.name || 'The Oracle';
-    
+
     // Global Modal & Collection
     const { openCardModal } = useCardModal();
     const { cards: allUserCards } = useCollection();
@@ -36,7 +36,7 @@ const DeckDoctorModal = ({ isOpen, onClose, deck, cards, isOwner }) => {
     const [allSets, setAllSets] = useState([]);
     React.useEffect(() => {
         if (isOpen && deck?.is_thematic && allSets.length === 0) {
-             api.get('/api/sets').then(res => {
+            api.get('/api/sets').then(res => {
                 const sets = res.data || res;
                 if (Array.isArray(sets)) setAllSets(sets);
             }).catch(err => console.error("Failed to fetch sets for thematic doctor", err));
@@ -45,10 +45,10 @@ const DeckDoctorModal = ({ isOpen, onClose, deck, cards, isOwner }) => {
 
     const getRestrictedSets = () => {
         if (!deck?.is_thematic) return [];
-        
+
         const cmdSetCode = (deck?.commander?.set || '').trim().toLowerCase();
         const cmdSetName = (deck?.commander?.set_name || '').trim().toLowerCase();
-        
+
         // Virtual Set Fallback if API fails or empty
         const virtualSet = {
             code: cmdSetCode || 'unk',
@@ -259,15 +259,15 @@ const DeckDoctorModal = ({ isOpen, onClose, deck, cards, isOwner }) => {
                     targetCard = response.data[0];
                 }
             }
-            
+
             if (targetCard) {
                 openCardModal(targetCard);
             } else {
-                 addToast(`Could not find details for ${cardName}`, "error");
+                addToast(`Could not find details for ${cardName}`, "error");
             }
         } catch (err) {
             console.error("Failed to fetch card details", err);
-             addToast("Failed to load card details.", "error");
+            addToast("Failed to load card details.", "error");
         } finally {
             setDetailsLoading(null);
         }
@@ -289,10 +289,10 @@ const DeckDoctorModal = ({ isOpen, onClose, deck, cards, isOwner }) => {
 
                 {/* Header Actions */}
                 <div className="absolute top-8 right-8 z-20 flex gap-2">
-                     {report && (
+                    {report && (
                         <button
                             onClick={() => PdfService.generateDeckDoctorReport(report, deck.name, userProfile)}
-                            className="p-2 bg-gray-800 hover:bg-gray-700 text-indigo-400 rounded-lg border border-gray-700 transition-colors flex items-center gap-2 text-sm font-bold"
+                            className="p-2 bg-gray-800 hover:bg-gray-700 text-primary-400 rounded-lg border border-gray-700 transition-colors flex items-center gap-2 text-sm font-bold"
                             title="Export to PDF"
                         >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
@@ -318,7 +318,7 @@ const DeckDoctorModal = ({ isOpen, onClose, deck, cards, isOwner }) => {
                             <p className="text-gray-400 mb-8 max-w-md mx-auto">This process will analyze every card in your deck to determine its competitive bracket and numerical power level.</p>
                             <button
                                 onClick={runDiagnosis}
-                                className="px-10 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-lg rounded-2xl shadow-xl hover:shadow-indigo-500/20 transition-all uppercase tracking-widest flex items-center gap-3 mx-auto"
+                                className="px-10 py-4 bg-primary-600 hover:bg-primary-500 text-white font-black text-lg rounded-2xl shadow-xl hover:shadow-primary-500/20 transition-all uppercase tracking-widest flex items-center gap-3 mx-auto"
                             >
                                 <span>Run Diagnosis</span>
                                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
@@ -328,8 +328,8 @@ const DeckDoctorModal = ({ isOpen, onClose, deck, cards, isOwner }) => {
 
                     {loading && (
                         <div className="flex flex-col items-center justify-center py-20 space-y-6">
-                            <div className="animate-spin rounded-full h-20 w-20 border-b-4 border-indigo-500"></div>
-                            <p className="text-indigo-400 font-black text-xl animate-pulse uppercase tracking-widest">Simulating Matchups...</p>
+                            <div className="animate-spin rounded-full h-20 w-20 border-b-4 border-primary-500"></div>
+                            <p className="text-primary-400 font-black text-xl animate-pulse uppercase tracking-widest">Simulating Matchups...</p>
                         </div>
                     )}
 
@@ -407,7 +407,7 @@ const DeckDoctorModal = ({ isOpen, onClose, deck, cards, isOwner }) => {
                             {/* Clinical Critique */}
                             <div className="space-y-4">
                                 <h3 className="text-xl font-black text-white uppercase tracking-wider flex items-center gap-2">
-                                    <span className="text-indigo-500">📋</span> Clinical Critique
+                                    <span className="text-primary-500">📋</span> Clinical Critique
                                 </h3>
                                 <div className="bg-gray-950/50 p-8 rounded-3xl border border-white/5 shadow-inner">
                                     <div
@@ -467,15 +467,15 @@ const DeckDoctorModal = ({ isOpen, onClose, deck, cards, isOwner }) => {
                                                             <span>Slot This In</span>
                                                             {(() => {
                                                                 // Check if player owns this card and it's NOT in a deck (available)
-                                                                const availableCopies = allUserCards?.filter(c => 
-                                                                    c.name === swap.add && 
+                                                                const availableCopies = allUserCards?.filter(c =>
+                                                                    c.name === swap.add &&
                                                                     !c.deck_id && // Binder only
                                                                     !c.is_wishlist
                                                                 ).reduce((sum, c) => sum + (c.count || 1), 0) || 0;
 
                                                                 if (availableCopies > 0) {
                                                                     return (
-                                                                        <span className="bg-indigo-500 text-white text-[9px] px-1.5 py-0.5 rounded shadow-sm border border-indigo-400 flex items-center gap-1">
+                                                                        <span className="bg-primary-500 text-white text-[9px] px-1.5 py-0.5 rounded shadow-sm border border-primary-400 flex items-center gap-1">
                                                                             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
                                                                             OWNED ({availableCopies})
                                                                         </span>
@@ -489,10 +489,10 @@ const DeckDoctorModal = ({ isOpen, onClose, deck, cards, isOwner }) => {
                                                                 <button
                                                                     onClick={() => handleViewDetails(swap.add)}
                                                                     disabled={detailsLoading === swap.add}
-                                                                    className="text-[9px] bg-indigo-900/50 text-indigo-400 px-2 py-0.5 rounded hover:bg-indigo-900 border border-indigo-500/30 disabled:opacity-50 flex items-center gap-1"
+                                                                    className="text-[9px] bg-primary-900/50 text-primary-400 px-2 py-0.5 rounded hover:bg-primary-900 border border-primary-500/30 disabled:opacity-50 flex items-center gap-1"
                                                                 >
                                                                     {detailsLoading === swap.add ? (
-                                                                         <svg className="animate-spin w-3 h-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                                        <svg className="animate-spin w-3 h-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                                                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                                                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                                                         </svg>
@@ -515,11 +515,11 @@ const DeckDoctorModal = ({ isOpen, onClose, deck, cards, isOwner }) => {
                                                             </div>
                                                         )}
                                                     </div>
-                                                    
+
                                                     <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-xl text-right flex items-center justify-between">
-                                                         {swap.set ? (
+                                                        {swap.set ? (
                                                             <div className="flex items-center gap-3">
-                                                                <img 
+                                                                <img
                                                                     src={`https://cards.scryfall.io/small/front/${swap.set}/${swap.collectorNumber}.jpg`}
                                                                     onError={(e) => { e.target.style.display = 'none'; }}
                                                                     className="w-8 h-11 rounded object-cover shadow-sm border border-black/20"
@@ -527,9 +527,9 @@ const DeckDoctorModal = ({ isOpen, onClose, deck, cards, isOwner }) => {
                                                                 />
                                                                 <span className="text-white font-bold">{swap.add}</span>
                                                             </div>
-                                                         ) : (
+                                                        ) : (
                                                             <span className="text-white font-bold">{swap.add}</span>
-                                                         )}
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
@@ -546,7 +546,7 @@ const DeckDoctorModal = ({ isOpen, onClose, deck, cards, isOwner }) => {
                                 <button
                                     onClick={runDiagnosis}
                                     disabled={loading}
-                                    className="flex items-center gap-2 px-8 py-3 bg-indigo-900/40 hover:bg-indigo-600/40 text-indigo-300 rounded-xl border border-indigo-500/20 transition-all font-bold uppercase text-xs tracking-widest group"
+                                    className="flex items-center gap-2 px-8 py-3 bg-primary-900/40 hover:bg-primary-600/40 text-primary-300 rounded-xl border border-primary-500/20 transition-all font-bold uppercase text-xs tracking-widest group"
                                 >
                                     <svg className={`w-4 h-4 transition-transform duration-700 ${loading ? 'animate-spin' : 'group-hover:rotate-180'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />

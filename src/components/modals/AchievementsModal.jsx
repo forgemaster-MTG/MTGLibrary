@@ -133,7 +133,7 @@ export default function AchievementsModal({ isOpen, onClose }) {
                                 <svg className="w-full h-full -rotate-90">
                                     <circle cx="50%" cy="50%" r="45%" fill="none" stroke="#374151" strokeWidth="4" />
                                     <circle cx="50%" cy="50%" r="45%" fill="none" stroke="currentColor" strokeWidth="4"
-                                        className="text-indigo-500 transition-all duration-1000"
+                                        className="text-primary-500 transition-all duration-1000"
                                         strokeDasharray={`${completionPct * 2.8} 300`}
                                         strokeLinecap="round" />
                                 </svg>
@@ -174,7 +174,7 @@ export default function AchievementsModal({ isOpen, onClose }) {
                     <div className="flex gap-2 overflow-x-auto max-w-full no-scrollbar">
                         <button
                             onClick={() => setSelectedCategory('all')}
-                            className={`px-3 py-1.5 rounded-md font-bold text-xs transition-colors whitespace-nowrap ${selectedCategory === 'all' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-400 hover:text-white bg-gray-800'}`}
+                            className={`px-3 py-1.5 rounded-md font-bold text-xs transition-colors whitespace-nowrap ${selectedCategory === 'all' ? 'bg-primary-600 text-white shadow-lg' : 'text-gray-400 hover:text-white bg-gray-800'}`}
                         >
                             All
                         </button>
@@ -182,7 +182,7 @@ export default function AchievementsModal({ isOpen, onClose }) {
                             <button
                                 key={cat.id}
                                 onClick={() => setSelectedCategory(cat.id)}
-                                className={`px-3 py-1.5 rounded-md font-bold text-xs transition-colors whitespace-nowrap flex items-center gap-2 ${selectedCategory === cat.id ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-400 hover:text-white bg-gray-800'}`}
+                                className={`px-3 py-1.5 rounded-md font-bold text-xs transition-colors whitespace-nowrap flex items-center gap-2 ${selectedCategory === cat.id ? 'bg-primary-600 text-white shadow-lg' : 'text-gray-400 hover:text-white bg-gray-800'}`}
                             >
                                 <cat.icon className="w-3 h-3" />
                                 {cat.label}
@@ -197,7 +197,7 @@ export default function AchievementsModal({ isOpen, onClose }) {
                             placeholder="Search..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-9 pr-4 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm placeholder-gray-600 w-full focus:border-indigo-500 outline-none focus:ring-1 focus:ring-indigo-500 transition-all"
+                            className="pl-9 pr-4 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm placeholder-gray-600 w-full focus:border-primary-500 outline-none focus:ring-1 focus:ring-primary-500 transition-all"
                         />
                     </div>
                 </div>
@@ -227,17 +227,17 @@ export default function AchievementsModal({ isOpen, onClose }) {
                                     key={ach.id}
                                     className={`relative flex flex-col p-5 rounded-xl border transition-all duration-300 group overflow-hidden
                                         ${isUnlocked
-                                            ? 'bg-gradient-to-br from-gray-800 to-gray-900 border-indigo-500/30 shadow-lg shadow-indigo-900/10 hover:-translate-y-1'
+                                            ? 'bg-gradient-to-br from-gray-800 to-gray-900 border-primary-500/30 shadow-lg shadow-primary-900/10 hover:-translate-y-1'
                                             : 'bg-gray-900 border-gray-800/50 opacity-60 grayscale hover:grayscale-0 hover:opacity-100'
                                         }
                                     `}
                                 >
                                     {/* Background glow for unlocked */}
-                                    {isUnlocked && <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl -mr-12 -mt-12 pointer-events-none" />}
+                                    {isUnlocked && <div className="absolute top-0 right-0 w-24 h-24 bg-primary-500/10 rounded-full blur-2xl -mr-12 -mt-12 pointer-events-none" />}
 
                                     <div className="flex justify-between items-start mb-3 relative z-10">
                                         <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white shadow-inner
-                                            ${isUnlocked ? 'bg-indigo-600' : 'bg-gray-800'}
+                                            ${isUnlocked ? 'bg-primary-600' : 'bg-gray-800'}
                                         `}>
                                             {ach.icon === 'set' && ach.setCode ? (
                                                 <i className={`ss ss-${ach.setCode.toLowerCase()} ss-2x ${isUnlocked ? 'text-white' : 'text-gray-500'}`}></i>
@@ -267,7 +267,7 @@ export default function AchievementsModal({ isOpen, onClose }) {
                                         </div>
                                         <div className="h-1 w-full bg-gray-800 rounded-full overflow-hidden">
                                             <div
-                                                className={`h-full transition-all duration-1000 ${isUnlocked ? 'bg-green-500' : 'bg-indigo-500'}`}
+                                                className={`h-full transition-all duration-1000 ${isUnlocked ? 'bg-green-500' : 'bg-primary-500'}`}
                                                 style={{ width: `${progress}%` }}
                                             />
                                         </div>

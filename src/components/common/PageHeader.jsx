@@ -5,7 +5,7 @@ const PageHeader = ({ title, subtitle, icon: Icon, actions }) => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
             <div className="flex items-center gap-4">
                 {Icon && (
-                    <div className="p-3 bg-indigo-500/10 rounded-xl text-indigo-400 border border-indigo-500/20">
+                    <div className="p-3 bg-primary-500/10 rounded-xl text-primary-400 border border-primary-500/20">
                         <Icon size={32} />
                     </div>
                 )}

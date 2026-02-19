@@ -188,7 +188,7 @@ const WishlistPage = () => {
                                 >
                                     {selectedCardIds.size === filteredCards.length ? 'Deselect All' : 'Select All'}
                                 </button>
-                                <span className="text-xs text-indigo-300 font-bold ml-2 whitespace-nowrap">{selectedCardIds.size} Selected</span>
+                                <span className="text-xs text-primary-300 font-bold ml-2 whitespace-nowrap">{selectedCardIds.size} Selected</span>
                                 <button
                                     onClick={handleBulkAction}
                                     disabled={selectedCardIds.size === 0}
@@ -207,7 +207,7 @@ const WishlistPage = () => {
                             <button
                                 onClick={() => setIsManageMode(true)}
                                 id="wishlist-manage-btn"
-                                className="px-3 py-2 bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-indigo-400 border border-gray-700 rounded-md transition-colors text-sm font-bold uppercase"
+                                className="px-3 py-2 bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-primary-400 border border-gray-700 rounded-md transition-colors text-sm font-bold uppercase"
                             >
                                 Select
                             </button>

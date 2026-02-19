@@ -87,7 +87,7 @@ const LoginPage = () => {
                                     <input
                                         type="text"
                                         required
-                                        className="appearance-none rounded-lg relative block w-full px-3 py-3 border border-gray-700 placeholder-gray-500 text-white bg-gray-800 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                        className="appearance-none rounded-lg relative block w-full px-3 py-3 border border-gray-700 placeholder-gray-500 text-white bg-gray-800 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
                                         placeholder="First Name"
                                         value={firstName}
                                         onChange={(e) => setFirstName(e.target.value)}
@@ -97,7 +97,7 @@ const LoginPage = () => {
                                     <input
                                         type="text"
                                         required
-                                        className="appearance-none rounded-lg relative block w-full px-3 py-3 border border-gray-700 placeholder-gray-500 text-white bg-gray-800 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                        className="appearance-none rounded-lg relative block w-full px-3 py-3 border border-gray-700 placeholder-gray-500 text-white bg-gray-800 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
                                         placeholder="Last Name"
                                         value={lastName}
                                         onChange={(e) => setLastName(e.target.value)}
@@ -110,7 +110,7 @@ const LoginPage = () => {
                                 <input
                                     type="text"
                                     required
-                                    className="appearance-none rounded-lg relative block w-full px-3 py-3 border border-gray-700 placeholder-gray-500 text-white bg-gray-800 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                    className="appearance-none rounded-lg relative block w-full px-3 py-3 border border-gray-700 placeholder-gray-500 text-white bg-gray-800 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
                                     placeholder="Username"
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
@@ -125,7 +125,7 @@ const LoginPage = () => {
                                 type="email"
                                 autoComplete="email"
                                 required
-                                className="appearance-none rounded-lg relative block w-full px-3 py-3 border border-gray-700 placeholder-gray-500 text-white bg-gray-800 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                                className="appearance-none rounded-lg relative block w-full px-3 py-3 border border-gray-700 placeholder-gray-500 text-white bg-gray-800 focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
                                 placeholder="Email address"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
@@ -140,7 +140,7 @@ const LoginPage = () => {
                                     type="password"
                                     autoComplete={isLogin ? "current-password" : "new-password"}
                                     required
-                                    className="appearance-none rounded-lg relative block w-full px-3 py-3 border border-gray-700 placeholder-gray-500 text-white bg-gray-800 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                                    className="appearance-none rounded-lg relative block w-full px-3 py-3 border border-gray-700 placeholder-gray-500 text-white bg-gray-800 focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
                                     placeholder="Password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
@@ -156,7 +156,7 @@ const LoginPage = () => {
                                     type="password"
                                     autoComplete="new-password"
                                     required
-                                    className="appearance-none rounded-lg relative block w-full px-3 py-3 border border-gray-700 placeholder-gray-500 text-white bg-gray-800 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                                    className="appearance-none rounded-lg relative block w-full px-3 py-3 border border-gray-700 placeholder-gray-500 text-white bg-gray-800 focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
                                     placeholder="Confirm Password"
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
@@ -170,7 +170,7 @@ const LoginPage = () => {
                             <button
                                 type="button"
                                 onClick={() => setIsResetMode(true)}
-                                className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+                                className="text-xs text-primary-400 hover:text-primary-300 transition-colors"
                             >
                                 Forgot your password?
                             </button>
@@ -180,7 +180,7 @@ const LoginPage = () => {
                     <div>
                         <button
                             type="submit"
-                            className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                            className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
                         >
                             {isResetMode ? 'Send Reset Link' : (isLogin ? 'Sign in with Email' : 'Sign Up with Email')}
                         </button>
@@ -199,7 +199,7 @@ const LoginPage = () => {
                             }
                             setError('');
                         }}
-                        className="text-sm text-indigo-400 hover:text-indigo-300 transition-colors"
+                        className="text-sm text-primary-400 hover:text-primary-300 transition-colors"
                     >
                         {isResetMode ? "Back to Sign In" : (isLogin ? "Don't have an account? Sign Up" : "Already have an account? Sign In")}
                     </button>

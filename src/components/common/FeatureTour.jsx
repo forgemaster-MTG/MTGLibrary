@@ -103,7 +103,7 @@ const FeatureTour = ({ steps, isOpen, onClose, onComplete, tourId }) => {
 
                     {/* Highlight Border/Pulse */}
                     <div
-                        className="absolute border-2 border-indigo-500 rounded shadow-[0_0_20px_rgba(99,102,241,0.5)] transition-all duration-300 pointer-events-none animate-pulse"
+                        className="absolute border-2 border-primary-500 rounded shadow-[0_0_20px_rgba(99,102,241,0.5)] transition-all duration-300 pointer-events-none animate-pulse"
                         style={{
                             top: coords.top - 4,
                             left: coords.left - 4,
@@ -129,7 +129,7 @@ const FeatureTour = ({ steps, isOpen, onClose, onComplete, tourId }) => {
                         width: '300px'
                     }}
                 >
-                    <div className="bg-gray-800 border border-indigo-500/30 rounded-xl shadow-2xl p-4 animate-fade-in-up">
+                    <div className="bg-gray-800 border border-primary-500/30 rounded-xl shadow-2xl p-4 animate-fade-in-up">
                         <div className="flex justify-between items-start mb-2">
                             <h3 className="text-lg font-bold text-white">{step.title}</h3>
                             <button onClick={onClose} className="text-gray-400 hover:text-white">
@@ -165,7 +165,7 @@ const FeatureTour = ({ steps, isOpen, onClose, onComplete, tourId }) => {
                                 )}
                                 <button
                                     onClick={handleNext}
-                                    className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-500/20"
+                                    className="px-4 py-1.5 rounded-lg bg-primary-600 hover:bg-primary-500 text-white text-xs font-bold shadow-lg shadow-primary-500/20"
                                 >
                                     {isLast ? 'Finish' : 'Next'}
                                 </button>

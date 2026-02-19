@@ -53,13 +53,13 @@ const ResourcesModal = ({ isOpen, onClose, players, myPlayerId, myCounters, myCo
                 <div className="flex border-b border-white/5">
                     <button
                         onClick={() => setActiveTab('counters')}
-                        className={`flex-1 py-4 text-xs font-bold uppercase tracking-widest transition-colors ${activeTab === 'counters' ? 'text-indigo-400 bg-white/5 border-b-2 border-indigo-400' : 'text-gray-500 hover:text-gray-300'}`}
+                        className={`flex-1 py-4 text-xs font-bold uppercase tracking-widest transition-colors ${activeTab === 'counters' ? 'text-primary-400 bg-white/5 border-b-2 border-primary-400' : 'text-gray-500 hover:text-gray-300'}`}
                     >
                         Counters
                     </button>
                     <button
                         onClick={() => setActiveTab('commander')}
-                        className={`flex-1 py-4 text-xs font-bold uppercase tracking-widest transition-colors ${activeTab === 'commander' ? 'text-indigo-400 bg-white/5 border-b-2 border-indigo-400' : 'text-gray-500 hover:text-gray-300'}`}
+                        className={`flex-1 py-4 text-xs font-bold uppercase tracking-widest transition-colors ${activeTab === 'commander' ? 'text-primary-400 bg-white/5 border-b-2 border-primary-400' : 'text-gray-500 hover:text-gray-300'}`}
                     >
                         Commander Dmg
                     </button>

@@ -25,7 +25,7 @@ export default function CardContextMenu({ x, y, onClose, actions, card, zoneId }
             style={{ left: x, top: y }}
         >
             <div className="px-4 py-1.5 border-b border-white/5 mb-1">
-                <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest leading-none">Card Actions</span>
+                <span className="text-[10px] font-black text-primary-400 uppercase tracking-widest leading-none">Card Actions</span>
                 <div className="text-white text-xs font-bold truncate">{card.name}</div>
             </div>
 
@@ -43,7 +43,7 @@ export default function CardContextMenu({ x, y, onClose, actions, card, zoneId }
             <MenuButton
                 onClick={() => handleAction(() => actions.moveCard(card.instanceId, zoneId, 'library', 0))} // Top of library
                 label="Put on Top"
-                icon={<svg className="w-4 h-4 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 11l7-7 7 7M5 19l7-7 7 7" /></svg>}
+                icon={<svg className="w-4 h-4 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 11l7-7 7 7M5 19l7-7 7 7" /></svg>}
             />
             <MenuButton
                 onClick={() => handleAction(() => actions.moveCard(card.instanceId, zoneId, 'hand'))}

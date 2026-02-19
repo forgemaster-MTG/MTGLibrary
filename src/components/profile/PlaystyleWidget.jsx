@@ -13,7 +13,7 @@ const PlaystyleWidget = ({ playstyle, isOwnProfile, onRetake, canRegenerate = tr
                         onClick={canRegenerate ? onRetake : () => { }}
                         disabled={!canRegenerate}
                         className={`px-6 py-2 font-bold rounded-lg shadow-lg transition-all ${canRegenerate
-                            ? 'bg-indigo-600 hover:bg-indigo-500 text-white hover:shadow-indigo-500/25'
+                            ? 'bg-primary-600 hover:bg-primary-500 text-white hover:shadow-primary-500/25'
                             : 'bg-gray-700 text-gray-500 cursor-not-allowed opacity-50'
                             }`}
                         title={canRegenerate ? "" : "Available on Tier 2 (Magician) and above"}
@@ -36,7 +36,7 @@ const PlaystyleWidget = ({ playstyle, isOwnProfile, onRetake, canRegenerate = tr
 
                 <div className="flex flex-wrap justify-center gap-2 mb-6">
                     {tags && tags.map((tag, i) => (
-                        <span key={i} className="px-3 py-1 bg-indigo-500/20 text-indigo-300 text-xs font-bold uppercase rounded-full border border-indigo-500/30">
+                        <span key={i} className="px-3 py-1 bg-primary-500/20 text-primary-300 text-xs font-bold uppercase rounded-full border border-primary-500/30">
                             {tag}
                         </span>
                     ))}
@@ -53,7 +53,7 @@ const PlaystyleWidget = ({ playstyle, isOwnProfile, onRetake, canRegenerate = tr
                             Retake Assessment
                         </button>
                         {!canRegenerate && (
-                            <span className="text-[10px] text-indigo-500/80 font-medium bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
+                            <span className="text-[10px] text-primary-500/80 font-medium bg-primary-500/10 px-2 py-0.5 rounded border border-primary-500/20">
                                 Feature Locked
                             </span>
                         )}
@@ -66,7 +66,7 @@ const PlaystyleWidget = ({ playstyle, isOwnProfile, onRetake, canRegenerate = tr
 
                 {/* Summary */}
                 <div className="relative">
-                    <div className="absolute top-0 bottom-0 left-0 w-1 bg-indigo-500 rounded-full"></div>
+                    <div className="absolute top-0 bottom-0 left-0 w-1 bg-primary-500 rounded-full"></div>
                     <p className="pl-4 text-gray-300 italic font-serif leading-relaxed text-lg">
                         "{summary}"
                     </p>

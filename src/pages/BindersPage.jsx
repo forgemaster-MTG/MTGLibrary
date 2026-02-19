@@ -107,14 +107,14 @@ const BinderFolderCard = ({ binder, onClick, onEdit, isReadOnly }) => {
     return (
         <div
             onClick={onClick}
-            className="group relative bg-[#13141f] hover:bg-[#1a1b26] border border-gray-800 hover:border-indigo-500/50 rounded-3xl p-8 flex flex-col items-center justify-center text-center transition-all duration-300 cursor-pointer hover:shadow-2xl hover:shadow-indigo-500/10 hover:-translate-y-1 overflow-hidden"
+            className="group relative bg-[#13141f] hover:bg-[#1a1b26] border border-gray-800 hover:border-primary-500/50 rounded-3xl p-8 flex flex-col items-center justify-center text-center transition-all duration-300 cursor-pointer hover:shadow-2xl hover:shadow-primary-500/10 hover:-translate-y-1 overflow-hidden"
         >
             {/* Background Glow */}
             <div className={`absolute -top-10 -right-10 w-32 h-32 bg-${color}-500/10 rounded-full blur-3xl group-hover:bg-${color}-500/20 transition-colors`} />
 
             {/* Smart Badge */}
             {isSmart && (
-                <span className="absolute top-4 left-4 text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-full border bg-indigo-500/10 text-indigo-400 border-indigo-500/20">
+                <span className="absolute top-4 left-4 text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-full border bg-primary-500/10 text-primary-400 border-primary-500/20">
                     Smart
                 </span>
             )}
@@ -152,7 +152,7 @@ const BinderFolderCard = ({ binder, onClick, onEdit, isReadOnly }) => {
             </div>
 
             {/* Title */}
-            <h3 className="text-xl font-bold text-white mb-2 leading-tight group-hover:text-indigo-300 transition-colors line-clamp-2 relative z-10">
+            <h3 className="text-xl font-bold text-white mb-2 leading-tight group-hover:text-primary-300 transition-colors line-clamp-2 relative z-10">
                 {binder.name}
             </h3>
 
@@ -215,8 +215,8 @@ const BinderDetailView = ({ binderId, onBack, currentUserId }) => {
 
     if (loading) return (
         <div className="flex flex-col items-center justify-center py-24 gap-4">
-            <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-indigo-400 font-bold tracking-widest text-xs animate-pulse">OPENING BINDER...</p>
+            <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-primary-400 font-bold tracking-widest text-xs animate-pulse">OPENING BINDER...</p>
         </div>
     );
 
@@ -225,7 +225,7 @@ const BinderDetailView = ({ binderId, onBack, currentUserId }) => {
             <div className="text-red-500 text-4xl mb-4">⚠️</div>
             <h3 className="text-xl font-bold text-white mb-2">Access Denied</h3>
             <p className="text-gray-400 mb-6">{error}</p>
-            <button onClick={onBack} className="text-indigo-400 hover:text-white underline">Return to Armory</button>
+            <button onClick={onBack} className="text-primary-400 hover:text-white underline">Return to Armory</button>
         </div>
     );
 
@@ -264,7 +264,7 @@ const BinderDetailView = ({ binderId, onBack, currentUserId }) => {
                 <div className="ml-auto">
                     <button
                         onClick={() => setIsShareOpen(true)}
-                        className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-indigo-400 hover:text-white transition-all active:scale-95 border border-white/5 hover:border-indigo-500/30 shadow-xl"
+                        className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-primary-400 hover:text-white transition-all active:scale-95 border border-white/5 hover:border-primary-500/30 shadow-xl"
                         title="Share Binder"
                     >
                         <Share2 className="w-5 h-5" />
@@ -383,7 +383,7 @@ const BindersPage = () => {
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-screen">
-                <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                <div className="w-16 h-16 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
             </div>
         );
     }
@@ -402,7 +402,7 @@ const BindersPage = () => {
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 animate-fade-in-down">
                         <div>
                             <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight mb-2">
-                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Armory</span>
+                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-purple-400">Armory</span>
                             </h1>
                             <p className="text-gray-400 text-lg max-w-2xl">
                                 Manage your trade binders and share your collection with the community.
@@ -412,7 +412,7 @@ const BindersPage = () => {
                         <button
                             id="new-binder-btn"
                             onClick={handleCreateWrapper}
-                            className="group bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs transition-all shadow-lg shadow-indigo-500/20 flex items-center gap-2 border border-indigo-400/20 hover:border-indigo-400"
+                            className="group bg-primary-600 hover:bg-primary-500 text-white px-6 py-3 rounded-xl font-black uppercase tracking-widest text-xs transition-all shadow-lg shadow-primary-500/20 flex items-center gap-2 border border-primary-400/20 hover:border-primary-400"
                         >
                             <span className="text-xl leading-none font-light">+</span>
                             New Binder
@@ -450,7 +450,7 @@ const BindersPage = () => {
                                 </p>
                                 <button
                                     onClick={handleCreateWrapper}
-                                    className="text-indigo-400 hover:text-indigo-300 font-bold uppercase tracking-widest text-xs hover:underline"
+                                    className="text-primary-400 hover:text-primary-300 font-bold uppercase tracking-widest text-xs hover:underline"
                                 >
                                     Create your first binder
                                 </button>

@@ -126,8 +126,8 @@ const DatabaseSync = () => {
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-indigo-900/40 p-4 rounded-lg border border-indigo-700/50">
-                    <p className="text-xs text-indigo-300 uppercase font-bold">Total Cards</p>
+                <div className="bg-primary-900/40 p-4 rounded-lg border border-primary-700/50">
+                    <p className="text-xs text-primary-300 uppercase font-bold">Total Cards</p>
                     <p className="text-2xl font-bold text-white">{stats.totalCards}</p>
                 </div>
                 <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
@@ -139,8 +139,8 @@ const DatabaseSync = () => {
 
             <div className="space-y-4">
                 <div className="bg-gray-800/40 p-4 rounded-lg border border-gray-700/50 flex flex-wrap gap-6 items-center">
-                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={syncOptions.updatePrices} onChange={(e) => setSyncOptions(prev => ({ ...prev, updatePrices: e.target.checked }))} className="form-checkbox bg-gray-800 border-gray-600 text-indigo-500" /><span className="text-gray-200 text-sm">Update Prices</span></label>
-                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={syncOptions.updateInfo} onChange={(e) => setSyncOptions(prev => ({ ...prev, updateInfo: e.target.checked }))} className="form-checkbox bg-gray-800 border-gray-600 text-indigo-500" /><span className="text-gray-200 text-sm">Update Card Info</span></label>
+                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={syncOptions.updatePrices} onChange={(e) => setSyncOptions(prev => ({ ...prev, updatePrices: e.target.checked }))} className="form-checkbox bg-gray-800 border-gray-600 text-primary-500" /><span className="text-gray-200 text-sm">Update Prices</span></label>
+                    <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={syncOptions.updateInfo} onChange={(e) => setSyncOptions(prev => ({ ...prev, updateInfo: e.target.checked }))} className="form-checkbox bg-gray-800 border-gray-600 text-primary-500" /><span className="text-gray-200 text-sm">Update Card Info</span></label>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="bg-gray-700/30 p-4 rounded-lg border border-gray-600">
@@ -150,7 +150,7 @@ const DatabaseSync = () => {
                                 <option value="">Select Set...</option>
                                 {sets.map(s => <option key={s.code} value={s.code} className="truncate">{s.name} ({s.code.toUpperCase()})</option>)}
                             </select>
-                            <button onClick={handleSingleSync} disabled={syncing || !selectedSet} className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white px-4 py-2 rounded-lg">{syncing ? '...' : 'Sync'}</button>
+                            <button onClick={handleSingleSync} disabled={syncing || !selectedSet} className="bg-primary-600 hover:bg-primary-500 disabled:opacity-50 text-white px-4 py-2 rounded-lg">{syncing ? '...' : 'Sync'}</button>
                         </div>
                     </div>
                     <div className="bg-gray-700/30 p-4 rounded-lg border border-gray-600">

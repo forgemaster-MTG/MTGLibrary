@@ -80,12 +80,12 @@ const FriendList = () => {
                             onChange={(e) => setSearchQuery(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                             placeholder="Search by username..."
-                            className="w-full bg-gray-900 border border-gray-700 rounded-lg py-2 pl-10 pr-4 text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="w-full bg-gray-900 border border-gray-700 rounded-lg py-2 pl-10 pr-4 text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
                         />
                     </div>
                     <button
                         onClick={handleSearch}
-                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-lg transition-colors"
+                        className="px-4 py-2 bg-primary-600 hover:bg-primary-500 text-white font-medium rounded-lg transition-colors"
                     >
                         Search
                     </button>
@@ -106,7 +106,7 @@ const FriendList = () => {
                                 </div>
                                 <button
                                     onClick={() => sendRequest(user.id)}
-                                    className="flex items-center gap-2 px-3 py-1.5 border border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10 rounded-lg text-sm transition-colors"
+                                    className="flex items-center gap-2 px-3 py-1.5 border border-primary-500/30 text-primary-400 hover:bg-primary-500/10 rounded-lg text-sm transition-colors"
                                 >
                                     <UserPlus size={16} />
                                     Add
@@ -125,7 +125,7 @@ const FriendList = () => {
                         {data.pending_received.map(req => (
                             <div key={req.id} className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg border border-gray-700">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-indigo-900/50 flex items-center justify-center text-indigo-300 font-bold border border-indigo-500/30">
+                                    <div className="w-10 h-10 rounded-full bg-primary-900/50 flex items-center justify-center text-primary-300 font-bold border border-primary-500/30">
                                         {req.username[0].toUpperCase()}
                                     </div>
                                     <div>
@@ -183,7 +183,7 @@ const FriendList = () => {
                     <div className="grid grid-cols-1 gap-2">
                         {data.friends.map(friend => (
                             <div key={friend.id} className="flex items-center p-3 bg-gray-900 rounded-lg border border-gray-700 hover:border-gray-600 transition-colors group">
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-500/20 mr-4">
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-lg shadow-primary-500/20 mr-4">
                                     {friend.username[0].toUpperCase()}
                                 </div>
                                 <div className="flex-1">

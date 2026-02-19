@@ -47,7 +47,7 @@ const DeckRow = memo(function DeckRow({ title, decks, loading, error, isOwner = 
                 {hasMore && (
                     <button
                         onClick={() => setExpanded(!expanded)}
-                        className="text-indigo-400 hover:text-indigo-300 text-sm font-bold uppercase tracking-wider transition-colors flex items-center gap-2"
+                        className="text-primary-400 hover:text-primary-300 text-sm font-bold uppercase tracking-wider transition-colors flex items-center gap-2"
                     >
                         {expanded ? 'Show Less' : `Show All (${decks.length})`}
                         <svg
@@ -69,7 +69,7 @@ const DeckRow = memo(function DeckRow({ title, decks, loading, error, isOwner = 
             {isOwner && decks.length === 0 && (
                 <div className="col-span-full py-20 flex flex-col items-center justify-center text-center bg-gray-900/20 rounded-3xl border border-dashed border-gray-800">
                     <p className="text-gray-500 mb-6">You haven't built any decks yet.</p>
-                    <Link to="/decks/new" className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all">
+                    <Link to="/decks/new" className="px-6 py-2 bg-primary-600 hover:bg-primary-500 text-white font-bold rounded-xl transition-all">
                         Create Deck
                     </Link>
                 </div>

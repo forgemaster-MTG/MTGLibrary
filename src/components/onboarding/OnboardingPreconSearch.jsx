@@ -223,7 +223,7 @@ const OnboardingPreconSearch = ({ onDeckAdded }) => {
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && searchPrecons(searchTerm)}
-                        className="w-full bg-gray-800 border border-gray-700 rounded-xl px-5 py-4 text-white placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                        className="w-full bg-gray-800 border border-gray-700 rounded-xl px-5 py-4 text-white placeholder-gray-500 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"
                     />
                     <button
                         onClick={() => searchPrecons(searchTerm)}
@@ -238,7 +238,7 @@ const OnboardingPreconSearch = ({ onDeckAdded }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                 {loading ? (
                     <div className="col-span-full flex justify-center items-center h-40">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
                     </div>
                 ) : precons.length === 0 ? (
                     <div className="col-span-full text-center py-10 text-gray-500">
@@ -255,7 +255,7 @@ const OnboardingPreconSearch = ({ onDeckAdded }) => {
                                     relative group cursor-pointer rounded-xl overflow-hidden border-2 transition-all duration-200
                                     h-48 flex flex-col justify-end
                                     ${selectedDeck?.id === deck.id
-                                        ? 'border-indigo-500 ring-2 ring-indigo-500/50 shadow-xl scale-[1.02] z-10'
+                                        ? 'border-primary-500 ring-2 ring-primary-500/50 shadow-xl scale-[1.02] z-10'
                                         : 'border-gray-800 hover:border-gray-600 hover:-translate-y-1'}
                                 `}
                             >
@@ -280,7 +280,7 @@ const OnboardingPreconSearch = ({ onDeckAdded }) => {
                                             {deck.set_code?.toUpperCase()}
                                         </span>
                                         {selectedDeck?.id === deck.id && (
-                                            <div className="bg-indigo-500 text-white p-1.5 rounded-full shadow-lg animate-fade-in shadow-indigo-500/50">
+                                            <div className="bg-primary-500 text-white p-1.5 rounded-full shadow-lg animate-fade-in shadow-primary-500/50">
                                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
                                             </div>
                                         )}
@@ -302,7 +302,7 @@ const OnboardingPreconSearch = ({ onDeckAdded }) => {
                         px-8 py-3 rounded-xl font-bold text-white transition-all shadow-lg flex items-center gap-2
                         ${!selectedDeck || importing
                             ? 'bg-gray-700 cursor-not-allowed opacity-50'
-                            : 'bg-indigo-600 hover:bg-indigo-500 hover:shadow-indigo-500/25 transform hover:scale-105'}
+                            : 'bg-primary-600 hover:bg-primary-500 hover:shadow-primary-500/25 transform hover:scale-105'}
                     `}
                 >
                     {importing ? (

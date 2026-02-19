@@ -80,13 +80,13 @@ const PrintSettingsModal = ({ isOpen, onClose, cards, deckName }) => {
                                         <div className="grid grid-cols-2 gap-3">
                                             <button
                                                 onClick={() => setPaperSize('letter')}
-                                                className={`p-3 rounded-lg border text-sm font-bold transition-all ${paperSize === 'letter' ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300' : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-750'}`}
+                                                className={`p-3 rounded-lg border text-sm font-bold transition-all ${paperSize === 'letter' ? 'bg-primary-600/20 border-primary-500 text-primary-300' : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-750'}`}
                                             >
                                                 Letter (8.5 x 11)
                                             </button>
                                             <button
                                                 onClick={() => setPaperSize('a4')}
-                                                className={`p-3 rounded-lg border text-sm font-bold transition-all ${paperSize === 'a4' ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300' : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-750'}`}
+                                                className={`p-3 rounded-lg border text-sm font-bold transition-all ${paperSize === 'a4' ? 'bg-primary-600/20 border-primary-500 text-primary-300' : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-750'}`}
                                             >
                                                 A4 (210 x 297mm)
                                             </button>
@@ -100,7 +100,7 @@ const PrintSettingsModal = ({ isOpen, onClose, cards, deckName }) => {
                                                 type="checkbox"
                                                 checked={cutLines}
                                                 onChange={(e) => setCutLines(e.target.checked)}
-                                                className="w-5 h-5 rounded border-gray-600 bg-gray-700 text-indigo-600 focus:ring-indigo-500"
+                                                className="w-5 h-5 rounded border-gray-600 bg-gray-700 text-primary-600 focus:ring-primary-500"
                                             />
                                             <span className="text-gray-300 font-medium">Show Cut Lines</span>
                                         </label>
@@ -109,12 +109,12 @@ const PrintSettingsModal = ({ isOpen, onClose, cards, deckName }) => {
                                     {/* Progress Bar */}
                                     {isGenerating && (
                                         <div className="space-y-1">
-                                            <div className="flex justify-between text-xs text-indigo-300 font-bold uppercase">
+                                            <div className="flex justify-between text-xs text-primary-300 font-bold uppercase">
                                                 <span>Generating PDF...</span>
                                                 <span>{progress}%</span>
                                             </div>
                                             <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-                                                <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-300" style={{ width: `${progress}%` }} />
+                                                <div className="h-full bg-gradient-to-r from-primary-500 to-purple-500 transition-all duration-300" style={{ width: `${progress}%` }} />
                                             </div>
                                         </div>
                                     )}
@@ -123,7 +123,7 @@ const PrintSettingsModal = ({ isOpen, onClose, cards, deckName }) => {
                                     <button
                                         onClick={handlePrint}
                                         disabled={isGenerating}
-                                        className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-black uppercase tracking-widest text-sm shadow-lg shadow-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                        className="w-full py-4 bg-primary-600 hover:bg-primary-500 text-white rounded-xl font-black uppercase tracking-widest text-sm shadow-lg shadow-primary-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                                     >
                                         {isGenerating ? 'Processing...' : 'Download PDF'}
                                     </button>

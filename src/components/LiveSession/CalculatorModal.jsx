@@ -121,7 +121,7 @@ const CalculatorModal = ({ isOpen, onClose, onApply, currentValue }) => {
                     </button>
                     <button
                         onClick={handleSubmit}
-                        className={`bg-indigo-600 hover:bg-indigo-500 text-white text-xl font-bold py-4 rounded-xl transition-colors active:scale-95 flex items-center justify-center ${warning ? 'animate-bounce' : ''}`}
+                        className={`bg-primary-600 hover:bg-primary-500 text-white text-xl font-bold py-4 rounded-xl transition-colors active:scale-95 flex items-center justify-center ${warning ? 'animate-bounce' : ''}`}
                     >
                         <Check className="w-8 h-8" />
                     </button>

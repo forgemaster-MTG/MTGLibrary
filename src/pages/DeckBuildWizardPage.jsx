@@ -898,7 +898,7 @@ const DeckBuildWizardPage = () => {
                     {/* Header */}
                     <div className="text-center space-y-4">
                         <h1 className="text-6xl font-black text-white tracking-tighter uppercase italic drop-shadow-2xl">
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">{helperName}</span> Architect
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-purple-400">{helperName}</span> Architect
                         </h1>
                         <p className="text-gray-400 text-lg max-w-2xl mx-auto font-medium">
                             Configure how the Oracle should construct your <span className="text-white font-bold">{deck?.name}</span>.
@@ -917,14 +917,14 @@ const DeckBuildWizardPage = () => {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <button
                                             onClick={() => setBuildMode('collection')}
-                                            className={`relative group p-6 rounded-3xl border-2 text-left transition-all duration-300 ${buildMode === 'collection' ? 'bg-indigo-600/10 border-indigo-500 shadow-xl shadow-indigo-500/10' : 'bg-gray-950/50 border-white/5 hover:border-white/20 hover:bg-white/5'}`}
+                                            className={`relative group p-6 rounded-3xl border-2 text-left transition-all duration-300 ${buildMode === 'collection' ? 'bg-primary-600/10 border-primary-500 shadow-xl shadow-primary-500/10' : 'bg-gray-950/50 border-white/5 hover:border-white/20 hover:bg-white/5'}`}
                                         >
-                                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 transition-colors ${buildMode === 'collection' ? 'bg-indigo-500 text-white' : 'bg-gray-800 text-gray-400 group-hover:bg-gray-700'}`}>
+                                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 transition-colors ${buildMode === 'collection' ? 'bg-primary-500 text-white' : 'bg-gray-800 text-gray-400 group-hover:bg-gray-700'}`}>
                                                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                                             </div>
                                             <h4 className={`text-lg font-black uppercase italic mb-2 ${buildMode === 'collection' ? 'text-white' : 'text-gray-300'}`}>My Collection</h4>
                                             <p className="text-xs text-gray-500 leading-relaxed font-medium">Build strictly from cards you own. Best for paper decks and budget builds.</p>
-                                            {buildMode === 'collection' && <div className="absolute top-4 right-4 w-3 h-3 bg-indigo-500 rounded-full shadow-[0_0_10px_rgba(99,102,241,0.5)]" />}
+                                            {buildMode === 'collection' && <div className="absolute top-4 right-4 w-3 h-3 bg-primary-500 rounded-full shadow-[0_0_10px_rgba(99,102,241,0.5)]" />}
                                         </button>
 
                                         <button
@@ -959,7 +959,7 @@ const DeckBuildWizardPage = () => {
                                                 </div>
                                                 <button
                                                     onClick={() => setAnalysisSettings(s => ({ ...s, ownedOnly: !s.ownedOnly }))}
-                                                    className={`w-14 h-8 rounded-full p-1 transition-colors ${analysisSettings.ownedOnly ? 'bg-indigo-600' : 'bg-gray-800'}`}
+                                                    className={`w-14 h-8 rounded-full p-1 transition-colors ${analysisSettings.ownedOnly ? 'bg-primary-600' : 'bg-gray-800'}`}
                                                 >
                                                     <div className={`w-6 h-6 rounded-full bg-white shadow-md transition-transform ${analysisSettings.ownedOnly ? 'translate-x-6' : 'translate-x-0'}`} />
                                                 </button>
@@ -971,7 +971,7 @@ const DeckBuildWizardPage = () => {
                                                 </div>
                                                 <button
                                                     onClick={() => setAnalysisSettings(s => ({ ...s, excludeAssigned: !s.excludeAssigned }))}
-                                                    className={`w-14 h-8 rounded-full p-1 transition-colors ${analysisSettings.excludeAssigned ? 'bg-indigo-600' : 'bg-gray-800'}`}
+                                                    className={`w-14 h-8 rounded-full p-1 transition-colors ${analysisSettings.excludeAssigned ? 'bg-primary-600' : 'bg-gray-800'}`}
                                                 >
                                                     <div className={`w-6 h-6 rounded-full bg-white shadow-md transition-transform ${analysisSettings.excludeAssigned ? 'translate-x-6' : 'translate-x-0'}`} />
                                                 </button>
@@ -994,12 +994,12 @@ const DeckBuildWizardPage = () => {
                                     <div className="p-4 bg-gray-950/30 rounded-2xl border border-white/5 space-y-3">
                                         <div className="flex justify-between items-center">
                                             <div className="flex items-center gap-2">
-                                                 <span className="text-sm font-bold text-gray-200">Thematic Mode</span>
-                                                 <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-500/30 uppercase tracking-wider">Flavor</span>
+                                                <span className="text-sm font-bold text-gray-200">Thematic Mode</span>
+                                                <span className="text-[10px] bg-primary-500/20 text-primary-300 px-1.5 py-0.5 rounded border border-primary-500/30 uppercase tracking-wider">Flavor</span>
                                             </div>
                                             <button
                                                 onClick={() => setAnalysisSettings(s => ({ ...s, restrictSet: !s.restrictSet }))}
-                                                className={`w-10 h-6 rounded-full p-1 transition-colors ${analysisSettings.restrictSet ? 'bg-indigo-600' : 'bg-gray-800'}`}
+                                                className={`w-10 h-6 rounded-full p-1 transition-colors ${analysisSettings.restrictSet ? 'bg-primary-600' : 'bg-gray-800'}`}
                                             >
                                                 <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${analysisSettings.restrictSet ? 'translate-x-4' : 'translate-x-0'}`} />
                                             </button>
@@ -1008,13 +1008,13 @@ const DeckBuildWizardPage = () => {
                                         {/* Cohort Display */}
                                         <div className={`transition-all duration-300 ${analysisSettings.restrictSet ? 'opacity-100 max-h-40' : 'opacity-50 max-h-12'}`}>
                                             {analysisSettings.restrictSet ? (
-                                                <div className="bg-black/20 border border-indigo-500/30 rounded-xl p-3 space-y-2">
-                                                    <p className="text-[10px] text-indigo-300 font-bold uppercase tracking-wider">
+                                                <div className="bg-black/20 border border-primary-500/30 rounded-xl p-3 space-y-2">
+                                                    <p className="text-[10px] text-primary-300 font-bold uppercase tracking-wider">
                                                         Thematic Restriction ({getRestrictedSets().length} Sets)
                                                     </p>
                                                     <div className="flex flex-wrap gap-1.5 h-full overflow-y-auto max-h-20 custom-scrollbar">
                                                         {getRestrictedSets().map(s => (
-                                                            <span key={s.code} className="inline-flex items-center px-1.5 py-0.5 rounded bg-indigo-500/20 border border-indigo-500/30 text-[9px] text-indigo-200 font-mono">
+                                                            <span key={s.code} className="inline-flex items-center px-1.5 py-0.5 rounded bg-primary-500/20 border border-primary-500/30 text-[9px] text-primary-200 font-mono">
                                                                 {s.name} ({s.code.toUpperCase()})
                                                             </span>
                                                         ))}
@@ -1050,7 +1050,7 @@ const DeckBuildWizardPage = () => {
                                             <button
                                                 key={opt.id}
                                                 onClick={() => setAnalysisSettings(s => ({ ...s, finishPreference: opt.id }))}
-                                                className={`flex items-center justify-between px-5 py-3 rounded-xl border transition-all ${analysisSettings.finishPreference === opt.id ? 'bg-indigo-600/20 border-indigo-500 text-white' : 'bg-gray-950/30 border-white/5 text-gray-500 hover:bg-white/5'}`}
+                                                className={`flex items-center justify-between px-5 py-3 rounded-xl border transition-all ${analysisSettings.finishPreference === opt.id ? 'bg-primary-600/20 border-primary-500 text-white' : 'bg-gray-950/30 border-white/5 text-gray-500 hover:bg-white/5'}`}
                                             >
                                                 <span className="font-bold text-sm">{opt.label}</span>
                                                 <span className="text-[10px] opacity-60 uppercase tracking-wider">{opt.sub}</span>
@@ -1064,7 +1064,7 @@ const DeckBuildWizardPage = () => {
                                 {/* CTA */}
                                 <button
                                     onClick={startAnalysis}
-                                    className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-black text-lg py-6 rounded-2xl shadow-2xl shadow-indigo-500/30 border border-white/10 uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-[0.98] group"
+                                    className="w-full bg-gradient-to-r from-primary-600 to-purple-600 hover:from-primary-500 hover:to-purple-500 text-white font-black text-lg py-6 rounded-2xl shadow-2xl shadow-primary-500/30 border border-white/10 uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-[0.98] group"
                                 >
                                     <span className="flex items-center justify-center gap-3">
                                         INITIALIZE ARCHITECT
@@ -1085,29 +1085,29 @@ const DeckBuildWizardPage = () => {
         return (
             <div className="max-w-5xl mx-auto py-8 space-y-6 h-full flex flex-col animate-fade-in relative z-10">
                 <div className="text-center space-y-2">
-                    <div className="inline-block px-4 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 animate-pulse mb-2">
+                    <div className="inline-block px-4 py-1.5 rounded-full bg-primary-500/10 border border-primary-500/20 animate-pulse mb-2">
                         <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-indigo-500 rounded-full shadow-[0_0_10px_rgba(99,102,241,1)]" />
-                            <span className="text-[10px] font-black uppercase tracking-widest text-indigo-300">Active Connection</span>
+                            <div className="w-2 h-2 bg-primary-500 rounded-full shadow-[0_0_10px_rgba(99,102,241,1)]" />
+                            <span className="text-[10px] font-black uppercase tracking-widest text-primary-300">Active Connection</span>
                         </div>
                     </div>
                     <h2 className="text-4xl font-black text-white uppercase italic tracking-tighter">
                         Architecting Interface
                     </h2>
-                    <p className="text-indigo-400 font-mono text-xs tracking-widest uppercase opacity-70">{status}</p>
+                    <p className="text-primary-400 font-mono text-xs tracking-widest uppercase opacity-70">{status}</p>
                 </div>
 
                 {/* KPI Dashboard */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="bg-gray-900/40 backdrop-blur-xl border border-white/10 rounded-3xl p-6 relative overflow-hidden group">
                         <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                            <svg className="w-16 h-16 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                            <svg className="w-16 h-16 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                         </div>
                         <div className="relative z-10">
-                            <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Cards Drafted</p>
+                            <p className="text-[10px] font-black text-primary-400 uppercase tracking-widest mb-1">Cards Drafted</p>
                             <h3 className="text-4xl font-black text-white tabular-nums tracking-tighter">{analysisStats.drafted}</h3>
                             <div className="mt-2 w-full bg-gray-800 h-1 rounded-full overflow-hidden">
-                                <div className="bg-indigo-500 h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(100, (analysisStats.drafted / 100) * 100)}%` }}></div>
+                                <div className="bg-primary-500 h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(100, (analysisStats.drafted / 100) * 100)}%` }}></div>
                             </div>
                         </div>
                     </div>
@@ -1141,14 +1141,14 @@ const DeckBuildWizardPage = () => {
                         {/* Terminal Header */}
                         <div className="h-10 bg-gray-900 border-b border-white/10 flex items-center px-4 justify-between">
                             <div className="text-[10px] text-gray-500 font-mono uppercase tracking-widest">System Log</div>
-                            <div className="text-[10px] text-indigo-400 font-mono uppercase">root@aetherius:~</div>
+                            <div className="text-[10px] text-primary-400 font-mono uppercase">root@aetherius:~</div>
                         </div>
 
                         {/* Terminal Body */}
                         <div className="flex-1 p-6 overflow-y-auto font-mono text-xs space-y-2 custom-scrollbar">
                             {logs.map((log, i) => (
-                                <div key={i} className="text-gray-300 animate-fade-in pl-2 border-l-2 border-indigo-500/30">
-                                    <span className="text-indigo-500 mr-2">➜</span>
+                                <div key={i} className="text-gray-300 animate-fade-in pl-2 border-l-2 border-primary-500/30">
+                                    <span className="text-primary-500 mr-2">➜</span>
                                     {log}
                                 </div>
                             ))}
@@ -1157,7 +1157,7 @@ const DeckBuildWizardPage = () => {
 
                         {/* Progress Bar overlay at bottom */}
                         <div className="h-1 bg-gray-800 w-full">
-                            <div className="h-full bg-indigo-500 animate-progress-indeterminate opacity-50" />
+                            <div className="h-full bg-primary-500 animate-progress-indeterminate opacity-50" />
                         </div>
                     </div>
 
@@ -1186,7 +1186,7 @@ const DeckBuildWizardPage = () => {
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
                                             <div>
                                                 <p className="text-xs font-bold text-white leading-tight">{card.name}</p>
-                                                <p className="text-[10px] text-indigo-300 font-mono">{card.set?.toUpperCase()} • {card.role || 'Synergy'}</p>
+                                                <p className="text-[10px] text-primary-300 font-mono">{card.set?.toUpperCase()} • {card.role || 'Synergy'}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -1232,7 +1232,7 @@ const DeckBuildWizardPage = () => {
                             <button
                                 key={mode}
                                 onClick={() => setViewMode(mode)}
-                                className={`p-2 rounded-xl transition-all ${viewMode === mode ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}
+                                className={`p-2 rounded-xl transition-all ${viewMode === mode ? 'bg-primary-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}
                                 title={`${mode.charAt(0).toUpperCase() + mode.slice(1)} View`}
                             >
                                 {icon}
@@ -1249,7 +1249,7 @@ const DeckBuildWizardPage = () => {
                             <button
                                 key={tab}
                                 onClick={() => setSelectedTab(tab)}
-                                className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${selectedTab === tab ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}
+                                className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${selectedTab === tab ? 'bg-primary-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}
                             >
                                 {tab} <span className="ml-1 opacity-40 font-mono">{count}</span>
                             </button>
@@ -1264,20 +1264,20 @@ const DeckBuildWizardPage = () => {
                                 <div
                                     key={card.firestoreId}
                                     onClick={() => toggleSelection(card.firestoreId)}
-                                    className={`grid grid-cols-[auto_1fr_auto_auto] gap-8 items-center p-6 rounded-[2rem] border transition-all cursor-pointer group ${selectedCards.has(card.firestoreId) ? 'bg-indigo-500/10 border-indigo-500/40 shadow-2xl' : 'bg-gray-950/30 border-white/5 hover:border-white/20'}`}
+                                    className={`grid grid-cols-[auto_1fr_auto_auto] gap-8 items-center p-6 rounded-[2rem] border transition-all cursor-pointer group ${selectedCards.has(card.firestoreId) ? 'bg-primary-500/10 border-primary-500/40 shadow-2xl' : 'bg-gray-950/30 border-white/5 hover:border-white/20'}`}
                                 >
-                                    <div className={`w-8 h-8 rounded-xl border-2 flex items-center justify-center transition-all ${selectedCards.has(card.firestoreId) ? 'bg-indigo-500 border-indigo-400 text-white' : 'border-white/10 group-hover:border-white/30'}`}>
+                                    <div className={`w-8 h-8 rounded-xl border-2 flex items-center justify-center transition-all ${selectedCards.has(card.firestoreId) ? 'bg-primary-500 border-primary-400 text-white' : 'border-white/10 group-hover:border-white/30'}`}>
                                         {selectedCards.has(card.firestoreId) && <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
                                     </div>
                                     <div className="space-y-1 relative group/tooltip">
                                         <div className="flex items-center gap-3">
-                                            <span className="block text-xl font-black text-white uppercase italic tracking-tight group-hover:text-indigo-300 transition-colors truncate">{card.name}</span>
+                                            <span className="block text-xl font-black text-white uppercase italic tracking-tight group-hover:text-primary-300 transition-colors truncate">{card.name}</span>
                                             {card.data?.mana_cost && (
                                                 <span className="text-xs font-bold text-gray-500 bg-gray-900/50 px-2 py-0.5 rounded border border-white/5">{card.data.mana_cost.replace(/[{}]/g, '')}</span>
                                             )}
                                         </div>
                                         <div className="flex items-center gap-3">
-                                            <span className="text-[10px] font-black text-indigo-400 tracking-[0.2em] uppercase">{card.type_line}</span>
+                                            <span className="text-[10px] font-black text-primary-400 tracking-[0.2em] uppercase">{card.type_line}</span>
                                             <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded ${card.is_wishlist ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'bg-green-500/20 text-green-400 border border-green-500/30'}`}>
                                                 {card.is_wishlist ? 'Wishlist' : 'Owned'}
                                             </span>
@@ -1298,7 +1298,7 @@ const DeckBuildWizardPage = () => {
                                             />
                                         </div>
                                     </div>
-                                    <div className="text-center font-mono text-indigo-400 font-bold bg-white/5 px-4 py-2 rounded-2xl border border-white/5">
+                                    <div className="text-center font-mono text-primary-400 font-bold bg-white/5 px-4 py-2 rounded-2xl border border-white/5">
                                         {card.rating}/10
                                     </div>
                                     <div className="max-w-md bg-black/30 p-4 rounded-2xl border border-white/5 text-sm text-gray-400 font-medium italic leading-relaxed">
@@ -1315,7 +1315,7 @@ const DeckBuildWizardPage = () => {
                                 <div
                                     key={card.firestoreId}
                                     onClick={() => toggleSelection(card.firestoreId)}
-                                    className={`flex flex-col rounded-[2rem] border transition-all cursor-pointer group overflow-hidden ${selectedCards.has(card.firestoreId) ? 'bg-indigo-500/10 border-indigo-500/40 shadow-2xl' : 'bg-gray-950/30 border-white/5 hover:border-white/20'}`}
+                                    className={`flex flex-col rounded-[2rem] border transition-all cursor-pointer group overflow-hidden ${selectedCards.has(card.firestoreId) ? 'bg-primary-500/10 border-primary-500/40 shadow-2xl' : 'bg-gray-950/30 border-white/5 hover:border-white/20'}`}
                                 >
                                     <div className="relative aspect-[3/4] overflow-hidden">
                                         <img
@@ -1326,7 +1326,7 @@ const DeckBuildWizardPage = () => {
                                         />
                                         <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-transparent to-transparent opacity-80" />
 
-                                        <div className={`absolute top-4 right-4 w-8 h-8 rounded-xl border-2 flex items-center justify-center transition-all ${selectedCards.has(card.firestoreId) ? 'bg-indigo-500 border-indigo-400 text-white' : 'bg-black/40 border-white/20 group-hover:border-white/40'}`}>
+                                        <div className={`absolute top-4 right-4 w-8 h-8 rounded-xl border-2 flex items-center justify-center transition-all ${selectedCards.has(card.firestoreId) ? 'bg-primary-500 border-primary-400 text-white' : 'bg-black/40 border-white/20 group-hover:border-white/40'}`}>
                                             {selectedCards.has(card.firestoreId) && <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
                                         </div>
 
@@ -1341,8 +1341,8 @@ const DeckBuildWizardPage = () => {
                                             </div>
                                             <span className="block text-lg font-black text-white uppercase italic tracking-tight line-clamp-1">{card.name}</span>
                                             <div className="flex justify-between items-center mt-1">
-                                                <span className="text-[10px] font-black text-indigo-300 tracking-[0.2em] uppercase truncate max-w-[70%]">{card.type_line}</span>
-                                                <span className="text-xs font-mono text-indigo-400 font-bold bg-black/60 px-2 py-0.5 rounded-lg border border-white/10">{card.rating}/10</span>
+                                                <span className="text-[10px] font-black text-primary-300 tracking-[0.2em] uppercase truncate max-w-[70%]">{card.type_line}</span>
+                                                <span className="text-xs font-mono text-primary-400 font-bold bg-black/60 px-2 py-0.5 rounded-lg border border-white/10">{card.rating}/10</span>
                                             </div>
                                         </div>
 
@@ -1351,9 +1351,9 @@ const DeckBuildWizardPage = () => {
                                             {card.data?.oracle_text && (
                                                 <p className="text-[11px] text-gray-300 line-clamp-4 leading-relaxed border-b border-white/5 pb-2">{card.data.oracle_text}</p>
                                             )}
-                                            <p className="text-xs text-indigo-300 italic leading-relaxed">"{card.reason}"</p>
+                                            <p className="text-xs text-primary-300 italic leading-relaxed">"{card.reason}"</p>
                                             <div className="pt-2 flex justify-between items-center">
-                                                <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">{card.suggestedType}</span>
+                                                <span className="text-[10px] font-black text-primary-400 uppercase tracking-widest">{card.suggestedType}</span>
                                                 {card.data?.power !== undefined && (
                                                     <span className="text-xs font-black text-white/50">{card.data.power}/{card.data.toughness}</span>
                                                 )}
@@ -1382,10 +1382,10 @@ const DeckBuildWizardPage = () => {
                                         <tr
                                             key={card.firestoreId}
                                             onClick={() => toggleSelection(card.firestoreId)}
-                                            className={`hover:bg-white/5 cursor-pointer transition-colors ${selectedCards.has(card.firestoreId) ? 'bg-indigo-500/5' : ''}`}
+                                            className={`hover:bg-white/5 cursor-pointer transition-colors ${selectedCards.has(card.firestoreId) ? 'bg-primary-500/5' : ''}`}
                                         >
                                             <td className="px-6 py-4">
-                                                <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${selectedCards.has(card.firestoreId) ? 'bg-indigo-500 border-indigo-400 text-white' : 'border-white/10'}`}>
+                                                <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${selectedCards.has(card.firestoreId) ? 'bg-primary-500 border-primary-400 text-white' : 'border-white/10'}`}>
                                                     {selectedCards.has(card.firestoreId) && <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
                                                 </div>
                                             </td>
@@ -1398,10 +1398,10 @@ const DeckBuildWizardPage = () => {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <span className="text-[10px] font-black text-indigo-400 tracking-[0.1em] uppercase">{card.type_line}</span>
+                                                <span className="text-[10px] font-black text-primary-400 tracking-[0.1em] uppercase">{card.type_line}</span>
                                             </td>
                                             <td className="px-6 py-4 text-center">
-                                                <span className="font-mono text-indigo-400 font-bold bg-white/5 px-3 py-1 rounded-lg border border-white/5">{card.rating}</span>
+                                                <span className="font-mono text-primary-400 font-bold bg-white/5 px-3 py-1 rounded-lg border border-white/5">{card.rating}</span>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span className="text-xs text-gray-400 italic line-clamp-1">"{card.reason}"</span>
@@ -1417,12 +1417,12 @@ const DeckBuildWizardPage = () => {
                 {/* Footer Progress Bar */}
                 <div className="p-8 bg-gray-950/40 backdrop-blur-3xl rounded-3xl border border-white/10 flex justify-between items-center shadow-2xl mx-4">
                     <div className="flex flex-col">
-                        <span className="text-[10px] font-black text-indigo-400/60 uppercase tracking-[0.4em]">Draft Progress</span>
+                        <span className="text-[10px] font-black text-primary-400/60 uppercase tracking-[0.4em]">Draft Progress</span>
                         <span className="text-3xl font-black text-white italic tracking-tighter uppercase">{selectedCards.size} Cards Selected</span>
                     </div>
                     <div className="flex gap-4">
                         <button onClick={() => setStep(STEPS.ANALYSIS)} className="px-8 py-3.5 bg-white/5 hover:bg-white/10 text-white font-black rounded-2xl border border-white/5 uppercase tracking-widest text-[11px] transition-all">Re-Analyze</button>
-                        <button onClick={handleDeployTransition} className="px-10 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-2xl shadow-xl shadow-indigo-500/20 uppercase tracking-widest text-[11px] border border-white/10 transition-all">Review & Deploy</button>
+                        <button onClick={handleDeployTransition} className="px-10 py-3.5 bg-primary-600 hover:bg-primary-500 text-white font-black rounded-2xl shadow-xl shadow-primary-500/20 uppercase tracking-widest text-[11px] border border-white/10 transition-all">Review & Deploy</button>
                     </div>
                 </div>
             </div>
@@ -1443,10 +1443,10 @@ const DeckBuildWizardPage = () => {
                 <div className="flex-1 bg-gray-950/40 backdrop-blur-xl rounded-[2.5rem] border border-white/10 p-8 overflow-y-auto custom-scrollbar shadow-2xl">
                     {isDeployAnalyzing ? (
                         <div className="h-full flex flex-col items-center justify-center space-y-6 animate-pulse">
-                            <div className="w-20 h-20 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                            <div className="w-20 h-20 border-4 border-primary-500 border-t-transparent rounded-full animate-spin" />
                             <div className="text-center space-y-2">
                                 <h3 className="text-2xl font-black text-white uppercase italic tracking-widest">Analysing Synergy...</h3>
-                                <p className="text-indigo-400 font-mono text-sm">Running 10,000 simulations against meta decks...</p>
+                                <p className="text-primary-400 font-mono text-sm">Running 10,000 simulations against meta decks...</p>
                             </div>
                         </div>
                     ) : deployAnalysis ? (
@@ -1455,13 +1455,13 @@ const DeckBuildWizardPage = () => {
                             <div className="flex items-center justify-between border-b border-white/10 pb-8">
                                 <div className="space-y-1">
                                     <h3 className="text-xl font-black text-gray-400 uppercase tracking-[0.2em]">Power Level</h3>
-                                    <div className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400 italic font-mono">
+                                    <div className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-purple-400 italic font-mono">
                                         {deployAnalysis.grade?.powerLevel || deployAnalysis.grade?.grade || '7'}
                                         <span className="text-lg text-gray-500 ml-4 not-italic">/ 10</span>
                                     </div>
                                 </div>
                                 <div className="text-right space-y-1">
-                                    <div className="text-xs font-black text-indigo-400 uppercase tracking-widest">Est. Win Rate</div>
+                                    <div className="text-xs font-black text-primary-400 uppercase tracking-widest">Est. Win Rate</div>
                                     <div className="text-3xl font-black text-white">{deployAnalysis.grade?.metrics?.winTurn ? `T${deployAnalysis.grade.metrics.winTurn}` : (deployAnalysis.grade?.winRate || '25%')}</div>
                                 </div>
                             </div>
@@ -1469,7 +1469,7 @@ const DeckBuildWizardPage = () => {
                             {/* Strategy Summary */}
                             <div className="space-y-6">
                                 <h3 className="text-xl font-black text-white uppercase italic tracking-tight flex items-center gap-3">
-                                    <svg className="w-6 h-6 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+                                    <svg className="w-6 h-6 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
                                     Strategic Analysis
                                 </h3>
                                 <div className="prose prose-invert prose-indigo max-w-none">
@@ -1485,7 +1485,7 @@ const DeckBuildWizardPage = () => {
                                 <h3 className="text-sm font-black text-gray-500 uppercase tracking-widest">Adding {cards.length} Cards</h3>
                                 <div className="flex gap-2 overflow-x-auto pb-4 custom-scrollbar">
                                     {cards.map(c => (
-                                        <div key={c.id || c.name} className="w-24 h-32 flex-shrink-0 rounded-lg overflow-hidden relative group border border-white/10 hover:border-indigo-500/50 transition-all">
+                                        <div key={c.id || c.name} className="w-24 h-32 flex-shrink-0 rounded-lg overflow-hidden relative group border border-white/10 hover:border-primary-500/50 transition-all">
                                             <img src={c.data?.image_uris?.normal || c.image_uri} className="w-full h-full object-cover" alt={c.name} />
                                             <div className="absolute inset-x-0 bottom-0 bg-black/80 p-1 text-[8px] truncate text-center text-white font-bold">{c.name}</div>
                                         </div>
@@ -1508,7 +1508,7 @@ const DeckBuildWizardPage = () => {
                     <button
                         onClick={handleDeploy}
                         disabled={isProcessing || isDeployAnalyzing}
-                        className="px-16 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-2xl shadow-2xl shadow-indigo-500/40 uppercase tracking-widest text-xs border border-white/10 transition-all flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed group"
+                        className="px-16 py-4 bg-primary-600 hover:bg-primary-500 text-white font-black rounded-2xl shadow-2xl shadow-primary-500/40 uppercase tracking-widest text-xs border border-white/10 transition-all flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed group"
                     >
                         {isProcessing ? (
                             <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
@@ -1522,7 +1522,7 @@ const DeckBuildWizardPage = () => {
         );
     };
 
-    if (deckLoading) return <div className="flex items-center justify-center h-screen bg-gray-950"><div className="animate-spin h-12 w-12 border-4 border-indigo-500 border-t-transparent rounded-full" /></div>;
+    if (deckLoading) return <div className="flex items-center justify-center h-screen bg-gray-950"><div className="animate-spin h-12 w-12 border-4 border-primary-500 border-t-transparent rounded-full" /></div>;
 
     const commanderArt = getArtCrop(deck?.commander) || getArtCrop(deck?.commander_partner);
 
@@ -1550,7 +1550,7 @@ const DeckBuildWizardPage = () => {
                 <div className="flex gap-12">
                     {[1, 2, 3].map(s => (
                         <div key={s} className={`flex items-center gap-3 transition-all ${step === s ? 'scale-110' : 'opacity-40'}`}>
-                            <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black ${step >= s ? 'bg-indigo-500 text-white' : 'bg-gray-800 text-gray-600'}`}>
+                            <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black ${step >= s ? 'bg-primary-500 text-white' : 'bg-gray-800 text-gray-600'}`}>
                                 {s}
                             </div>
                             <span className="text-[10px] font-black uppercase tracking-[0.2em]">

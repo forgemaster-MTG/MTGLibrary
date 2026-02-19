@@ -40,9 +40,9 @@ const PodGuideModal = ({ isOpen, onClose }) => {
                         <p className="text-gray-400 text-sm leading-relaxed mb-4">
                             In Magic: The Gathering, a "Pod" is your local playgroup. On Forge, it represents your list of <strong className="text-white">Trusted Connections</strong>. Linking accounts with someone in your Pod allows you to share digital resources instantly.
                         </p>
-                        <div className="bg-indigo-900/20 p-4 rounded-xl border border-indigo-500/20 flex items-center gap-3">
+                        <div className="bg-primary-900/20 p-4 rounded-xl border border-primary-500/20 flex items-center gap-3">
                             <span className="text-lg">💡</span>
-                            <p className="text-xs text-indigo-300 font-bold">Pro Tip: Only add people you actually know and trust to your Pod.</p>
+                            <p className="text-xs text-primary-300 font-bold">Pro Tip: Only add people you actually know and trust to your Pod.</p>
                         </div>
                     </section>
 
@@ -122,7 +122,7 @@ const PodGuideModal = ({ isOpen, onClose }) => {
                         </p>
                         <div className="bg-gray-800/50 p-4 rounded-xl border border-white/5">
                             <div className="flex items-center gap-3 mb-2">
-                                <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold text-white ring-2 ring-indigo-500">You</div>
+                                <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold text-white ring-2 ring-primary-500">You</div>
                                 <div className="h-px bg-gray-600 w-8" />
                                 <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-400">P2</div>
                                 <div className="h-px bg-gray-600 w-8" />
@@ -137,7 +137,7 @@ const PodGuideModal = ({ isOpen, onClose }) => {
                 <div className="p-6 bg-gray-950 border-t border-white/5 flex justify-end">
                     <button
                         onClick={onClose}
-                        className="px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-all font-black text-sm shadow-xl shadow-indigo-900/20 active:scale-95"
+                        className="px-8 py-3 bg-primary-600 hover:bg-primary-500 text-white rounded-xl transition-all font-black text-sm shadow-xl shadow-primary-900/20 active:scale-95"
                     >
                         Got it, thanks!
                     </button>

@@ -47,15 +47,15 @@ const AddCreditsModal = ({ isOpen, onClose, onConfirm, user }) => {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="bg-gray-900 border border-indigo-500/30 rounded-xl p-6 max-w-sm w-full shadow-2xl relative animate-fade-in">
+            <div className="bg-gray-900 border border-primary-500/30 rounded-xl p-6 max-w-sm w-full shadow-2xl relative animate-fade-in">
                 <h3 className="text-xl font-bold text-white mb-4">Add Credits to {user.username}</h3>
-                
+
                 <div className="space-y-4">
                     <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Amount (Credits)</label>
-                        <input 
-                            type="number" 
-                            value={amount} 
+                        <input
+                            type="number"
+                            value={amount}
                             onChange={handleAmountChange}
                             step={100000}
                             className="w-full bg-gray-800 border border-gray-600 rounded-lg px-4 py-2 text-white"
@@ -63,16 +63,16 @@ const AddCreditsModal = ({ isOpen, onClose, onConfirm, user }) => {
                         <p className="text-xs text-gray-400 mt-1">1M Credits ≈ $3.30</p>
                     </div>
 
-                    <div className="bg-indigo-900/20 border border-indigo-500/30 p-3 rounded-lg flex justify-between items-center">
+                    <div className="bg-primary-900/20 border border-primary-500/30 p-3 rounded-lg flex justify-between items-center">
                         <span className="text-gray-300 text-sm">Estimated Value</span>
-                        <span className="text-indigo-400 font-bold text-lg">${estimatedValue.toFixed(2)}</span>
+                        <span className="text-primary-400 font-bold text-lg">${estimatedValue.toFixed(2)}</span>
                     </div>
 
                     <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Reason / Description</label>
-                        <input 
-                            type="text" 
-                            value={description} 
+                        <input
+                            type="text"
+                            value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             className="w-full bg-gray-800 border border-gray-600 rounded-lg px-4 py-2 text-white"
                         />
@@ -96,7 +96,7 @@ const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, confirmText 
     if (!isOpen) return null;
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="bg-gray-900 border border-indigo-500/30 rounded-xl p-6 max-w-md w-full shadow-2xl transform transition-all animate-fade-in relative">
+            <div className="bg-gray-900 border border-primary-500/30 rounded-xl p-6 max-w-md w-full shadow-2xl transform transition-all animate-fade-in relative">
                 <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
                 <p className="text-gray-300 mb-6">{message}</p>
                 <div className="flex justify-end gap-3">
@@ -110,7 +110,7 @@ const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, confirmText 
                     <button
                         onClick={onConfirm}
                         disabled={creating}
-                        className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-lg disabled:opacity-50 flex items-center gap-2"
+                        className="px-4 py-2 rounded-lg bg-primary-600 hover:bg-primary-500 text-white font-bold shadow-lg disabled:opacity-50 flex items-center gap-2"
                     >
                         {creating && <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>}
                         {confirmText}
@@ -336,7 +336,7 @@ const AdminPanel = () => {
             // Call API
             // api.js doesn't have a helper for this specific endpoint yet, use generic post
             await api.post(`/api/users/${selectedUserForCredit.id}/credits/add`, { amount, description });
-            
+
             alert(`Successfully added ${amount.toLocaleString()} credits to ${selectedUserForCredit.username}.`);
             setShowCreditModal(false);
             fetchUsers(); // Refresh to show new totals? Table doesn't show totals yet but good practice.
@@ -601,8 +601,6 @@ const AdminPanel = () => {
                 onClose={() => setShowSubModal(false)}
                 onConfirm={handleConfirmSubOverride}
                 user={selectedUserForSub}
-                onConfirm={handleConfirmSubOverride}
-                user={selectedUserForSub}
             />
 
             <AddCreditsModal
@@ -616,37 +614,37 @@ const AdminPanel = () => {
             <div className="flex border-b border-gray-700 mb-6 overflow-x-auto">
                 <button
                     onClick={() => setActiveSection('sync')}
-                    className={`px-4 py-2 border-b-2 font-medium transition-colors whitespace-nowrap ${activeSection === 'sync' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-gray-400 hover:text-white'}`}
+                    className={`px-4 py-2 border-b-2 font-medium transition-colors whitespace-nowrap ${activeSection === 'sync' ? 'border-primary-500 text-primary-400' : 'border-transparent text-gray-400 hover:text-white'}`}
                 >
                     DB Sync & Tools
                 </button>
                 <button
                     onClick={() => setActiveSection('permissions')}
-                    className={`px-4 py-2 border-b-2 font-medium transition-colors whitespace-nowrap ${activeSection === 'permissions' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-gray-400 hover:text-white'}`}
+                    className={`px-4 py-2 border-b-2 font-medium transition-colors whitespace-nowrap ${activeSection === 'permissions' ? 'border-primary-500 text-primary-400' : 'border-transparent text-gray-400 hover:text-white'}`}
                 >
                     User Permissions
                 </button>
                 <button
                     onClick={() => setActiveSection('epics')}
-                    className={`px-4 py-2 border-b-2 font-medium transition-colors whitespace-nowrap ${activeSection === 'epics' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-gray-400 hover:text-white'}`}
+                    className={`px-4 py-2 border-b-2 font-medium transition-colors whitespace-nowrap ${activeSection === 'epics' ? 'border-primary-500 text-primary-400' : 'border-transparent text-gray-400 hover:text-white'}`}
                 >
                     Epics / Projects
                 </button>
                 <button
                     onClick={() => setActiveSection('release')}
-                    className={`px-4 py-2 border-b-2 font-medium transition-colors whitespace-nowrap ${activeSection === 'release' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-gray-400 hover:text-white'}`}
+                    className={`px-4 py-2 border-b-2 font-medium transition-colors whitespace-nowrap ${activeSection === 'release' ? 'border-primary-500 text-primary-400' : 'border-transparent text-gray-400 hover:text-white'}`}
                 >
                     Release Notes
                 </button>
                 <button
                     onClick={() => setActiveSection('referrals')}
-                    className={`px-4 py-2 border-b-2 font-medium transition-colors whitespace-nowrap ${activeSection === 'referrals' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-gray-400 hover:text-white'}`}
+                    className={`px-4 py-2 border-b-2 font-medium transition-colors whitespace-nowrap ${activeSection === 'referrals' ? 'border-primary-500 text-primary-400' : 'border-transparent text-gray-400 hover:text-white'}`}
                 >
                     Referrals
                 </button>
                 <button
                     onClick={() => setActiveSection('presets')}
-                    className={`px-4 py-2 border-b-2 font-medium transition-colors whitespace-nowrap ${activeSection === 'presets' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-gray-400 hover:text-white'}`}
+                    className={`px-4 py-2 border-b-2 font-medium transition-colors whitespace-nowrap ${activeSection === 'presets' ? 'border-primary-500 text-primary-400' : 'border-transparent text-gray-400 hover:text-white'}`}
                 >
                     Dashboard Presets
                 </button>
@@ -674,12 +672,12 @@ const AdminPanel = () => {
                                         const data = isSaved ? saved[name] : DEFAULT_PRESETS[name];
 
                                         return (
-                                            <div key={name} className={`flex items-center justify-between p-3 rounded-lg border ${isOverridden ? 'bg-indigo-900/20 border-indigo-500/50' : 'bg-gray-800 border-gray-700'}`}>
+                                            <div key={name} className={`flex items-center justify-between p-3 rounded-lg border ${isOverridden ? 'bg-primary-900/20 border-primary-500/50' : 'bg-gray-800 border-gray-700'}`}>
                                                 <div className="min-w-0 flex-1 mr-4">
                                                     <div className="flex flex-wrap items-center gap-2">
                                                         <div className="font-bold text-white text-sm break-all">{name}</div>
                                                         {isDefault && !isSaved && <span className="text-[10px] bg-gray-700 text-gray-300 px-1 rounded">SYSTEM</span>}
-                                                        {isOverridden && <span className="text-[10px] bg-indigo-500 text-white px-1 rounded">OVERRIDE</span>}
+                                                        {isOverridden && <span className="text-[10px] bg-primary-500 text-white px-1 rounded">OVERRIDE</span>}
                                                         {!isDefault && <span className="text-[10px] bg-green-900 text-green-300 px-1 rounded">CUSTOM</span>}
                                                     </div>
                                                     <div className="text-xs text-gray-500 font-mono">
@@ -712,13 +710,22 @@ const AdminPanel = () => {
                                                             navigator.clipboard.writeText(btoa(JSON.stringify(data)));
                                                             alert('Layout code copied!');
                                                         }}
-                                                        className="p-2 text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors"
+                                                        className="p-2 text-primary-400 hover:bg-primary-500/10 rounded-lg transition-colors"
                                                         title="Copy Code"
                                                     >
                                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-12a2 2 0 01-2-2V6a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
                                                     </button>
                                                     <div className="flex justify-end gap-2">
                                                         <button
+                                                            onClick={async () => {
+                                                                if (!window.confirm(isOverridden ? `Revert "${name}" to system default?` : `Delete custom preset "${name}"?`)) return;
+                                                                try {
+                                                                    const newSaved = { ...(userProfile.settings.saved_layouts || {}) };
+                                                                    delete newSaved[name];
+                                                                    await api.updateUser(userProfile.id, { settings: { ...userProfile.settings, saved_layouts: newSaved } });
+                                                                    refreshUserProfile();
+                                                                } catch (err) {
+                                                                    alert(err.message);
                                                                 }
                                                             }}
                                                             className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
@@ -730,7 +737,7 @@ const AdminPanel = () => {
                                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                                             )}
                                                         </button>
-                                                    )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         );
@@ -751,7 +758,7 @@ const AdminPanel = () => {
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Layout Configuration (JSON or Base64)</label>
                                 <textarea
                                     id="admin-import-code"
-                                    className="w-full bg-gray-950 border border-gray-700 rounded-lg px-4 py-3 text-green-400 font-mono text-xs focus:ring-2 focus:ring-indigo-500 h-64"
+                                    className="w-full bg-gray-950 border border-gray-700 rounded-lg px-4 py-3 text-green-400 font-mono text-xs focus:ring-2 focus:ring-primary-500 h-64"
                                     placeholder='Paste Base64 code or raw JSON object like { "l": {...}, "s": {...} }'
                                 ></textarea>
                             </div>
@@ -797,7 +804,7 @@ const AdminPanel = () => {
                                         alert('Error: ' + e.message);
                                     }
                                 }}
-                                className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded-lg font-bold"
+                                className="bg-primary-600 hover:bg-primary-500 text-white px-6 py-2 rounded-lg font-bold"
                             >
                                 Save Preset
                             </button>
@@ -825,8 +832,8 @@ const AdminPanel = () => {
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="bg-indigo-900/40 p-4 rounded-lg border border-indigo-700/50">
-                            <p className="text-xs text-indigo-300 uppercase font-bold">Total Cards</p>
+                        <div className="bg-primary-900/40 p-4 rounded-lg border border-primary-700/50">
+                            <p className="text-xs text-primary-300 uppercase font-bold">Total Cards</p>
                             <p className="text-2xl font-bold text-white">{stats.totalCards}</p>
                         </div>
                         <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
@@ -838,8 +845,8 @@ const AdminPanel = () => {
 
                     <div className="space-y-4">
                         <div className="bg-gray-800/40 p-4 rounded-lg border border-gray-700/50 flex flex-wrap gap-6 items-center">
-                            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={syncOptions.updatePrices} onChange={(e) => setSyncOptions(prev => ({ ...prev, updatePrices: e.target.checked }))} className="form-checkbox bg-gray-800 border-gray-600 text-indigo-500" /><span className="text-gray-200 text-sm">Update Prices</span></label>
-                            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={syncOptions.updateInfo} onChange={(e) => setSyncOptions(prev => ({ ...prev, updateInfo: e.target.checked }))} className="form-checkbox bg-gray-800 border-gray-600 text-indigo-500" /><span className="text-gray-200 text-sm">Update Card Info</span></label>
+                            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={syncOptions.updatePrices} onChange={(e) => setSyncOptions(prev => ({ ...prev, updatePrices: e.target.checked }))} className="form-checkbox bg-gray-800 border-gray-600 text-primary-500" /><span className="text-gray-200 text-sm">Update Prices</span></label>
+                            <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={syncOptions.updateInfo} onChange={(e) => setSyncOptions(prev => ({ ...prev, updateInfo: e.target.checked }))} className="form-checkbox bg-gray-800 border-gray-600 text-primary-500" /><span className="text-gray-200 text-sm">Update Card Info</span></label>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="bg-gray-700/30 p-4 rounded-lg border border-gray-600">
@@ -849,7 +856,7 @@ const AdminPanel = () => {
                                         <option value="">Select Set...</option>
                                         {sets.map(s => <option key={s.code} value={s.code} className="truncate">{s.name} ({s.code.toUpperCase()})</option>)}
                                     </select>
-                                    <button onClick={handleSingleSync} disabled={syncing || !selectedSet} className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white px-4 py-2 rounded-lg">{syncing ? '...' : 'Sync'}</button>
+                                    <button onClick={handleSingleSync} disabled={syncing || !selectedSet} className="bg-primary-600 hover:bg-primary-500 disabled:opacity-50 text-white px-4 py-2 rounded-lg">{syncing ? '...' : 'Sync'}</button>
                                 </div>
                             </div>
                             <div className="bg-gray-700/30 p-4 rounded-lg border border-gray-600">
@@ -935,7 +942,7 @@ const AdminPanel = () => {
 
                                                 {/* Admin Column */}
                                                 <td className="py-3 px-4 text-center">
-                                                    <button onClick={() => toggleAdmin(u)} className={`w-8 h-4 rounded-full transition-colors relative ${isAdmin ? 'bg-indigo-600' : 'bg-gray-600'}`}>
+                                                    <button onClick={() => toggleAdmin(u)} className={`w-8 h-4 rounded-full transition-colors relative ${isAdmin ? 'bg-primary-600' : 'bg-gray-600'}`}>
                                                         <span className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform ${isAdmin ? 'translate-x-4' : 'translate-x-0'}`} />
                                                     </button>
                                                 </td>
@@ -973,7 +980,7 @@ const AdminPanel = () => {
                     <h2 className="text-xl font-semibold text-white">Manage Projects (Epics)</h2>
 
                     {/* Create / Edit Form */}
-                    <div className={`bg-gray-800/50 p-6 rounded-xl border ${editingEpic ? 'border-indigo-500/50 shadow-lg shadow-indigo-500/10' : 'border-white/10'}`}>
+                    <div className={`bg-gray-800/50 p-6 rounded-xl border ${editingEpic ? 'border-primary-500/50 shadow-lg shadow-primary-500/10' : 'border-white/10'}`}>
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="text-lg font-medium text-white">{editingEpic ? 'Edit Project' : 'Create New Project'}</h3>
                             {editingEpic && (
@@ -988,7 +995,7 @@ const AdminPanel = () => {
                                 <input
                                     type="text"
                                     required
-                                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500"
+                                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary-500"
                                     value={editingEpic ? editingEpic.title : newEpic.title}
                                     onChange={e => editingEpic ? setEditingEpic({ ...editingEpic, title: e.target.value }) : setNewEpic({ ...newEpic, title: e.target.value })}
                                     placeholder="e.g. Q1 Mobile App"
@@ -1009,7 +1016,7 @@ const AdminPanel = () => {
                             <div>
                                 <label className="block text-sm font-medium text-gray-400 mb-1">Status</label>
                                 <select
-                                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500"
+                                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary-500"
                                     value={editingEpic ? editingEpic.status : newEpic.status}
                                     onChange={e => editingEpic ? setEditingEpic({ ...editingEpic, status: e.target.value }) : setNewEpic({ ...newEpic, status: e.target.value })}
                                 >
@@ -1028,7 +1035,7 @@ const AdminPanel = () => {
                             <div className="flex justify-end pt-4 gap-2">
                                 <button
                                     type="submit"
-                                    className={`px-6 py-2 font-bold rounded-lg shadow-lg transition-all text-white ${editingEpic ? 'bg-green-600 hover:bg-green-500' : 'bg-indigo-600 hover:bg-indigo-500'}`}
+                                    className={`px-6 py-2 font-bold rounded-lg shadow-lg transition-all text-white ${editingEpic ? 'bg-green-600 hover:bg-green-500' : 'bg-primary-600 hover:bg-primary-500'}`}
                                 >
                                     {editingEpic ? 'Save Changes' : 'Create Epic'}
                                 </button>
@@ -1042,7 +1049,7 @@ const AdminPanel = () => {
                         {loadingEpics ? <div className="text-gray-500">Loading...</div> : (
                             <div className="space-y-2">
                                 {epics.map(epic => (
-                                    <div key={epic.id} className={`bg-gray-800 p-4 rounded-xl border flex justify-between items-center group transition-all ${editingEpic?.id === epic.id ? 'border-indigo-500 ring-1 ring-indigo-500 bg-gray-800/80' : 'border-white/5 hover:border-white/10'}`}>
+                                    <div key={epic.id} className={`bg-gray-800 p-4 rounded-xl border flex justify-between items-center group transition-all ${editingEpic?.id === epic.id ? 'border-primary-500 ring-1 ring-primary-500 bg-gray-800/80' : 'border-white/5 hover:border-white/10'}`}>
                                         <div className="flex-1 min-w-0 pr-4">
                                             <div className="flex items-center gap-3 mb-1">
                                                 <h4 className="font-bold text-white truncate">{epic.title}</h4>
@@ -1051,12 +1058,12 @@ const AdminPanel = () => {
                                             <div
                                                 className="text-sm text-gray-400 prose prose-invert prose-sm max-w-none line-clamp-1"
                                                 dangerouslySetInnerHTML={{ __html: epic.description || '' }}
-                                            />
+                                            ></div>
                                         </div>
                                         <div className="flex items-center gap-4 shrink-0">
                                             <div className="text-right hidden sm:block">
                                                 <span className="text-xs text-gray-500 block">ID: {epic.id}</span>
-                                                <span className="text-xs text-indigo-400 block">{epic.ticket_count || 0} tickets</span>
+                                                <span className="text-xs text-primary-400 block">{epic.ticket_count || 0} tickets</span>
                                             </div>
                                             <div className="flex gap-2">
                                                 <button
@@ -1097,7 +1104,7 @@ const AdminPanel = () => {
                                 <label className="block text-sm font-medium text-gray-400 mb-1">Start Date</label>
                                 <input
                                     type="date"
-                                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500"
+                                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary-500"
                                     value={reportPeriod.start}
                                     onChange={e => setReportPeriod({ ...reportPeriod, start: e.target.value })}
                                 />
@@ -1106,7 +1113,7 @@ const AdminPanel = () => {
                                 <label className="block text-sm font-medium text-gray-400 mb-1">End Date</label>
                                 <input
                                     type="date"
-                                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500"
+                                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary-500"
                                     value={reportPeriod.end}
                                     onChange={e => setReportPeriod({ ...reportPeriod, end: e.target.value })}
                                 />
@@ -1114,7 +1121,7 @@ const AdminPanel = () => {
                             <button
                                 onClick={handleFetchReport}
                                 disabled={fetchingReport}
-                                className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg transition-all disabled:opacity-50"
+                                className="px-6 py-2 bg-primary-600 hover:bg-primary-500 text-white font-bold rounded-lg transition-all disabled:opacity-50"
                             >
                                 {fetchingReport ? 'Fetching...' : 'Fetch Active Tickets'}
                             </button>
@@ -1127,7 +1134,7 @@ const AdminPanel = () => {
                                     <button
                                         onClick={handleGenerateNotes}
                                         disabled={generatingNotes}
-                                        className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold rounded-lg shadow-lg transition-all disabled:opacity-50"
+                                        className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-purple-600 to-primary-600 hover:from-purple-500 hover:to-primary-500 text-white font-bold rounded-lg shadow-lg transition-all disabled:opacity-50"
                                     >
                                         ✨ {generatingNotes ? 'Generating...' : 'Generate AI Release Notes'}
                                     </button>
@@ -1139,7 +1146,7 @@ const AdminPanel = () => {
                                                 <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded text-center ${t.type === 'bug' ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
                                                     {t.type}
                                                 </span>
-                                                <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded text-center ${t.status === 'completed' ? 'bg-green-500/20 text-green-400' : 'bg-indigo-500/20 text-indigo-400'}`}>
+                                                <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded text-center ${t.status === 'completed' ? 'bg-green-500/20 text-green-400' : 'bg-primary-500/20 text-primary-400'}`}>
                                                     {t.status.replace('_', ' ')}
                                                 </span>
                                             </div>
@@ -1148,7 +1155,7 @@ const AdminPanel = () => {
                                                 <div className="flex gap-2">
                                                     {t.epic_title && <p className="text-[10px] text-gray-400">Project: {t.epic_title}</p>}
                                                     {t.type === 'bug' && t.created_by_username && (
-                                                        <p className="text-[10px] text-indigo-400">By: {t.created_by_username}</p>
+                                                        <p className="text-[10px] text-primary-400">By: {t.created_by_username}</p>
                                                     )}
                                                 </div>
                                             </div>
@@ -1164,9 +1171,9 @@ const AdminPanel = () => {
 
 
                         {generatedNotes && (
-                            <div className="space-y-4 pt-6 border-t border-indigo-500/30">
+                            <div className="space-y-4 pt-6 border-t border-primary-500/30">
                                 <div className="flex justify-between items-center">
-                                    <h3 className="text-lg font-medium text-indigo-400 font-black uppercase tracking-widest">Release Notes Preview</h3>
+                                    <h3 className="text-lg font-medium text-primary-400 font-black uppercase tracking-widest">Release Notes Preview</h3>
                                     <div className="flex items-center gap-3">
                                         <input
                                             type="text"
@@ -1187,16 +1194,16 @@ const AdminPanel = () => {
                                                 navigator.clipboard.writeText(generatedNotes);
                                                 alert('Copied to clipboard!');
                                             }}
-                                            className="text-xs text-indigo-400 hover:text-white transition-colors"
+                                            className="text-xs text-primary-400 hover:text-white transition-colors"
                                         >
                                             Copy HTML
                                         </button>
                                     </div>
                                 </div>
                                 <div
-                                    className="bg-gray-900 border border-indigo-500/20 p-6 rounded-xl prose prose-invert max-w-none shadow-2xl"
+                                    className="bg-gray-900 border border-primary-500/20 p-6 rounded-xl prose prose-invert max-w-none shadow-2xl"
                                     dangerouslySetInnerHTML={{ __html: generatedNotes }}
-                                />
+                                ></div>
                             </div>
                         )}
                     </div>
@@ -1208,7 +1215,7 @@ const AdminPanel = () => {
                         <h2 className="text-xl font-semibold text-white">External Invitations (Referrals)</h2>
                         <button
                             onClick={fetchInvitations}
-                            className="text-xs text-indigo-400 hover:text-indigo-300 font-medium"
+                            className="text-xs text-primary-400 hover:text-primary-300 font-medium"
                         >
                             Refresh List
                         </button>
@@ -1268,7 +1275,7 @@ const AdminPanel = () => {
                     )}
                 </div>
             )}
-        </div >
+        </div>
     );
 };
 

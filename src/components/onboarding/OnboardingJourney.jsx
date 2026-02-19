@@ -358,16 +358,16 @@ const OnboardingJourney = () => {
                     {/* Full Experience */}
                     <button
                         onClick={handleMaximize}
-                        className="group relative bg-gradient-to-br from-indigo-900/20 to-purple-900/20 hover:from-indigo-900/40 hover:to-purple-900/40 border border-indigo-500/30 hover:border-indigo-400 rounded-2xl p-8 text-left transition-all hover:-translate-y-1 hover:shadow-2xl hover:shadow-indigo-500/10"
+                        className="group relative bg-gradient-to-br from-primary-900/20 to-purple-900/20 hover:from-primary-900/40 hover:to-purple-900/40 border border-primary-500/30 hover:border-primary-400 rounded-2xl p-8 text-left transition-all hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary-500/10"
                     >
-                        <div className="absolute top-4 right-4 text-indigo-500/50 group-hover:text-indigo-400">
+                        <div className="absolute top-4 right-4 text-primary-500/50 group-hover:text-primary-400">
                             <Sparkles className="w-8 h-8" />
                         </div>
-                        <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-indigo-300 transition-colors">Maximize Experience</h3>
-                        <p className="text-indigo-200/70 leading-relaxed mb-6">
+                        <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-primary-300 transition-colors">Maximize Experience</h3>
+                        <p className="text-primary-200/70 leading-relaxed mb-6">
                             Configure your Personal AI Companion and analyze your playstyle for tailored suggestions.
                         </p>
-                        <div className="text-sm font-bold text-indigo-400 group-hover:text-indigo-300 uppercase tracking-wider flex items-center">
+                        <div className="text-sm font-bold text-primary-400 group-hover:text-primary-300 uppercase tracking-wider flex items-center">
                             For the Wizard <span className="ml-2">→</span>
                         </div>
                     </button>
@@ -413,7 +413,7 @@ const OnboardingJourney = () => {
 
                     {/* Auto-open handles this, but keep as fallback */}
                     <div className="flex gap-4 justify-center">
-                        <button onClick={() => setShowPlaystyleModal(true)} className="px-8 py-3 bg-indigo-600 rounded-xl font-bold">Re-open Assessment</button>
+                        <button onClick={() => setShowPlaystyleModal(true)} className="px-8 py-3 bg-primary-600 rounded-xl font-bold">Re-open Assessment</button>
                     </div>
                 </div>
 
@@ -448,10 +448,10 @@ const OnboardingJourney = () => {
                         whileTap={{ scale: 0.98 }}
                         onClick={() => handleArchetypeSelect(arch)}
                         disabled={loading}
-                        className="bg-gray-800/60 backdrop-blur border border-gray-700 hover:border-indigo-500 rounded-2xl p-6 text-left hover:shadow-2xl hover:shadow-indigo-500/20 transition-all flex flex-col h-full group"
+                        className="bg-gray-800/60 backdrop-blur border border-gray-700 hover:border-primary-500 rounded-2xl p-6 text-left hover:shadow-2xl hover:shadow-primary-500/20 transition-all flex flex-col h-full group"
                     >
-                        <div className="w-12 h-12 bg-indigo-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:bg-indigo-500/30 transition-colors">
-                            <arch.icon className="w-6 h-6 text-indigo-400" />
+                        <div className="w-12 h-12 bg-primary-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:bg-primary-500/30 transition-colors">
+                            <arch.icon className="w-6 h-6 text-primary-400" />
                         </div>
                         <h3 className="text-xl font-bold text-white mb-2">{arch.name}</h3>
                         <p className="text-sm text-gray-400 leading-relaxed">{arch.description}</p>

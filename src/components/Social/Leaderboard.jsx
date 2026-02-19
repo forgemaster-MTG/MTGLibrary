@@ -69,7 +69,7 @@ const Leaderboard = () => {
                                 const isMe = userProfile?.id === row.user_id;
 
                                 return (
-                                    <tr key={row.user_id} className={`hover:bg-gray-800/30 transition-colors ${index < 3 ? 'bg-gray-800/10' : ''} ${isMe ? 'ring-1 ring-inset ring-indigo-500/50' : ''}`}>
+                                    <tr key={row.user_id} className={`hover:bg-gray-800/30 transition-colors ${index < 3 ? 'bg-gray-800/10' : ''} ${isMe ? 'ring-1 ring-inset ring-primary-500/50' : ''}`}>
                                         <td className="p-4 text-center">
                                             <div className="flex justify-center items-center">
                                                 {style.icon}
@@ -82,7 +82,7 @@ const Leaderboard = () => {
                                                 </div>
                                                 <div className="flex flex-col">
                                                     <span className={`font-bold ${index === 0 ? 'text-yellow-400' : 'text-gray-200'}`}>
-                                                        {row.username} {isMe && <span className="text-[10px] text-indigo-400 ml-1">(You)</span>}
+                                                        {row.username} {isMe && <span className="text-[10px] text-primary-400 ml-1">(You)</span>}
                                                     </span>
                                                     {index === 0 && <Crown size={14} className="text-yellow-500" />}
                                                 </div>
@@ -112,7 +112,7 @@ const Leaderboard = () => {
                                                     });
                                                     setIsShareOpen(true);
                                                 }}
-                                                className="p-2 text-gray-500 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-all"
+                                                className="p-2 text-gray-500 hover:text-primary-400 hover:bg-primary-500/10 rounded-lg transition-all"
                                                 title="Share Stats"
                                             >
                                                 <Share2 size={16} />

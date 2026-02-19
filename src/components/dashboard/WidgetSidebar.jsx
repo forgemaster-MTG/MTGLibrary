@@ -13,7 +13,7 @@ const SidebarItem = ({ id, onAdd }) => {
                     {/* Widget Header with Add Button */}
                     <div className="relative flex items-center justify-between p-3 rounded-xl border border-white/5 bg-gray-900/60 hover:bg-gray-800/80 shadow-sm transition-all">
                         <div className="flex items-center gap-3 min-w-0 flex-1">
-                            <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400 group-hover:scale-110 transition-transform">
+                            <div className="p-2 rounded-lg bg-primary-500/10 text-primary-400 group-hover:scale-110 transition-transform">
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                             </div>
                             <span className="text-[11px] font-black text-gray-200 uppercase tracking-widest truncate">{widget.title}</span>
@@ -23,7 +23,7 @@ const SidebarItem = ({ id, onAdd }) => {
                             {/* Add Button */}
                             <button
                                 onClick={() => onAdd(id)}
-                                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold transition-all hover:scale-105 active:scale-95"
+                                className="px-3 py-1.5 bg-primary-600 hover:bg-primary-500 text-white rounded-lg text-xs font-bold transition-all hover:scale-105 active:scale-95"
                             >
                                 Add
                             </button>
@@ -51,7 +51,7 @@ const SidebarItem = ({ id, onAdd }) => {
                             </p>
 
                             <div className="space-y-2">
-                                <div className="text-[9px] font-black text-indigo-400/80 uppercase tracking-tighter">Size Specifics</div>
+                                <div className="text-[9px] font-black text-primary-400/80 uppercase tracking-tighter">Size Specifics</div>
                                 {Object.entries(widget.sizes || {}).map(([size, desc]) => (
                                     <div key={size} className="flex gap-2 p-1.5 rounded-lg hover:bg-white/5 transition-colors border border-transparent hover:border-white/5">
                                         <span className="text-gray-300 font-black uppercase w-10 shrink-0 tracking-tighter">{size}</span>
@@ -111,14 +111,14 @@ const WidgetSidebar = ({ layout, isOpen, onClose, onAddWidget }) => {
                 </div>
 
                 {/* Footer Help */}
-                <div className="p-6 bg-indigo-600/5 mt-auto border-t border-white/5">
+                <div className="p-6 bg-primary-600/5 mt-auto border-t border-white/5">
                     <div className="flex items-start gap-3">
-                        <div className="p-2 rounded-lg bg-indigo-500/20 text-indigo-400">
+                        <div className="p-2 rounded-lg bg-primary-500/20 text-primary-400">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         </div>
                         <div>
-                            <p className="text-[11px] font-bold text-indigo-200">Pro Tip</p>
-                            <p className="text-[10px] text-indigo-400/70 leading-relaxed mt-1">Widgets snap to the 12-column grid. Try placing smaller ones next to larger ones to auto-stack.</p>
+                            <p className="text-[11px] font-bold text-primary-200">Pro Tip</p>
+                            <p className="text-[10px] text-primary-400/70 leading-relaxed mt-1">Widgets snap to the 12-column grid. Try placing smaller ones next to larger ones to auto-stack.</p>
                         </div>
                     </div>
                 </div>

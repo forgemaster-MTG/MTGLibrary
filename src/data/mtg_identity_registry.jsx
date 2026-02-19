@@ -39,7 +39,7 @@ export const IDENTITY_REGISTRY = {
     'URG': { name: 'Temur', flavor: 'The wild does not think; it reacts with ice and fire.', theme: 'Elemental Instinct', pips: ['U', 'R', 'G'], bg: 'bg-gradient-to-r from-green-500 via-blue-500 to-red-500' },
 
     // 4-Color
-    'UBRG': { name: 'Glint-Eye', flavor: 'Order is a cage; we have chosen to break the locks.', theme: 'Chaotic Adaptation', pips: ['U', 'B', 'R', 'G'], bg: 'bg-indigo-900' },
+    'UBRG': { name: 'Glint-Eye', flavor: 'Order is a cage; we have chosen to break the locks.', theme: 'Chaotic Adaptation', pips: ['U', 'B', 'R', 'G'], bg: 'bg-primary-900' },
     'WBRG': { name: 'Dune-Brood', flavor: 'When the logic of the mind fails, the instinct of the swarm prevails.', theme: 'Sandless Conquest', pips: ['W', 'B', 'R', 'G'], bg: 'bg-orange-900' },
     'WURG': { name: 'Ink-Treader', flavor: 'To touch one is to touch the whole of the world.', theme: 'Radiant Reflection', pips: ['W', 'U', 'R', 'G'], bg: 'bg-sky-900' },
     'WUBG': { name: 'Witch-Maw', flavor: 'There is a hunger beneath the earth that knows no fire.', theme: 'Eldritch Growth', pips: ['W', 'U', 'B', 'G'], bg: 'bg-emerald-900' },

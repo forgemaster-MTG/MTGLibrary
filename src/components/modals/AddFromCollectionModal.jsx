@@ -148,7 +148,7 @@ const AddFromCollectionModal = ({ isOpen, onClose, deck, deckCards = [], onCardA
                 <div className="p-4 border-b border-gray-700 flex justify-between items-center bg-gray-900/50 rounded-t-xl shrink-0">
                     <div>
                         <h2 className="text-xl font-bold text-white flex items-center gap-3">
-                            <span className="text-indigo-400">Add from Collection</span>
+                            <span className="text-primary-400">Add from Collection</span>
                             <span className="text-sm font-normal text-gray-400 bg-gray-800 px-2 py-0.5 rounded-full border border-gray-700">
                                 {availableCards.length} Available
                             </span>
@@ -166,7 +166,7 @@ const AddFromCollectionModal = ({ isOpen, onClose, deck, deckCards = [], onCardA
                         <input
                             type="text"
                             placeholder="Search by name, type, or text..."
-                            className="w-full bg-gray-900 text-white border border-gray-700 rounded-lg py-3 px-4 pl-12 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent shadow-inner"
+                            className="w-full bg-gray-900 text-white border border-gray-700 rounded-lg py-3 px-4 pl-12 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent shadow-inner"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             autoFocus
@@ -182,7 +182,7 @@ const AddFromCollectionModal = ({ isOpen, onClose, deck, deckCards = [], onCardA
                                     key={type}
                                     onClick={() => setTypeFilter(type)}
                                     className={`px-3 py-1 text-xs font-bold rounded-full transition-colors border ${typeFilter === type
-                                        ? 'bg-indigo-600 text-white border-indigo-500 shadow-md'
+                                        ? 'bg-primary-600 text-white border-primary-500 shadow-md'
                                         : 'bg-gray-800 text-gray-400 border-gray-700 hover:border-gray-500 hover:text-gray-200'
                                         }`}
                                 >
@@ -194,7 +194,7 @@ const AddFromCollectionModal = ({ isOpen, onClose, deck, deckCards = [], onCardA
                         <button
                             onClick={() => setShowAdvanced(!showAdvanced)}
                             className={`flex items-center gap-2 px-4 py-1.5 text-xs font-bold rounded-lg border transition-all ${showAdvanced
-                                ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg'
+                                ? 'bg-primary-600 text-white border-primary-500 shadow-lg'
                                 : 'bg-gray-900 text-gray-400 border-gray-700 hover:border-gray-500'
                                 }`}
                         >
@@ -222,7 +222,7 @@ const AddFromCollectionModal = ({ isOpen, onClose, deck, deckCards = [], onCardA
                                                 colors: prev.colors.includes(color) ? prev.colors.filter(c => c !== color) : [...prev.colors, color]
                                             }))}
                                             className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all ${filters.colors.includes(color)
-                                                ? 'ring-2 ring-indigo-500 ring-offset-2 ring-offset-gray-900 border-white bg-gray-700'
+                                                ? 'ring-2 ring-primary-500 ring-offset-2 ring-offset-gray-900 border-white bg-gray-700'
                                                 : 'opacity-40 grayscale hover:grayscale-0 hover:opacity-100 border-gray-600 bg-gray-800'
                                                 }`}
                                         >
@@ -235,7 +235,7 @@ const AddFromCollectionModal = ({ isOpen, onClose, deck, deckCards = [], onCardA
                                             colors: prev.colors.includes('C') ? prev.colors.filter(c => c !== 'C') : [...prev.colors, 'C']
                                         }))}
                                         className={`w-8 h-8 rounded-full border flex items-center justify-center text-[10px] font-black transition-all ${filters.colors.includes('C')
-                                            ? 'ring-2 ring-indigo-500 ring-offset-2 ring-offset-gray-900 border-white bg-indigo-600 text-white'
+                                            ? 'ring-2 ring-primary-500 ring-offset-2 ring-offset-gray-900 border-white bg-primary-600 text-white'
                                             : 'opacity-40 border-gray-600 bg-gray-800 text-gray-500 hover:opacity-100'
                                             }`}
                                     >
@@ -256,7 +256,7 @@ const AddFromCollectionModal = ({ isOpen, onClose, deck, deckCards = [], onCardA
                                                 rarity: prev.rarity.includes(rarity) ? prev.rarity.filter(r => r !== rarity) : [...prev.rarity, rarity]
                                             }))}
                                             className={`px-3 py-1 text-[10px] font-bold uppercase rounded-lg border transition-all ${filters.rarity.includes(rarity)
-                                                ? 'bg-indigo-600 text-white border-indigo-400 shadow-md'
+                                                ? 'bg-primary-600 text-white border-primary-400 shadow-md'
                                                 : 'bg-gray-800 text-gray-500 border-gray-700 hover:border-gray-500 hover:text-gray-300'
                                                 }`}
                                         >
@@ -274,7 +274,7 @@ const AddFromCollectionModal = ({ isOpen, onClose, deck, deckCards = [], onCardA
                                     placeholder="e.g. MH3 or Modern Horizons 3"
                                     value={filters.set}
                                     onChange={(e) => setFilters(prev => ({ ...prev, set: e.target.value }))}
-                                    className="w-full bg-gray-800 text-gray-300 border border-gray-700 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500"
+                                    className="w-full bg-gray-800 text-gray-300 border border-gray-700 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-primary-500"
                                 />
                             </div>
 
@@ -287,7 +287,7 @@ const AddFromCollectionModal = ({ isOpen, onClose, deck, deckCards = [], onCardA
                                     placeholder="CMC"
                                     value={filters.manaValue}
                                     onChange={(e) => setFilters(prev => ({ ...prev, manaValue: e.target.value }))}
-                                    className="w-full bg-gray-800 text-gray-300 border border-gray-700 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500"
+                                    className="w-full bg-gray-800 text-gray-300 border border-gray-700 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-primary-500"
                                 />
                             </div>
 
@@ -298,7 +298,7 @@ const AddFromCollectionModal = ({ isOpen, onClose, deck, deckCards = [], onCardA
                                     <select
                                         value={sortBy}
                                         onChange={(e) => setSortBy(e.target.value)}
-                                        className="bg-gray-800 text-gray-300 border border-gray-700 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500 w-full"
+                                        className="bg-gray-800 text-gray-300 border border-gray-700 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-primary-500 w-full"
                                     >
                                         <option value="name">Name (A-Z)</option>
                                         <option value="price-desc">Price (Highest)</option>
@@ -312,7 +312,7 @@ const AddFromCollectionModal = ({ isOpen, onClose, deck, deckCards = [], onCardA
                                             setSearchTerm('');
                                             setTypeFilter('All');
                                         }}
-                                        className="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors uppercase tracking-widest mt-1"
+                                        className="text-[10px] font-bold text-primary-400 hover:text-primary-300 transition-colors uppercase tracking-widest mt-1"
                                     >
                                         Reset All
                                     </button>
@@ -326,7 +326,7 @@ const AddFromCollectionModal = ({ isOpen, onClose, deck, deckCards = [], onCardA
                 <div className="flex-1 overflow-y-auto bg-gray-950/50 p-4 custom-scrollbar">
                     {loading ? (
                         <div className="flex justify-center items-center h-full">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
                         </div>
                     ) : availableCards.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-full text-gray-500 space-y-2">
@@ -349,7 +349,7 @@ const AddFromCollectionModal = ({ isOpen, onClose, deck, deckCards = [], onCardA
                                 return (
                                     <div
                                         key={card.firestoreId || `${card.id}-${idx}`}
-                                        className="flex bg-gray-800/60 rounded-xl border border-gray-700/50 hover:bg-gray-800 hover:border-indigo-500/50 transition-all group overflow-hidden h-24 relative"
+                                        className="flex bg-gray-800/60 rounded-xl border border-gray-700/50 hover:bg-gray-800 hover:border-primary-500/50 transition-all group overflow-hidden h-24 relative"
                                     >
                                         {/* Left Art Slice */}
                                         <div className="w-24 shrink-0 relative overflow-hidden cursor-pointer" onClick={() => openCardModal(card)}>
@@ -366,7 +366,7 @@ const AddFromCollectionModal = ({ isOpen, onClose, deck, deckCards = [], onCardA
                                         <div className="flex-1 flex items-center justify-between px-4 py-2 min-w-0">
                                             <div className="flex flex-col justify-center min-w-0 pr-4">
                                                 <div className="flex items-center gap-2 mb-1">
-                                                    <h3 className="font-bold text-gray-100 text-base truncate cursor-pointer hover:text-indigo-400 transition-colors" onClick={() => openCardModal(card)}>
+                                                    <h3 className="font-bold text-gray-100 text-base truncate cursor-pointer hover:text-primary-400 transition-colors" onClick={() => openCardModal(card)}>
                                                         {card.name}
                                                     </h3>
                                                     <span className="text-xs font-mono text-gray-500 bg-gray-900 px-1.5 py-0.5 rounded border border-gray-700 shrink-0">
@@ -400,7 +400,7 @@ const AddFromCollectionModal = ({ isOpen, onClose, deck, deckCards = [], onCardA
                                                         e.stopPropagation();
                                                         handleAddCard(card, 'mainboard');
                                                     }}
-                                                    className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg shadow-lg shadow-indigo-900/20 border border-indigo-500/50 transition-all active:scale-95 flex flex-col items-center min-w-[80px]"
+                                                    className="bg-primary-600 hover:bg-primary-500 text-white px-4 py-2 rounded-lg shadow-lg shadow-primary-900/20 border border-primary-500/50 transition-all active:scale-95 flex flex-col items-center min-w-[80px]"
                                                 >
                                                     <span className="text-xs font-bold uppercase tracking-wider">Main</span>
                                                 </button>

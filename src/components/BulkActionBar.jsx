@@ -18,7 +18,7 @@ const BulkActionBar = ({
     return (
         <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-[60] bg-gray-900/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl px-6 py-3 flex items-center gap-4 animate-bounce-in">
             <div className="flex items-center gap-2 border-r border-gray-700 pr-4">
-                <span className="text-white font-bold bg-indigo-600 px-2 py-0.5 rounded-full text-xs">
+                <span className="text-white font-bold bg-primary-600 px-2 py-0.5 rounded-full text-xs">
                     {selectedCount}
                 </span>
                 <span className="text-gray-300 text-sm font-medium">Selected</span>
@@ -53,7 +53,7 @@ const BulkActionBar = ({
                                             onMove(deck.id);
                                             setIsMoveMenuOpen(false);
                                         }}
-                                        className="w-full text-left px-4 py-3 hover:bg-indigo-900/30 text-gray-300 hover:text-indigo-300 border-b border-gray-800 last:border-0 text-sm transition-colors"
+                                        className="w-full text-left px-4 py-3 hover:bg-primary-900/30 text-gray-300 hover:text-primary-300 border-b border-gray-800 last:border-0 text-sm transition-colors"
                                     >
                                         {deck.name}
                                     </button>

@@ -73,10 +73,10 @@ const MatchDetailsModal = ({ isOpen, onClose, match, logs }) => {
             <div className="bg-gray-900 border border-white/10 rounded-2xl w-full max-w-4xl h-[90vh] shadow-2xl overflow-hidden flex flex-col">
 
                 {/* Header */}
-                <div className="p-6 border-b border-white/5 flex items-center justify-between bg-gradient-to-r from-gray-900 to-indigo-950/30">
+                <div className="p-6 border-b border-white/5 flex items-center justify-between bg-gradient-to-r from-gray-900 to-primary-950/30">
                     <div>
                         <h2 className="text-2xl font-black text-white uppercase tracking-widest flex items-center gap-3">
-                            <Activity className="w-6 h-6 text-indigo-500" />
+                            <Activity className="w-6 h-6 text-primary-500" />
                             Match Report
                         </h2>
                         <div className="flex items-center gap-4 text-xs font-bold text-gray-400 mt-2">

@@ -9,7 +9,7 @@ const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, confirmText 
     if (!isOpen) return null;
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="bg-gray-900 border border-indigo-500/30 rounded-xl p-6 max-w-md w-full shadow-2xl transform transition-all animate-fade-in relative">
+            <div className="bg-gray-900 border border-primary-500/30 rounded-xl p-6 max-w-md w-full shadow-2xl transform transition-all animate-fade-in relative">
                 <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
                 <p className="text-gray-300 mb-6">{message}</p>
                 <div className="flex justify-end gap-3">
@@ -23,7 +23,7 @@ const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, confirmText 
                     <button
                         onClick={onConfirm}
                         disabled={creating}
-                        className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-lg disabled:opacity-50 flex items-center gap-2"
+                        className="px-4 py-2 rounded-lg bg-primary-600 hover:bg-primary-500 text-white font-bold shadow-lg disabled:opacity-50 flex items-center gap-2"
                     >
                         {creating && <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>}
                         {confirmText}
@@ -143,7 +143,7 @@ const ContentManager = ({ activeTab = 'epics' }) => {
             <section>
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-xl font-semibold text-white">Epics / Projects</h2>
-                    <button onClick={() => setNewEpic(prev => ({ ...prev, open: !prev.open }))} className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium">New Epic</button>
+                    <button onClick={() => setNewEpic(prev => ({ ...prev, open: !prev.open }))} className="bg-primary-600 hover:bg-primary-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium">New Epic</button>
                 </div>
                 {/* Simplified Epic UI for brevity in this refactor step, assuming full features transferred */}
                 {loadingEpics ? <p className="text-gray-400">Loading...</p> : (
@@ -179,7 +179,7 @@ const ContentManager = ({ activeTab = 'epics' }) => {
                             <label className="block text-xs font-bold text-gray-400 uppercase mb-1">End Date</label>
                             <input type="date" value={reportPeriod.end} onChange={e => setReportPeriod(p => ({ ...p, end: e.target.value }))} className="bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm" />
                         </div>
-                        <button onClick={handleFetchReport} disabled={fetchingReport} className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-bold h-[38px]">{fetchingReport ? "Fetching..." : "Fetch Activity"}</button>
+                        <button onClick={handleFetchReport} disabled={fetchingReport} className="bg-primary-600 hover:bg-primary-500 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-bold h-[38px]">{fetchingReport ? "Fetching..." : "Fetch Activity"}</button>
                     </div>
 
                     {reportTickets.length > 0 && (

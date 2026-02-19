@@ -91,7 +91,7 @@ const IdentityWidget = ({ data, size }) => {
                                         {deck.commander?.image_uris?.art_crop && (
                                             <img src={deck.commander.image_uris.art_crop} className="w-8 h-6 object-cover rounded border border-white/10" alt="" />
                                         )}
-                                        <span className="text-[11px] text-gray-300 group-hover/cmd:text-indigo-400 truncate">{deck.commander?.name || deck.name}</span>
+                                        <span className="text-[11px] text-gray-300 group-hover/cmd:text-primary-400 truncate">{deck.commander?.name || deck.name}</span>
                                     </div>
                                 ))}
                             </div>
@@ -101,7 +101,7 @@ const IdentityWidget = ({ data, size }) => {
                         <div className="w-full md:flex-grow bg-gray-950/40 rounded-2xl p-4 border border-white/5 flex items-center gap-4 group/asset relative overflow-hidden mt-2 md:mt-0">
                             <div className="flex-grow">
                                 <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1">Signature Asset</span>
-                                <div className="text-sm font-black text-white group-hover/asset:text-indigo-300 transition-colors line-clamp-1">Ragavan, Nimble Pilferer</div>
+                                <div className="text-sm font-black text-white group-hover/asset:text-primary-300 transition-colors line-clamp-1">Ragavan, Nimble Pilferer</div>
                                 <div className="flex items-baseline gap-1 mt-1">
                                     <span className="text-xs text-green-400 font-mono">$64.20</span>
                                     <span className="text-[9px] text-gray-500 uppercase font-black">Market Value</span>
@@ -109,7 +109,7 @@ const IdentityWidget = ({ data, size }) => {
                             </div>
                             <div className="w-16 h-12 rounded-lg overflow-hidden border border-white/10 relative">
                                 <img src="https://cards.scryfall.io/art_crop/front/a/1/a134a6df-d264-44b2-a42e-9dcc914a1a38.jpg" className="w-full h-full object-cover group-hover/asset:scale-110 transition-transform duration-500" alt="" />
-                                <div className="absolute inset-0 bg-indigo-500/10 mix-blend-overlay" />
+                                <div className="absolute inset-0 bg-primary-500/10 mix-blend-overlay" />
                             </div>
 
                             {/* Distribution Stat */}

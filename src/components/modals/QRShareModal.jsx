@@ -33,7 +33,7 @@ const QRShareModal = ({ isOpen, onClose }) => {
                         <div className="bg-black/40 border border-white/5 rounded-xl p-3 flex items-center gap-3">
                             <div className="flex-1 min-w-0">
                                 <p className="text-[10px] uppercase font-bold text-gray-500 mb-1 text-left">Share Link</p>
-                                <p className="text-xs text-indigo-300 font-mono truncate text-left select-all">{shareUrl}</p>
+                                <p className="text-xs text-primary-300 font-mono truncate text-left select-all">{shareUrl}</p>
                             </div>
                             <button
                                 onClick={() => navigator.clipboard.writeText(shareUrl)}
@@ -53,7 +53,7 @@ const QRShareModal = ({ isOpen, onClose }) => {
                 <div className="p-4 border-t border-white/5 bg-gray-950/50 flex justify-center">
                     <button
                         onClick={() => window.open(shareUrl, '_blank')}
-                        className="text-indigo-400 hover:text-white text-sm font-bold transition-colors"
+                        className="text-primary-400 hover:text-white text-sm font-bold transition-colors"
                     >
                         Open Link in New Tab &rarr;
                     </button>

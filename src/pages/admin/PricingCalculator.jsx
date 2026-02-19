@@ -266,7 +266,7 @@ const PricingCalculator = () => {
             <div className="max-w-7xl mx-auto">
                 <div className="flex justify-between items-center mb-8">
                     <div>
-                        <h1 className="text-3xl font-bold text-indigo-400">🧙‍♂️ Pricing Calculator & Config</h1>
+                        <h1 className="text-3xl font-bold text-primary-400">🧙‍♂️ Pricing Calculator & Config</h1>
                         {liability.totalTokensLimit > 0 && liabilityDetails && (
                             <div className="mt-4 p-4 bg-gray-800/50 border border-gray-700 rounded-xl space-y-3">
                                 <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest border-b border-gray-700 pb-2">AI Liability Economics</h3>
@@ -274,7 +274,7 @@ const PricingCalculator = () => {
                                     <div className="space-y-1">
                                         <p className="text-[10px] text-gray-500 uppercase font-black">Monthly Subscription</p>
                                         <div className="flex items-baseline gap-1">
-                                            <span className="text-lg font-mono text-indigo-400" title="Total Potential Limit">
+                                            <span className="text-lg font-mono text-primary-400" title="Total Potential Limit">
                                                 {formatMillions(liability.totalMonthlyLimit)}
                                             </span>
                                             <span className="text-[10px] text-gray-500 lowercase font-normal ml-1">total potential</span>
@@ -358,7 +358,7 @@ const PricingCalculator = () => {
                     <h2 className="text-xl font-semibold text-green-400">⚙️ Assumptions</h2>
                     <div className="text-right bg-gray-900/50 p-3 rounded-lg border border-gray-700">
                         <div className="text-xs text-gray-400 uppercase tracking-wider font-bold mb-1">Average Value</div>
-                        <div className="text-xl font-mono font-bold text-indigo-400">
+                        <div className="text-xl font-mono font-bold text-primary-400">
                             {(avgCreditsPerDollar / 1000000).toFixed(2)}M <span className="text-sm text-gray-500">Credits / $1</span>
                         </div>
                     </div>
@@ -372,7 +372,7 @@ const PricingCalculator = () => {
                                 value={value}
                                 onChange={(e) => handleAssumptionChange(key, e.target.value)}
                                 step="0.01"
-                                className="w-full bg-gray-900 border border-gray-600 rounded p-2 text-white focus:border-indigo-500 outline-none"
+                                className="w-full bg-gray-900 border border-gray-600 rounded p-2 text-white focus:border-primary-500 outline-none"
                             />
                         </div>
                     ))}
@@ -389,7 +389,7 @@ const PricingCalculator = () => {
                             <th className="p-4">Price</th>
                             <th className="p-4">Margin %</th>
                             <th className="p-4">Req. Profit</th>
-                            <th className="p-4 text-indigo-400">Strict Max</th>
+                            <th className="p-4 text-primary-400">Strict Max</th>
                             <th className="p-4 text-white">Current Limit</th>
                             <th className="p-4 text-green-400">Proposed</th>
                             <th className="p-4">Est. Decks</th>
@@ -414,7 +414,7 @@ const PricingCalculator = () => {
                                         />
                                     </td>
                                     <td className="p-4 text-green-300 font-mono">${stats.profit.toFixed(2)}</td>
-                                    <td className="p-4 font-bold text-lg text-indigo-300">{formatMillions(stats.maxCredits)}</td>
+                                    <td className="p-4 font-bold text-lg text-primary-300">{formatMillions(stats.maxCredits)}</td>
                                     <td className={`p-4 font-bold text-xl ${isDiscrepancy ? 'text-yellow-500' : 'text-white'}`}>
                                         {formatMillions(tier.creditLimit)}
                                     </td>
@@ -438,7 +438,7 @@ const PricingCalculator = () => {
                             <th className="p-4">Price</th>
                             <th className="p-4">Stripe</th>
                             <th className="p-4">Req. Profit</th>
-                            <th className="p-4 text-indigo-400">Strict Max</th>
+                            <th className="p-4 text-primary-400">Strict Max</th>
                             <th className="p-4 text-white">Current Limit</th>
                             <th className="p-4 text-green-400">Proposed</th>
                             <th className="p-4">Est. Decks</th>
@@ -455,7 +455,7 @@ const PricingCalculator = () => {
                                     <td className="p-4 text-green-400">${pack.price.toFixed(2)}</td>
                                     <td className="p-4 text-red-400 text-sm">-${stats.stripe.toFixed(2)}</td>
                                     <td className="p-4 text-green-300 font-mono">${stats.profit.toFixed(2)}</td>
-                                    <td className="p-4 font-bold text-lg text-indigo-300">{formatMillions(stats.maxCredits)}</td>
+                                    <td className="p-4 font-bold text-lg text-primary-300">{formatMillions(stats.maxCredits)}</td>
                                     <td className={`p-4 font-bold text-xl ${isDiscrepancy ? 'text-yellow-500' : 'text-white'}`}>
                                         {formatMillions(pack.creditLimit)}
                                     </td>

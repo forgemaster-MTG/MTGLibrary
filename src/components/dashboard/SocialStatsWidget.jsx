@@ -27,14 +27,14 @@ const SocialStatsWidget = ({ size }) => {
 
     if (isXS) {
         return (
-            <div onClick={() => navigate('/social')} className="bg-indigo-900/10 border border-indigo-500/20 rounded-3xl h-full flex flex-col items-center justify-center cursor-pointer hover:bg-indigo-500/20 transition-all group">
+            <div onClick={() => navigate('/social')} className="bg-primary-900/10 border border-primary-500/20 rounded-3xl h-full flex flex-col items-center justify-center cursor-pointer hover:bg-primary-500/20 transition-all group">
                 <div className="relative">
-                    <Users size={18} className="text-indigo-400 group-hover:scale-110 transition-transform" />
+                    <Users size={18} className="text-primary-400 group-hover:scale-110 transition-transform" />
                     {stats.pending > 0 && (
                         <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border border-gray-950 animate-bounce" />
                     )}
                 </div>
-                <span className="text-[10px] font-black text-indigo-400 mt-1">{stats.total}</span>
+                <span className="text-[10px] font-black text-primary-400 mt-1">{stats.total}</span>
             </div>
         );
     }
@@ -43,7 +43,7 @@ const SocialStatsWidget = ({ size }) => {
         <div className={`bg-gray-900/60 border border-gray-800 rounded-3xl ${isSmall ? 'p-4' : 'p-6'} backdrop-blur-sm hover:border-gray-700 transition-colors flex flex-col h-full overflow-hidden`}>
             <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-2">
-                    <div className="p-2 bg-indigo-500/10 rounded-xl text-indigo-400">
+                    <div className="p-2 bg-primary-500/10 rounded-xl text-primary-400">
                         <Users size={isSmall ? 16 : 20} />
                     </div>
                     <span className={`font-black tracking-tight text-white uppercase ${isSmall ? 'text-[10px]' : 'text-xs'}`}>Community</span>
@@ -68,7 +68,7 @@ const SocialStatsWidget = ({ size }) => {
                             <div className="space-y-2">
                                 {["GhaveMaster sent a trade", "CommanderSarah shared a deck"].map((p, i) => (
                                     <div key={i} className="text-[10px] text-gray-300 flex items-center gap-2 bg-gray-950/40 p-2 rounded-lg border border-white/5">
-                                        <div className="w-1 h-1 rounded-full bg-indigo-500" />
+                                        <div className="w-1 h-1 rounded-full bg-primary-500" />
                                         {p}
                                     </div>
                                 ))}
@@ -85,7 +85,7 @@ const SocialStatsWidget = ({ size }) => {
 
             <button
                 onClick={() => navigate('/social')}
-                className={`mt-4 w-full ${isSmall ? 'py-1.5 text-[10px]' : 'py-2.5 text-xs'} bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-widest rounded-xl shadow-lg transition-all`}
+                className={`mt-4 w-full ${isSmall ? 'py-1.5 text-[10px]' : 'py-2.5 text-xs'} bg-primary-600 hover:bg-primary-500 text-white font-black uppercase tracking-widest rounded-xl shadow-lg transition-all`}
             >
                 View Hub
             </button>

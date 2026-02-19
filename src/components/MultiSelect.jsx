@@ -40,7 +40,7 @@ const MultiSelect = ({
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg py-2 px-3 text-left text-sm text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent flex justify-between items-center"
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg py-2 px-3 text-left text-sm text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent flex justify-between items-center"
             >
                 <span className="truncate">
                     {selected.length === 0
@@ -56,7 +56,7 @@ const MultiSelect = ({
                         <input
                             type="text"
                             placeholder="Filter options..."
-                            className="w-full bg-gray-950/50 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 placeholder-gray-600"
+                            className="w-full bg-gray-950/50 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-primary-500 placeholder-gray-600"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             autoFocus
@@ -72,12 +72,12 @@ const MultiSelect = ({
                                     onClick={() => toggleOption(opt.value)}
                                     className={`
                                         flex items-center gap-3 px-3 py-2 rounded-xl cursor-pointer text-xs font-medium transition-all
-                                        ${selected.includes(opt.value) ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/40' : 'text-gray-400 hover:bg-white/5 hover:text-white'}
+                                        ${selected.includes(opt.value) ? 'bg-primary-600 text-white shadow-lg shadow-primary-900/40' : 'text-gray-400 hover:bg-white/5 hover:text-white'}
                                     `}
                                 >
                                     <div className={`w-4 h-4 rounded-md border transition-all flex items-center justify-center ${selected.includes(opt.value) ? 'bg-white border-white scale-110' : 'border-gray-700 bg-gray-950/50'}`}>
                                         {selected.includes(opt.value) && (
-                                            <svg className="w-3 h-3 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <svg className="w-3 h-3 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" />
                                             </svg>
                                         )}

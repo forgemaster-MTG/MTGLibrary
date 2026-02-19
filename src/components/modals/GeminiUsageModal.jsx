@@ -31,12 +31,12 @@ const GeminiUsageModal = ({ isOpen, onClose }) => {
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-950/80 backdrop-blur-md animate-fade-in">
-            <div className="bg-gray-900 border border-indigo-500/30 rounded-3xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            <div className="bg-gray-900 border border-primary-500/30 rounded-3xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
                 {/* Header */}
                 <div className="p-6 border-b border-white/10 flex justify-between items-center bg-gray-900/50">
                     <div>
                         <h2 className="text-2xl font-black text-white flex items-center gap-3">
-                            <span className="text-indigo-400">📊</span> AI Oracle Usage & Costs
+                            <span className="text-primary-400">📊</span> AI Oracle Usage & Costs
                         </h2>
                         <p className="text-sm text-gray-400 mt-1">Independent tracking per API key and model tier.</p>
                     </div>
@@ -56,8 +56,8 @@ const GeminiUsageModal = ({ isOpen, onClose }) => {
                     ) : (
                         Object.entries(stats).map(([keyId, models]) => (
                             <div key={keyId} className="space-y-4">
-                                <h3 className="text-lg font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-2">
-                                    <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+                                <h3 className="text-lg font-bold text-primary-400 uppercase tracking-widest flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-primary-500 animate-pulse" />
                                     {keyId.replace('_', ' ')}
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -67,10 +67,10 @@ const GeminiUsageModal = ({ isOpen, onClose }) => {
                                         totalRequests += (mStats.success + mStats.failure + mStats[429]);
 
                                         return (
-                                            <div key={model} className="bg-gray-800/40 border border-gray-700/50 rounded-2xl p-4 hover:border-indigo-500/30 transition-all group">
+                                            <div key={model} className="bg-gray-800/40 border border-gray-700/50 rounded-2xl p-4 hover:border-primary-500/30 transition-all group">
                                                 <div className="flex justify-between items-start mb-3">
-                                                    <span className="font-mono text-sm text-indigo-300">{model}</span>
-                                                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-bold uppercase">
+                                                    <span className="font-mono text-sm text-primary-300">{model}</span>
+                                                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary-500/10 text-primary-400 border border-primary-500/20 font-bold uppercase">
                                                         {getModelTier(model)}
                                                     </span>
                                                 </div>
@@ -94,7 +94,7 @@ const GeminiUsageModal = ({ isOpen, onClose }) => {
                                                     </div>
                                                     <div className="text-right">
                                                         <div className="text-[10px] text-gray-500 uppercase font-black">Shadow Cost</div>
-                                                        <div className="text-indigo-400 font-bold">${cost.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 })}</div>
+                                                        <div className="text-primary-400 font-bold">${cost.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 })}</div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -111,7 +111,7 @@ const GeminiUsageModal = ({ isOpen, onClose }) => {
                     <div className="flex gap-8">
                         <div>
                             <div className="text-[10px] text-gray-500 uppercase font-black tracking-widest">Total Usage Estimate</div>
-                            <div className="text-3xl font-black text-indigo-400">${totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                            <div className="text-3xl font-black text-primary-400">${totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                         </div>
                         <div className="border-l border-white/10 pl-8">
                             <div className="text-[10px] text-gray-500 uppercase font-black tracking-widest">Total API Requests</div>
@@ -123,14 +123,14 @@ const GeminiUsageModal = ({ isOpen, onClose }) => {
                         <button onClick={handleReset} className="px-6 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/30 font-bold transition-all text-sm">
                             Reset Stats
                         </button>
-                        <button onClick={onClose} className="px-8 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition-all shadow-lg shadow-indigo-500/20">
+                        <button onClick={onClose} className="px-8 py-2 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-bold transition-all shadow-lg shadow-primary-500/20">
                             Close
                         </button>
                     </div>
                 </div>
 
-                <div className="px-6 py-3 bg-indigo-600/10 text-center">
-                    <p className="text-[10px] text-indigo-300 uppercase font-black tracking-widest">
+                <div className="px-6 py-3 bg-primary-600/10 text-center">
+                    <p className="text-[10px] text-primary-300 uppercase font-black tracking-widest">
                         ⚠️ Costs are estimates based on standard Google AI Studio pricing tiers for context only.
                     </p>
                 </div>

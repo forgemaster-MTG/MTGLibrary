@@ -196,7 +196,7 @@ const ManaPips = ({ items }) => (
 
 const TypeIcon = ({ type }) => {
     const t = type.toLowerCase();
-    const className = "w-12 h-12 text-gray-400 group-hover:text-indigo-400 transition-colors";
+    const className = "w-12 h-12 text-gray-400 group-hover:text-primary-400 transition-colors";
 
     // Lucide Icons Mapping
     // Creature: Swords or Ghost or Skull. Using Swords for 'Combat' feel.
@@ -236,11 +236,11 @@ const FolderCard = ({ name, count, reviewed, onClick, type }) => {
     return (
         <div
             onClick={onClick}
-            className="group relative flex flex-col aspect-[4/3] bg-gray-800 rounded-xl overflow-hidden border border-gray-700 hover:border-indigo-500/50 cursor-pointer transition-all hover:-translate-y-1 hover:shadow-xl"
+            className="group relative flex flex-col aspect-[4/3] bg-gray-800 rounded-xl overflow-hidden border border-gray-700 hover:border-primary-500/50 cursor-pointer transition-all hover:-translate-y-1 hover:shadow-xl"
         >
             {/* Progress Background Gradient */}
             <div
-                className="absolute inset-0 bg-gradient-to-t from-indigo-900/40 to-transparent transition-all duration-500"
+                className="absolute inset-0 bg-gradient-to-t from-primary-900/40 to-transparent transition-all duration-500"
                 style={{
                     height: `${progress}%`,
                     top: 'auto',
@@ -262,7 +262,7 @@ const FolderCard = ({ name, count, reviewed, onClick, type }) => {
                 ) : isType ? (
                     <TypeIcon type={name} />
                 ) : (
-                    <svg className="w-16 h-16 text-gray-700 group-hover:text-indigo-500/50 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-16 h-16 text-gray-700 group-hover:text-primary-500/50 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                     </svg>
                 )}
@@ -278,7 +278,7 @@ const FolderCard = ({ name, count, reviewed, onClick, type }) => {
                     <span className={isComplete ? "text-green-400" : "text-gray-500"}>
                         {reviewed} / {count} Verified
                     </span>
-                    <span className={`font-bold ${isComplete ? "text-green-400" : "text-indigo-400"}`}>
+                    <span className={`font-bold ${isComplete ? "text-green-400" : "text-primary-400"}`}>
                         {progress}%
                     </span>
                 </div>
@@ -286,7 +286,7 @@ const FolderCard = ({ name, count, reviewed, onClick, type }) => {
                 {/* Mini Progress Bar Line */}
                 <div className="w-full h-1 bg-gray-800 rounded-full mt-2 overflow-hidden">
                     <div
-                        className={`h-full transition-all duration-500 ${isComplete ? 'bg-green-500' : 'bg-indigo-500'}`}
+                        className={`h-full transition-all duration-500 ${isComplete ? 'bg-green-500' : 'bg-primary-500'}`}
                         style={{ width: `${progress}%` }}
                     />
                 </div>
@@ -646,7 +646,7 @@ export default function AuditWizard() {
 
     const visibleLeafItems = currentFilteredItems.slice(0, visibleCount);
 
-    if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin w-8 h-8 border-4 border-indigo-500 rounded-full" /></div>;
+    if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin w-8 h-8 border-4 border-primary-500 rounded-full" /></div>;
     if (!session) return null;
 
     return (
@@ -656,7 +656,7 @@ export default function AuditWizard() {
                 <div className="flex-1">
                     <button onClick={() => navigate(`/audit/${session.id}`)} className="text-gray-500 hover:text-white flex items-center gap-2 text-sm font-bold mb-2">Back to Hub</button>
                     <h1 className="text-2xl font-black text-white flex items-center gap-3">
-                        <span className="text-indigo-400">Audit:</span>
+                        <span className="text-primary-400">Audit:</span>
                         {deckName ? deckName : (
                             // Show grouping context if available, else session type/name
                             groupHierarchy.length > 0 ?
@@ -691,15 +691,15 @@ export default function AuditWizard() {
                     {/* Leaf-only controls */}
                     {isLeaf && (
                         <div className="bg-gray-800 p-1 rounded-lg flex text-xs font-bold">
-                            <button onClick={() => setFilter('all')} className={`px-3 py-1.5 rounded-md transition-colors ${filter === 'all' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-white'}`}>All</button>
-                            <button onClick={() => setFilter('pending')} className={`px-3 py-1.5 rounded-md transition-colors ${filter === 'pending' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-white'}`}>Pending</button>
+                            <button onClick={() => setFilter('all')} className={`px-3 py-1.5 rounded-md transition-colors ${filter === 'all' ? 'bg-primary-600 text-white' : 'text-gray-400 hover:text-white'}`}>All</button>
+                            <button onClick={() => setFilter('pending')} className={`px-3 py-1.5 rounded-md transition-colors ${filter === 'pending' ? 'bg-primary-600 text-white' : 'text-gray-400 hover:text-white'}`}>Pending</button>
                             <button onClick={() => setFilter('mismatch')} className={`px-3 py-1.5 rounded-md transition-colors ${filter === 'mismatch' ? 'bg-red-600 text-white' : 'text-gray-400 hover:text-white'}`}>Mismatches</button>
                         </div>
                     )}
 
                     <button
                         onClick={() => setIsForgeLensOpen(true)}
-                        className="px-4 py-2 bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 hover:bg-indigo-600/30 font-bold rounded-lg text-sm flex items-center gap-2 transition-all"
+                        className="px-4 py-2 bg-primary-600/20 text-primary-400 border border-primary-500/30 hover:bg-primary-600/30 font-bold rounded-lg text-sm flex items-center gap-2 transition-all"
                         title="Verify Cards with Camera"
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
@@ -720,19 +720,19 @@ export default function AuditWizard() {
                         <input
                             type="text"
                             placeholder="Set (e.g. KND)"
-                            className="w-24 bg-gray-900 border border-gray-700 rounded px-3 py-1 text-white text-sm font-mono uppercase focus:border-indigo-500 outline-none"
+                            className="w-24 bg-gray-900 border border-gray-700 rounded px-3 py-1 text-white text-sm font-mono uppercase focus:border-primary-500 outline-none"
                             value={addCardState.setCode}
                             onChange={e => setAddCardState({ ...addCardState, setCode: e.target.value.toUpperCase() })}
                         />
                         <input
                             type="text"
                             placeholder="# No."
-                            className="w-24 bg-gray-900 border border-gray-700 rounded px-3 py-1 text-white text-sm font-mono focus:border-indigo-500 outline-none"
+                            className="w-24 bg-gray-900 border border-gray-700 rounded px-3 py-1 text-white text-sm font-mono focus:border-primary-500 outline-none"
                             value={addCardState.collectorNumber}
                             onChange={e => setAddCardState({ ...addCardState, collectorNumber: e.target.value })}
                         />
                         <select
-                            className="bg-gray-900 border border-gray-700 rounded px-3 py-1 text-white text-sm focus:border-indigo-500 outline-none"
+                            className="bg-gray-900 border border-gray-700 rounded px-3 py-1 text-white text-sm focus:border-primary-500 outline-none"
                             value={addCardState.finish}
                             onChange={e => setAddCardState({ ...addCardState, finish: e.target.value })}
                         >
@@ -742,7 +742,7 @@ export default function AuditWizard() {
                         <button
                             type="submit"
                             disabled={addCardState.isSubmitting}
-                            className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-1 rounded text-sm transition-colors flex items-center gap-1"
+                            className="bg-primary-600 hover:bg-primary-500 text-white font-bold px-4 py-1 rounded text-sm transition-colors flex items-center gap-1"
                         >
                             {addCardState.isSubmitting ? '...' : (
                                 <>
@@ -770,10 +770,10 @@ export default function AuditWizard() {
                     ))}
                     {visibleCount < currentFilteredItems.length && (
                         <div ref={lastElementRef} className="h-32 flex flex-col items-center justify-center col-span-full gap-2 p-4">
-                            <div className="animate-spin w-6 h-6 border-2 border-indigo-500 rounded-full" />
+                            <div className="animate-spin w-6 h-6 border-2 border-primary-500 rounded-full" />
                             <button
                                 onClick={() => setVisibleCount(p => p + 50)}
-                                className="text-xs text-indigo-400 hover:text-white underline"
+                                className="text-xs text-primary-400 hover:text-white underline"
                             >
                                 Load More
                             </button>
@@ -786,10 +786,10 @@ export default function AuditWizard() {
                     {/* View All Option */}
                     <div
                         onClick={() => setViewAllOverride(true)}
-                        className="group relative flex flex-col aspect-[4/3] bg-gray-800/30 border-2 border-dashed border-gray-700/50 hover:border-indigo-500/50 hover:bg-gray-800 rounded-xl overflow-hidden cursor-pointer transition-all hover:-translate-y-1 hover:shadow-xl items-center justify-center p-6 text-center"
+                        className="group relative flex flex-col aspect-[4/3] bg-gray-800/30 border-2 border-dashed border-gray-700/50 hover:border-primary-500/50 hover:bg-gray-800 rounded-xl overflow-hidden cursor-pointer transition-all hover:-translate-y-1 hover:shadow-xl items-center justify-center p-6 text-center"
                     >
-                        <div className="w-16 h-16 rounded-full bg-gray-800 group-hover:bg-indigo-600/20 flex items-center justify-center mb-3 transition-colors">
-                            <svg className="w-8 h-8 text-gray-500 group-hover:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                        <div className="w-16 h-16 rounded-full bg-gray-800 group-hover:bg-primary-600/20 flex items-center justify-center mb-3 transition-colors">
+                            <svg className="w-8 h-8 text-gray-500 group-hover:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
                         </div>
                         <span className="text-white font-bold text-lg">View All Cards</span>
                         <span className="text-xs text-gray-500 font-mono mt-1 uppercase tracking-wider">In this section</span>

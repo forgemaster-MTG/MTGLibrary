@@ -54,7 +54,7 @@ Please provide:
                 <button
                     onClick={handleAnalyze}
                     disabled={loading}
-                    className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold py-2 px-6 rounded-lg shadow-lg shadow-purple-500/20 transition-all disabled:opacity-50 flex items-center gap-2"
+                    className="bg-gradient-to-r from-primary-600 to-purple-600 hover:from-primary-500 hover:to-purple-500 text-white font-bold py-2 px-6 rounded-lg shadow-lg shadow-purple-500/20 transition-all disabled:opacity-50 flex items-center gap-2"
                 >
                     {loading ? (
                         <>

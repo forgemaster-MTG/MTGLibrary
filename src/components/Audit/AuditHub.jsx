@@ -172,7 +172,7 @@ export default function AuditHub() {
                 <div className="flex justify-between items-end">
                     <div>
                         <div className="flex items-center gap-3 mb-2">
-                            <span className="bg-indigo-500/20 text-indigo-300 text-xs font-bold uppercase px-2 py-1 rounded border border-indigo-500/30">
+                            <span className="bg-primary-500/20 text-primary-300 text-xs font-bold uppercase px-2 py-1 rounded border border-primary-500/30">
                                 Audit in Progress
                             </span>
                             <span className="text-gray-500 text-sm">Started {new Date(session.created_at).toLocaleDateString()}</span>
@@ -183,7 +183,7 @@ export default function AuditHub() {
                             <button
                                 onClick={() => setShowGuide(true)}
                                 id="audit-guide-btn"
-                                className="text-indigo-400 hover:text-indigo-300 font-bold ml-2 text-sm flex items-center gap-1 group/guide"
+                                className="text-primary-400 hover:text-primary-300 font-bold ml-2 text-sm flex items-center gap-1 group/guide"
                             >
                                 <svg className="w-4 h-4 transition-transform group-hover/guide:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                 Setup Guide
@@ -210,11 +210,11 @@ export default function AuditHub() {
                 <div id="audit-progress" className="bg-gray-800/50 rounded-2xl p-6 border border-gray-700 relative overflow-hidden">
                     <div className="flex justify-between items-center mb-2 relative z-10">
                         <span className="text-xl font-bold text-white">Total Progress</span>
-                        <span className="text-2xl font-mono text-indigo-400">{percentComplete}%</span>
+                        <span className="text-2xl font-mono text-primary-400">{percentComplete}%</span>
                     </div>
                     <div className="w-full bg-gray-700/50 rounded-full h-4 overflow-hidden relative z-10">
                         <div
-                            className="bg-gradient-to-r from-indigo-600 to-purple-500 h-full transition-all duration-1000 ease-out"
+                            className="bg-gradient-to-r from-primary-600 to-purple-500 h-full transition-all duration-1000 ease-out"
                             style={{ width: `${percentComplete}%` }}
                         />
                     </div>
@@ -228,7 +228,7 @@ export default function AuditHub() {
                 {stats.decks.length > 0 && (
                     <div id="audit-decks">
                         <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                            <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                            <svg className="w-5 h-5 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                             Decks
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -332,7 +332,7 @@ export default function AuditHub() {
                                                 <td className="p-4 font-mono text-gray-400">{m.set_code.toUpperCase()} #{m.collector_number}</td>
                                                 <td className="p-4 text-gray-300">
                                                     {m.deck_name ? (
-                                                        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-indigo-500"></span> {m.deck_name}</span>
+                                                        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-primary-500"></span> {m.deck_name}</span>
                                                     ) : (
                                                         <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-purple-500"></span> Collection</span>
                                                     )}
@@ -374,7 +374,7 @@ export default function AuditHub() {
                             value={confirmInput}
                             onChange={(e) => setConfirmInput(e.target.value)}
                             placeholder={strictModal.type === 'cancel' ? 'Delete' : 'Complete'}
-                            className="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-600 focus:border-indigo-500 outline-none mb-6"
+                            className="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-600 focus:border-primary-500 outline-none mb-6"
                             autoFocus
                         />
 

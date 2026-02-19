@@ -7,7 +7,7 @@ const AdminGuard = ({ children }) => {
     const location = useLocation();
 
     if (loading) {
-        return <div className="min-h-screen bg-gray-900 flex items-center justify-center text-indigo-500">Loading...</div>;
+        return <div className="min-h-screen bg-gray-900 flex items-center justify-center text-primary-500">Loading...</div>;
     }
 
     // TODO: rigorous role check. For now, email list or role 'admin'

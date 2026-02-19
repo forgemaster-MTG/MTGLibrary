@@ -16,7 +16,7 @@ const ReleaseDetailModal = ({ isOpen, onClose, release }) => {
 
     return createPortal(
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in" onClick={onClose}>
-            <div className="bg-gray-900 border border-indigo-500/30 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-slide-up" onClick={e => e.stopPropagation()}>
+            <div className="bg-gray-900 border border-primary-500/30 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-slide-up" onClick={e => e.stopPropagation()}>
                 <div className="p-6 border-b border-white/10 flex justify-between items-start bg-gray-950/50">
                     <div>
                         <h3 className="text-2xl font-black text-white mb-1">{release.version}</h3>
@@ -46,7 +46,7 @@ const ReleaseDetailModal = ({ isOpen, onClose, release }) => {
                     </div>
 
                     <div
-                        className="prose prose-invert prose-lg max-w-none prose-headings:text-indigo-300 prose-a:text-indigo-400 prose-strong:text-white"
+                        className="prose prose-invert prose-lg max-w-none prose-headings:text-primary-300 prose-a:text-primary-400 prose-strong:text-white"
                         dangerouslySetInnerHTML={{ __html: release.notes }}
                     />
                 </div>
@@ -144,9 +144,9 @@ const ReleasesWidget = ({ size }) => {
                         {/* Notes Snippet */}
                         <div className="flex-1 bg-gray-950/40 rounded-2xl p-4 border border-white/5 relative group/notes overflow-hidden flex flex-col min-h-0 min-w-0">
                             <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 md:mb-4 flex items-center gap-2 flex-shrink-0">
-                                <div className="w-1 h-3 bg-indigo-500" /> Highlights
+                                <div className="w-1 h-3 bg-primary-500" /> Highlights
                             </div>
-                            <div className="prose prose-invert prose-sm max-w-none prose-headings:text-indigo-300 prose-a:text-indigo-400 prose-strong:text-white prose-headings:mb-2 prose-p:my-1 prose-li:my-0.5 overflow-y-auto custom-scrollbar pr-2 h-full" dangerouslySetInnerHTML={{ __html: releases[0].notes }} />
+                            <div className="prose prose-invert prose-sm max-w-none prose-headings:text-primary-300 prose-a:text-primary-400 prose-strong:text-white prose-headings:mb-2 prose-p:my-1 prose-li:my-0.5 overflow-y-auto custom-scrollbar pr-2 h-full" dangerouslySetInnerHTML={{ __html: releases[0].notes }} />
                             <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-gray-900/40 to-transparent pointer-events-none" />
                         </div>
 

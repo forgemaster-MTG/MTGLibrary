@@ -120,7 +120,7 @@ const InteractiveCard = ({ card, normalCount = 0, foilCount = 0, wishlistCount =
     const isMissingWishlist = !isOwned && wishlistCount > 0;
 
     return (
-        <div className={`group relative flex bg-gray-900/60 backdrop-blur-md rounded-xl overflow-hidden shadow-2xl border transition-all duration-300 hover:shadow-[0_0_30px_rgba(79,70,229,0.15)] aspect-[3.2/3.5] perspective-1000 ${isOwned ? 'border-indigo-500/30' : 'border-white/5 grayscale-[0.8] opacity-70 hover:grayscale-0 hover:opacity-100'}`}>
+        <div className={`group relative flex bg-gray-900/60 backdrop-blur-md rounded-xl overflow-hidden shadow-2xl border transition-all duration-300 hover:shadow-[0_0_30px_rgba(79,70,229,0.15)] aspect-[3.2/3.5] perspective-1000 ${isOwned ? 'border-primary-500/30' : 'border-white/5 grayscale-[0.8] opacity-70 hover:grayscale-0 hover:opacity-100'}`}>
 
             {/* Left Side: Card Image (Perfect 2.5:3.5 Ratio) */}
             <div
@@ -136,7 +136,7 @@ const InteractiveCard = ({ card, normalCount = 0, foilCount = 0, wishlistCount =
                             className="w-full h-full object-cover"
                             loading="lazy"
                         />
-                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-gradient-to-t from-indigo-500/20 to-transparent transition-opacity duration-500" />
+                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-gradient-to-t from-primary-500/20 to-transparent transition-opacity duration-500" />
                     </div>
 
                     {/* Back Face */}
@@ -155,7 +155,7 @@ const InteractiveCard = ({ card, normalCount = 0, foilCount = 0, wishlistCount =
                 {hasBackFace && (
                     <button
                         onClick={(e) => { e.stopPropagation(); setIsFlipped(!isFlipped); }}
-                        className="absolute top-2 left-2 p-2 bg-black/60 hover:bg-indigo-600 text-white rounded-full backdrop-blur-md transition-all z-30 shadow-lg border border-white/10"
+                        className="absolute top-2 left-2 p-2 bg-black/60 hover:bg-primary-600 text-white rounded-full backdrop-blur-md transition-all z-30 shadow-lg border border-white/10"
                         title="Flip Card"
                     >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
@@ -217,8 +217,8 @@ const InteractiveCard = ({ card, normalCount = 0, foilCount = 0, wishlistCount =
                 <DebouncedCountControl
                     value={foilCount}
                     label="Foil"
-                    labelColor="text-indigo-600"
-                    textColor="text-indigo-400"
+                    labelColor="text-primary-600"
+                    textColor="text-primary-400"
                     onChange={(val) => onUpdateCount && onUpdateCount(card, 'foil', 0, val)}
                 />
 

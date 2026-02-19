@@ -31,7 +31,7 @@ export const LayoutImportModal = ({ isOpen, onClose, onImport }) => {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-            <div className="bg-gray-900 border border-indigo-500/30 rounded-2xl max-w-md w-full p-6 shadow-2xl">
+            <div className="bg-gray-900 border border-primary-500/30 rounded-2xl max-w-md w-full p-6 shadow-2xl">
                 <h3 className="text-xl font-bold text-white mb-4">Import Layout</h3>
 
                 <div className="space-y-4">
@@ -41,7 +41,7 @@ export const LayoutImportModal = ({ isOpen, onClose, onImport }) => {
                             value={name}
                             onChange={e => setName(e.target.value)}
                             placeholder="My Awesome Layout"
-                            className="w-full bg-black/50 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+                            className="w-full bg-black/50 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none"
                             autoFocus
                         />
                     </div>
@@ -52,7 +52,7 @@ export const LayoutImportModal = ({ isOpen, onClose, onImport }) => {
                             value={code}
                             onChange={e => setCode(e.target.value)}
                             placeholder="Paste the base64 code here..."
-                            className="w-full h-32 bg-black/50 border border-gray-700 rounded-xl px-4 py-3 text-white font-mono text-xs placeholder-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none resize-none"
+                            className="w-full h-32 bg-black/50 border border-gray-700 rounded-xl px-4 py-3 text-white font-mono text-xs placeholder-gray-600 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none resize-none"
                         />
                     </div>
 
@@ -60,7 +60,7 @@ export const LayoutImportModal = ({ isOpen, onClose, onImport }) => {
 
                     <div className="flex gap-3 pt-2">
                         <button onClick={onClose} className="flex-1 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-xl transition-colors">Cancel</button>
-                        <button onClick={handleSubmit} className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-colors shadow-lg shadow-indigo-500/20">Import</button>
+                        <button onClick={handleSubmit} className="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-500 text-white font-bold rounded-xl transition-colors shadow-lg shadow-primary-500/20">Import</button>
                     </div>
                 </div>
             </div>
@@ -81,7 +81,7 @@ export const LayoutShareModal = ({ isOpen, onClose, layoutCode, layoutName }) =>
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-            <div className="bg-gray-900 border border-indigo-500/30 rounded-2xl max-w-md w-full p-6 shadow-2xl">
+            <div className="bg-gray-900 border border-primary-500/30 rounded-2xl max-w-md w-full p-6 shadow-2xl">
                 <div className="flex justify-between items-start mb-4">
                     <h3 className="text-xl font-bold text-white">Share Layout</h3>
                     <button onClick={onClose} className="text-gray-500 hover:text-white"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
@@ -94,14 +94,14 @@ export const LayoutShareModal = ({ isOpen, onClose, layoutCode, layoutName }) =>
                         <textarea
                             readOnly
                             value={layoutCode}
-                            className="w-full h-32 bg-black/50 border border-gray-700 rounded-xl px-4 py-3 text-indigo-300 font-mono text-xs focus:border-indigo-500 outline-none resize-none"
+                            className="w-full h-32 bg-black/50 border border-gray-700 rounded-xl px-4 py-3 text-primary-300 font-mono text-xs focus:border-primary-500 outline-none resize-none"
                             onClick={(e) => e.target.select()}
                         />
                     </div>
 
                     <button
                         onClick={handleCopy}
-                        className={`w-full py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${copied ? 'bg-green-600 text-white' : 'bg-indigo-600 hover:bg-indigo-500 text-white'}`}
+                        className={`w-full py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${copied ? 'bg-green-600 text-white' : 'bg-primary-600 hover:bg-primary-500 text-white'}`}
                     >
                         {copied ? (
                             <>
@@ -133,7 +133,7 @@ export const LayoutSaveModal = ({ isOpen, onClose, onSave }) => {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-            <div className="bg-gray-900 border border-indigo-500/30 rounded-2xl max-w-md w-full p-6 shadow-2xl">
+            <div className="bg-gray-900 border border-primary-500/30 rounded-2xl max-w-md w-full p-6 shadow-2xl">
                 <h3 className="text-xl font-bold text-white mb-4">Save Layout</h3>
 
                 <div className="space-y-4">
@@ -143,7 +143,7 @@ export const LayoutSaveModal = ({ isOpen, onClose, onSave }) => {
                             value={name}
                             onChange={e => setName(e.target.value)}
                             placeholder="e.g. Commander Focus"
-                            className="w-full bg-black/50 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+                            className="w-full bg-black/50 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none"
                             autoFocus
                             onKeyDown={e => {
                                 if (e.key === 'Enter' && name.trim()) {
@@ -164,7 +164,7 @@ export const LayoutSaveModal = ({ isOpen, onClose, onSave }) => {
                                 onSave(name);
                                 onClose();
                             }}
-                            className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-colors shadow-lg shadow-indigo-500/20"
+                            className="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-500 text-white font-bold rounded-xl transition-colors shadow-lg shadow-primary-500/20"
                         >
                             Save
                         </button>

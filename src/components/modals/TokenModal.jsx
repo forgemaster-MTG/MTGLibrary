@@ -82,7 +82,7 @@ const TokenModal = ({ isOpen, onClose, deckCards }) => {
                                 ) : (
                                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                                         {tokens.map(token => (
-                                            <div key={token.id} className="bg-white/5 rounded-xl border border-white/5 overflow-hidden group hover:border-indigo-500/50 transition-all">
+                                            <div key={token.id} className="bg-white/5 rounded-xl border border-white/5 overflow-hidden group hover:border-primary-500/50 transition-all">
                                                 <div className="aspect-[2.5/3.5] relative overflow-hidden bg-gray-950">
                                                     <img
                                                         src={token.image_uri}
@@ -94,7 +94,7 @@ const TokenModal = ({ isOpen, onClose, deckCards }) => {
                                                 <div className="p-3">
                                                     <h4 className="font-bold text-white text-sm mb-1 truncate" title={token.name}>{token.name}</h4>
                                                     <div className="text-[10px] text-gray-400">
-                                                        <span className="uppercase tracking-wider font-bold text-indigo-400 block mb-1">Produced By:</span>
+                                                        <span className="uppercase tracking-wider font-bold text-primary-400 block mb-1">Produced By:</span>
                                                         <ul className="list-disc list-inside space-y-0.5">
                                                             {token.sources.slice(0, 3).map(source => (
                                                                 <li key={source} className="truncate" title={source}>{source}</li>

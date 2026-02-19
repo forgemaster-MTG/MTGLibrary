@@ -6,7 +6,7 @@ export default function PhaseTracker({ currentPhase, turnCount, landsPlayed, onN
     return (
         <div className="flex items-center bg-gray-900/80 backdrop-blur-md rounded-2xl border border-white/10 px-4 py-2 shadow-2xl relative overflow-hidden group">
             {/* Background Glow */}
-            <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 via-purple-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-r from-primary-500/5 via-purple-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
 
             <div className="flex items-center gap-6 relative z-10">
                 {/* Turn Indicator */}
@@ -35,10 +35,10 @@ export default function PhaseTracker({ currentPhase, turnCount, landsPlayed, onN
                                 className={`flex flex-col items-center transition-all duration-300 ${isActive ? 'scale-110' : 'opacity-40'}`}
                             >
                                 <div className={`h-1.5 w-8 md:w-12 rounded-full mb-2 transition-all duration-500 ${isActive
-                                    ? 'bg-gradient-to-r from-indigo-500 to-purple-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]'
-                                    : isPast ? 'bg-indigo-900/40' : 'bg-gray-800'
+                                    ? 'bg-gradient-to-r from-primary-500 to-purple-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]'
+                                    : isPast ? 'bg-primary-900/40' : 'bg-gray-800'
                                     }`} />
-                                <span className={`text-[10px] font-bold uppercase tracking-widest ${isActive ? 'text-indigo-400' : 'text-gray-500'
+                                <span className={`text-[10px] font-bold uppercase tracking-widest ${isActive ? 'text-primary-400' : 'text-gray-500'
                                     }`}>
                                     {phase}
                                 </span>
@@ -50,7 +50,7 @@ export default function PhaseTracker({ currentPhase, turnCount, landsPlayed, onN
                 {/* Next Button */}
                 <button
                     onClick={onNextPhase}
-                    className="ml-2 w-10 h-10 flex items-center justify-center rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 transition-all hover:scale-110 active:scale-95 group/btn"
+                    className="ml-2 w-10 h-10 flex items-center justify-center rounded-xl bg-primary-600 hover:bg-primary-500 text-white shadow-lg shadow-primary-500/20 transition-all hover:scale-110 active:scale-95 group/btn"
                     title="Next Phase (Space)"
                 >
                     <svg className="w-5 h-5 transition-transform group-hover/btn:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

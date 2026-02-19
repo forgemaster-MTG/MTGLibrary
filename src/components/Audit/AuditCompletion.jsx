@@ -170,8 +170,8 @@ export default function AuditCompletion() {
     return (
         <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4 relative overflow-hidden">
             {/* Background Effects */}
-            <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/20 to-black pointer-events-none" />
-            <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-500/10 via-gray-900/0 to-transparent pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-br from-primary-900/20 to-black pointer-events-none" />
+            <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary-500/10 via-gray-900/0 to-transparent pointer-events-none" />
             <Confetti />
 
             <div className="max-w-4xl w-full relative z-10 animate-fade-in-up">
@@ -180,7 +180,7 @@ export default function AuditCompletion() {
                 <div id="audit-report-node" className="p-4 rounded-3xl bg-gray-900/50 backdrop-blur-sm">
                     {/* Header Card */}
                     <div className="bg-gray-800/80 backdrop-blur-xl rounded-3xl p-8 border border-white/10 shadow-2xl mb-6 text-center relative overflow-hidden group">
-                        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-green-400 via-indigo-500 to-purple-500" />
+                        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-green-400 via-primary-500 to-purple-500" />
 
                         <div className="relative z-10">
                             <div className="inline-flex items-center justify-center p-4 bg-green-500/20 text-green-400 rounded-full mb-6 border border-green-500/30 shadow-[0_0_30px_rgba(34,197,94,0.3)]">
@@ -195,10 +195,10 @@ export default function AuditCompletion() {
                             </p>
 
                             {/* XP Badge */}
-                            <div className="inline-flex flex-col items-center justify-center bg-gray-900/50 rounded-2xl p-4 px-8 border border-indigo-500/30">
-                                <span className="text-indigo-400 text-xs font-bold uppercase tracking-widest mb-1">Experience Gained</span>
+                            <div className="inline-flex flex-col items-center justify-center bg-gray-900/50 rounded-2xl p-4 px-8 border border-primary-500/30">
+                                <span className="text-primary-400 text-xs font-bold uppercase tracking-widest mb-1">Experience Gained</span>
                                 <span className="text-4xl font-black text-white flex items-center gap-2">
-                                    +{xpCount} <span className="text-xl text-indigo-500">XP</span>
+                                    +{xpCount} <span className="text-xl text-primary-500">XP</span>
                                 </span>
                             </div>
                         </div>
@@ -301,7 +301,7 @@ export default function AuditCompletion() {
                     {/* Share Button Implemented */}
                     <button
                         onClick={handleShare}
-                        className="flex items-center justify-center gap-2 px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-all shadow-lg hover:shadow-indigo-500/25"
+                        className="flex items-center justify-center gap-2 px-8 py-3 bg-primary-600 hover:bg-primary-500 text-white rounded-xl font-bold transition-all shadow-lg hover:shadow-primary-500/25"
                     >
                         <Share2 className="w-5 h-5" />
                         Save as Image

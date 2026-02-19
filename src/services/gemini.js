@@ -861,9 +861,9 @@ const GeminiService = {
         - Output ONLY raw HTML. Do not use Markdown blocks (no \`\`\`html).
         - Use Tailwind CSS classes for styling.
         - Primary font color should be text-gray-300 unless highlighting.
-        - Use <strong class="text-indigo-400"> for card names or key terms.
+        - Use <strong class="text-primary-400"> for card names or key terms.
         - Use <ul class="space-y-1 list-disc pl-4 my-2"> for lists.
-        - Use <div class="p-2.5 bg-indigo-500/10 border border-indigo-500/20 rounded-lg my-2"> for emphasis or summary blocks.
+        - Use <div class="p-2.5 bg-primary-500/10 border border-primary-500/20 rounded-lg my-2"> for emphasis or summary blocks.
         
         [CONTEXT]
         ${context}
@@ -968,8 +968,8 @@ const GeminiService = {
            
            Required HTML Elements & Styling:
            - **Headers**: <h4 class="text-xl font-black text-white mt-6 mb-3 flex items-center gap-2"><span class="text-2xl">⚡</span> SECTION TITLE</h4>
-           - **Banners**: <div class="bg-indigo-500/10 border-l-4 border-indigo-500 p-4 rounded-r-lg my-4 text-gray-200">Content...</div>
-           - **Keywords**: <span class="font-bold text-indigo-400">Keyword</span>
+           - **Banners**: <div class="bg-primary-500/10 border-l-4 border-primary-500 p-4 rounded-r-lg my-4 text-gray-200">Content...</div>
+           - **Keywords**: <span class="font-bold text-primary-400">Keyword</span>
            - **Lists**: <ul class="space-y-2 mb-4"><li class="flex items-start gap-2"><span class="mt-1">🔹</span><span>Point...</span></li></ul>
            
            Required Sections:
@@ -1472,7 +1472,7 @@ const GeminiService = {
 
   async generateReleaseNotes(apiKey, tickets, userProfile = null) {
     const systemPrompt = `You are the Lead Developer of MTG Forge. Generate professional, evocative release notes for the latest update.
-        Use HTML with Tailwind (text-gray-300, indigo-400 highlights). 
+        Use HTML with Tailwind (text-gray-300, primary-400 highlights). 
         Include sections: [New Mechanics], [Bug Squashing], [In the Forge].`;
 
     const payload = {

@@ -137,7 +137,7 @@ const PreconPage = () => {
             rose: 'from-rose-600/60 to-red-600/20 hover:border-rose-400 border-rose-500/30',
             amber: 'from-amber-600/60 to-orange-600/20 hover:border-amber-400 border-amber-500/30',
             cyan: 'from-cyan-600/60 to-blue-600/20 hover:border-cyan-400 border-cyan-500/30',
-            blue: 'from-blue-600/60 to-indigo-600/20 hover:border-blue-400 border-blue-500/30'
+            blue: 'from-blue-600/60 to-primary-600/20 hover:border-blue-400 border-blue-500/30'
         };
         return schemes[color] || schemes.blue;
     };

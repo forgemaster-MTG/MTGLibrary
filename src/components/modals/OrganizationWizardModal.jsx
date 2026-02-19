@@ -169,7 +169,7 @@ const OrganizationWizardModal = ({ isOpen, onClose, onComplete }) => {
                                 <button
                                     key={arch.id}
                                     onClick={() => handleArchetypeSelect(arch.id)}
-                                    className="group relative bg-gray-800/50 hover:bg-gray-800 border-2 border-transparent hover:border-indigo-500 rounded-2xl p-6 text-left transition-all hover:-translate-y-1 hover:shadow-xl flex flex-col h-full"
+                                    className="group relative bg-gray-800/50 hover:bg-gray-800 border-2 border-transparent hover:border-primary-500 rounded-2xl p-6 text-left transition-all hover:-translate-y-1 hover:shadow-xl flex flex-col h-full"
                                 >
                                     <div className="text-4xl mb-4 group-hover:scale-110 transition-transform">{arch.icon}</div>
                                     <h3 className="text-xl font-bold text-white mb-2">{arch.name}</h3>
@@ -178,7 +178,7 @@ const OrganizationWizardModal = ({ isOpen, onClose, onComplete }) => {
                                     <ul className="text-xs text-gray-400 space-y-2 mt-auto pt-4 border-t border-gray-700/50">
                                         {arch.features.map((feature, i) => (
                                             <li key={i} className="flex items-center gap-2">
-                                                <span className="text-indigo-500">•</span>
+                                                <span className="text-primary-500">•</span>
                                                 {feature}
                                             </li>
                                         ))}
@@ -191,7 +191,7 @@ const OrganizationWizardModal = ({ isOpen, onClose, onComplete }) => {
                     {/* STEP 1.5: Advanced Sort */}
                     {step === 1.5 && (
                         <div className="space-y-6 max-w-2xl mx-auto">
-                            <p className="text-indigo-300 font-bold uppercase tracking-widest text-xs text-center">Define your custom hierarchy (Max 4)</p>
+                            <p className="text-primary-300 font-bold uppercase tracking-widest text-xs text-center">Define your custom hierarchy (Max 4)</p>
 
                             <div className="space-y-3 max-w-md mx-auto">
                                 {[0, 1, 2, 3].map(i => (
@@ -200,7 +200,7 @@ const OrganizationWizardModal = ({ isOpen, onClose, onComplete }) => {
                                             {i + 1}
                                         </div>
                                         <select
-                                            className="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                                            className="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary-500 outline-none"
                                             value={customSort[i] || ''}
                                             onChange={(e) => handleCustomSortChange(i, e.target.value)}
                                         >
@@ -220,7 +220,7 @@ const OrganizationWizardModal = ({ isOpen, onClose, onComplete }) => {
                                 <button
                                     onClick={() => finish(customSort, 'custom')}
                                     disabled={!customSort[0] || saving}
-                                    className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded-xl font-bold transition-colors disabled:opacity-50"
+                                    className="bg-primary-600 hover:bg-primary-500 text-white px-6 py-2 rounded-xl font-bold transition-colors disabled:opacity-50"
                                 >
                                     {saving ? 'Applying...' : 'Apply Hierarchy'}
                                 </button>
@@ -231,8 +231,8 @@ const OrganizationWizardModal = ({ isOpen, onClose, onComplete }) => {
                     {/* STEP 2: Hybrid Options */}
                     {step === 2 && (
                         <div className="space-y-6 max-w-2xl mx-auto">
-                            <div className="p-4 bg-indigo-900/20 border border-indigo-500/30 rounded-xl mb-4">
-                                <p className="text-sm text-indigo-300">
+                            <div className="p-4 bg-primary-900/20 border border-primary-500/30 rounded-xl mb-4">
+                                <p className="text-sm text-primary-300">
                                     We'll set your main view to <strong>Set & Collector Number</strong> (for your boxes),
                                     and create <strong>Smart Binders</strong> for your special cards.
                                 </p>
@@ -244,7 +244,7 @@ const OrganizationWizardModal = ({ isOpen, onClose, onComplete }) => {
                                         type="checkbox"
                                         checked={hybridOptions.rares}
                                         onChange={e => setHybridOptions({ ...hybridOptions, rares: e.target.checked })}
-                                        className="w-5 h-5 text-indigo-500 rounded focus:ring-indigo-500 bg-gray-900 border-gray-600"
+                                        className="w-5 h-5 text-primary-500 rounded focus:ring-primary-500 bg-gray-900 border-gray-600"
                                     />
                                     <div>
                                         <div className="font-bold text-white">Rares & Mythics</div>
@@ -257,7 +257,7 @@ const OrganizationWizardModal = ({ isOpen, onClose, onComplete }) => {
                                         type="checkbox"
                                         checked={hybridOptions.foils}
                                         onChange={e => setHybridOptions({ ...hybridOptions, foils: e.target.checked })}
-                                        className="w-5 h-5 text-indigo-500 rounded focus:ring-indigo-500 bg-gray-900 border-gray-600"
+                                        className="w-5 h-5 text-primary-500 rounded focus:ring-primary-500 bg-gray-900 border-gray-600"
                                     />
                                     <div>
                                         <div className="font-bold text-white">Foils</div>
@@ -270,7 +270,7 @@ const OrganizationWizardModal = ({ isOpen, onClose, onComplete }) => {
                                         type="checkbox"
                                         checked={hybridOptions.value}
                                         onChange={e => setHybridOptions({ ...hybridOptions, value: e.target.checked })}
-                                        className="w-5 h-5 text-indigo-500 rounded focus:ring-indigo-500 bg-gray-900 border-gray-600"
+                                        className="w-5 h-5 text-primary-500 rounded focus:ring-primary-500 bg-gray-900 border-gray-600"
                                     />
                                     <div className="flex-1">
                                         <div className="font-bold text-white">Valuable Cards</div>
@@ -296,7 +296,7 @@ const OrganizationWizardModal = ({ isOpen, onClose, onComplete }) => {
                                 <button
                                     onClick={() => finish(selectedArchetype.sort, selectedArchetype.grouping, true)}
                                     disabled={saving}
-                                    className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded-xl font-bold transition-colors disabled:opacity-50"
+                                    className="bg-primary-600 hover:bg-primary-500 text-white px-6 py-2 rounded-xl font-bold transition-colors disabled:opacity-50"
                                 >
                                     {saving ? 'Configuring...' : 'Finish Setup'}
                                 </button>

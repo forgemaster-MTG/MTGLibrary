@@ -17,6 +17,8 @@ export const ThemeProvider = ({ children }) => {
     useEffect(() => {
         const root = window.document.documentElement;
 
+        console.log(`[ThemeContext] Applying theme: theme-${theme}`);
+
         // Remove old theme classes
         root.classList.remove('theme-multiversal', 'theme-void', 'theme-white', 'theme-blue', 'theme-black', 'theme-red', 'theme-green');
 
@@ -31,12 +33,12 @@ export const ThemeProvider = ({ children }) => {
         theme,
         setTheme,
         themes: [
-            { id: 'multiversal', label: 'Multiversal', color: 'bg-[#CBC2BF]', symbol: 'ms ms-c ms-cost shadow-void' },
-            { id: 'white', label: 'White', color: 'bg-[#F8E7B9]', symbol: 'ms ms-w ms-cost shadow-white' },
-            { id: 'blue', label: 'Blue', color: 'bg-[#B3D4E5]', symbol: 'ms ms-u ms-cost shadow-blue' },
-            { id: 'black', label: 'Black', color: 'bg-[#A69F9D]', symbol: 'ms ms-b ms-cost shadow-black' },
-            { id: 'red', label: 'Red', color: 'bg-[#E49977]', symbol: 'ms ms-r ms-cost shadow-red' },
-            { id: 'green', label: 'Green', color: 'bg-[#9EA48F]', symbol: 'ms ms-g ms-cost shadow-green' },
+            { id: 'multiversal', label: 'Multiversal', color: 'bg-[#CBC2BF]', symbol: 'ms ms-c ms-cost' },
+            { id: 'white', label: 'White', color: 'bg-[#F8E7B9]', symbol: 'ms ms-w ms-cost' },
+            { id: 'blue', label: 'Blue', color: 'bg-[#B3D4E5]', symbol: 'ms ms-u ms-cost' },
+            { id: 'black', label: 'Black', color: 'bg-[#A69F9D]', symbol: 'ms ms-b ms-cost' },
+            { id: 'red', label: 'Red', color: 'bg-[#E49977]', symbol: 'ms ms-r ms-cost' },
+            { id: 'green', label: 'Green', color: 'bg-[#9EA48F]', symbol: 'ms ms-g ms-cost' },
         ]
     };
 

@@ -53,7 +53,7 @@ const HelpCenterModal = ({ isOpen, onClose, onStartTour, onOpenChat, initialGuid
                             leaveFrom="opacity-100 scale-100"
                             leaveTo="opacity-0 scale-95"
                         >
-                            <Dialog.Panel className="w-full max-w-3xl transform overflow-hidden rounded-3xl bg-gray-900 border border-indigo-500/30 p-0 text-left align-middle shadow-2xl transition-all h-[80vh] flex flex-col">
+                            <Dialog.Panel className="w-full max-w-3xl transform overflow-hidden rounded-3xl bg-gray-900 border border-primary-500/30 p-0 text-left align-middle shadow-2xl transition-all h-[80vh] flex flex-col">
                                 {/* Header */}
                                 <div className="p-6 border-b border-gray-800 flex justify-between items-center bg-gray-900/50 backdrop-blur-xl">
                                     <Dialog.Title
@@ -93,9 +93,9 @@ const HelpCenterModal = ({ isOpen, onClose, onStartTour, onOpenChat, initialGuid
                                                 {/* Tour Card */}
                                                 <button
                                                     onClick={() => { onClose(); onStartTour(); }}
-                                                    className="group relative p-8 rounded-3xl bg-gray-800/50 border border-gray-700 hover:border-indigo-500 hover:bg-indigo-500/5 transition-all text-left"
+                                                    className="group relative p-8 rounded-3xl bg-gray-800/50 border border-gray-700 hover:border-primary-500 hover:bg-primary-500/5 transition-all text-left"
                                                 >
-                                                    <div className="absolute top-6 right-6 p-3 bg-indigo-500/10 rounded-xl text-indigo-400 group-hover:scale-110 transition-transform">
+                                                    <div className="absolute top-6 right-6 p-3 bg-primary-500/10 rounded-xl text-primary-400 group-hover:scale-110 transition-transform">
                                                         <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" /></svg>
                                                     </div>
                                                     <h4 className="text-xl font-black text-white mb-2">Take a Tour</h4>
@@ -138,7 +138,7 @@ const HelpCenterModal = ({ isOpen, onClose, onStartTour, onOpenChat, initialGuid
                                                         <button
                                                             key={item.id}
                                                             onClick={() => { setActiveGuide(item.id); setView('guide'); }}
-                                                            className="p-4 bg-gray-800/30 border border-white/5 rounded-2xl text-xs font-bold text-gray-300 hover:text-white hover:bg-gray-700/50 hover:border-indigo-500/30 transition-all text-left flex items-center gap-2"
+                                                            className="p-4 bg-gray-800/30 border border-white/5 rounded-2xl text-xs font-bold text-gray-300 hover:text-white hover:bg-gray-700/50 hover:border-primary-500/30 transition-all text-left flex items-center gap-2"
                                                         >
                                                             {item.label}
                                                         </button>

@@ -42,13 +42,13 @@ export default function TokenModal({ isOpen, onClose, onCreateToken }) {
                 <div className="flex-grow overflow-y-auto p-6 space-y-8">
                     {/* Common Presets */}
                     <section>
-                        <h3 className="text-xs font-black text-indigo-400 uppercase tracking-widest mb-4">Common Presets</h3>
+                        <h3 className="text-xs font-black text-primary-400 uppercase tracking-widest mb-4">Common Presets</h3>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                             {COMMON_TOKENS.map((token) => (
                                 <button
                                     key={token.name}
                                     onClick={() => onCreateToken(token)}
-                                    className="flex flex-col items-start p-4 bg-white/5 border border-white/5 hover:border-indigo-500/50 hover:bg-indigo-500/5 rounded-2xl transition-all group"
+                                    className="flex flex-col items-start p-4 bg-white/5 border border-white/5 hover:border-primary-500/50 hover:bg-primary-500/5 rounded-2xl transition-all group"
                                 >
                                     <div className="flex items-center justify-between w-full mb-2">
                                         <div className="w-8 h-8 rounded-full bg-black/40 border border-white/10 flex items-center justify-center text-[10px] font-black group-hover:scale-110 transition-transform">
@@ -77,7 +77,7 @@ export default function TokenModal({ isOpen, onClose, onCreateToken }) {
                                         value={customToken.name}
                                         onChange={(e) => setCustomToken({ ...customToken, name: e.target.value })}
                                         placeholder="Token Name..."
-                                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:ring-2 focus:ring-primary-500 outline-none"
                                     />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
@@ -87,7 +87,7 @@ export default function TokenModal({ isOpen, onClose, onCreateToken }) {
                                             type="number"
                                             value={customToken.power}
                                             onChange={(e) => setCustomToken({ ...customToken, power: parseInt(e.target.value) || 0 })}
-                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:ring-2 focus:ring-primary-500 outline-none"
                                         />
                                     </div>
                                     <div>
@@ -96,7 +96,7 @@ export default function TokenModal({ isOpen, onClose, onCreateToken }) {
                                             type="number"
                                             value={customToken.toughness}
                                             onChange={(e) => setCustomToken({ ...customToken, toughness: parseInt(e.target.value) || 0 })}
-                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:ring-2 focus:ring-primary-500 outline-none"
                                         />
                                     </div>
                                 </div>
@@ -108,7 +108,7 @@ export default function TokenModal({ isOpen, onClose, onCreateToken }) {
                                         type="text"
                                         value={customToken.type}
                                         onChange={(e) => setCustomToken({ ...customToken, type: e.target.value })}
-                                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:ring-2 focus:ring-primary-500 outline-none"
                                     />
                                 </div>
                                 <button

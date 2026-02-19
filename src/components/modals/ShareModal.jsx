@@ -106,7 +106,7 @@ const ShareModal = ({ isOpen, onClose, deck, onUpdateDeck }) => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
 
-            <div className="relative bg-gray-900 border border-indigo-500/20 rounded-2xl w-full max-w-lg shadow-2xl p-6 animate-fade-in-up">
+            <div className="relative bg-gray-900 border border-primary-500/20 rounded-2xl w-full max-w-lg shadow-2xl p-6 animate-fade-in-up">
                 <button
                     onClick={onClose}
                     className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors"
@@ -118,7 +118,7 @@ const ShareModal = ({ isOpen, onClose, deck, onUpdateDeck }) => {
                 <p className="text-sm text-gray-400 mb-6 truncate">{deck?.name}</p>
 
                 {/* Public Link Section */}
-                <div className="bg-indigo-900/10 border border-indigo-500/20 rounded-xl p-4 mb-6">
+                <div className="bg-primary-900/10 border border-primary-500/20 rounded-xl p-4 mb-6">
                     <div className="flex justify-between items-center mb-3">
                         <div className="flex items-center gap-2">
                             <div className={`w-2 h-2 rounded-full ${isPublic ? 'bg-green-500' : 'bg-gray-500'}`} />
@@ -126,7 +126,7 @@ const ShareModal = ({ isOpen, onClose, deck, onUpdateDeck }) => {
                         </div>
                         <label className="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" className="sr-only peer" checked={isPublic} onChange={togglePublic} />
-                            <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500"></div>
+                            <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
                         </label>
                     </div>
 
@@ -141,7 +141,7 @@ const ShareModal = ({ isOpen, onClose, deck, onUpdateDeck }) => {
                                 />
                                 <button
                                     onClick={copyLink}
-                                    className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold transition-colors"
+                                    className="px-3 py-2 bg-primary-600 hover:bg-primary-500 text-white rounded-lg text-xs font-bold transition-colors"
                                 >
                                     {copied ? 'Copied!' : 'Copy'}
                                 </button>
@@ -171,7 +171,7 @@ const ShareModal = ({ isOpen, onClose, deck, onUpdateDeck }) => {
                     <select
                         value={selectedFriend}
                         onChange={(e) => setSelectedFriend(e.target.value)}
-                        className="flex-1 bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500"
+                        className="flex-1 bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500"
                         required
                     >
                         <option value="">Select a friend...</option>
@@ -182,7 +182,7 @@ const ShareModal = ({ isOpen, onClose, deck, onUpdateDeck }) => {
                     <select
                         value={selectedLevel}
                         onChange={(e) => setSelectedLevel(e.target.value)}
-                        className="bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500"
+                        className="bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-500"
                     >
                         <option value="viewer">Viewer</option>
                         <option value="contributor">Contributor</option>
@@ -191,7 +191,7 @@ const ShareModal = ({ isOpen, onClose, deck, onUpdateDeck }) => {
                     <button
                         type="submit"
                         disabled={addLoading || !selectedFriend}
-                        className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white px-4 py-2 rounded-lg font-bold text-sm transition-colors"
+                        className="bg-primary-600 hover:bg-primary-500 disabled:opacity-50 text-white px-4 py-2 rounded-lg font-bold text-sm transition-colors"
                     >
                         Add
                     </button>
@@ -205,7 +205,7 @@ const ShareModal = ({ isOpen, onClose, deck, onUpdateDeck }) => {
                         permissions.map(perm => (
                             <div key={perm.id} className="flex justify-between items-center bg-gray-800/50 p-3 rounded-lg border border-gray-700">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-indigo-900/50 flex items-center justify-center text-indigo-300 text-xs font-bold">
+                                    <div className="w-8 h-8 rounded-full bg-primary-900/50 flex items-center justify-center text-primary-300 text-xs font-bold">
                                         {perm.grantee_username?.[0]?.toUpperCase()}
                                     </div>
                                     <div>

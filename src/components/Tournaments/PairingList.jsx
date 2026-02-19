@@ -62,7 +62,7 @@ const PairingList = ({ tournamentId, round, initialPairings, participants, onUpd
                 {isOrganizer && (
                     <button
                         onClick={() => setIsEditMode(!isEditMode)}
-                        className={`text-xs px-3 py-1.5 rounded-lg border font-bold transition-all ${isEditMode ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-gray-800 text-gray-400 border-gray-700 hover:text-white'}`}
+                        className={`text-xs px-3 py-1.5 rounded-lg border font-bold transition-all ${isEditMode ? 'bg-primary-600 border-primary-500 text-white' : 'bg-gray-800 text-gray-400 border-gray-700 hover:text-white'}`}
                     >
                         {isEditMode ? 'Done Editing' : 'Edit Pairings'}
                     </button>

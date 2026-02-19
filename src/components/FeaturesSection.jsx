@@ -12,7 +12,7 @@ const FeaturesSection = () => {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Header */}
                 <div className="text-center mb-24 animate-fade-in-up">
-                    <span className="text-indigo-400 font-bold tracking-widest uppercase text-sm mb-2 block">The Forge Advantage</span>
+                    <span className="text-primary-400 font-bold tracking-widest uppercase text-sm mb-2 block">The Forge Advantage</span>
                     <h2 className="text-4xl md:text-6xl font-black text-white mb-6 leading-tight">
                         Actionable Intelligence.<br />Professional Results.
                     </h2>
@@ -66,7 +66,7 @@ const FeaturesSection = () => {
                 {/* 2. The Neural Architect (NEW - Deep Dive into building) */}
                 <div className="flex flex-col md:flex-row-reverse items-center gap-16 mb-40">
                     <div className="flex-1 space-y-8 animate-fade-in-right">
-                        <div className="w-20 h-20 bg-indigo-500/20 rounded-3xl flex items-center justify-center mb-4 text-indigo-400 ring-1 ring-indigo-500/20 shadow-[0_0_30px_rgba(79,70,229,0.2)]">
+                        <div className="w-20 h-20 bg-primary-500/20 rounded-3xl flex items-center justify-center mb-4 text-primary-400 ring-1 ring-primary-500/20 shadow-[0_0_30px_rgba(79,70,229,0.2)]">
                             <img src="/icons/the_neural_architect.png" alt="Neural Architect" className="w-24 h-24 object-contain transition-all duration-500 group-hover:scale-110 group-hover:drop-shadow-[0_0_30px_rgba(99,102,241,0.6)]" />
                         </div>
                         <h3 className="text-4xl font-black text-white leading-tight">The Neural Architect</h3>
@@ -74,15 +74,15 @@ const FeaturesSection = () => {
                             The first true <span className="text-white">Zero-to-Hero</span> deck builder. Select your Commander, and watch as the Architect synthesizes a full 100-card list while prioritizing the cards you already own.
                         </p>
                         <div className="space-y-4">
-                            <div className="p-6 bg-indigo-600/10 rounded-2xl border border-indigo-500/20 flex items-center gap-4 group hover:bg-indigo-600/20 transition-all">
-                                <div className="w-12 h-12 bg-indigo-500/20 rounded-xl flex items-center justify-center text-indigo-400 text-2xl font-bold">A</div>
+                            <div className="p-6 bg-primary-600/10 rounded-2xl border border-primary-500/20 flex items-center gap-4 group hover:bg-primary-600/20 transition-all">
+                                <div className="w-12 h-12 bg-primary-500/20 rounded-xl flex items-center justify-center text-primary-400 text-2xl font-bold">A</div>
                                 <div>
                                     <div className="text-white font-black uppercase tracking-wider text-sm">Commander-Centric Synthesis</div>
                                     <div className="text-gray-400 text-sm">From your commander selection to a complete 100-card list in seconds.</div>
                                 </div>
                             </div>
-                            <div className="p-6 bg-indigo-600/10 rounded-2xl border border-indigo-500/20 flex items-center gap-4 group hover:bg-indigo-600/20 transition-all">
-                                <div className="w-12 h-12 bg-indigo-500/20 rounded-xl flex items-center justify-center text-indigo-400 text-2xl font-bold">C</div>
+                            <div className="p-6 bg-primary-600/10 rounded-2xl border border-primary-500/20 flex items-center gap-4 group hover:bg-primary-600/20 transition-all">
+                                <div className="w-12 h-12 bg-primary-500/20 rounded-xl flex items-center justify-center text-primary-400 text-2xl font-bold">C</div>
                                 <div>
                                     <div className="text-white font-black uppercase tracking-wider text-sm">Collection-Aware</div>
                                     <div className="text-gray-400 text-sm">Builds using cards you own first, minimizing proxy needs.</div>
@@ -90,7 +90,7 @@ const FeaturesSection = () => {
                             </div>
                         </div>
                     </div>
-                    <div className="flex-1 rounded-[2.5rem] overflow-hidden shadow-[0_0_50px_-12px_rgba(79,70,229,0.3)] border border-indigo-500/20 group animate-fade-in-left bg-gray-900/40 p-10 backdrop-blur-md">
+                    <div className="flex-1 rounded-[2.5rem] overflow-hidden shadow-[0_0_50px_-12px_rgba(79,70,229,0.3)] border border-primary-500/20 group animate-fade-in-left bg-gray-900/40 p-10 backdrop-blur-md">
                         <div className="space-y-4">
                             <div className="text-gray-500 text-[10px] font-black uppercase tracking-widest mb-2">Neural Blueprint Generation</div>
                             {[
@@ -100,7 +100,7 @@ const FeaturesSection = () => {
                             ].map((spec, i) => (
                                 <div key={i} className="flex justify-between items-center p-3 bg-black/40 rounded-xl border border-white/5">
                                     <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{spec.t}</span>
-                                    <span className="text-xs font-black text-indigo-400">{spec.v}</span>
+                                    <span className="text-xs font-black text-primary-400">{spec.v}</span>
                                 </div>
                             ))}
                             <div className="mt-6 pt-6 border-t border-white/10">
@@ -110,8 +110,8 @@ const FeaturesSection = () => {
                                 </div>
                                 <div className="grid grid-cols-4 gap-2">
                                     {[...Array(8)].map((_, i) => (
-                                        <div key={i} className="h-1 bg-indigo-500/40 rounded-full overflow-hidden">
-                                            <div className="h-full bg-indigo-400 w-full animate-shimmer"></div>
+                                        <div key={i} className="h-1 bg-primary-500/40 rounded-full overflow-hidden">
+                                            <div className="h-full bg-primary-400 w-full animate-shimmer"></div>
                                         </div>
                                     ))}
                                 </div>
@@ -157,9 +157,9 @@ const FeaturesSection = () => {
                     </div>
                     <div className="flex-1 rounded-[2.5rem] overflow-hidden shadow-[0_0_50px_-12px_rgba(168,85,247,0.3)] border border-purple-500/20 group animate-fade-in-left bg-gray-950 p-12">
                         <div className="grid grid-cols-2 gap-6 w-full h-full">
-                            <div className="bg-indigo-900/30 rounded-2xl border border-indigo-500/20 p-6 flex flex-col items-center justify-center group-hover:scale-105 transition-transform">
+                            <div className="bg-primary-900/30 rounded-2xl border border-primary-500/20 p-6 flex flex-col items-center justify-center group-hover:scale-105 transition-transform">
                                 <div className="text-5xl mb-3">✨</div>
-                                <div className="text-[10px] font-black text-indigo-300 uppercase tracking-widest">Smart Binder</div>
+                                <div className="text-[10px] font-black text-primary-300 uppercase tracking-widest">Smart Binder</div>
                             </div>
                             <div className="bg-purple-900/30 rounded-2xl border border-purple-500/20 p-6 flex flex-col items-center justify-center group-hover:scale-105 transition-transform delay-75">
                                 <div className="text-5xl mb-3">🤝</div>

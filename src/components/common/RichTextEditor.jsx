@@ -49,7 +49,7 @@ const RichTextEditor = ({ value, onChange, placeholder, type = 'General', height
                     type="button"
                     onClick={handleMagic}
                     disabled={loading}
-                    className="flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider bg-indigo-600/80 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-full transition-all backdrop-blur-sm disabled:opacity-50 shadow-lg border border-indigo-400/30"
+                    className="flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider bg-primary-600/80 hover:bg-primary-500 text-white px-3 py-1.5 rounded-full transition-all backdrop-blur-sm disabled:opacity-50 shadow-lg border border-primary-400/30"
                     title="Spruce up with AI"
                 >
                     {loading ? (

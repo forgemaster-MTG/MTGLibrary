@@ -1,5 +1,112 @@
-@import "tailwindcss";
 @import "mana-font/css/mana.min.css";
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+/* THEME VARIABLES - Moved to top level for Tailwind v4 */
+:root {
+    /* Default / Multiversal Theme (Indigo/Void) */
+    --color-primary-50: 238 242 255;
+    --color-primary-100: 224 231 255;
+    --color-primary-200: 199 210 254;
+    --color-primary-300: 165 180 252;
+    --color-primary-400: 129 140 248;
+    --color-primary-500: 99 102 241;
+    --color-primary-600: 79 70 229;
+    --color-primary-700: 67 56 202;
+    --color-primary-800: 55 48 163;
+    --color-primary-900: 49 46 129;
+    --color-primary-950: 30 27 75;
+}
+
+/* Multiversal (Explicit Class - same as root) */
+.theme-multiversal {
+    --color-primary-50: 238 242 255;
+    --color-primary-100: 224 231 255;
+    --color-primary-200: 199 210 254;
+    --color-primary-300: 165 180 252;
+    --color-primary-400: 129 140 248;
+    --color-primary-500: 99 102 241;
+    --color-primary-600: 79 70 229;
+    --color-primary-700: 67 56 202;
+    --color-primary-800: 55 48 163;
+    --color-primary-900: 49 46 129;
+    --color-primary-950: 30 27 75;
+}
+
+/* White Theme (Gold/Light/Order) */
+.theme-white {
+    --color-primary-50: 255 251 235;
+    --color-primary-100: 254 243 199;
+    --color-primary-200: 253 230 138;
+    --color-primary-300: 252 211 77;
+    --color-primary-400: 251 191 36;
+    --color-primary-500: 245 158 11;
+    --color-primary-600: 217 119 6;
+    --color-primary-700: 180 83 9;
+    --color-primary-800: 146 64 14;
+    --color-primary-900: 120 53 15;
+    --color-primary-950: 69 26 3;
+}
+
+/* Blue Theme (Cyan/Mind/Knowledge) */
+.theme-blue {
+    --color-primary-50: 236 254 255;
+    --color-primary-100: 207 250 254;
+    --color-primary-200: 165 243 252;
+    --color-primary-300: 103 232 249;
+    --color-primary-400: 34 211 238;
+    --color-primary-500: 6 182 212;
+    --color-primary-600: 8 145 178;
+    --color-primary-700: 14 116 144;
+    --color-primary-800: 21 94 117;
+    --color-primary-900: 22 78 99;
+    --color-primary-950: 8 51 68;
+}
+
+/* Black Theme (Onyx/Shadow/Death) - High Contrast Grays */
+.theme-black {
+    --color-primary-50: 250 250 250;
+    --color-primary-100: 244 244 245;
+    --color-primary-200: 228 228 231;
+    --color-primary-300: 212 212 216;
+    --color-primary-400: 161 161 170;
+    --color-primary-500: 113 113 122;
+    --color-primary-600: 82 82 91;
+    --color-primary-700: 63 63 70;
+    --color-primary-800: 39 39 42;
+    --color-primary-900: 24 24 27;
+    --color-primary-950: 9 9 11;
+}
+
+/* Red Theme (Orange/Red/Fury) */
+.theme-red {
+    --color-primary-50: 255 241 242;
+    --color-primary-100: 255 228 230;
+    --color-primary-200: 254 205 211;
+    --color-primary-300: 253 164 175;
+    --color-primary-400: 251 113 133;
+    --color-primary-500: 244 63 94;
+    --color-primary-600: 225 29 72;
+    --color-primary-700: 190 18 60;
+    --color-primary-800: 159 18 57;
+    --color-primary-900: 136 19 55;
+    --color-primary-950: 76 5 25;
+}
+
+/* Green Theme (Emerald/Nature/Life) */
+.theme-green {
+    --color-primary-50: 240 253 244;
+    --color-primary-100: 220 252 231;
+    --color-primary-200: 187 247 208;
+    --color-primary-300: 134 239 172;
+    --color-primary-400: 74 222 128;
+    --color-primary-500: 34 197 94;
+    --color-primary-600: 22 163 74;
+    --color-primary-700: 21 128 61;
+    --color-primary-800: 22 101 52;
+    --color-primary-900: 20 83 45;
+    --color-primary-950: 5 46 22;
+}
 
 body {
     margin: 0;
@@ -39,114 +146,6 @@ body {
             opacity: 1;
             transform: translateY(0);
         }
-    }
-
-    /* THEME VARIABLES */
-    :root {
-        /* Default / Multiversal Theme (Indigo/Void) */
-        --color-primary-50: #eef2ff;
-        --color-primary-100: #e0e7ff;
-        --color-primary-200: #c7d2fe;
-        --color-primary-300: #a5b4fc;
-        --color-primary-400: #818cf8;
-        --color-primary-500: #6366f1;
-        /* Main Brand */
-        --color-primary-600: #4f46e5;
-        --color-primary-700: #4338ca;
-        --color-primary-800: #3730a3;
-        --color-primary-900: #312e81;
-        --color-primary-950: #1e1b4b;
-    }
-
-    /* Multiversal (Explicit Class - same as root) */
-    .theme-multiversal {
-        --color-primary-50: #eef2ff;
-        --color-primary-100: #e0e7ff;
-        --color-primary-200: #c7d2fe;
-        --color-primary-300: #a5b4fc;
-        --color-primary-400: #818cf8;
-        --color-primary-500: #6366f1;
-        --color-primary-600: #4f46e5;
-        --color-primary-700: #4338ca;
-        --color-primary-800: #3730a3;
-        --color-primary-900: #312e81;
-        --color-primary-950: #1e1b4b;
-    }
-
-    /* White Theme (Gold/Light/Order) */
-    .theme-white {
-        --color-primary-50: #fffbeb;
-        --color-primary-100: #fef3c7;
-        --color-primary-200: #fde68a;
-        --color-primary-300: #fcd34d;
-        --color-primary-400: #fbbf24;
-        --color-primary-500: #f59e0b;
-        --color-primary-600: #d97706;
-        --color-primary-700: #b45309;
-        --color-primary-800: #92400e;
-        --color-primary-900: #78350f;
-        --color-primary-950: #451a03;
-    }
-
-    /* Blue Theme (Cyan/Mind/Knowledge) */
-    .theme-blue {
-        --color-primary-50: #ecfeff;
-        --color-primary-100: #cffafe;
-        --color-primary-200: #a5f3fc;
-        --color-primary-300: #67e8f9;
-        --color-primary-400: #22d3ee;
-        --color-primary-500: #06b6d4;
-        --color-primary-600: #0891b2;
-        --color-primary-700: #0e7490;
-        --color-primary-800: #155e75;
-        --color-primary-900: #164e63;
-        --color-primary-950: #083344;
-    }
-
-    /* Black Theme (Purple/Necromancy/Death) */
-    /* Using a more "Necrotic" Purple/Gray than the default Indigo */
-    .theme-black {
-        --color-primary-50: #fdf4ff;
-        --color-primary-100: #fae8ff;
-        --color-primary-200: #f5d0fe;
-        --color-primary-300: #f0abfc;
-        --color-primary-400: #e879f9;
-        --color-primary-500: #d946ef;
-        --color-primary-600: #c026d3;
-        --color-primary-700: #a21caf;
-        --color-primary-800: #86198f;
-        --color-primary-900: #701a75;
-        --color-primary-950: #4a044e;
-    }
-
-    /* Red Theme (Orange/Red/Fury) */
-    .theme-red {
-        --color-primary-50: #fff1f2;
-        --color-primary-100: #ffe4e6;
-        --color-primary-200: #fecdd3;
-        --color-primary-300: #fda4af;
-        --color-primary-400: #fb7185;
-        --color-primary-500: #f43f5e;
-        --color-primary-600: #e11d48;
-        --color-primary-700: #be123c;
-        --color-primary-800: #9f1239;
-        --color-primary-900: #881337;
-        --color-primary-950: #4c0519;
-    }
-
-    /* Green Theme (Emerald/Nature/Life) */
-    .theme-green {
-        --color-primary-50: #f0fdf4;
-        --color-primary-100: #dcfce7;
-        --color-primary-200: #bbf7d0;
-        --color-primary-300: #86efac;
-        --color-primary-400: #4ade80;
-        --color-primary-500: #22c55e;
-        --color-primary-600: #16a34a;
-        --color-primary-700: #15803d;
-        --color-primary-800: #166534;
-        --color-primary-900: #14532d;
-        --color-primary-950: #052e16;
     }
 
     /* Bump up third-party chat widgets/bubbles to avoid pagination footer */

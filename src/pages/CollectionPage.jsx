@@ -381,7 +381,7 @@ const CollectionPage = () => {
 
     // Floating Footer Logic [NEW]
     const [showFloatingFooter, setShowFloatingFooter] = useState(false);
-    
+
     // Use callback ref to ensure we observe even if element mounts late
     const observerRef = useRef(null);
 
@@ -408,7 +408,7 @@ const CollectionPage = () => {
 
         // Also add a scroll listener as a fallback because IntersectionObserver can be finicky with 0-height sentinels?
         // No, filter-bar has height.
-        
+
         return () => observer.disconnect();
     }, []);
 
@@ -757,7 +757,7 @@ const CollectionPage = () => {
                 type: 'tag',
                 cards: cards,
                 icon: '🏷️',
-                color: 'indigo'
+                color: 'primary'
             }));
 
             if (unsorted.length > 0) {
@@ -979,13 +979,13 @@ const CollectionPage = () => {
                         </h1>
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                             <p className="text-gray-400 font-medium text-xs md:text-sm">
-                                {filteredCards.length} {filteredCards.length === 1 ? 'card' : 'cards'} found • <span className="text-indigo-400">${filteredCards.reduce((acc, c) => acc + (parseFloat(c.prices?.usd || 0) * (c.count || 1)), 0).toFixed(2)}</span>
+                                {filteredCards.length} {filteredCards.length === 1 ? 'card' : 'cards'} found • <span className="text-primary-400">${filteredCards.reduce((acc, c) => acc + (parseFloat(c.prices?.usd || 0) * (c.count || 1)), 0).toFixed(2)}</span>
                             </p>
                             <button
                                 id="collection-sync-btn"
                                 onClick={handleSyncPrices}
                                 disabled={syncLoading}
-                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-[10px] font-black uppercase tracking-widest transition-all border border-indigo-500/20 ${syncLoading ? 'opacity-70 cursor-wait' : ''}`}
+                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary-500/10 hover:bg-primary-500/20 text-primary-400 text-[10px] font-black uppercase tracking-widest transition-all border border-primary-500/20 ${syncLoading ? 'opacity-70 cursor-wait' : ''}`}
                                 title="Update prices from Scryfall"
                             >
                                 <svg className={`w-3 h-3 ${syncLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
@@ -1026,7 +1026,7 @@ const CollectionPage = () => {
                                         setIsWizardOpen(true);
                                     }}
                                     className={`flex p-2.5 md:px-4 md:py-3 rounded-xl transition-all border items-center justify-center gap-2 group ${(userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier)).features.binders
-                                        ? 'bg-gray-800 hover:bg-gray-700 text-indigo-400 hover:text-white border-gray-700 hover:border-indigo-500/50 cursor-pointer'
+                                        ? 'bg-gray-800 hover:bg-gray-700 text-primary-400 hover:text-white border-gray-700 hover:border-primary-500/50 cursor-pointer'
                                         : 'bg-gray-800/50 text-gray-600 border-gray-700 cursor-not-allowed opacity-60'
                                         }`}
                                     title={(userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier)).features.binders ? "Create New Binder" : "Requires Wizard Tier"}
@@ -1055,7 +1055,7 @@ const CollectionPage = () => {
 
                                 <button
                                     onClick={() => setIsGuideOpen(true)}
-                                    className="hidden md:flex bg-gray-900 hover:bg-indigo-900/30 text-gray-500 hover:text-indigo-400 p-2.5 md:px-3 md:py-3 rounded-xl transition-all border border-gray-800 hover:border-indigo-500/30 items-center justify-center shadow-lg"
+                                    className="hidden md:flex bg-gray-900 hover:bg-primary-900/30 text-gray-500 hover:text-primary-400 p-2.5 md:px-3 md:py-3 rounded-xl transition-all border border-gray-800 hover:border-primary-500/30 items-center justify-center shadow-lg"
                                     title="Binder Guide"
                                 >
                                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -1072,7 +1072,7 @@ const CollectionPage = () => {
                                 <button
                                     id="collection-add-card-btn"
                                     onClick={() => setIsAddCardOpen(true)}
-                                    className="flex bg-indigo-600 hover:bg-indigo-500 text-white font-bold p-2.5 md:px-6 md:py-3 rounded-xl shadow-lg shadow-indigo-900/40 transition-all items-center gap-2 uppercase tracking-widest text-xs whitespace-nowrap"
+                                    className="flex bg-primary-600 hover:bg-primary-500 text-white font-bold p-2.5 md:px-6 md:py-3 rounded-xl shadow-lg shadow-primary-900/40 transition-all items-center gap-2 uppercase tracking-widest text-xs whitespace-nowrap"
                                 >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                                     <span className="hidden md:inline-block">Add Cards</span>
@@ -1081,7 +1081,7 @@ const CollectionPage = () => {
                                 <button
                                     id="collection-forge-lens-btn"
                                     onClick={() => setIsForgeLensOpen(true)}
-                                    className="flex bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 font-bold p-2.5 md:px-6 md:py-3 rounded-xl border border-indigo-500/20 transition-all items-center gap-2 uppercase tracking-widest text-xs whitespace-nowrap"
+                                    className="flex bg-primary-600/10 hover:bg-primary-600/20 text-primary-400 font-bold p-2.5 md:px-6 md:py-3 rounded-xl border border-primary-500/20 transition-all items-center gap-2 uppercase tracking-widest text-xs whitespace-nowrap"
                                     title="Scan Cards with Camera"
                                 >
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
@@ -1126,7 +1126,7 @@ const CollectionPage = () => {
                                     placeholder="Search cards..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full bg-gray-900/50 border border-gray-700 text-white px-4 py-2.5 md:py-3 pl-10 md:pl-12 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder-gray-500 font-medium text-sm h-10 md:h-12"
+                                    className="w-full bg-gray-900/50 border border-gray-700 text-white px-4 py-2.5 md:py-3 pl-10 md:pl-12 rounded-xl focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all placeholder-gray-500 font-medium text-sm h-10 md:h-12"
                                 />
                                 <svg className="w-4 h-4 md:w-5 md:h-5 text-gray-400 absolute left-3 md:left-4 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                             </div>
@@ -1137,7 +1137,7 @@ const CollectionPage = () => {
                                     setSelectedSource(e.target.value);
                                     setActiveFolder(null); // Reset folder when switching source
                                 }}
-                                className="bg-gray-800 border-gray-700 text-white px-3 py-2 md:px-4 md:py-3 rounded-xl font-bold text-xs md:text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 whitespace-nowrap h-10 md:h-12"
+                                className="bg-gray-800 border-gray-700 text-white px-3 py-2 md:px-4 md:py-3 rounded-xl font-bold text-xs md:text-sm focus:outline-none focus:ring-1 focus:ring-primary-500 whitespace-nowrap h-10 md:h-12"
                             >
                                 <option value="me">My Collection</option>
                                 <option value="all">All Linked Collections</option>
@@ -1148,7 +1148,7 @@ const CollectionPage = () => {
                             <select
                                 value={sortBy}
                                 onChange={(e) => setSortBy(e.target.value)}
-                                className="bg-gray-800 border-gray-700 text-white px-3 py-2 md:px-4 md:py-3 rounded-xl font-bold text-xs md:text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 h-10 md:h-12"
+                                className="bg-gray-800 border-gray-700 text-white px-3 py-2 md:px-4 md:py-3 rounded-xl font-bold text-xs md:text-sm focus:outline-none focus:ring-1 focus:ring-primary-500 h-10 md:h-12"
                             >
                                 <option value="added_at">Date Added</option>
                                 <option value="name">Name</option>
@@ -1171,7 +1171,7 @@ const CollectionPage = () => {
                             <button
                                 onClick={toggleSelectionMode}
                                 className={`px-4 py-2 md:px-5 md:py-3 rounded-xl border font-bold text-xs md:text-sm flex items-center gap-2 transition-all h-10 md:h-12 ${isSelectionMode
-                                    ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20 ring-2 ring-indigo-500 ring-offset-2 ring-offset-gray-900'
+                                    ? 'bg-primary-600 border-primary-500 text-white shadow-lg shadow-primary-500/20 ring-2 ring-primary-500 ring-offset-2 ring-offset-gray-900'
                                     : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700 hover:text-white'
                                     }`}
                             >
@@ -1182,7 +1182,7 @@ const CollectionPage = () => {
                             <button
                                 onClick={() => setShowFilters(!showFilters)}
                                 className={`px-4 py-2 md:px-5 md:py-3 rounded-xl border font-bold text-xs md:text-sm flex items-center gap-2 transition-all h-10 md:h-12 ${showFilters
-                                    ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20'
+                                    ? 'bg-primary-600 border-primary-500 text-white shadow-lg shadow-primary-500/20'
                                     : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700 hover:text-white'
                                     }`}
                             >
@@ -1205,7 +1205,7 @@ const CollectionPage = () => {
                                             setGroupingMode('binders');
                                         }}
                                         className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${groupingMode === 'binders'
-                                            ? 'bg-indigo-600 text-white'
+                                            ? 'bg-primary-600 text-white'
                                             : (userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier)).features.binders
                                                 ? 'text-gray-500 hover:text-gray-300'
                                                 : 'text-gray-600 cursor-not-allowed opacity-60'
@@ -1218,13 +1218,13 @@ const CollectionPage = () => {
                                     </button>
                                     <button
                                         onClick={() => setGroupingMode('smart')}
-                                        className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${groupingMode === 'smart' ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:text-gray-300'}`}
+                                        className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${groupingMode === 'smart' ? 'bg-primary-600 text-white' : 'text-gray-500 hover:text-gray-300'}`}
                                     >
                                         Smart
                                     </button>
                                     <button
                                         onClick={() => setGroupingMode('custom')}
-                                        className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${groupingMode === 'custom' ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:text-gray-300'}`}
+                                        className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${groupingMode === 'custom' ? 'bg-primary-600 text-white' : 'text-gray-500 hover:text-gray-300'}`}
                                     >
                                         Tags
                                     </button>
@@ -1247,7 +1247,7 @@ const CollectionPage = () => {
                                                 onClick={() => toggleFilter('colors', color)}
                                                 className={`
 w - 8 h - 8 rounded - full border flex items - center justify - center transition - all transform hover: scale - 110
-                                                    ${filters.colors.includes(color) ? 'ring-2 ring-indigo-500 ring-offset-2 ring-offset-gray-900 shadow-lg scale-110' : 'opacity-60 hover:opacity-100'}
+                                                    ${filters.colors.includes(color) ? 'ring-2 ring-primary-500 ring-offset-2 ring-offset-gray-900 shadow-lg scale-110' : 'opacity-60 hover:opacity-100'}
                                                     ${color === 'W' ? 'bg-[#F9FAFB] text-gray-900 border-gray-300' : ''}
                                                     ${color === 'U' ? 'bg-[#3B82F6] text-white border-blue-600' : ''}
                                                     ${color === 'B' ? 'bg-[#1F2937] text-white border-gray-600' : ''}
@@ -1279,7 +1279,7 @@ w - 8 h - 8 rounded - full border flex items - center justify - center transitio
                                                 className={`
                                                     px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider border transition-all hover:-translate-y-0.5
                                                     ${filters.rarity.includes(rarity)
-                                                        ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20'
+                                                        ? 'bg-primary-600 border-primary-500 text-white shadow-lg shadow-primary-500/20'
                                                         : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-500 hover:text-white'}
                                                 `}
                                             >
@@ -1300,7 +1300,7 @@ w - 8 h - 8 rounded - full border flex items - center justify - center transitio
                                                 className={`
                                                      px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider border transition-all hover:-translate-y-0.5
                                                      ${filters.types.includes(type)
-                                                        ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20'
+                                                        ? 'bg-primary-600 border-primary-500 text-white shadow-lg shadow-primary-500/20'
                                                         : 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-500 hover:text-white'}
                                                  `}
                                             >
@@ -1373,7 +1373,7 @@ w - 8 h - 8 rounded - full border flex items - center justify - center transitio
                                             <div
                                                 key={group.id}
                                                 onClick={() => setActiveFolder(group.id)}
-                                                className="bg-gray-900/40 hover:bg-gray-800/60 border border-white/5 hover:border-indigo-500/30 rounded-2xl p-4 md:p-6 cursor-pointer transition-all hover:-translate-y-1 hover:shadow-xl group flex flex-col items-center text-center gap-2 md:gap-3 backdrop-blur-sm relative overflow-hidden"
+                                                className="bg-gray-900/40 hover:bg-gray-800/60 border border-white/5 hover:border-primary-500/30 rounded-2xl p-4 md:p-6 cursor-pointer transition-all hover:-translate-y-1 hover:shadow-xl group flex flex-col items-center text-center gap-2 md:gap-3 backdrop-blur-sm relative overflow-hidden"
                                             >
                                                 {/* Background Glow */}
                                                 <div className={`absolute -top-10 -right-10 w-32 h-32 bg-${group.color}-500/10 rounded-full blur-3xl`} />
@@ -1400,8 +1400,8 @@ w - 8 h - 8 rounded - full border flex items - center justify - center transitio
                                                 </div>
 
                                                 <div className="z-10 px-2 mt-4">
-                                                    <div className="text-[10px] uppercase tracking-tighter text-indigo-400 font-black mb-1">{group.theme || group.sub}</div>
-                                                    <h3 className="text-xl font-bold text-white group-hover:text-indigo-300 transition-colors leading-tight">{group.label}</h3>
+                                                    <div className="text-[10px] uppercase tracking-tighter text-primary-400 font-black mb-1">{group.theme || group.sub}</div>
+                                                    <h3 className="text-xl font-bold text-white group-hover:text-primary-300 transition-colors leading-tight">{group.label}</h3>
                                                     {group.flavor && <p className="text-[10px] text-gray-500 italic mt-2 font-serif px-2 leading-relaxed opacity-80 group-hover:opacity-100 transition-opacity">"{group.flavor}"</p>}
                                                     {group.ownerName && (
                                                         <div className="mt-2 inline-flex items-center gap-1 bg-gray-950/80 text-gray-300 text-[9px] font-bold px-2 py-1 rounded-full border border-white/10">
@@ -1444,7 +1444,7 @@ w - 8 h - 8 rounded - full border flex items - center justify - center transitio
                                                         setEditingBinder(binder);
                                                         setIsWizardOpen(true);
                                                     }}
-                                                    className="p-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-indigo-400 hover:text-white transition-colors"
+                                                    className="p-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-primary-400 hover:text-white transition-colors"
                                                     title="Edit Binder Rules"
                                                 >
                                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>

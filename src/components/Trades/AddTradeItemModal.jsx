@@ -232,7 +232,7 @@ const AddTradeItemModal = ({ isOpen, onClose, onAdd, existingItems = new Set(), 
                     <Dialog.Title className="text-xl font-bold text-white mb-4 flex justify-between items-center">
                         <span>{sourceUserId ? "Select Cards" : "Add Cards to Trade"}</span>
                         {selectedItems.size > 0 && (
-                            <span className="text-sm font-normal text-indigo-400">{selectedItems.size} items selected</span>
+                            <span className="text-sm font-normal text-primary-400">{selectedItems.size} items selected</span>
                         )}
                     </Dialog.Title>
 
@@ -244,7 +244,7 @@ const AddTradeItemModal = ({ isOpen, onClose, onAdd, existingItems = new Set(), 
                                 placeholder="Search card name..."
                                 value={searchTerm}
                                 onChange={e => setSearchTerm(e.target.value)}
-                                className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-2 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                                className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-2 text-white focus:ring-2 focus:ring-primary-500 outline-none"
                                 autoFocus
                             />
                             <svg className="w-5 h-5 text-gray-500 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
@@ -254,7 +254,7 @@ const AddTradeItemModal = ({ isOpen, onClose, onAdd, existingItems = new Set(), 
                             <select
                                 value={selectedBinder}
                                 onChange={e => setSelectedBinder(e.target.value)}
-                                className="w-full md:w-48 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-indigo-500 outline-none appearance-none cursor-pointer"
+                                className="w-full md:w-48 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-primary-500 outline-none appearance-none cursor-pointer"
                             >
                                 <option value="all">All Binders</option>
                                 <option value="0">Unbindered</option>
@@ -264,7 +264,7 @@ const AddTradeItemModal = ({ isOpen, onClose, onAdd, existingItems = new Set(), 
                             </select>
                             <button
                                 onClick={() => setShowFilters(!showFilters)}
-                                className={`px-3 py-2 rounded-lg border transition-colors ${showFilters ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-gray-800 text-gray-400 border-gray-700 hover:text-white'}`}
+                                className={`px-3 py-2 rounded-lg border transition-colors ${showFilters ? 'bg-primary-600 text-white border-primary-500' : 'bg-gray-800 text-gray-400 border-gray-700 hover:text-white'}`}
                                 title="Advanced Filters"
                             >
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>
@@ -290,7 +290,7 @@ const AddTradeItemModal = ({ isOpen, onClose, onAdd, existingItems = new Set(), 
                                                 <button
                                                     key={c}
                                                     onClick={() => toggleSet(colors, c, setColors)}
-                                                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${colors.has(c) ? 'bg-indigo-600 ring-2 ring-indigo-400 transform scale-110' : 'bg-gray-700 hover:bg-gray-600 grayscale opacity-60 hover:opacity-100 hover:grayscale-0'}`}
+                                                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${colors.has(c) ? 'bg-primary-600 ring-2 ring-primary-400 transform scale-110' : 'bg-gray-700 hover:bg-gray-600 grayscale opacity-60 hover:opacity-100 hover:grayscale-0'}`}
                                                 >
                                                     <i className={`ms ms-${c.toLowerCase()} ms-cost text-lg shadow-black drop-shadow-md`} />
                                                 </button>
@@ -299,11 +299,11 @@ const AddTradeItemModal = ({ isOpen, onClose, onAdd, existingItems = new Set(), 
                                         <div className="flex bg-gray-700 rounded-lg p-0.5 border border-gray-600">
                                             <button
                                                 onClick={() => setColorLogic('OR')}
-                                                className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${colorLogic === 'OR' ? 'bg-indigo-500 text-white shadow-sm' : 'text-gray-400 hover:text-white'}`}
+                                                className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${colorLogic === 'OR' ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-400 hover:text-white'}`}
                                             >OR</button>
                                             <button
                                                 onClick={() => setColorLogic('AND')}
-                                                className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${colorLogic === 'AND' ? 'bg-indigo-500 text-white shadow-sm' : 'text-gray-400 hover:text-white'}`}
+                                                className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${colorLogic === 'AND' ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-400 hover:text-white'}`}
                                             >AND</button>
                                         </div>
                                     </div>
@@ -322,7 +322,7 @@ const AddTradeItemModal = ({ isOpen, onClose, onAdd, existingItems = new Set(), 
                                             <button
                                                 key={r.id}
                                                 onClick={() => toggleSet(rarities, r.id, setRarities)}
-                                                className={`w-8 h-8 rounded-lg font-bold border-2 transition-all flex items-center justify-center ${rarities.has(r.id) ? 'border-indigo-500 ring-1 ring-indigo-500 transform scale-105 ' + r.color : 'border-transparent bg-gray-700 text-gray-400 opacity-60'}`}
+                                                className={`w-8 h-8 rounded-lg font-bold border-2 transition-all flex items-center justify-center ${rarities.has(r.id) ? 'border-primary-500 ring-1 ring-primary-500 transform scale-105 ' + r.color : 'border-transparent bg-gray-700 text-gray-400 opacity-60'}`}
                                             >
                                                 {r.label}
                                             </button>
@@ -340,7 +340,7 @@ const AddTradeItemModal = ({ isOpen, onClose, onAdd, existingItems = new Set(), 
                                         value={typeLine}
                                         onChange={e => setTypeLine(e.target.value)}
                                         placeholder="Creature, Artifact..."
-                                        className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:ring-1 focus:ring-indigo-500 outline-none"
+                                        className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:ring-1 focus:ring-primary-500 outline-none"
                                     />
                                 </div>
                                 {/* Text */}
@@ -351,7 +351,7 @@ const AddTradeItemModal = ({ isOpen, onClose, onAdd, existingItems = new Set(), 
                                         value={oracleText}
                                         onChange={e => setOracleText(e.target.value)}
                                         placeholder="Rules text..."
-                                        className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:ring-1 focus:ring-indigo-500 outline-none"
+                                        className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:ring-1 focus:ring-primary-500 outline-none"
                                     />
                                 </div>
                             </div>
@@ -389,7 +389,7 @@ const AddTradeItemModal = ({ isOpen, onClose, onAdd, existingItems = new Set(), 
                                         value={setCode}
                                         onChange={e => setSetCode(e.target.value)}
                                         placeholder="ABC"
-                                        className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:ring-1 focus:ring-indigo-500 outline-none uppercase"
+                                        className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:ring-1 focus:ring-primary-500 outline-none uppercase"
                                     />
                                 </div>
                                 {/* CN */}
@@ -400,7 +400,7 @@ const AddTradeItemModal = ({ isOpen, onClose, onAdd, existingItems = new Set(), 
                                         value={collectorNumber}
                                         onChange={e => setCollectorNumber(e.target.value)}
                                         placeholder="#"
-                                        className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:ring-1 focus:ring-indigo-500 outline-none"
+                                        className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:ring-1 focus:ring-primary-500 outline-none"
                                     />
                                 </div>
                             </div>
@@ -408,7 +408,7 @@ const AddTradeItemModal = ({ isOpen, onClose, onAdd, existingItems = new Set(), 
                             {/* Extra Toggles (Deck/Owned/Price) - Kept small at bottom */}
                             <div className="flex flex-wrap items-center gap-6 pt-2 border-t border-gray-700/50">
                                 <label className="flex items-center gap-2 cursor-pointer">
-                                    <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${excludeDecks ? 'bg-indigo-500 border-indigo-500' : 'border-gray-500'}`}>
+                                    <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${excludeDecks ? 'bg-primary-500 border-primary-500' : 'border-gray-500'}`}>
                                         {excludeDecks && <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
                                     </div>
                                     <input type="checkbox" checked={excludeDecks} onChange={e => setExcludeDecks(e.target.checked)} className="hidden" />
@@ -468,7 +468,7 @@ const AddTradeItemModal = ({ isOpen, onClose, onAdd, existingItems = new Set(), 
                                         key={card.id}
                                         onClick={() => handleToggle(card)}
                                         className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer border transition-all group ${isSelected
-                                            ? 'bg-indigo-900/40 border-indigo-500'
+                                            ? 'bg-primary-900/40 border-primary-500'
                                             : 'bg-gray-800 border-gray-700 hover:border-gray-600'
                                             }`}
                                     >
@@ -509,7 +509,7 @@ const AddTradeItemModal = ({ isOpen, onClose, onAdd, existingItems = new Set(), 
                                             </div>
 
                                             {isSelected ? (
-                                                <div className="flex items-center bg-gray-900 rounded-lg border border-indigo-500/50" onClick={e => e.stopPropagation()}>
+                                                <div className="flex items-center bg-gray-900 rounded-lg border border-primary-500/50" onClick={e => e.stopPropagation()}>
                                                     <button
                                                         onClick={(e) => updateQuantity(e, card, qty - 1)}
                                                         disabled={qty <= 1}
@@ -524,7 +524,7 @@ const AddTradeItemModal = ({ isOpen, onClose, onAdd, existingItems = new Set(), 
                                                 </div>
                                             ) : (
                                                 <div className="w-6 h-6 rounded-full border border-gray-600 flex items-center justify-center group-hover:border-gray-400">
-                                                    <svg className={`w-4 h-4 text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                                                    <svg className={`w-4 h-4 text-primary-400 opacity-0 group-hover:opacity-100 transition-opacity`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                                                 </div>
                                             )}
                                         </div>
@@ -544,7 +544,7 @@ const AddTradeItemModal = ({ isOpen, onClose, onAdd, existingItems = new Set(), 
                             <button
                                 onClick={handleSubmit}
                                 disabled={selectedItems.size === 0}
-                                className="px-8 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-bold shadow-lg shadow-indigo-500/20 transition-all transform hover:scale-105 active:scale-95"
+                                className="px-8 py-2 bg-primary-600 hover:bg-primary-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-bold shadow-lg shadow-primary-500/20 transition-all transform hover:scale-105 active:scale-95"
                             >
                                 {sourceUserId ? 'Propose Selected Items' : 'Add Selected Items'}
                             </button>

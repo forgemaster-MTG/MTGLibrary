@@ -52,7 +52,7 @@ const CardGridItem = memo(function CardGridItem({ card, availableFoils, onRemove
 
     return (
         <div
-            className={`relative group perspective-1000 h-full w-full aspect-[2.5/3.5] min-h-[200px] cursor-pointer ${isSelected ? 'ring-4 ring-indigo-500 rounded-xl' : ''}`}
+            className={`relative group perspective-1000 h-full w-full aspect-[2.5/3.5] min-h-[200px] cursor-pointer ${isSelected ? 'ring-4 ring-primary-500 rounded-xl' : ''}`}
             onClick={handleClick}
         >
             <div className={`relative w-full h-full transition-all duration-500 transform-style-3d ${isFlipped ? 'rotate-y-180' : ''}`}>
@@ -74,7 +74,7 @@ const CardGridItem = memo(function CardGridItem({ card, availableFoils, onRemove
 
                     {/* Deck Tag - Moved down to not cover name */}
                     {!hideDeckTag && deckName && (
-                        <div className="absolute top-[3.75rem] left-1.5 max-w-[80%] bg-indigo-600/90 text-white text-[9px] font-bold px-2 py-0.5 rounded shadow-lg z-20 backdrop-blur-md border border-indigo-400/50 truncate uppercase tracking-tight" title={`In deck: ${deckName}`}>
+                        <div className="absolute top-[3.75rem] left-1.5 max-w-[80%] bg-primary-600/90 text-white text-[9px] font-bold px-2 py-0.5 rounded shadow-lg z-20 backdrop-blur-md border border-primary-400/50 truncate uppercase tracking-tight" title={`In deck: ${deckName}`}>
                             ♟️ {deckName}
                         </div>
                     )}
@@ -105,8 +105,8 @@ const CardGridItem = memo(function CardGridItem({ card, availableFoils, onRemove
 
                     {/* Selection Overlay */}
                     {selectMode && (
-                        <div className={`absolute inset-0 z-40 transition-all duration-200 flex items-center justify-center ${isSelected ? 'bg-indigo-500/20' : 'bg-black/40 hover:bg-black/20'}`}>
-                            <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all scale-110 ${isSelected ? 'bg-indigo-500 border-indigo-500 text-white' : 'border-white/50 bg-black/40'}`}>
+                        <div className={`absolute inset-0 z-40 transition-all duration-200 flex items-center justify-center ${isSelected ? 'bg-primary-500/20' : 'bg-black/40 hover:bg-black/20'}`}>
+                            <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all scale-110 ${isSelected ? 'bg-primary-500 border-primary-500 text-white' : 'border-white/50 bg-black/40'}`}>
                                 {isSelected && (
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>
                                 )}
@@ -141,7 +141,7 @@ const CardGridItem = memo(function CardGridItem({ card, availableFoils, onRemove
                                 <div className="flex gap-1.5">
                                     <button
                                         onClick={handleClick}
-                                        className="flex-1 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white font-bold py-2 px-3 rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 shadow-lg hover:shadow-indigo-500/50 active:scale-95"
+                                        className="flex-1 bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-500 hover:to-primary-400 text-white font-bold py-2 px-3 rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 shadow-lg hover:shadow-primary-500/50 active:scale-95"
                                     >
                                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -200,7 +200,7 @@ const CardGridItem = memo(function CardGridItem({ card, availableFoils, onRemove
                             <div className="text-center">
                                 <p className="font-bold text-xs text-white line-clamp-2">{card.name}</p>
                             </div>
-                            <div className="text-indigo-300 text-xs font-bold uppercase tracking-wider bg-indigo-900/50 px-2 py-1 rounded border border-indigo-500/30">
+                            <div className="text-primary-300 text-xs font-bold uppercase tracking-wider bg-primary-900/50 px-2 py-1 rounded border border-primary-500/30">
                                 Click to Flip
                             </div>
                         </div>

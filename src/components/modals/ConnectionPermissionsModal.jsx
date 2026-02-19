@@ -78,12 +78,12 @@ const ConnectionPermissionsModal = ({ isOpen, onClose, connection }) => {
                 {/* Header */}
                 <div className="p-8 border-b border-white/5 bg-gradient-to-r from-gray-900 to-gray-950 flex justify-between items-start">
                     <div className="flex items-center gap-6">
-                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-black text-3xl shadow-lg ring-4 ring-gray-900">
+                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500 to-purple-600 flex items-center justify-center text-white font-black text-3xl shadow-lg ring-4 ring-gray-900">
                             {connection.friend.username?.[0]?.toUpperCase()}
                         </div>
                         <div>
                             <h2 className="text-3xl font-black text-white tracking-tight">{connection.friend.username}</h2>
-                            <p className="text-indigo-400 font-bold uppercase tracking-widest text-xs mt-1">Manage Permissions</p>
+                            <p className="text-primary-400 font-bold uppercase tracking-widest text-xs mt-1">Manage Permissions</p>
                         </div>
                     </div>
                 </div>
@@ -92,17 +92,17 @@ const ConnectionPermissionsModal = ({ isOpen, onClose, connection }) => {
                 <div className="p-8 space-y-8 overflow-y-auto custom-scrollbar">
 
                     {/* Explanation Section (Accordion) */}
-                    <div className="bg-indigo-900/10 border border-indigo-500/20 rounded-xl overflow-hidden">
+                    <div className="bg-primary-900/10 border border-primary-500/20 rounded-xl overflow-hidden">
                         <Disclosure>
                             {({ open }) => (
                                 <>
-                                    <Disclosure.Button className="flex justify-between w-full px-4 py-3 text-sm font-bold text-indigo-300 hover:text-indigo-200 transition-colors uppercase tracking-wider text-left">
+                                    <Disclosure.Button className="flex justify-between w-full px-4 py-3 text-sm font-bold text-primary-300 hover:text-primary-200 transition-colors uppercase tracking-wider text-left">
                                         <span>What does Linking Accounts do?</span>
                                         <ChevronUpIcon
-                                            className={`${open ? 'transform rotate-180' : ''} w-5 h-5 text-indigo-400`}
+                                            className={`${open ? 'transform rotate-180' : ''} w-5 h-5 text-primary-400`}
                                         />
                                     </Disclosure.Button>
-                                    <Disclosure.Panel className="px-4 pb-4 text-sm text-indigo-200/80 leading-relaxed space-y-2">
+                                    <Disclosure.Panel className="px-4 pb-4 text-sm text-primary-200/80 leading-relaxed space-y-2">
                                         <p>Linking accounts allows you to share your Magic: The Gathering experience with trusted friends.</p>
                                         <ul className="list-disc pl-5 space-y-1 mt-2">
                                             <li><strong className="text-white">Sharing Decks:</strong> Friends can view your private decks to offer advice or clone them.</li>
@@ -110,8 +110,8 @@ const ConnectionPermissionsModal = ({ isOpen, onClose, connection }) => {
                                             <li><strong className="text-white">Deck Editing:</strong> If granted <strong>Editor</strong> access, friends can actively tweak your deck lists (add/remove cards).</li>
                                         </ul>
                                         <p className="mt-2 text-xs italic opacity-70">Note: Friends can NEVER delete your decks or account, regardless of permission level.</p>
-                                        <div className="pt-2 mt-2 border-t border-indigo-500/20">
-                                            <a href="#" className="flex items-center gap-2 text-indigo-400 hover:text-white font-bold transition-colors" onClick={(e) => { e.preventDefault(); setIsGuideOpen(true); }}>
+                                        <div className="pt-2 mt-2 border-t border-primary-500/20">
+                                            <a href="#" className="flex items-center gap-2 text-primary-400 hover:text-white font-bold transition-colors" onClick={(e) => { e.preventDefault(); setIsGuideOpen(true); }}>
                                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
                                                 Read the Full Setup Guide
                                             </a>
@@ -131,13 +131,13 @@ const ConnectionPermissionsModal = ({ isOpen, onClose, connection }) => {
                                 onClick={() => handleGrant('viewer')}
                                 disabled={granting}
                                 className={`relative group p-5 rounded-2xl border-2 text-left transition-all duration-300 hover:shadow-xl ${globalPerm?.permission_level === 'viewer'
-                                    ? 'bg-indigo-600/10 border-indigo-500 shadow-indigo-900/20'
+                                    ? 'bg-primary-600/10 border-primary-500 shadow-primary-900/20'
                                     : 'bg-gray-800/50 border-gray-700 hover:border-gray-500 hover:bg-gray-800'
                                     }`}
                             >
                                 <div className="flex items-center justify-between mb-2">
-                                    <span className={`text-lg font-black ${globalPerm?.permission_level === 'viewer' ? 'text-indigo-400' : 'text-white'}`}>Viewer</span>
-                                    {globalPerm?.permission_level === 'viewer' && <span className="bg-indigo-500 text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase">Active</span>}
+                                    <span className={`text-lg font-black ${globalPerm?.permission_level === 'viewer' ? 'text-primary-400' : 'text-white'}`}>Viewer</span>
+                                    {globalPerm?.permission_level === 'viewer' && <span className="bg-primary-500 text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase">Active</span>}
                                 </div>
                                 <p className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors leading-relaxed">
                                     Read-only access. Can view your <strong>private decks</strong>, <strong>binders</strong>, and <strong>collection</strong>. Cannot make changes.

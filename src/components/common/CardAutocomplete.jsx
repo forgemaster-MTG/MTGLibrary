@@ -52,16 +52,16 @@ const CardAutocomplete = ({ value, onChange, onSelect, placeholder = "Find card 
         <div ref={wrapperRef} className="relative w-full">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 {loading ? (
-                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-indigo-400"></div>
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary-400"></div>
                 ) : (
-                    <svg className="h-4 w-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="h-4 w-4 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                 )}
             </div>
             <input
                 type="text"
-                className="block w-full pl-10 pr-10 py-2 bg-gray-900/50 border border-indigo-500/20 rounded-xl text-gray-300 placeholder-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all outline-none text-sm"
+                className="block w-full pl-10 pr-10 py-2 bg-gray-900/50 border border-primary-500/20 rounded-xl text-gray-300 placeholder-gray-600 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all outline-none text-sm"
                 placeholder={placeholder}
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
@@ -83,7 +83,7 @@ const CardAutocomplete = ({ value, onChange, onSelect, placeholder = "Find card 
                         <button
                             key={index}
                             onClick={() => handleSuggestionClick(name)}
-                            className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-indigo-600 hover:text-white transition-colors border-b border-white/5 last:border-0"
+                            className="w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-primary-600 hover:text-white transition-colors border-b border-white/5 last:border-0"
                         >
                             {name}
                         </button>

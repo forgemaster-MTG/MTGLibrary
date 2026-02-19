@@ -43,16 +43,16 @@ export const AddFirstCardsStep = ({ onNext, onManualEntry }) => {
                     {/* Option 1: Manual */}
                     <button
                         onClick={onManualEntry}
-                        className="group relative overflow-hidden bg-gradient-to-br from-gray-900 to-[#0c0d15] border border-gray-800 hover:border-indigo-500 rounded-3xl p-8 text-left transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_40px_rgba(79,70,229,0.2)] flex flex-col h-full"
+                        className="group relative overflow-hidden bg-gradient-to-br from-gray-900 to-[#0c0d15] border border-gray-800 hover:border-primary-500 rounded-3xl p-8 text-left transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_40px_rgba(79,70,229,0.2)] flex flex-col h-full"
                     >
-                        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                        <div className="absolute inset-0 bg-gradient-to-br from-primary-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-                        <div className="relative z-10 w-20 h-20 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-8 group-hover:scale-110 group-hover:bg-indigo-500/20 group-hover:shadow-[0_0_20px_rgba(79,70,229,0.3)] transition-all duration-300">
-                            <PlusSquare size={40} className="text-indigo-400 group-hover:text-indigo-300 drop-shadow-lg" />
+                        <div className="relative z-10 w-20 h-20 rounded-2xl bg-primary-500/10 border border-primary-500/20 flex items-center justify-center mb-8 group-hover:scale-110 group-hover:bg-primary-500/20 group-hover:shadow-[0_0_20px_rgba(79,70,229,0.3)] transition-all duration-300">
+                            <PlusSquare size={40} className="text-primary-400 group-hover:text-primary-300 drop-shadow-lg" />
                         </div>
 
                         <div className="relative z-10">
-                            <h3 className="text-3xl font-black text-white mb-3 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-indigo-400 group-hover:to-cyan-300 transition-all">
+                            <h3 className="text-3xl font-black text-white mb-3 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-primary-400 group-hover:to-cyan-300 transition-all">
                                 Add Manually
                             </h3>
                             <p className="text-gray-400 text-sm leading-relaxed mb-8 font-medium">
@@ -60,7 +60,7 @@ export const AddFirstCardsStep = ({ onNext, onManualEntry }) => {
                             </p>
                         </div>
 
-                        <div className="mt-auto relative z-10 flex items-center gap-2 text-indigo-400 font-bold text-sm tracking-widest uppercase group-hover:gap-4 transition-all duration-300">
+                        <div className="mt-auto relative z-10 flex items-center gap-2 text-primary-400 font-bold text-sm tracking-widest uppercase group-hover:gap-4 transition-all duration-300">
                             Go to Collection <span>→</span>
                         </div>
                     </button>

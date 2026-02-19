@@ -43,14 +43,14 @@ const UsernamePrompt = () => {
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-            <div className="w-full max-w-md bg-gray-900 border border-indigo-500/30 rounded-2xl p-8 shadow-2xl relative overflow-hidden group">
+            <div className="w-full max-w-md bg-gray-900 border border-primary-500/30 rounded-2xl p-8 shadow-2xl relative overflow-hidden group">
                 {/* Background Glow */}
-                <div className="absolute -top-24 -left-24 w-48 h-48 bg-indigo-600/20 rounded-full blur-3xl group-hover:bg-indigo-600/30 transition-colors" />
+                <div className="absolute -top-24 -left-24 w-48 h-48 bg-primary-600/20 rounded-full blur-3xl group-hover:bg-primary-600/30 transition-colors" />
                 <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-orange-600/10 rounded-full blur-3xl group-hover:bg-orange-600/20 transition-colors" />
 
                 <div className="relative">
                     <div className="flex items-center gap-3 mb-6">
-                        <div className="w-12 h-12 bg-indigo-500/20 rounded-xl flex items-center justify-center text-2xl border border-indigo-500/40">
+                        <div className="w-12 h-12 bg-primary-500/20 rounded-xl flex items-center justify-center text-2xl border border-primary-500/40">
                             🎭
                         </div>
                         <div>
@@ -61,7 +61,7 @@ const UsernamePrompt = () => {
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div>
-                            <label className="block text-xs font-semibold uppercase tracking-wider text-indigo-400 mb-2 ml-1">
+                            <label className="block text-xs font-semibold uppercase tracking-wider text-primary-400 mb-2 ml-1">
                                 New Username
                             </label>
                             <input
@@ -69,7 +69,7 @@ const UsernamePrompt = () => {
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ''))}
                                 placeholder="Ancient_Wizard_99"
-                                className="w-full bg-black/40 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                                className="w-full bg-black/40 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all"
                                 autoFocus
                                 disabled={loading}
                             />
@@ -83,7 +83,7 @@ const UsernamePrompt = () => {
                         <button
                             type="submit"
                             disabled={loading || !username}
-                            className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:hover:bg-indigo-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-indigo-500/20 transform active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                            className="w-full bg-primary-600 hover:bg-primary-500 disabled:opacity-50 disabled:hover:bg-primary-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-primary-500/20 transform active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                         >
                             {loading ? (
                                 <>

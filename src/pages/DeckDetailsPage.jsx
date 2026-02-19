@@ -723,7 +723,7 @@ const DeckDetailsPage = () => {
     };
 
     // Loading/Error States - MUST BE AFTER ALL HOOKS
-    if (deckLoading) return <div className="flex justify-center p-20"><div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-500"></div></div>;
+    if (deckLoading) return <div className="flex justify-center p-20"><div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-500"></div></div>;
     if (deckError) return <div className="p-20 text-center text-red-500 text-xl font-bold">Error loading deck: {deckError.message}</div>;
     if (!deck) return null;
 
@@ -768,7 +768,7 @@ const DeckDetailsPage = () => {
                                             type="text"
                                             value={editName}
                                             onChange={(e) => setEditName(e.target.value)}
-                                            className="bg-black/50 text-2xl font-black text-white border-b-2 border-indigo-500 outline-none px-2 py-1 w-full max-w-md backdrop-blur-sm rounded"
+                                            className="bg-black/50 text-2xl font-black text-white border-b-2 border-primary-500 outline-none px-2 py-1 w-full max-w-md backdrop-blur-sm rounded"
                                             autoFocus
                                         />
                                         <button onClick={handleSaveName} className="p-2 bg-green-600 rounded-lg hover:bg-green-500 text-white shadow-lg">
@@ -786,7 +786,7 @@ const DeckDetailsPage = () => {
                                             )}
                                         </div>
                                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                                            <div id="deck-identity-badge" className="text-[10px] md:text-[11px] text-indigo-300 font-black uppercase tracking-[0.15em] md:tracking-[0.2em] opacity-80 whitespace-nowrap">
+                                            <div id="deck-identity-badge" className="text-[10px] md:text-[11px] text-primary-300 font-black uppercase tracking-[0.15em] md:tracking-[0.2em] opacity-80 whitespace-nowrap">
                                                 {identityInfo.badge} — {identityInfo.theme}
                                             </div>
                                             {!isOwner && (
@@ -833,7 +833,7 @@ const DeckDetailsPage = () => {
                                             </span>
                                         )}
                                         {deck.aiBlueprint?.grade?.commanderBracket && (
-                                            <span className="bg-indigo-600/20 text-indigo-300 px-2 md:px-2.5 py-0.5 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest border border-indigo-500/30">
+                                            <span className="bg-primary-600/20 text-primary-300 px-2 md:px-2.5 py-0.5 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest border border-primary-500/30">
                                                 <span className="hidden md:inline">Bracket </span>{deck.aiBlueprint.grade.commanderBracket}
                                             </span>
                                         )}
@@ -861,7 +861,7 @@ const DeckDetailsPage = () => {
                                     <div className="flex items-center gap-2 md:gap-3 bg-gray-950/40 p-1.5 rounded-2xl border border-white/5 backdrop-blur-md relative mt-3 w-fit lg:absolute lg:top-1/2 lg:-translate-y-1/2 lg:right-0 lg:mt-0" ref={toolsMenuRef}>
                                         <button
                                             onClick={() => setIsStrategyModalOpen(true)}
-                                            className="bg-indigo-600 hover:bg-indigo-500 text-white font-black py-2.5 px-4 md:px-6 rounded-xl shadow-lg shadow-indigo-900/40 transition-all flex items-center gap-2 uppercase tracking-widest text-[10px] md:text-xs shrink-0"
+                                            className="bg-primary-600 hover:bg-primary-500 text-white font-black py-2.5 px-4 md:px-6 rounded-xl shadow-lg shadow-primary-900/40 transition-all flex items-center gap-2 uppercase tracking-widest text-[10px] md:text-xs shrink-0"
                                         >
                                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                                             <span className="hidden sm:inline">Strategy</span>
@@ -882,12 +882,12 @@ const DeckDetailsPage = () => {
                                             <button
                                                 id="deck-tools-trigger"
                                                 onClick={() => setIsToolsMenuOpen(!isToolsMenuOpen)}
-                                                className={`group relative flex items-center justify-center w-12 h-11 md:w-auto md:px-5 transition-all rounded-xl border ${isToolsMenuOpen ? 'bg-indigo-600 border-indigo-400 text-white' : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700 hover:text-white'} shadow-md`}
+                                                className={`group relative flex items-center justify-center w-12 h-11 md:w-auto md:px-5 transition-all rounded-xl border ${isToolsMenuOpen ? 'bg-primary-600 border-primary-400 text-white' : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700 hover:text-white'} shadow-md`}
                                                 title="Deck Tools & Management"
                                             >
                                                 {/* Desktop: Action Cluster Icon Set */}
                                                 <div className="hidden md:flex items-center -space-x-2 mr-3 opacity-70 group-hover:opacity-100 transition-opacity">
-                                                    <div className="w-6 h-6 rounded-full bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center backdrop-blur-sm">
+                                                    <div className="w-6 h-6 rounded-full bg-primary-500/20 border border-primary-500/40 flex items-center justify-center backdrop-blur-sm">
                                                         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg>
                                                     </div>
                                                     <div className="w-6 h-6 rounded-full bg-purple-500/20 border border-purple-500/40 flex items-center justify-center backdrop-blur-sm">
@@ -904,7 +904,7 @@ const DeckDetailsPage = () => {
 
                                                 {/* Mobile Indicator Ring */}
                                                 {!isToolsMenuOpen && (
-                                                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-indigo-500 rounded-full border-2 border-gray-900 md:hidden animate-pulse" />
+                                                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary-500 rounded-full border-2 border-gray-900 md:hidden animate-pulse" />
                                                 )}
                                             </button>
 
@@ -954,16 +954,16 @@ const DeckDetailsPage = () => {
                             const isOver = kpi.target > 0 && kpi.current > kpi.target;
 
                             return (
-                                <div key={idx} className="bg-gray-950/30 p-3 rounded-xl border border-white/5 backdrop-blur-md shadow-lg group hover:border-indigo-500/30 transition-all hover:bg-gray-950/50">
+                                <div key={idx} className="bg-gray-950/30 p-3 rounded-xl border border-white/5 backdrop-blur-md shadow-lg group hover:border-primary-500/30 transition-all hover:bg-gray-950/50">
                                     <div className="flex justify-between items-end mb-1">
                                         <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest truncate min-w-0 pr-2">{kpi.label}</span>
-                                        <span className={`text-xs font-mono font-bold shrink-0 ${isPerfect ? 'text-green-400' : isOver ? 'text-orange-400' : 'text-indigo-300'}`}>
+                                        <span className={`text-xs font-mono font-bold shrink-0 ${isPerfect ? 'text-green-400' : isOver ? 'text-orange-400' : 'text-primary-300'}`}>
                                             {kpi.current}<span className="text-gray-600 mx-0.5">/</span>{kpi.target || '?'}
                                         </span>
                                     </div>
                                     <div className="h-1.5 w-full bg-gray-900 rounded-full overflow-hidden border border-gray-700/30">
                                         <div
-                                            className={`h-full transition-all duration-700 ${isPerfect ? 'bg-green-500' : isOver ? 'bg-orange-500' : 'bg-indigo-500'}`}
+                                            className={`h-full transition-all duration-700 ${isPerfect ? 'bg-green-500' : isOver ? 'bg-orange-500' : 'bg-primary-500'}`}
                                             style={{ width: `${progress || 0}%` }}
                                         />
                                     </div>
@@ -984,15 +984,15 @@ const DeckDetailsPage = () => {
                         <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-white/5 rounded-t-xl backdrop-blur-sm">
                             <h3 className="text-lg font-bold text-white flex items-center gap-4">
                                 <div className="flex items-center gap-2">
-                                    <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                                    <svg className="w-5 h-5 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                                     Decklist
                                 </div>
                                 {totalCards > 0 && (
                                     <button
                                         onClick={() => setChecklistState({ isOpen: true, tab: 'missing' })}
-                                        className="flex items-center gap-2 bg-gray-900/50 hover:bg-gray-800 px-3 py-1 rounded-full border border-gray-700 hover:border-indigo-500/50 transition-all group cursor-pointer"
+                                        className="flex items-center gap-2 bg-gray-900/50 hover:bg-gray-800 px-3 py-1 rounded-full border border-gray-700 hover:border-primary-500/50 transition-all group cursor-pointer"
                                     >
-                                        <span className="text-xs font-bold text-gray-500 uppercase group-hover:text-indigo-300">Acquired</span>
+                                        <span className="text-xs font-bold text-gray-500 uppercase group-hover:text-primary-300">Acquired</span>
                                         <span className={`text-sm font-mono font-bold ${ownedCardsCount === totalCards ? 'text-green-400' : 'text-orange-400'}`}>
                                             {ownedCardsCount}/{totalCards}
                                         </span>
@@ -1014,7 +1014,7 @@ const DeckDetailsPage = () => {
                                         >
                                             {selectedCardIds.size === deckCards.length ? 'Deselect All' : 'Select All'}
                                         </button>
-                                        <span className="text-xs text-indigo-300 font-bold ml-2">{selectedCardIds.size} Selected</span>
+                                        <span className="text-xs text-primary-300 font-bold ml-2">{selectedCardIds.size} Selected</span>
                                         <button
                                             onClick={handleBulkAction}
                                             disabled={selectedCardIds.size === 0}
@@ -1032,7 +1032,7 @@ const DeckDetailsPage = () => {
                                 ) : (
                                     <button
                                         onClick={() => setIsManageMode(true)}
-                                        className="text-xs font-bold text-gray-400 hover:text-indigo-400 px-3 transition-colors uppercase mr-1"
+                                        className="text-xs font-bold text-gray-400 hover:text-primary-400 px-3 transition-colors uppercase mr-1"
                                     >
                                         Select
                                     </button>
@@ -1065,7 +1065,7 @@ const DeckDetailsPage = () => {
                             {Object.entries(groupedCards).map(([type, cards]) => {
                                 return (
                                     <div key={type} className="animate-fade-in text-left">
-                                        <h4 className="text-sm font-bold text-indigo-300 border-b border-white/5 mb-4 pb-2 sticky top-0 bg-gray-950/60 backdrop-blur-md z-10 flex justify-between uppercase tracking-wider pl-1">
+                                        <h4 className="text-sm font-bold text-primary-300 border-b border-white/5 mb-4 pb-2 sticky top-0 bg-gray-950/60 backdrop-blur-md z-10 flex justify-between uppercase tracking-wider pl-1">
                                             <span>{type}</span>
                                             <span className="text-gray-500 text-xs bg-gray-900 px-2 py-0.5 rounded-full border border-gray-700">
                                                 {cards.reduce((a, c) => a + (c.countInDeck || 1), 0)}
@@ -1096,7 +1096,7 @@ const DeckDetailsPage = () => {
                                                 {cards.map((card, idx) => (
                                                     <div
                                                         key={card.id + idx}
-                                                        className={`flex items-center justify-between p-2 hover:bg-gray-700/50 rounded-lg transition-colors text-sm group border ${selectedCardIds.has(card.id) ? 'bg-indigo-900/20 border-indigo-500/50' : 'border-transparent hover:border-gray-700'}`}
+                                                        className={`flex items-center justify-between p-2 hover:bg-gray-700/50 rounded-lg transition-colors text-sm group border ${selectedCardIds.has(card.id) ? 'bg-primary-900/20 border-primary-500/50' : 'border-transparent hover:border-gray-700'}`}
                                                         onClick={(e) => {
                                                             if (isManageMode) {
                                                                 e.stopPropagation();
@@ -1110,7 +1110,7 @@ const DeckDetailsPage = () => {
                                                                     type="checkbox"
                                                                     checked={selectedCardIds.has(card.id)}
                                                                     readOnly
-                                                                    className="rounded bg-gray-700 border-gray-600 text-indigo-500 focus:ring-0 w-4 h-4 cursor-pointer"
+                                                                    className="rounded bg-gray-700 border-gray-600 text-primary-500 focus:ring-0 w-4 h-4 cursor-pointer"
                                                                 />
                                                             )}
                                                             <span className="font-mono text-gray-500 w-6 text-center bg-gray-900 rounded py-0.5 text-xs">{card.countInDeck}</span>
@@ -1158,7 +1158,7 @@ const DeckDetailsPage = () => {
                                     {deck.commander_partner && (
                                         <button
                                             onClick={() => setActiveCommanderIndex(i => i === 0 ? 1 : 0)}
-                                            className="text-indigo-400 hover:text-indigo-300 text-xs font-bold uppercase tracking-wider transition-colors"
+                                            className="text-primary-400 hover:text-primary-300 text-xs font-bold uppercase tracking-wider transition-colors"
                                         >
                                             Swap View ⟳
                                         </button>
@@ -1202,7 +1202,7 @@ const DeckDetailsPage = () => {
                                         <div className="relative">
                                             <img
                                                 src={getCardImage(deck.commander)}
-                                                className="w-full max-w-[250px] rounded-lg shadow-2xl hover:shadow-indigo-500/30 transition-shadow duration-300"
+                                                className="w-full max-w-[250px] rounded-lg shadow-2xl hover:shadow-primary-500/30 transition-shadow duration-300"
                                                 alt={deck.commander.name}
                                             />
                                             {/* Flip Indicator */}
@@ -1225,7 +1225,7 @@ const DeckDetailsPage = () => {
                                 <span className="text-8xl">🤖</span>
                             </div>
                             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
+                                <span className="w-1.5 h-1.5 rounded-full bg-primary-500 animate-pulse"></span>
                                 {helperName} Tools
                             </h3>
                             <div className="space-y-3 relative z-10">
@@ -1244,7 +1244,7 @@ const DeckDetailsPage = () => {
                                         }
                                     }}
                                     className={`w-full py-4 rounded-xl border transition-all font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3 group/btn ${(userProfile?.tierConfig || getTierConfig(userProfile?.subscription_tier)).features.deckSuggestions
-                                        ? 'bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-300 border-indigo-500/20 hover:border-indigo-500/40'
+                                        ? 'bg-primary-600/10 hover:bg-primary-600/20 text-primary-300 border-primary-500/20 hover:border-primary-500/40'
                                         : 'bg-gray-900/50 border-gray-800 text-gray-600 cursor-not-allowed hover:bg-gray-900/50'
                                         }`}
                                 >
@@ -1255,7 +1255,7 @@ const DeckDetailsPage = () => {
                                 </button>
                                 <button
                                     onClick={() => setIsStatsModalOpen(true)}
-                                    className="w-full py-4 bg-indigo-900/10 hover:bg-indigo-900/20 text-indigo-400 rounded-xl border border-indigo-500/10 hover:border-indigo-500/30 transition-all font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3"
+                                    className="w-full py-4 bg-primary-900/10 hover:bg-primary-900/20 text-primary-400 rounded-xl border border-primary-500/10 hover:border-primary-500/30 transition-all font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3"
                                 >
                                     <span className="text-lg">📊</span>
                                     Full Deck Stats

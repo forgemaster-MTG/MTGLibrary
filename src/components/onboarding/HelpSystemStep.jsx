@@ -13,8 +13,8 @@ export const HelpSystemStep = ({ onNext, onBack }) => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
                 {/* Feature 1: Contextual Help */}
                 <div className="bg-gray-800/40 border border-gray-700/50 p-8 rounded-3xl hover:bg-gray-800/60 transition-all hover:-translate-y-1 group">
-                    <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 flex items-center justify-center mb-6 mx-auto group-hover:scale-110 transition-transform">
-                        <HelpCircle size={32} className="text-indigo-400" />
+                    <div className="w-16 h-16 rounded-2xl bg-primary-500/10 flex items-center justify-center mb-6 mx-auto group-hover:scale-110 transition-transform">
+                        <HelpCircle size={32} className="text-primary-400" />
                     </div>
                     <h3 className="text-xl font-bold text-white mb-3">The Oracle</h3>
                     <p className="text-sm text-gray-400 leading-relaxed">

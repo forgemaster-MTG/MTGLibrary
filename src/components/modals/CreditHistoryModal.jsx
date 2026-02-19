@@ -57,8 +57,8 @@ const CreditHistoryModal = ({ onClose }) => {
                 {/* Header */}
                 <div className="flex justify-between items-center p-6 border-b border-gray-800 bg-gray-900/95">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 bg-indigo-500/10 rounded-lg">
-                            <Clock className="w-6 h-6 text-indigo-400" />
+                        <div className="p-2 bg-primary-500/10 rounded-lg">
+                            <Clock className="w-6 h-6 text-primary-400" />
                         </div>
                         <div>
                             <h2 className="text-xl font-bold text-white">Credit History</h2>

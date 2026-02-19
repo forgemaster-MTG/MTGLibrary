@@ -211,7 +211,7 @@ const PublicDeckPage = () => {
         return Object.fromEntries(Object.entries(groups).filter(([_, list]) => list.length > 0));
     }, [deckCards, deck]);
 
-    if (loading) return <div className="min-h-screen bg-gray-950 flex justify-center items-center"><div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-500"></div></div>;
+    if (loading) return <div className="min-h-screen bg-gray-950 flex justify-center items-center"><div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-500"></div></div>;
     if (error || !deck) return <div className="min-h-screen bg-gray-950 flex justify-center items-center text-red-500 font-bold text-xl">{error || "Deck inaccessible"}</div>;
 
     const activeCommander = activeCommanderIndex === 0 ? deck.commander : (deck.commander_partner || deck.commander);
@@ -269,7 +269,7 @@ const PublicDeckPage = () => {
                     <div className="flex flex-col md:flex-row justify-between gap-6 items-start md:items-center">
                         <div>
                             <div className="flex items-center gap-3 mb-2">
-                                <span className="px-2 py-0.5 bg-indigo-500/20 text-indigo-300 text-[10px] font-black uppercase tracking-widest rounded border border-indigo-500/30">
+                                <span className="px-2 py-0.5 bg-primary-500/20 text-primary-300 text-[10px] font-black uppercase tracking-widest rounded border border-primary-500/30">
                                     {deck.format || 'Commander'}
                                 </span>
                                 <span className="text-gray-500 text-xs font-bold uppercase tracking-wide">
@@ -329,13 +329,13 @@ const PublicDeckPage = () => {
                             <div key={idx} className="bg-gray-950/20 p-3 rounded-xl border border-white/5 backdrop-blur-md shadow-lg">
                                 <div className="flex justify-between items-end mb-1">
                                     <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{kpi.label}</span>
-                                    <span className={`text-xs font-mono font-bold ${isPerfect ? 'text-green-400' : isOver ? 'text-orange-400' : 'text-indigo-300'}`}>
+                                    <span className={`text-xs font-mono font-bold ${isPerfect ? 'text-green-400' : isOver ? 'text-orange-400' : 'text-primary-300'}`}>
                                         {kpi.current}<span className="text-gray-600 mx-0.5">/</span>{kpi.target || '?'}
                                     </span>
                                 </div>
                                 <div className="h-1.5 w-full bg-gray-900 rounded-full overflow-hidden border border-gray-700/30">
                                     <div
-                                        className={`h-full transition-all duration-700 ${isPerfect ? 'bg-green-500' : isOver ? 'bg-orange-500' : 'bg-indigo-500'}`}
+                                        className={`h-full transition-all duration-700 ${isPerfect ? 'bg-green-500' : isOver ? 'bg-orange-500' : 'bg-primary-500'}`}
                                         style={{ width: `${progress || 0}%` }}
                                     />
                                 </div>
@@ -354,7 +354,7 @@ const PublicDeckPage = () => {
                         <div className="bg-gray-950/10 backdrop-blur-md rounded-3xl border border-white/5 overflow-hidden">
                             <div className="p-4 bg-white/5 border-b border-white/5 flex justify-between items-center">
                                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                    <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                                    <svg className="w-5 h-5 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                                     Decklist
                                 </h3>
                                 <div className="flex bg-gray-900/50 rounded-lg p-1 gap-1 border border-gray-700">
@@ -370,7 +370,7 @@ const PublicDeckPage = () => {
                             <div className="p-4 space-y-8">
                                 {Object.entries(groupedCards).map(([type, cards]) => (
                                     <div key={type}>
-                                        <h4 className="text-xs font-black text-indigo-300 uppercase tracking-widest border-b border-indigo-500/20 mb-3 pb-1 flex justify-between">
+                                        <h4 className="text-xs font-black text-primary-300 uppercase tracking-widest border-b border-primary-500/20 mb-3 pb-1 flex justify-between">
                                             <span>{type}</span>
                                             <span className="text-gray-500">{cards.length}</span>
                                         </h4>
@@ -414,7 +414,7 @@ const PublicDeckPage = () => {
                                 {deck.commander_partner && (
                                     <button
                                         onClick={() => setActiveCommanderIndex(i => i === 0 ? 1 : 0)}
-                                        className="mt-4 w-full py-2 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 text-xs font-bold uppercase rounded-lg border border-indigo-500/20 transition-colors"
+                                        className="mt-4 w-full py-2 bg-primary-600/20 hover:bg-primary-600/40 text-primary-300 text-xs font-bold uppercase rounded-lg border border-primary-500/20 transition-colors"
                                     >
                                         View Partner
                                     </button>
@@ -429,14 +429,14 @@ const PublicDeckPage = () => {
                                 <div className="flex gap-2">
                                     <button
                                         onClick={() => setIsDoctorOpen(true)}
-                                        className="text-[10px] font-black text-white uppercase tracking-[0.2em] bg-indigo-600 flex flex-col items-center gap-2 p-3 rounded-2xl hover:bg-indigo-500 transition-all shadow-xl shadow-indigo-900/40 group overflow-hidden"
+                                        className="text-[10px] font-black text-white uppercase tracking-[0.2em] bg-primary-600 flex flex-col items-center gap-2 p-3 rounded-2xl hover:bg-primary-500 transition-all shadow-xl shadow-primary-900/40 group overflow-hidden"
                                     >
                                         <svg className="w-8 h-8 text-white group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
                                         <span className="text-[8px]">Deck Doctor</span>
                                     </button>
                                     <button
                                         onClick={() => setIsStatsModalOpen(true)}
-                                        className="text-[10px] font-bold text-indigo-400 hover:text-white uppercase tracking-wider bg-indigo-500/10 px-2 py-1 rounded hover:bg-indigo-500/20 transition-colors"
+                                        className="text-[10px] font-bold text-primary-400 hover:text-white uppercase tracking-wider bg-primary-500/10 px-2 py-1 rounded hover:bg-primary-500/20 transition-colors"
                                     >
                                         Details ↗
                                     </button>
@@ -457,10 +457,10 @@ const PublicDeckPage = () => {
 
                         {/* Prompt to Join */}
                         {!currentUser && (
-                            <div className="bg-gradient-to-br from-indigo-900/40 to-purple-900/40 backdrop-blur-md rounded-3xl border border-white/10 p-6 text-center">
+                            <div className="bg-gradient-to-br from-primary-900/40 to-purple-900/40 backdrop-blur-md rounded-3xl border border-white/10 p-6 text-center">
                                 <h3 className="font-bold text-white mb-2">Build Your Own Decks</h3>
                                 <p className="text-xs text-gray-400 mb-4">Join MTG Forge to manage your collection, build decks with AI, and track prices.</p>
-                                <Link to="/login" className="block w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold shadow-lg shadow-indigo-900/20 transition-all text-sm">
+                                <Link to="/login" className="block w-full py-2.5 bg-primary-600 hover:bg-primary-500 text-white rounded-xl font-bold shadow-lg shadow-primary-900/20 transition-all text-sm">
                                     Get Started Free
                                 </Link>
                             </div>

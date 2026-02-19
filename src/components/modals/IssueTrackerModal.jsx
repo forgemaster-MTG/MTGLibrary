@@ -22,13 +22,13 @@ const TicketItem = ({ ticket, isAdmin, currentUserId, onEdit, onDelete, onVote, 
                     <div className="flex items-center gap-3 mb-1 flex-wrap">
                         {getTypeBadge(ticket.type)}
                         <h4
-                            className="text-white font-medium hover:text-indigo-300 cursor-pointer truncate"
+                            className="text-white font-medium hover:text-primary-300 cursor-pointer truncate"
                             onClick={() => (isAdmin || (ticket.created_by === currentUserId && ticket.status === 'open')) && onEdit(ticket)}
                         >
                             {ticket.title}
                         </h4>
                         {getStatusBadge(ticket.status)}
-                        {ticket.epic_title && <span className="text-[10px] bg-indigo-500/10 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-500/20 whitespace-nowrap">{ticket.epic_title}</span>}
+                        {ticket.epic_title && <span className="text-[10px] bg-primary-500/10 text-primary-300 px-1.5 py-0.5 rounded border border-primary-500/20 whitespace-nowrap">{ticket.epic_title}</span>}
                     </div>
 
                     <div
@@ -38,14 +38,14 @@ const TicketItem = ({ ticket, isAdmin, currentUserId, onEdit, onDelete, onVote, 
 
                     <button
                         onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }}
-                        className="text-xs text-indigo-400 hover:text-indigo-300 mt-1 hover:underline focus:outline-none"
+                        className="text-xs text-primary-400 hover:text-primary-300 mt-1 hover:underline focus:outline-none"
                     >
                         {isExpanded ? 'Show less' : 'Read more...'}
                     </button>
 
                     <div className="mt-2 flex items-center gap-4 text-xs text-gray-500 flex-wrap">
                         <span>b/{ticket.created_by_username || 'Unknown'}</span>
-                        {ticket.assigned_to && <span className="text-indigo-400">Assigned: {ticket.assigned_to_username}</span>}
+                        {ticket.assigned_to && <span className="text-primary-400">Assigned: {ticket.assigned_to_username}</span>}
                         {ticket.due_date && <span>Due: {format(new Date(ticket.due_date), 'MMM d')}</span>}
                         {ticket.estimated_release_date && <span className="text-orange-400">Est. Release: {format(new Date(ticket.estimated_release_date), 'MMM d')}</span>}
                         {ticket.date_released && <span className="text-green-400">Released: {format(new Date(ticket.date_released), 'MMM d')}</span>}
@@ -82,7 +82,7 @@ const TicketItem = ({ ticket, isAdmin, currentUserId, onEdit, onDelete, onVote, 
                             {publicNotes.map(note => (
                                 <div key={note.id} className="bg-gray-900/30 p-2 rounded text-xs border border-white/5">
                                     <div className="flex justify-between text-gray-500 mb-0.5">
-                                        <span className="font-bold text-indigo-400">{note.username}</span>
+                                        <span className="font-bold text-primary-400">{note.username}</span>
                                         <span>{format(new Date(note.created_at), 'MMM d, h:mm a')}</span>
                                     </div>
                                     <p className="text-gray-300 mb-0">{note.note}</p>
@@ -92,7 +92,7 @@ const TicketItem = ({ ticket, isAdmin, currentUserId, onEdit, onDelete, onVote, 
                     )}
                 </div>
                 <div className="flex flex-col items-center gap-1 pl-4 border-l border-white/5 shrink-0">
-                    <button onClick={() => onVote(ticket.id)} className="text-gray-400 hover:text-indigo-400">
+                    <button onClick={() => onVote(ticket.id)} className="text-gray-400 hover:text-primary-400">
                         ▲
                     </button>
                     <span className="font-mono text-sm font-bold text-white">{ticket.votes}</span>
@@ -297,10 +297,10 @@ const IssueTrackerModal = ({ isOpen, onClose }) => {
                     {/* Header */}
                     <div className="bg-gray-800/50 px-6 py-4 border-b border-white/5 flex justify-between items-center">
                         <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                            <span className="text-indigo-500">⚡</span> System Status & Feedback
+                            <span className="text-primary-500">⚡</span> System Status & Feedback
                         </h3>
                         <div className="flex items-center gap-4">
-                            <a href="https://discord.gg/p4ybr8h6QV" target="_blank" rel="noreferrer" className="text-indigo-400 hover:text-indigo-300 text-sm font-medium flex items-center gap-1">
+                            <a href="https://discord.gg/p4ybr8h6QV" target="_blank" rel="noreferrer" className="text-primary-400 hover:text-primary-300 text-sm font-medium flex items-center gap-1">
                                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.211.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.419 0 1.334-.956 2.419-2.157 2.419zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.419 0 1.334-.946 2.419-2.157 2.419z" /></svg>
                                 Join Discord
                             </a>
@@ -319,7 +319,7 @@ const IssueTrackerModal = ({ isOpen, onClose }) => {
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
                                 className={`py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === tab
-                                    ? 'border-indigo-500 text-white'
+                                    ? 'border-primary-500 text-white'
                                     : 'border-transparent text-gray-400 hover:text-gray-300'
                                     }`}
                             >
@@ -361,14 +361,14 @@ const IssueTrackerModal = ({ isOpen, onClose }) => {
                                         <option value="bug">Bugs</option>
                                         <option value="feature">Features</option>
                                     </select>
-                                    <button onClick={fetchData} className="text-xs text-indigo-400 hover:text-indigo-300 underline">Refresh</button>
+                                    <button onClick={fetchData} className="text-xs text-primary-400 hover:text-primary-300 underline">Refresh</button>
                                 </div>
 
                                 {loading ? (
                                     <div className="text-center py-12 text-gray-500">Loading issues...</div>
                                 ) : tickets.length === 0 ? (
                                     <div className="text-center py-12 text-gray-500 border border-dashed border-white/10 rounded-xl">
-                                        No tickets found. <button onClick={() => setActiveTab('new_ticket')} className="text-indigo-400 hover:underline">Create one?</button>
+                                        No tickets found. <button onClick={() => setActiveTab('new_ticket')} className="text-primary-400 hover:underline">Create one?</button>
                                     </div>
                                 ) : (
                                     <div className="space-y-3">
@@ -426,7 +426,7 @@ const IssueTrackerModal = ({ isOpen, onClose }) => {
                                                 <div className="font-bold mb-1">Bug Report</div>
                                                 <div className="text-xs opacity-70">Something is broken</div>
                                             </label>
-                                            <label className={`flex-1 cursor-pointer p-4 rounded-xl border ${newTicket.type === 'feature' ? 'bg-indigo-500/10 border-indigo-500 text-white' : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700'}`}>
+                                            <label className={`flex-1 cursor-pointer p-4 rounded-xl border ${newTicket.type === 'feature' ? 'bg-primary-500/10 border-primary-500 text-white' : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700'}`}>
                                                 <input type="radio" className="hidden" value="feature" checked={newTicket.type === 'feature'} onChange={e => setNewTicket({ ...newTicket, type: e.target.value })} />
                                                 <div className="font-bold mb-1">Feature Request</div>
                                                 <div className="text-xs opacity-70">New idea or improvement</div>
@@ -438,7 +438,7 @@ const IssueTrackerModal = ({ isOpen, onClose }) => {
                                         <label className="block text-sm font-medium text-gray-400 mb-1">Title</label>
                                         <input
                                             type="text"
-                                            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500"
+                                            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary-500"
                                             placeholder="Short summary of the issue..."
                                             value={newTicket.title}
                                             onChange={e => setNewTicket({ ...newTicket, title: e.target.value })}
@@ -463,7 +463,7 @@ const IssueTrackerModal = ({ isOpen, onClose }) => {
                                         <div>
                                             <label className="block text-sm font-medium text-gray-400 mb-1">Project (Optional)</label>
                                             <select
-                                                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-indigo-500"
+                                                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary-500"
                                                 value={newTicket.epic_id}
                                                 onChange={e => setNewTicket({ ...newTicket, epic_id: e.target.value })}
                                             >
@@ -476,7 +476,7 @@ const IssueTrackerModal = ({ isOpen, onClose }) => {
                                     <div className="flex justify-end pt-4">
                                         <button
                                             type="submit"
-                                            className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg shadow-lg hover:shadow-indigo-500/25 transition-all"
+                                            className="px-6 py-2 bg-primary-600 hover:bg-primary-500 text-white font-bold rounded-lg shadow-lg hover:shadow-primary-500/25 transition-all"
                                         >
                                             Submit Issue
                                         </button>
@@ -504,7 +504,7 @@ const IssueTrackerModal = ({ isOpen, onClose }) => {
                                 <div>
                                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">Issue Type</label>
                                     <select
-                                        className="w-full bg-gray-800 border border-white/10 rounded-xl p-3 text-white focus:border-indigo-500 transition-colors"
+                                        className="w-full bg-gray-800 border border-white/10 rounded-xl p-3 text-white focus:border-primary-500 transition-colors"
                                         value={editingTicket.type}
                                         onChange={e => setEditingTicket({ ...editingTicket, type: e.target.value })}
                                     >
@@ -516,7 +516,7 @@ const IssueTrackerModal = ({ isOpen, onClose }) => {
                                     <div>
                                         <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">Status</label>
                                         <select
-                                            className="w-full bg-gray-800 border border-white/10 rounded-xl p-3 text-white focus:border-indigo-500 transition-colors"
+                                            className="w-full bg-gray-800 border border-white/10 rounded-xl p-3 text-white focus:border-primary-500 transition-colors"
                                             value={editingTicket.status}
                                             onChange={e => setEditingTicket({ ...editingTicket, status: e.target.value })}
                                         >
@@ -537,7 +537,7 @@ const IssueTrackerModal = ({ isOpen, onClose }) => {
                                 <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">Title</label>
                                 <input
                                     type="text"
-                                    className="w-full bg-gray-800 border border-white/10 rounded-xl p-3 text-white focus:border-indigo-500 transition-colors"
+                                    className="w-full bg-gray-800 border border-white/10 rounded-xl p-3 text-white focus:border-primary-500 transition-colors"
                                     value={editingTicket.title}
                                     onChange={e => setEditingTicket({ ...editingTicket, title: e.target.value })}
                                     required
@@ -563,7 +563,7 @@ const IssueTrackerModal = ({ isOpen, onClose }) => {
                                         <div>
                                             <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">Project (Epic)</label>
                                             <select
-                                                className="w-full bg-gray-800 border border-white/10 rounded-xl p-3 text-white focus:border-indigo-500 transition-colors"
+                                                className="w-full bg-gray-800 border border-white/10 rounded-xl p-3 text-white focus:border-primary-500 transition-colors"
                                                 value={editingTicket.epic_id || ''}
                                                 onChange={e => setEditingTicket({ ...editingTicket, epic_id: e.target.value || null })}
                                             >
@@ -574,7 +574,7 @@ const IssueTrackerModal = ({ isOpen, onClose }) => {
                                         <div>
                                             <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">Assignee</label>
                                             <select
-                                                className="w-full bg-gray-800 border border-white/10 rounded-xl p-3 text-white focus:border-indigo-500 transition-colors"
+                                                className="w-full bg-gray-800 border border-white/10 rounded-xl p-3 text-white focus:border-primary-500 transition-colors"
                                                 value={editingTicket.assigned_to || ''}
                                                 onChange={e => setEditingTicket({ ...editingTicket, assigned_to: e.target.value || null })}
                                             >
@@ -590,7 +590,7 @@ const IssueTrackerModal = ({ isOpen, onClose }) => {
                                             <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">Due Date</label>
                                             <input
                                                 type="date"
-                                                className="w-full bg-gray-800 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-indigo-500 transition-colors"
+                                                className="w-full bg-gray-800 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-primary-500 transition-colors"
                                                 value={editingTicket.due_date ? format(new Date(editingTicket.due_date), 'yyyy-MM-dd') : ''}
                                                 onChange={e => setEditingTicket({ ...editingTicket, due_date: e.target.value })}
                                             />
@@ -599,7 +599,7 @@ const IssueTrackerModal = ({ isOpen, onClose }) => {
                                             <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">Est. Completion</label>
                                             <input
                                                 type="date"
-                                                className="w-full bg-gray-800 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-indigo-500 transition-colors"
+                                                className="w-full bg-gray-800 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-primary-500 transition-colors"
                                                 value={editingTicket.est_completion_date ? format(new Date(editingTicket.est_completion_date), 'yyyy-MM-dd') : ''}
                                                 onChange={e => setEditingTicket({ ...editingTicket, est_completion_date: e.target.value })}
                                             />
@@ -610,7 +610,7 @@ const IssueTrackerModal = ({ isOpen, onClose }) => {
                                             <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">Est. Release</label>
                                             <input
                                                 type="date"
-                                                className="w-full bg-gray-800 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-indigo-500 transition-colors"
+                                                className="w-full bg-gray-800 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-primary-500 transition-colors"
                                                 value={editingTicket.estimated_release_date ? format(new Date(editingTicket.estimated_release_date), 'yyyy-MM-dd') : ''}
                                                 onChange={e => setEditingTicket({ ...editingTicket, estimated_release_date: e.target.value })}
                                             />
@@ -619,7 +619,7 @@ const IssueTrackerModal = ({ isOpen, onClose }) => {
                                             <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">Date Released</label>
                                             <input
                                                 type="date"
-                                                className="w-full bg-gray-800 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-indigo-500 transition-colors"
+                                                className="w-full bg-gray-800 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-primary-500 transition-colors"
                                                 value={editingTicket.date_released ? format(new Date(editingTicket.date_released), 'yyyy-MM-dd') : ''}
                                                 onChange={e => setEditingTicket({ ...editingTicket, date_released: e.target.value })}
                                             />
@@ -636,7 +636,7 @@ const IssueTrackerModal = ({ isOpen, onClose }) => {
                                     {ticketNotes.map(note => (
                                         <div key={note.id} className="bg-gray-800/50 p-3 rounded-xl border border-white/5">
                                             <div className="flex justify-between text-[10px] text-gray-500 mb-1">
-                                                <span className="font-bold text-indigo-400 uppercase tracking-widest">{note.username}</span>
+                                                <span className="font-bold text-primary-400 uppercase tracking-widest">{note.username}</span>
                                                 <span>{format(new Date(note.created_at), 'MMM d, h:mm a')}</span>
                                             </div>
                                             <p className="text-sm text-gray-300">{note.note}</p>
@@ -646,7 +646,7 @@ const IssueTrackerModal = ({ isOpen, onClose }) => {
                                 <div className="flex gap-2">
                                     <input
                                         type="text"
-                                        className="flex-1 bg-gray-800 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-indigo-500 transition-colors"
+                                        className="flex-1 bg-gray-800 border border-white/10 rounded-xl p-3 text-sm text-white focus:border-primary-500 transition-colors"
                                         placeholder="Add a note..."
                                         value={newNote}
                                         onChange={e => setNewNote(e.target.value)}
@@ -657,7 +657,7 @@ const IssueTrackerModal = ({ isOpen, onClose }) => {
                             </div>
                             <div className="flex justify-end gap-4 pt-6">
                                 <button type="button" onClick={() => setEditingTicket(null)} className="px-6 py-3 text-gray-500 font-bold uppercase tracking-widest text-xs hover:text-white transition-colors">Cancel</button>
-                                <button type="submit" className="px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-indigo-500/20 transition-all">Save Changes</button>
+                                <button type="submit" className="px-8 py-3 bg-primary-600 hover:bg-primary-500 text-white font-bold uppercase tracking-widest text-xs rounded-xl shadow-lg shadow-primary-500/20 transition-all">Save Changes</button>
                             </div>
                         </form>
                     </div>

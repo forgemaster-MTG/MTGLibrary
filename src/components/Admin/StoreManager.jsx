@@ -127,7 +127,7 @@ const StoreManager = () => {
                 </div>
                 <button
                     onClick={handleAddNew}
-                    className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                    className="flex items-center gap-2 bg-primary-600 hover:bg-primary-500 text-white px-4 py-2 rounded-lg font-medium transition-colors"
                 >
                     <Plus className="w-4 h-4" /> Add Product
                 </button>
@@ -147,7 +147,7 @@ const StoreManager = () => {
                                     <input
                                         type="text"
                                         required
-                                        className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                                        className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 text-white focus:ring-2 focus:ring-primary-500 outline-none"
                                         value={formData.title}
                                         onChange={e => setFormData({ ...formData, title: e.target.value })}
                                     />
@@ -155,7 +155,7 @@ const StoreManager = () => {
                                 <div>
                                     <label className="block text-gray-400 text-xs uppercase font-bold mb-1">Category</label>
                                     <select
-                                        className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                                        className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 text-white focus:ring-2 focus:ring-primary-500 outline-none"
                                         value={formData.category}
                                         onChange={e => setFormData({ ...formData, category: e.target.value })}
                                     >
@@ -173,7 +173,7 @@ const StoreManager = () => {
                                         type="url"
                                         required
                                         placeholder="https://m.media-amazon.com/..."
-                                        className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                                        className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 text-white focus:ring-2 focus:ring-primary-500 outline-none"
                                         value={formData.image_url}
                                         onChange={e => setFormData({ ...formData, image_url: e.target.value })}
                                     />
@@ -184,7 +184,7 @@ const StoreManager = () => {
                                         type="url"
                                         required
                                         placeholder="https://amzn.to/..."
-                                        className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                                        className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 text-white focus:ring-2 focus:ring-primary-500 outline-none"
                                         value={formData.link_url}
                                         onChange={e => setFormData({ ...formData, link_url: e.target.value })}
                                     />
@@ -194,7 +194,7 @@ const StoreManager = () => {
                                     <input
                                         type="text"
                                         placeholder="$149.99"
-                                        className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 text-white focus:ring-2 focus:ring-indigo-500 outline-none"
+                                        className="w-full bg-gray-800 border border-gray-700 rounded-lg p-2 text-white focus:ring-2 focus:ring-primary-500 outline-none"
                                         value={formData.price_label}
                                         onChange={e => setFormData({ ...formData, price_label: e.target.value })}
                                     />
@@ -207,7 +207,7 @@ const StoreManager = () => {
                                     id="isActive"
                                     checked={formData.is_active}
                                     onChange={e => setFormData({ ...formData, is_active: e.target.checked })}
-                                    className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-indigo-500 focus:ring-indigo-500"
+                                    className="w-4 h-4 rounded bg-gray-700 border-gray-600 text-primary-500 focus:ring-primary-500"
                                 />
                                 <label htmlFor="isActive" className="text-gray-300 text-sm">Visible on Home Page</label>
                             </div>
@@ -222,7 +222,7 @@ const StoreManager = () => {
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold shadow-lg shadow-indigo-900/20"
+                                    className="px-6 py-2 bg-primary-600 hover:bg-primary-500 text-white rounded-lg font-bold shadow-lg shadow-primary-900/20"
                                 >
                                     Save Product
                                 </button>
@@ -261,7 +261,7 @@ const StoreManager = () => {
                                 )}
                             </div>
                             <p className="text-gray-400 text-xs truncate font-mono">{item.category} • {item.price_label || 'No Price'}</p>
-                            <a href={item.link_url} target="_blank" rel="noreferrer" className="text-indigo-400 text-xs hover:underline truncate block mt-0.5">
+                            <a href={item.link_url} target="_blank" rel="noreferrer" className="text-primary-400 text-xs hover:underline truncate block mt-0.5">
                                 {item.link_url}
                             </a>
                         </div>
@@ -287,7 +287,7 @@ const StoreManager = () => {
 
                             <button
                                 onClick={() => handleEdit(item)}
-                                className="p-2 bg-gray-700/50 hover:bg-indigo-600/20 text-gray-400 hover:text-indigo-400 rounded-lg transition-colors"
+                                className="p-2 bg-gray-700/50 hover:bg-primary-600/20 text-gray-400 hover:text-primary-400 rounded-lg transition-colors"
                             >
                                 <Edit2 className="w-4 h-4" />
                             </button>

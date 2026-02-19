@@ -259,7 +259,7 @@ const SetDetailsPage = () => {
                             <div className="flex items-center gap-2">
                                 <span className="text-[9px] font-black uppercase text-gray-500 tracking-wider">Collected</span>
                                 <div className="flex items-baseline gap-1">
-                                    <span className="text-sm font-black text-indigo-400">{stats.collected}</span>
+                                    <span className="text-sm font-black text-primary-400">{stats.collected}</span>
                                     <span className="text-gray-600 font-bold text-[10px]">/ {stats.total}</span>
                                 </div>
                             </div>
@@ -291,7 +291,7 @@ const SetDetailsPage = () => {
                                     key={type}
                                     onClick={() => setFilter(type)}
                                     className={`flex-1 md:flex-none px-4 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${filter === type
-                                        ? 'bg-indigo-600 text-white shadow-lg'
+                                        ? 'bg-primary-600 text-white shadow-lg'
                                         : 'text-gray-500 hover:text-white hover:bg-white/5'
                                         }`}
                                 >
@@ -315,7 +315,7 @@ const SetDetailsPage = () => {
                                         setCardFilter('');
                                         sessionStorage.removeItem('mtg_card_search');
                                     }}
-                                    className="p-2 bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/20 hover:text-white rounded-lg transition-all"
+                                    className="p-2 bg-primary-500/10 border border-primary-500/30 text-primary-400 hover:bg-primary-500/20 hover:text-white rounded-lg transition-all"
                                     title="Clear filter"
                                 >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

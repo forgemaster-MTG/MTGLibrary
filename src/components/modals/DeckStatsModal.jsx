@@ -14,13 +14,13 @@ const DeckStatsModal = ({ isOpen, onClose, cards, deckName }) => {
             <div className="bg-gray-900/60 backdrop-blur-3xl w-full max-w-6xl max-h-[90vh] mx-auto rounded-[2.5rem] border border-white/10 shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden ring-1 ring-white/5 relative">
 
                 {/* Decorative Background Glows */}
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent" />
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary-500/30 to-transparent" />
 
                 {/* Header */}
                 <div className="p-8 border-b border-white/5 flex justify-between items-center bg-white/5 shrink-0">
                     <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-black font-mono text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">Analytics</span>
+                            <span className="text-[10px] font-black font-mono text-primary-400 uppercase tracking-widest bg-primary-500/10 px-2 py-0.5 rounded border border-primary-500/20">Analytics</span>
                             <span className="text-[10px] font-black font-mono text-gray-400 uppercase tracking-widest bg-white/5 px-2 py-0.5 rounded border border-white/5">{helperName}</span>
                         </div>
                         <h2 className="text-3xl font-black text-white italic tracking-tighter uppercase">Deck Performance</h2>

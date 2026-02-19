@@ -86,13 +86,13 @@ const AdminPage = () => {
                             className={({ isActive }) => `
                                 flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm
                                 ${isActive
-                                    ? 'bg-indigo-600/10 text-indigo-400 border border-indigo-500/20 shadow-lg shadow-indigo-900/10'
+                                    ? 'bg-primary-600/10 text-primary-400 border border-primary-500/20 shadow-lg shadow-primary-900/10'
                                     : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200 border border-transparent'
                                 }
                             `}
                         >
                             {/* Icon */}
-                            <div className={`${location.pathname.includes(item.path) ? 'text-indigo-500' : 'text-gray-500'}`}>
+                            <div className={`${location.pathname.includes(item.path) ? 'text-primary-500' : 'text-gray-500'}`}>
                                 {item.icon}
                             </div>
                             {item.label}

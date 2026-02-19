@@ -123,7 +123,7 @@ const ShareModal = ({ isOpen, onClose, deck, onUpdateDeck }) => {
                         <button
                             onClick={handleTogglePublic}
                             disabled={loading}
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-900 ${isPublic ? 'bg-indigo-600' : 'bg-gray-600'}`}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-gray-900 ${isPublic ? 'bg-primary-600' : 'bg-gray-600'}`}
                         >
                             <span className={`${isPublic ? 'translate-x-6' : 'translate-x-1'} inline-block h-4 w-4 transform rounded-full bg-white transition-transform`} />
                         </button>
@@ -137,11 +137,11 @@ const ShareModal = ({ isOpen, onClose, deck, onUpdateDeck }) => {
                                 <input
                                     readOnly
                                     value={`${window.location.origin}/share/${shareSlug}`}
-                                    className="flex-1 bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-300 focus:ring-indigo-500 focus:border-indigo-500"
+                                    className="flex-1 bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-300 focus:ring-primary-500 focus:border-primary-500"
                                 />
                                 <button
                                     onClick={copyLink}
-                                    className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg font-bold text-sm transition-colors"
+                                    className="bg-primary-600 hover:bg-primary-500 text-white px-4 py-2 rounded-lg font-bold text-sm transition-colors"
                                 >
                                     Copy
                                 </button>

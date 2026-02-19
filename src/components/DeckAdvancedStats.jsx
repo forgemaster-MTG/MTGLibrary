@@ -98,7 +98,7 @@ const DeckAdvancedStats = ({ cards = [] }) => {
         return counts;
     }, [cards]);
 
-    const renderHistogram = (data, colorClass = 'bg-indigo-500', height = 'h-48') => {
+    const renderHistogram = (data, colorClass = 'bg-primary-500', height = 'h-48') => {
         const entries = Object.entries(data);
         const maxVal = Math.max(...entries.map(e => e[1]), 1);
 
@@ -213,10 +213,10 @@ const DeckAdvancedStats = ({ cards = [] }) => {
                 <div className="flex justify-between items-end mb-8">
                     <div>
                         <h3 className="text-lg font-black text-white uppercase tracking-tighter">Mana Curve</h3>
-                        <p className="text-xs text-gray-500 font-medium">Average Mana Value (Non-lands): <span className="text-indigo-400">{stats.avgCMC}</span></p>
+                        <p className="text-xs text-gray-500 font-medium">Average Mana Value (Non-lands): <span className="text-primary-400">{stats.avgCMC}</span></p>
                     </div>
                 </div>
-                {renderHistogram(stats.curve, 'bg-indigo-500', 'h-40')}
+                {renderHistogram(stats.curve, 'bg-primary-500', 'h-40')}
             </div>
 
             {/* 4. Color Curves */}

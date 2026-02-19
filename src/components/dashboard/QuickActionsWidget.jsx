@@ -38,7 +38,7 @@ const QuickActionsWidget = ({ data, size }) => {
     };
 
     const actions = [
-        { title: "New Deck", icon: <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>, color: "from-indigo-600 to-purple-600", onClick: handleNewDeck },
+        { title: "New Deck", icon: <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>, color: "from-primary-600 to-primary-400 font-black", onClick: handleNewDeck },
         { title: "Add Cards", icon: <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>, color: "from-blue-600 to-cyan-600", onClick: () => navigate('/collection') },
         { title: "Browse Sets", icon: <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>, color: "from-green-600 to-emerald-600", onClick: () => navigate('/sets') },
         { title: "Wishlist", icon: <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>, color: "from-pink-600 to-rose-600", onClick: () => navigate('/collection?wishlist=true') },
@@ -49,12 +49,12 @@ const QuickActionsWidget = ({ data, size }) => {
             <div className="h-full flex flex-col items-center justify-center p-2">
                 <button
                     onClick={handleNewDeck}
-                    className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/40 flex items-center justify-center transform active:scale-95 transition-all"
+                    className="w-16 h-16 rounded-full bg-gradient-to-br from-primary-500 to-primary-400 text-white shadow-lg shadow-primary-500/40 flex items-center justify-center transform active:scale-95 transition-all text-white"
                     title="New Deck"
                 >
                     <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" /></svg>
                 </button>
-                <span className="text-[10px] font-black tracking-widest uppercase mt-2 text-indigo-400">New Deck</span>
+                <span className="text-[10px] font-black tracking-widest uppercase mt-2 text-primary-400">New Deck</span>
             </div>
         );
     }

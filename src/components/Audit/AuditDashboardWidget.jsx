@@ -56,7 +56,7 @@ export default function AuditDashboardWidget({ size }) {
                 </div>
                 <div className="flex-1 flex flex-col items-center justify-center text-center relative z-10">
                     <p className="text-[10px] text-gray-500 mb-2">Unlock Wizard tier to audit your collection.</p>
-                    <button onClick={() => navigate('/settings/membership')} className="text-[9px] font-bold uppercase tracking-widest text-indigo-400 border border-indigo-500/30 px-3 py-1.5 rounded-lg hover:bg-indigo-500/20">Upgrade</button>
+                    <button onClick={() => navigate('/settings/membership')} className="text-[9px] font-bold uppercase tracking-widest text-primary-400 border border-primary-500/30 px-3 py-1.5 rounded-lg hover:bg-primary-500/20">Upgrade</button>
                 </div>
             </div>
         );
@@ -68,21 +68,21 @@ export default function AuditDashboardWidget({ size }) {
         if (isXS) {
             return (
                 <div onClick={() => navigate('/audit')} className="bg-gray-900/50 rounded-3xl h-full flex items-center justify-center cursor-pointer border border-gray-800 group transition-all">
-                    <svg className="w-6 h-6 text-gray-600 group-hover:text-indigo-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 002-2h-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
+                    <svg className="w-6 h-6 text-gray-600 group-hover:text-primary-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 002-2h-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
                 </div>
             );
         }
         return (
-            <div className={`bg-gray-900/50 rounded-3xl ${isSmall ? 'p-4' : 'p-6'} border border-gray-800 hover:border-indigo-500/30 transition-all group relative overflow-hidden flex flex-col h-full`}>
-                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl -mr-16 -mt-16 group-hover:bg-indigo-500/10 transition-all pointer-events-none" />
+            <div className={`bg-gray-900/50 rounded-3xl ${isSmall ? 'p-4' : 'p-6'} border border-gray-800 hover:border-primary-500/30 transition-all group relative overflow-hidden flex flex-col h-full`}>
+                <div className="absolute top-0 right-0 w-32 h-32 bg-primary-500/5 rounded-full blur-2xl -mr-16 -mt-16 group-hover:bg-primary-500/10 transition-all pointer-events-none" />
                 <div className="flex justify-between items-start mb-1 relative z-10">
                     <h3 className="text-gray-400 text-xs font-medium tracking-widest uppercase">Collection Audit</h3>
-                    <div className="text-gray-600 group-hover:text-indigo-400 transition-colors">
+                    <div className="text-gray-600 group-hover:text-primary-400 transition-colors">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
                     </div>
                 </div>
                 <div className="mt-auto relative z-10 flex flex-col gap-2">
-                    <StartAuditButton type="collection" label="Start Audit" className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-xs transition-all active:scale-95 shadow-lg shadow-indigo-900/20 border-none" />
+                    <StartAuditButton type="collection" label="Start Audit" className="w-full py-2 bg-primary-600 hover:bg-primary-500 text-white rounded-xl font-bold text-xs transition-all active:scale-95 shadow-lg shadow-primary-900/20 border-none" />
                 </div>
             </div>
         );
@@ -98,33 +98,33 @@ export default function AuditDashboardWidget({ size }) {
 
     if (isXS) {
         return (
-            <div onClick={() => navigate('/audit')} className="bg-indigo-900/20 rounded-3xl h-full flex items-center justify-between px-4 cursor-pointer border border-indigo-500/30 group transition-all hover:bg-indigo-900/30 overflow-hidden">
+            <div onClick={() => navigate('/audit')} className="bg-primary-900/20 rounded-3xl h-full flex items-center justify-between px-4 cursor-pointer border border-primary-500/30 group transition-all hover:bg-primary-900/30 overflow-hidden">
                 <div className="flex items-center gap-2">
-                    <div className="text-[9px] font-black px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400/80 uppercase tracking-tighter whitespace-nowrap border border-indigo-500/20">
+                    <div className="text-[9px] font-black px-2 py-0.5 rounded-full bg-primary-500/10 text-primary-400/80 uppercase tracking-tighter whitespace-nowrap border border-primary-500/20">
                         Audit Progress
                     </div>
                     <span className="text-sm font-black text-white">{percent}%</span>
                 </div>
                 <div className="relative w-8 h-8 flex items-center justify-center">
                     <svg className="absolute inset-0 w-full h-full -rotate-90">
-                        <circle cx="50%" cy="50%" r="30%" fill="none" stroke="currentColor" strokeWidth="3" strokeDasharray={`${percent * 0.63} 100`} strokeLinecap="round" className="text-indigo-500" />
+                        <circle cx="50%" cy="50%" r="30%" fill="none" stroke="currentColor" strokeWidth="3" strokeDasharray={`${percent * 0.63} 100`} strokeLinecap="round" className="text-primary-500" />
                     </svg>
-                    <svg className="w-3 h-3 text-indigo-400/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
+                    <svg className="w-3 h-3 text-primary-400/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className={`bg-gray-900/50 rounded-3xl ${isSmall ? 'p-4' : 'p-6'} border border-indigo-500/20 hover:border-indigo-500/40 transition-all group relative overflow-hidden flex flex-col h-full`}>
-            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl -mr-16 -mt-16 pointer-events-none" />
+        <div className={`bg-gray-900/50 rounded-3xl ${isSmall ? 'p-4' : 'p-6'} border border-primary-500/20 hover:border-primary-500/40 transition-all group relative overflow-hidden flex flex-col h-full`}>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary-500/10 rounded-full blur-2xl -mr-16 -mt-16 pointer-events-none" />
 
             <div className={`flex relative z-10 h-full ${isXL ? 'flex-row items-center gap-12' : 'flex-col'}`}>
                 {/* Score Section */}
                 <div className={isXL ? 'min-w-[140px]' : 'mb-4'}>
-                    <h3 className="text-indigo-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 mb-1">
+                    <h3 className="text-primary-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 mb-1">
                         Live Audit
-                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary-500 animate-pulse" />
                     </h3>
                     <div className="flex items-baseline gap-1">
                         <span className={`${isXL ? 'text-5xl' : 'text-3xl'} font-black text-white`}>{percent}%</span>
@@ -140,7 +140,7 @@ export default function AuditDashboardWidget({ size }) {
                 {/* Main Progress/Graph Section */}
                 <div className="flex-grow">
                     <div className="w-full bg-gray-800 rounded-full h-1.5 overflow-hidden mb-3">
-                        <div className="bg-indigo-500 h-full transition-all duration-1000" style={{ width: `${percent}%` }} />
+                        <div className="bg-primary-500 h-full transition-all duration-1000" style={{ width: `${percent}%` }} />
                     </div>
 
                     {isXL ? (
@@ -184,7 +184,7 @@ export default function AuditDashboardWidget({ size }) {
                         </div>
                     )}
 
-                    <button onClick={() => navigate('/audit')} className={`w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-black uppercase tracking-widest text-[10px] transition-all active:scale-95 shadow-lg shadow-indigo-900/20`}>
+                    <button onClick={() => navigate('/audit')} className={`w-full py-2.5 bg-primary-600 hover:bg-primary-500 text-white rounded-xl font-black uppercase tracking-widest text-[10px] transition-all active:scale-95 shadow-lg shadow-primary-900/20`}>
                         {isXL ? 'Open Full Report' : 'Resume Audit →'}
                     </button>
                     {isXL && (

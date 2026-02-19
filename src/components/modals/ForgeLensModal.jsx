@@ -499,8 +499,8 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection', decks 
                 {/* Header */}
                 <div className="px-4 py-4 md:px-10 md:py-8 border-b border-white/5 flex flex-col md:flex-row justify-between items-center bg-white/5 shrink-0 relative z-10 gap-4 md:gap-0">
                     <div className="flex items-center gap-6 w-full md:w-auto">
-                        <div className="w-14 h-14 bg-indigo-500/20 rounded-2xl flex items-center justify-center border border-indigo-500/30 shadow-inner backdrop-blur-sm shrink-0">
-                            <Camera className="w-8 h-8 text-indigo-400" />
+                        <div className="w-14 h-14 bg-primary-500/20 rounded-2xl flex items-center justify-center border border-primary-500/30 shadow-inner backdrop-blur-sm shrink-0">
+                            <Camera className="w-8 h-8 text-primary-400" />
                         </div>
                         <div>
                             <h2 className="text-lg font-black text-white tracking-tight italic uppercase">Forge Lens</h2>
@@ -512,7 +512,7 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection', decks 
                         <div className="flex gap-2">
                             <button
                                 onClick={() => setView('scanning')}
-                                className={`px-4 py-2 md:py-1.5 rounded-full text-xs font-bold transition-all ${view === 'scanning' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'bg-gray-800 text-gray-400'}`}
+                                className={`px-4 py-2 md:py-1.5 rounded-full text-xs font-bold transition-all ${view === 'scanning' ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/20' : 'bg-gray-800 text-gray-400'}`}
                             >
                                 Scan
                             </button>
@@ -524,7 +524,7 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection', decks 
                                         addToast("Batch Review is a Magician+ feature. Upgrade to review all at once!", "info");
                                     }
                                 }}
-                                className={`px-4 py-2 md:py-1.5 rounded-full text-xs font-bold transition-all relative ${view === 'review' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'bg-gray-800 text-gray-400'}`}
+                                className={`px-4 py-2 md:py-1.5 rounded-full text-xs font-bold transition-all relative ${view === 'review' ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/20' : 'bg-gray-800 text-gray-400'}`}
                             >
                                 <div className="flex items-center gap-1.5">
                                     {!tierConfig.features.batchScan && <Lock className="w-3 h-3 text-orange-400" />}
@@ -540,7 +540,7 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection', decks 
 
                         <button
                             onClick={() => setIsRemoteMode(!isRemoteMode)}
-                            className={`flex items-center gap-2 px-3 md:px-4 py-2 md:py-1.5 rounded-full text-xs font-bold transition-all ${isRemoteMode ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30' : 'bg-gray-800 text-gray-400'}`}
+                            className={`flex items-center gap-2 px-3 md:px-4 py-2 md:py-1.5 rounded-full text-xs font-bold transition-all ${isRemoteMode ? 'bg-primary-600/20 text-primary-400 border border-primary-500/30' : 'bg-gray-800 text-gray-400'}`}
                             title="Remote Camera"
                         >
                             <Smartphone className="w-4 h-4" />
@@ -592,12 +592,12 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection', decks 
                                 {/* Overlays */}
                                 <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center">
                                     {/* Region Guides */}
-                                    <div className="w-[90%] h-[20%] border-2 border-indigo-500/50 bg-indigo-500/5 rounded-xl relative shadow-[0_0_100px_rgba(99,102,241,0.1)]">
+                                    <div className="w-[90%] h-[20%] border-2 border-primary-500/50 bg-primary-500/5 rounded-xl relative shadow-[0_0_100px_rgba(99,102,241,0.1)]">
                                         {/* Corner Brackets */}
-                                        <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-indigo-400 rounded-tl-lg" />
-                                        <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-indigo-400 rounded-tr-lg" />
-                                        <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-indigo-400 rounded-bl-lg" />
-                                        <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-indigo-400 rounded-br-lg" />
+                                        <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-primary-400 rounded-tl-lg" />
+                                        <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-primary-400 rounded-tr-lg" />
+                                        <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-primary-400 rounded-bl-lg" />
+                                        <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-primary-400 rounded-br-lg" />
 
                                         {/* Status Text Bar */}
                                         <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 w-full text-center whitespace-nowrap">
@@ -606,7 +606,7 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection', decks 
                                                     <RefreshCw className="w-3 h-3 animate-spin" /> Wake up AI engine...
                                                 </div>
                                             ) : isProcessing ? (
-                                                <div className="bg-indigo-600 text-white text-[10px] px-4 py-1.5 rounded-full shadow-lg animate-pulse uppercase font-black mx-auto w-fit">
+                                                <div className="bg-primary-600 text-white text-[10px] px-4 py-1.5 rounded-full shadow-lg animate-pulse uppercase font-black mx-auto w-fit">
                                                     Analyzing Image...
                                                 </div>
                                             ) : lastDetection?.success ? (
@@ -677,10 +677,10 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection', decks 
                                         <button
                                             onClick={captureAndProcess}
                                             disabled={isProcessing || !isWorkerReady}
-                                            className="w-20 h-20 bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-full flex items-center justify-center shadow-2xl shadow-indigo-500/30 transition-all active:scale-90 relative group ring-4 ring-white/5"
+                                            className="w-20 h-20 bg-primary-600 hover:bg-primary-500 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-full flex items-center justify-center shadow-2xl shadow-primary-500/30 transition-all active:scale-90 relative group ring-4 ring-white/5"
                                         >
                                             {isProcessing ? <RefreshCw className="w-8 h-8 animate-spin" /> : <Camera className="w-8 h-8" />}
-                                            <span className="absolute -bottom-10 whitespace-nowrap text-[10px] font-black uppercase tracking-widest text-gray-500 group-hover:text-indigo-400 transition-colors">Capture Card</span>
+                                            <span className="absolute -bottom-10 whitespace-nowrap text-[10px] font-black uppercase tracking-widest text-gray-500 group-hover:text-primary-400 transition-colors">Capture Card</span>
                                         </button>
                                     </>
                                 )}
@@ -717,7 +717,7 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection', decks 
                                         title="Upload Image"
                                     >
                                         <Upload className="w-6 h-6" />
-                                        <span className="absolute -bottom-10 whitespace-nowrap text-[10px] font-black uppercase tracking-widest text-gray-600 group-hover:text-indigo-400 transition-colors">Upload File</span>
+                                        <span className="absolute -bottom-10 whitespace-nowrap text-[10px] font-black uppercase tracking-widest text-gray-600 group-hover:text-primary-400 transition-colors">Upload File</span>
                                     </button>
                                 )}
                             </div>
@@ -748,7 +748,7 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection', decks 
                                     <p className="text-gray-500 text-sm max-w-xs">Return to the scan view and aim your camera at a card to get started.</p>
                                     <button
                                         onClick={() => setView('scanning')}
-                                        className="mt-6 px-6 py-2 bg-indigo-600 text-white rounded-xl font-bold"
+                                        className="mt-6 px-6 py-2 bg-primary-600 text-white rounded-xl font-bold"
                                     >
                                         Go Back to Scan
                                     </button>
@@ -780,7 +780,7 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection', decks 
                                                             <select
                                                                 value={card.scryfall_id}
                                                                 onChange={(e) => handleSwitchVariant(card.id, e.target.value)}
-                                                                className="bg-gray-800 border border-white/10 rounded-lg px-2 py-1 text-xs text-white outline-none focus:ring-1 focus:ring-indigo-500 truncate"
+                                                                className="bg-gray-800 border border-white/10 rounded-lg px-2 py-1 text-xs text-white outline-none focus:ring-1 focus:ring-primary-500 truncate"
                                                             >
                                                                 {card.variants?.map(v => (
                                                                     <option key={v.id} value={v.id}>
@@ -870,7 +870,7 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection', decks 
                                             setDestination({ type: 'user', id: uId, name: u?.name || 'Friend' });
                                         }
                                     }}
-                                    className="bg-gray-800 text-indigo-400 text-xs font-bold py-1 pl-2 pr-6 rounded border border-gray-700 focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer hover:bg-gray-700 transition-colors max-w-[150px] truncate"
+                                    className="bg-gray-800 text-primary-400 text-xs font-bold py-1 pl-2 pr-6 rounded border border-gray-700 focus:outline-none focus:border-primary-500 appearance-none cursor-pointer hover:bg-gray-700 transition-colors max-w-[150px] truncate"
                                 >
                                     <option value="collection">My Collection</option>
                                     <optgroup label="My Decks">
@@ -903,7 +903,7 @@ const ForgeLensModal = ({ isOpen, onClose, onFinish, mode = 'collection', decks 
                         <button
                             onClick={handleConfirmAll}
                             disabled={scannedCards.length === 0}
-                            className={`px-10 py-3 rounded-2xl font-black text-sm transition-all shadow-xl active:scale-95 flex items-center gap-2 ${scannedCards.length > 0 ? 'bg-indigo-600 text-white shadow-indigo-900/40' : 'bg-gray-800 text-gray-600 cursor-not-allowed'}`}
+                            className={`px-10 py-3 rounded-2xl font-black text-sm transition-all shadow-xl active:scale-95 flex items-center gap-2 ${scannedCards.length > 0 ? 'bg-primary-600 text-white shadow-primary-900/40' : 'bg-gray-800 text-gray-600 cursor-not-allowed'}`}
                         >
                             <Check className="w-4 h-4" /> {mode === 'audit' ? 'Apply to Audit' : 'Add to Collection'}
                         </button>

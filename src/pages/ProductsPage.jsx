@@ -238,7 +238,7 @@ const ProductsPage = () => {
                         <section key={category}>
                             <div className="flex items-center gap-3 mb-8">
                                 <h2 className="text-2xl font-black text-white flex items-center gap-2">
-                                    <span className="text-indigo-400">
+                                    <span className="text-primary-400">
                                         {category === 'Sealed' ? '📦' :
                                             category === 'Commander' ? '⚔️' : '✨'}
                                     </span>
@@ -287,7 +287,7 @@ const ProductsPage = () => {
                     <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter mb-6 drop-shadow-2xl">
                         OFFICIAL <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500">STORE</span>
                     </h1>
-                    <p className="text-gray-300 text-xl max-w-2xl mx-auto leading-relaxed border-l-4 border-indigo-500 pl-6 text-left md:text-center md:border-none md:pl-0">
+                    <p className="text-gray-300 text-xl max-w-2xl mx-auto leading-relaxed border-l-4 border-primary-500 pl-6 text-left md:text-center md:border-none md:pl-0">
                         Browse our curated selection of sealed product, commander decks, and essential accessories.
                     </p>
                 </div>
@@ -297,11 +297,11 @@ const ProductsPage = () => {
                     <div className="flex flex-col md:flex-row gap-4 justify-between items-center max-w-7xl mx-auto px-4">
                         {/* Search */}
                         <div className="relative w-full md:w-96 group">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 group-focus-within:text-indigo-400 transition-colors" />
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 group-focus-within:text-primary-400 transition-colors" />
                             <input
                                 type="text"
                                 placeholder="Search the store..."
-                                className="w-full bg-gray-900/50 border border-gray-700 rounded-2xl pl-12 pr-4 py-3 text-white focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all placeholder-gray-600"
+                                className="w-full bg-gray-900/50 border border-gray-700 rounded-2xl pl-12 pr-4 py-3 text-white focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 outline-none transition-all placeholder-gray-600"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
@@ -316,7 +316,7 @@ const ProductsPage = () => {
                                     className={`
                                         px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all border
                                         ${selectedCategory === cat
-                                            ? 'bg-indigo-600 text-white border-indigo-400 shadow-[0_0_20px_rgba(79,70,229,0.3)]'
+                                            ? 'bg-primary-600 text-white border-primary-400 shadow-[0_0_20px_rgba(79,70,229,0.3)]'
                                             : 'bg-gray-800/50 text-gray-400 border-gray-700 hover:bg-gray-700 hover:text-white hover:border-gray-600'}
                                     `}
                                 >

@@ -91,10 +91,10 @@ const CreateTradeModal = ({ isOpen, onClose, onCreated, preselectedPartnerId = n
                                         <button
                                             key={friend.id}
                                             onClick={() => setSelectedFriend(friend)}
-                                            className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${selectedFriend?.id === friend.id ? 'bg-indigo-900/30 border-indigo-500 text-white' : 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-750'}`}
+                                            className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${selectedFriend?.id === friend.id ? 'bg-primary-900/30 border-primary-500 text-white' : 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-750'}`}
                                         >
                                             <span className="font-bold">{friend.username}</span>
-                                            {selectedFriend?.id === friend.id && <span className="text-indigo-400">Selected</span>}
+                                            {selectedFriend?.id === friend.id && <span className="text-primary-400">Selected</span>}
                                         </button>
                                     ))
                                 )}
@@ -105,7 +105,7 @@ const CreateTradeModal = ({ isOpen, onClose, onCreated, preselectedPartnerId = n
                                 <textarea
                                     value={notes}
                                     onChange={e => setNotes(e.target.value)}
-                                    className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-indigo-500 outline-none resize-none h-24"
+                                    className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-primary-500 outline-none resize-none h-24"
                                     placeholder="Hey, interested in trading?"
                                 />
                             </div>
@@ -115,7 +115,7 @@ const CreateTradeModal = ({ isOpen, onClose, onCreated, preselectedPartnerId = n
                                 <button
                                     onClick={handleCreate}
                                     disabled={!selectedFriend || loading}
-                                    className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-bold shadow-lg shadow-indigo-500/20"
+                                    className="px-6 py-2 bg-primary-600 hover:bg-primary-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-bold shadow-lg shadow-primary-500/20"
                                 >
                                     {loading ? 'Creating...' : 'Start Trade'}
                                 </button>

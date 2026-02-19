@@ -12,9 +12,9 @@ const AccessControlGuideModal = ({ isOpen, onClose }) => {
             <div className="bg-gray-900 border border-white/10 rounded-2xl w-full max-w-3xl relative z-10 shadow-2xl overflow-hidden animate-fade-in-up flex flex-col max-h-[90vh]">
 
                 {/* Header */}
-                <div className="p-6 border-b border-white/5 bg-gradient-to-r from-indigo-900 to-gray-900 flex justify-between items-center">
+                <div className="p-6 border-b border-white/5 bg-gradient-to-r from-primary-900 to-gray-900 flex justify-between items-center">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 bg-indigo-500/20 rounded-lg text-indigo-400">
+                        <div className="p-2 bg-primary-500/20 rounded-lg text-primary-400">
                             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
                         </div>
                         <div>
@@ -55,7 +55,7 @@ const AccessControlGuideModal = ({ isOpen, onClose }) => {
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="bg-gray-800/50 p-4 rounded-xl border border-gray-700">
-                                <span className="text-indigo-400 font-black uppercase text-xs tracking-wider">Default</span>
+                                <span className="text-primary-400 font-black uppercase text-xs tracking-wider">Default</span>
                                 <h4 className="text-white font-bold text-lg mb-2">Viewer</h4>
                                 <ul className="space-y-2 text-sm text-gray-400">
                                     <li className="flex gap-2"><span className="text-green-400">✓</span> View Private Decks</li>
@@ -116,7 +116,7 @@ const AccessControlGuideModal = ({ isOpen, onClose }) => {
                 <div className="p-6 bg-gray-950 border-t border-white/5 flex justify-end">
                     <button
                         onClick={onClose}
-                        className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors font-bold text-sm shadow-lg"
+                        className="px-6 py-2 bg-primary-600 hover:bg-primary-500 text-white rounded-lg transition-colors font-bold text-sm shadow-lg"
                     >
                         Got it, thanks!
                     </button>

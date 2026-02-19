@@ -35,7 +35,7 @@ const OperatorSelect = ({ value, onChange }) => {
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-2 px-3 py-3 bg-gray-900/50 hover:bg-gray-800 text-indigo-400 font-bold rounded-l-xl border-r border-white/10 transition-colors min-w-[50px] justify-center"
+                className="flex items-center gap-2 px-3 py-3 bg-gray-900/50 hover:bg-gray-800 text-primary-400 font-bold rounded-l-xl border-r border-white/10 transition-colors min-w-[50px] justify-center"
             >
                 {selected.label}
                 <svg className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
@@ -50,7 +50,7 @@ const OperatorSelect = ({ value, onChange }) => {
                                 onChange(opt.value);
                                 setIsOpen(false);
                             }}
-                            className={`w-full px-4 py-2 text-left text-sm font-bold transition-colors ${value === opt.value ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
+                            className={`w-full px-4 py-2 text-left text-sm font-bold transition-colors ${value === opt.value ? 'bg-primary-600 text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
                         >
                             {opt.label}
                         </button>
@@ -322,8 +322,8 @@ const CardSearchModal = ({ isOpen, onClose, onAddCard, onOpenForgeLens }) => {
                 <div className="px-6 py-5 border-b border-white/5 flex justify-between items-center bg-white/5 flex-shrink-0">
                     <div>
                         <h2 className="text-xl font-black text-white flex items-center gap-3">
-                            <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Card Library</span>
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/10 text-indigo-300 uppercase tracking-wider border border-indigo-500/20 shadow-[0_0_10px_rgba(99,102,241,0.2)]">
+                            <span className="bg-gradient-to-r from-primary-400 to-purple-400 bg-clip-text text-transparent">Card Library</span>
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-primary-500/10 text-primary-300 uppercase tracking-wider border border-primary-500/20 shadow-[0_0_10px_rgba(99,102,241,0.2)]">
                                 Database
                             </span>
                         </h2>
@@ -337,7 +337,7 @@ const CardSearchModal = ({ isOpen, onClose, onAddCard, onOpenForgeLens }) => {
                                 <select
                                     value={targetUserId || ''}
                                     onChange={(e) => setTargetUserId(e.target.value || null)}
-                                    className="bg-transparent text-xs text-white focus:outline-none font-bold cursor-pointer hover:text-indigo-300 transition-colors"
+                                    className="bg-transparent text-xs text-white focus:outline-none font-bold cursor-pointer hover:text-primary-300 transition-colors"
                                 >
                                     <option value="" className="bg-gray-900">My Collection</option>
                                     {writableCollections.map(c => (
@@ -358,10 +358,10 @@ const CardSearchModal = ({ isOpen, onClose, onAddCard, onOpenForgeLens }) => {
                 {/* Forge Lens Promo Bar - Sleek & Glassy */}
                 {onOpenForgeLens && (
                     <div className="relative overflow-hidden group">
-                        <div className="absolute inset-0 bg-gradient-to-r from-indigo-600/20 via-purple-600/20 to-indigo-600/20 opacity-50 blur-xl group-hover:opacity-75 transition-opacity"></div>
+                        <div className="absolute inset-0 bg-gradient-to-r from-primary-600/20 via-purple-600/20 to-primary-600/20 opacity-50 blur-xl group-hover:opacity-75 transition-opacity"></div>
                         <div className="relative px-6 py-2 border-b border-white/5 flex items-center justify-between bg-white/5 backdrop-blur-sm">
                             <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-300 shadow-[0_0_15px_rgba(99,102,241,0.3)]">
+                                <div className="w-8 h-8 rounded-lg bg-primary-500/20 flex items-center justify-center text-primary-300 shadow-[0_0_15px_rgba(99,102,241,0.3)]">
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg>
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -372,7 +372,7 @@ const CardSearchModal = ({ isOpen, onClose, onAddCard, onOpenForgeLens }) => {
                             </div>
                             <button
                                 onClick={onOpenForgeLens}
-                                className="px-5 py-1.5 bg-indigo-500/20 hover:bg-indigo-500/30 hover:text-white text-indigo-300 border border-indigo-500/30 rounded-lg font-bold text-[10px] uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(99,102,241,0.1)] hover:shadow-[0_0_20px_rgba(99,102,241,0.3)] flex items-center gap-2"
+                                className="px-5 py-1.5 bg-primary-500/20 hover:bg-primary-500/30 hover:text-white text-primary-300 border border-primary-500/30 rounded-lg font-bold text-[10px] uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(99,102,241,0.1)] hover:shadow-[0_0_20px_rgba(99,102,241,0.3)] flex items-center gap-2"
                             >
                                 <span>Launch Scanner</span>
                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
@@ -393,7 +393,7 @@ const CardSearchModal = ({ isOpen, onClose, onAddCard, onOpenForgeLens }) => {
                                         ref={inputRef}
                                         type="text"
                                         placeholder="Search cards..."
-                                        className="w-full bg-white/5 text-white border border-white/10 rounded-xl py-4 px-6 pl-14 pr-12 text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all placeholder-gray-500 backdrop-blur-sm"
+                                        className="w-full bg-white/5 text-white border border-white/10 rounded-xl py-4 px-6 pl-14 pr-12 text-lg focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all placeholder-gray-500 backdrop-blur-sm"
                                         value={query}
                                         onChange={(e) => {
                                             setQuery(e.target.value);
@@ -444,7 +444,7 @@ const CardSearchModal = ({ isOpen, onClose, onAddCard, onOpenForgeLens }) => {
                                     id="card-search-advanced-toggle"
                                     type="button"
                                     onClick={() => setShowAdvanced(!showAdvanced)}
-                                    className={`px-6 rounded-2xl border border-white/10 flex items-center gap-2 font-bold transition-all ${showAdvanced ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-gray-950 text-gray-400 hover:text-white hover:bg-gray-800'}`}
+                                    className={`px-6 rounded-2xl border border-white/10 flex items-center gap-2 font-bold transition-all ${showAdvanced ? 'bg-primary-600 text-white border-primary-500' : 'bg-gray-950 text-gray-400 hover:text-white hover:bg-gray-800'}`}
                                 >
                                     <FunnelIcon className="w-5 h-5" />
                                     Advanced Search
@@ -453,7 +453,7 @@ const CardSearchModal = ({ isOpen, onClose, onAddCard, onOpenForgeLens }) => {
                                 <button
                                     type="submit"
                                     disabled={loading}
-                                    className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3 rounded-2xl text-lg font-bold transition-all disabled:opacity-50 min-w-[120px] shadow-lg shadow-indigo-500/20 active:scale-95 border border-indigo-500/50"
+                                    className="bg-primary-600 hover:bg-primary-500 text-white px-8 py-3 rounded-2xl text-lg font-bold transition-all disabled:opacity-50 min-w-[120px] shadow-lg shadow-primary-500/20 active:scale-95 border border-primary-500/50"
                                 >
                                     {loading ? 'Searching...' : 'Search'}
                                 </button>
@@ -491,7 +491,7 @@ const CardSearchModal = ({ isOpen, onClose, onAddCard, onOpenForgeLens }) => {
                                                             key={l}
                                                             type="button"
                                                             onClick={() => setColorLogic(l)}
-                                                            className={`px-3 py-1 rounded-md text-[10px] font-black uppercase transition-all ${colorLogic === l ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:text-gray-300'}`}
+                                                            className={`px-3 py-1 rounded-md text-[10px] font-black uppercase transition-all ${colorLogic === l ? 'bg-primary-600 text-white' : 'text-gray-500 hover:text-gray-300'}`}
                                                         >
                                                             {l}
                                                         </button>
@@ -509,7 +509,7 @@ const CardSearchModal = ({ isOpen, onClose, onAddCard, onOpenForgeLens }) => {
                                                         key={r}
                                                         type="button"
                                                         onClick={() => toggleRarity(r)}
-                                                        className={`px-3 py-1.5 rounded-lg border text-xs font-bold uppercase transition-all ${rarities.includes(r) ? 'bg-indigo-500/20 border-indigo-500 text-indigo-300' : 'bg-gray-900 border-white/10 text-gray-500 hover:text-gray-300'}`}
+                                                        className={`px-3 py-1.5 rounded-lg border text-xs font-bold uppercase transition-all ${rarities.includes(r) ? 'bg-primary-500/20 border-primary-500 text-primary-300' : 'bg-gray-900 border-white/10 text-gray-500 hover:text-gray-300'}`}
                                                     >
                                                         {r.charAt(0)}
                                                     </button>
@@ -521,11 +521,11 @@ const CardSearchModal = ({ isOpen, onClose, onAddCard, onOpenForgeLens }) => {
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider ml-1">Type</label>
-                                            <input type="text" placeholder="Creature, Artifact..." className="w-full bg-gray-900 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:border-indigo-500 outline-none" value={type} onChange={e => setType(e.target.value)} />
+                                            <input type="text" placeholder="Creature, Artifact..." className="w-full bg-gray-900 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:border-primary-500 outline-none" value={type} onChange={e => setType(e.target.value)} />
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider ml-1">Text</label>
-                                            <input type="text" placeholder="Rules text..." className="w-full bg-gray-900 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:border-indigo-500 outline-none" value={oracleText} onChange={e => setOracleText(e.target.value)} />
+                                            <input type="text" placeholder="Rules text..." className="w-full bg-gray-900 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:border-primary-500 outline-none" value={oracleText} onChange={e => setOracleText(e.target.value)} />
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider ml-1">Mana Value</label>
@@ -537,11 +537,11 @@ const CardSearchModal = ({ isOpen, onClose, onAddCard, onOpenForgeLens }) => {
                                         <div className="flex gap-2">
                                             <div className="space-y-2 flex-1">
                                                 <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider ml-1">Set</label>
-                                                <input type="text" placeholder="ABC" maxLength={5} className="w-full bg-gray-900 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:border-indigo-500 outline-none uppercase" value={setCode} onChange={e => setSetCode(e.target.value)} />
+                                                <input type="text" placeholder="ABC" maxLength={5} className="w-full bg-gray-900 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:border-primary-500 outline-none uppercase" value={setCode} onChange={e => setSetCode(e.target.value)} />
                                             </div>
                                             <div className="space-y-2 flex-1">
                                                 <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider ml-1">CN</label>
-                                                <input type="text" placeholder="#" className="w-full bg-gray-900 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:border-indigo-500 outline-none" value={collectorNumber} onChange={e => setCollectorNumber(e.target.value)} />
+                                                <input type="text" placeholder="#" className="w-full bg-gray-900 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:border-primary-500 outline-none" value={collectorNumber} onChange={e => setCollectorNumber(e.target.value)} />
                                             </div>
                                         </div>
                                     </div>

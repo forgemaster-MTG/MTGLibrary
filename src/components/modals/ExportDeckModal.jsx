@@ -166,7 +166,7 @@ const ExportDeckModal = ({ isOpen, onClose, deck, cards }) => {
                 {/* Header */}
                 <div className="px-6 py-4 border-b border-white/5 bg-white/5 flex items-center justify-between">
                     <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                        <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                        <svg className="w-5 h-5 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                         Export Deck
                     </h3>
                     <button
@@ -192,15 +192,15 @@ const ExportDeckModal = ({ isOpen, onClose, deck, cards }) => {
                                     key={opt.id}
                                     onClick={() => setFormat(opt.id)}
                                     className={`flex items-start gap-4 p-3 rounded-xl border text-left transition-all ${format === opt.id
-                                            ? 'bg-indigo-600/20 border-indigo-500 text-white'
+                                            ? 'bg-primary-600/20 border-primary-500 text-white'
                                             : 'bg-gray-800/50 border-gray-700 text-gray-400 hover:bg-gray-800'
                                         }`}
                                 >
-                                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 mt-0.5 ${format === opt.id ? 'border-indigo-400' : 'border-gray-600'}`}>
-                                        {format === opt.id && <div className="w-2 h-2 rounded-full bg-indigo-400" />}
+                                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 mt-0.5 ${format === opt.id ? 'border-primary-400' : 'border-gray-600'}`}>
+                                        {format === opt.id && <div className="w-2 h-2 rounded-full bg-primary-400" />}
                                     </div>
                                     <div>
-                                        <div className={`font-bold text-sm ${format === opt.id ? 'text-indigo-300' : 'text-gray-300'}`}>{opt.label}</div>
+                                        <div className={`font-bold text-sm ${format === opt.id ? 'text-primary-300' : 'text-gray-300'}`}>{opt.label}</div>
                                         <div className="text-xs opacity-70 mt-0.5">{opt.desc}</div>
                                     </div>
                                 </button>
@@ -220,7 +220,7 @@ const ExportDeckModal = ({ isOpen, onClose, deck, cards }) => {
                     <button
                         onClick={handleExport}
                         disabled={isExporting}
-                        className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold rounded-lg shadow-lg shadow-indigo-900/40 transition-all flex items-center gap-2"
+                        className="px-6 py-2 bg-primary-600 hover:bg-primary-500 text-white text-sm font-bold rounded-lg shadow-lg shadow-primary-900/40 transition-all flex items-center gap-2"
                     >
                         {isExporting ? (
                             <>
