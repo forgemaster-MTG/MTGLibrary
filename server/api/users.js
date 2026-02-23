@@ -20,6 +20,7 @@ router.get('/', authMiddleware, async (req, res) => {
         'users.firestore_id',
         'users.email',
         'users.username',
+        'users.contact_email',
         'users.settings',
         'users.data',
         'users.subscription_tier',

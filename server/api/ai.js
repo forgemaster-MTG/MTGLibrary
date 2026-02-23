@@ -49,7 +49,7 @@ router.post('/generate', async (req, res) => {
         // Allow apiVersion override but default to v1beta
         const url = `https://generativelanguage.googleapis.com/${apiVersion}/models/${model}:${method}?key=${API_KEY}`;
 
-        // console.log(`[AI Proxy] Forwarding request to ${model}:${method}`);
+        console.log(`[AI Proxy] Forwarding request: POST ${url.replace(API_KEY, 'HIDDEN_KEY')}`);
 
         const response = await fetch(url, {
             method: 'POST',
@@ -59,7 +59,19 @@ router.post('/generate', async (req, res) => {
             body: JSON.stringify(data)
         });
 
-        const responseData = await response.json();
+        let responseData;
+        const responseText = await response.text();
+
+        try {
+            responseData = JSON.parse(responseText);
+        } catch (e) {
+            console.error('[AI Proxy] Upstream returned non-JSON response:', response.status, responseText);
+            return res.status(response.status).json({
+                error: 'Upstream API Error',
+                details: responseText || 'No response body',
+                status: response.status
+            });
+        }
 
         if (!response.ok) {
             console.error('[AI Proxy] Upstream Error:', response.status, JSON.stringify(responseData));
@@ -70,26 +82,28 @@ router.post('/generate', async (req, res) => {
         let cost = 0;
         let finalCredits = null;
 
-        if (responseData.usageMetadata) {
-            const { totalTokenCount = 0 } = responseData.usageMetadata;
+        // Special handling for high-cost operations like Image Generation (Imagen)
+        const isImageGen = model.toLowerCase().includes('imagen');
 
+        if (isImageGen) {
+            cost = 5000; // Fixed cost for image generation
+        } else if (responseData.usageMetadata) {
+            const { totalTokenCount = 0 } = responseData.usageMetadata;
             // Get rate
             const config = await PricingService.getConfig();
             const exchangeRate = config.assumptions?.exchangeRate || 15; // Default 15 credits per token
-
             cost = Math.ceil(totalTokenCount * exchangeRate);
+        }
 
-            if (cost > 0) {
-                try {
-                    const result = await CreditService.deductCredits(req.user.id, cost, `AI: ${method}`, {
-                        model: model,
-                        token_count: totalTokenCount,
-                        api_version: apiVersion
-                    });
-                    finalCredits = result;
-                } catch (err) {
-                    console.error('[AI Proxy] Failed to deduct credits:', err);
-                }
+        if (cost > 0) {
+            try {
+                const result = await CreditService.deductCredits(req.user.id, cost, `AI: ${method} (${model})`, {
+                    model: model,
+                    api_version: apiVersion
+                });
+                finalCredits = result;
+            } catch (err) {
+                console.error('[AI Proxy] Failed to deduct credits:', err);
             }
         }
 

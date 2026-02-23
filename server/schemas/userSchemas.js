@@ -6,6 +6,7 @@ export const userUpdateSchema = z.object({
     username: z.string().min(2).optional(),
     first_name: z.string().optional(),
     last_name: z.string().optional(),
+    contact_email: z.string().email().optional().or(z.literal('')),
     is_public_library: z.boolean().optional(),
     // Settings and Data are free-form JSONB columns, but we can enforce object type
     settings: z.record(z.any()).optional(),

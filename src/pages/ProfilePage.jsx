@@ -8,6 +8,7 @@ import { communityService } from '../services/communityService';
 import { archetypeService } from '../services/ArchetypeService';
 import ArchetypeBadge from '../components/profile/ArchetypeBadge';
 import PlaystyleWidget from '../components/profile/PlaystyleWidget';
+import ProfileShareModal from '../components/modals/ProfileShareModal';
 import { getTierConfig } from '../config/tiers';
 
 const ProfilePage = () => {
@@ -20,6 +21,7 @@ const ProfilePage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [actionLoading, setActionLoading] = useState(false);
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
     const fetchProfileData = async () => {
         try {
@@ -184,6 +186,14 @@ const ProfilePage = () => {
 
                     {/* Action Buttons */}
                     <div className="flex flex-wrap gap-3 pb-4 justify-center md:justify-end min-w-[200px]">
+                        <button
+                            onClick={() => setIsShareModalOpen(true)}
+                            className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-semibold border border-slate-600 transition-all hover:shadow-lg flex items-center gap-2"
+                        >
+                            <Share2 className="w-4 h-4 text-primary-500" />
+                            Share Profile
+                        </button>
+
                         {userProfile?.id === profile.id ? (
                             <button
                                 onClick={() => navigate('/settings')}
@@ -295,6 +305,14 @@ const ProfilePage = () => {
                     </div>
                 </div>
             </div>
+
+            <ProfileShareModal
+                isOpen={isShareModalOpen}
+                onClose={() => setIsShareModalOpen(false)}
+                profile={profile}
+                archetype={archetype}
+                decksCount={decks.length}
+            />
         </div>
     );
 };

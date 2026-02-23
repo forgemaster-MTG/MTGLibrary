@@ -251,9 +251,10 @@ const GeminiService = {
         if (deadKeys.has(key)) continue;
 
         const methods = ["v1beta", "v1"];
+        const method = options.method || "generateContent";
         for (const apiVer of methods) {
           try {
-            const url = `https://generativelanguage.googleapis.com/${apiVer}/models/${model}:generateContent?key=${key}`;
+            const url = `https://generativelanguage.googleapis.com/${apiVer}/models/${model}:${method}?key=${key}`;
 
             // Deep copy to prevent reference pollution across versions/models
             let finalPayload = JSON.parse(JSON.stringify(payload));
@@ -313,7 +314,7 @@ const GeminiService = {
                 },
                 body: JSON.stringify({
                   model,
-                  method: "generateContent", // Default
+                  method,
                   apiVersion: apiVer,
                   data: finalPayload,
                 }),
@@ -446,6 +447,14 @@ const GeminiService = {
                 });
                 window.dispatchEvent(evt);
               }
+            }
+
+            // Handle PREDICT results (e.g. Imagen)
+            if (data.predictions) {
+              return {
+                predictions: data.predictions,
+                meta: { model }
+              };
             }
 
             const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -1492,6 +1501,57 @@ const GeminiService = {
       .replace(/```html/g, "")
       .replace(/```/g, "")
       .trim();
+  },
+
+  /**
+   * Generates a high-quality MTG-style avatar based on user profile.
+   */
+  async generateImagen(
+    username,
+    playstyle,
+    archetype,
+    referenceImageBase64 = null,
+    userProfile = null,
+  ) {
+    const prompt = `A high-quality MTG-style avatar for a player named ${username}. They have a ${playstyle || "balanced"} playstyle and their deck archetype is ${archetype || "Forge Traveler"}. Use the provided logo as a style reference for colors and branding. Design it to be a premium profile picture for a Magic: The Gathering platform.`;
+
+    // Standard Gemini generateImages payload structure
+    const payload = {
+      instances: [
+        {
+          prompt: prompt
+        }
+      ],
+      parameters: {
+        sampleCount: 1,
+      },
+    };
+
+    const runResponse = await this.executeWithFallback(payload, userProfile, {
+      models: ["imagen-4.0-fast-generate-001", "imagen-4.0-generate-001"],
+      method: "predict", // The correct method for these models on the generativelanguage API
+    });
+
+    if (
+      runResponse &&
+      runResponse.predictions &&
+      runResponse.predictions[0]?.bytesBase64Encoded
+    ) {
+      return `data:image/png;base64,${runResponse.predictions[0].bytesBase64Encoded}`;
+    }
+
+    // Handle standard generateImages response format if the above fails
+    if (
+      runResponse &&
+      runResponse.generatedImages &&
+      runResponse.generatedImages[0]?.image?.imageBytes
+    ) {
+      return `data:image/png;base64,${runResponse.generatedImages[0].image.imageBytes}`;
+    }
+
+    throw new Error(
+      "Failed to generate image: No valid prediction returned from AI.",
+    );
   },
 };
 

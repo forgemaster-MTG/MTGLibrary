@@ -22,7 +22,7 @@ class UserService {
             throw new AppError('Not authorized to update this user', 403);
         }
 
-        const { email, username, first_name, last_name, is_public_library, settings, data, lfg_status, agreed_to_terms_at, marketing_opt_in } = payload;
+        const { email, username, first_name, last_name, contact_email, is_public_library, settings, data, lfg_status, agreed_to_terms_at, marketing_opt_in } = payload;
 
         // Deep copy settings or init new
         let newSettings = settings ? { ...settings } : {};
@@ -54,22 +54,29 @@ class UserService {
         if (username !== undefined) updateData.username = username;
         if (first_name !== undefined) updateData.first_name = first_name;
         if (last_name !== undefined) updateData.last_name = last_name;
+        if (contact_email !== undefined) updateData.contact_email = contact_email;
 
-        // Settings Merging Logic
-        // We only really update settings if it's passed or public lib changed
+        // Fetch existing user to perform safe merge
+        const existingUser = await knex('users').where({ id: userId }).first();
+        if (!existingUser) throw new AppError('User not found', 404);
+
+        // --- Settings Merging Logic ---
         if (settings !== undefined || is_public_library !== undefined) {
-            if (!isAdmin && isSelf) {
-                // Protect critical fields
-                const existing = await knex('users').where({ id: userId }).first();
-                const existingSettings = existing.settings || {};
-                const safeSettings = { ...existingSettings, ...newSettings };
+            const currentSettings = existingUser.settings || {};
+            const mergedSettings = { ...currentSettings, ...newSettings };
 
-                safeSettings.isAdmin = existingSettings.isAdmin || false;
-                safeSettings.permissions = existingSettings.permissions || [];
-                updateData.settings = safeSettings;
-            } else {
-                updateData.settings = newSettings;
+            if (!isAdmin && isSelf) {
+                // Regular users cannot elevate their own permissions or admin status
+                mergedSettings.isAdmin = currentSettings.isAdmin || false;
+                mergedSettings.permissions = currentSettings.permissions || [];
             }
+            updateData.settings = mergedSettings;
+        }
+
+        // --- Data Merging Logic ---
+        if (data !== undefined) {
+            const currentData = existingUser.data || {};
+            updateData.data = { ...currentData, ...data };
         }
 
         // Referral Code Logic
@@ -77,10 +84,9 @@ class UserService {
             // Dynamic import to avoid circular dep if utils imports user service? (Unlikely but safe)
             const { processReferralSignup } = await import('../utils/referrals.js');
             await processReferralSignup(userId, data.referral_code);
-            delete data.referral_code;
+            // Result of merge above might still have referral_code in updateData.data
+            if (updateData.data) delete updateData.data.referral_code;
         }
-
-        if (data !== undefined) updateData.data = data;
 
         if (lfg_status !== undefined) {
             updateData.lfg_status = lfg_status;

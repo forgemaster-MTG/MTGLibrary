@@ -882,6 +882,7 @@ const AdminPanel = () => {
                                         <th className="py-3 px-4">Subscription</th>
                                         <th className="py-3 px-4 text-center">Admin</th>
                                         <th className="py-3 px-4 text-center">Ticket Mgr</th>
+                                        <th className="py-3 px-4 text-center text-pink-400">Features</th>
                                         <th className="py-3 px-4 text-center">Sync</th>
                                         <th className="py-3 px-4 text-right">Actions</th>
                                     </tr>
@@ -950,6 +951,17 @@ const AdminPanel = () => {
                                                     <button onClick={() => togglePermission(u, 'manage_tickets')} className={`w-8 h-4 rounded-full transition-colors relative ${isTicketMgr ? 'bg-green-600' : 'bg-gray-600'}`}>
                                                         <span className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform ${isTicketMgr ? 'translate-x-4' : 'translate-x-0'}`} />
                                                     </button>
+                                                </td>
+                                                {/* Features (Bypass) Column */}
+                                                <td className="py-3 px-4 text-center">
+                                                    {(() => {
+                                                        const isBypass = u.settings?.permissions?.includes('bypass_tier_limits');
+                                                        return (
+                                                            <button onClick={() => togglePermission(u, 'bypass_tier_limits')} className={`w-8 h-4 rounded-full transition-colors relative ${isBypass ? 'bg-pink-600' : 'bg-gray-600'}`}>
+                                                                <span className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform ${isBypass ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                            </button>
+                                                        );
+                                                    })()}
                                                 </td>
                                                 {/* Sync Column */}
                                                 <td className="py-3 px-4 text-center">

@@ -306,10 +306,31 @@ const UserManagement = () => {
                                             )}
                                         </td>
                                         <td className="py-2 px-4">
-                                            <div className="flex items-center justify-center gap-1.5 grayscale group-hover:grayscale-0 transition-all opacity-40 group-hover:opacity-100">
-                                                <div title="Admin" className={`w-2 h-2 rounded-full ${u.settings?.isAdmin ? 'bg-primary-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]' : 'bg-gray-800'}`}></div>
-                                                <div title="Staff" className={`w-2 h-2 rounded-full ${u.settings?.permissions?.includes('manage_tickets') ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-gray-800'}`}></div>
-                                                <div title="Bypass" className={`w-2 h-2 rounded-full ${u.settings?.permissions?.includes('bypass_tier_limits') ? 'bg-pink-500 shadow-[0_0_8px_rgba(236,72,153,0.5)]' : 'bg-gray-800'}`}></div>
+                                            <div className="flex items-center justify-center gap-2">
+                                                {/* Interactive Toggles */}
+                                                <button
+                                                    onClick={() => toggleAdmin(u)}
+                                                    title="Admin Status"
+                                                    className={`w-7 h-3.5 rounded-full transition-colors relative ${u.settings?.isAdmin ? 'bg-primary-600 shadow-[0_0_8px_rgba(99,102,241,0.4)]' : 'bg-gray-800 border border-gray-700'}`}
+                                                >
+                                                    <span className={`absolute top-0.5 left-0.5 w-2.5 h-2.5 bg-white rounded-full transition-transform ${u.settings?.isAdmin ? 'translate-x-3.5' : 'translate-x-0'}`} />
+                                                </button>
+
+                                                <button
+                                                    onClick={() => togglePermission(u, 'manage_tickets')}
+                                                    title="Staff / Ticket Mgr"
+                                                    className={`w-7 h-3.5 rounded-full transition-colors relative ${u.settings?.permissions?.includes('manage_tickets') ? 'bg-green-600 shadow-[0_0_8px_rgba(34,197,94,0.4)]' : 'bg-gray-800 border border-gray-700'}`}
+                                                >
+                                                    <span className={`absolute top-0.5 left-0.5 w-2.5 h-2.5 bg-white rounded-full transition-transform ${u.settings?.permissions?.includes('manage_tickets') ? 'translate-x-3.5' : 'translate-x-0'}`} />
+                                                </button>
+
+                                                <button
+                                                    onClick={() => togglePermission(u, 'bypass_tier_limits')}
+                                                    title="Bypass Features"
+                                                    className={`w-7 h-3.5 rounded-full transition-colors relative ${u.settings?.permissions?.includes('bypass_tier_limits') ? 'bg-pink-600 shadow-[0_0_8px_rgba(236,72,153,0.4)]' : 'bg-gray-800 border border-gray-700'}`}
+                                                >
+                                                    <span className={`absolute top-0.5 left-0.5 w-2.5 h-2.5 bg-white rounded-full transition-transform ${u.settings?.permissions?.includes('bypass_tier_limits') ? 'translate-x-3.5' : 'translate-x-0'}`} />
+                                                </button>
                                             </div>
                                         </td>
                                         <td className="py-2 px-6 text-right">

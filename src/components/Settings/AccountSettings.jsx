@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
 import Membership from '../Settings/Membership';
+import { Sparkles } from 'lucide-react';
+import { GeminiService } from '../../services/gemini';
+import { archetypeService } from '../../services/ArchetypeService';
 
 const AccountSettings = () => {
     const { user, userProfile, updateProfileFields, resetPassword, sendVerification } = useAuth();
@@ -12,20 +15,25 @@ const AccountSettings = () => {
     const [username, setUsername] = useState('');
     const [bio, setBio] = useState('');
     const [avatar, setAvatar] = useState('');
+    const [contactEmail, setContactEmail] = useState('');
     const [isPublic, setIsPublic] = useState(false);
 
     const [saving, setSaving] = useState(false);
     const [resetLoading, setResetLoading] = useState(false);
     const [verifyLoading, setVerifyLoading] = useState(false);
+    const [generatingAI, setGeneratingAI] = useState(false);
 
+    const initializedRef = React.useRef(null);
     useEffect(() => {
-        if (userProfile) {
+        if (userProfile && initializedRef.current !== userProfile.id) {
             setFirstName(userProfile.first_name || '');
             setLastName(userProfile.last_name || '');
             setUsername(userProfile.username || '');
             setBio(userProfile.data?.bio || '');
             setAvatar(userProfile.data?.avatar || '');
+            setContactEmail(userProfile.contact_email || '');
             setIsPublic(userProfile.is_public_library || userProfile.settings?.is_public_library || false);
+            initializedRef.current = userProfile.id;
         }
     }, [userProfile]);
 
@@ -34,9 +42,15 @@ const AccountSettings = () => {
         try {
             await updateProfileFields({
                 username,
+                contact_email: contactEmail,
                 first_name: firstName,
                 last_name: lastName,
                 is_public_library: isPublic,
+                settings: {
+                    ...(userProfile?.settings || {}),
+                    playstyle: userProfile?.settings?.playstyle || userProfile?.data?.playstyle,
+                    archetype: userProfile?.settings?.archetype || userProfile?.data?.organization?.mode
+                },
                 data: {
                     ...(userProfile?.data || {}),
                     bio,
@@ -62,6 +76,52 @@ const AccountSettings = () => {
             alert('Error: ' + error.message);
         } finally {
             setResetLoading(false);
+        }
+    };
+
+    const handleGenerateAIAvatar = async () => {
+        if (!confirm('Forging a new avatar costs approx. 5,000 AI credits. Proceed?')) return;
+
+        setGeneratingAI(true);
+        try {
+            // 1. Fetch Logo as base64
+            const logoResponse = await fetch('/logo.png');
+            const logoBlob = await logoResponse.blob();
+            const logoBase64 = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.readAsDataURL(logoBlob);
+            });
+
+            // 2. Fetch Collection & Analyze Archetype
+            const collectionData = await api.get('/api/collection');
+            const playstyle = userProfile?.data?.playstyle || 'Balanced';
+            const arch = archetypeService.analyze(collectionData?.cards || collectionData || []);
+            const archetypeTitle = arch?.title || 'Forge Traveler';
+
+            // 3. Generate Image
+            const generatedImage = await GeminiService.generateImagen(
+                username,
+                playstyle,
+                archetypeTitle,
+                logoBase64,
+                userProfile
+            );
+
+            // 4. Update Avatar State and save to profile
+            setAvatar(generatedImage);
+            await updateProfileFields({
+                data: {
+                    ...(userProfile?.data || {}),
+                    avatar: generatedImage
+                }
+            });
+            alert('Avatar forged successfully!');
+        } catch (error) {
+            console.error('Failed to generate avatar:', error);
+            alert('Error generating avatar: ' + (error.message || 'Unknown error'));
+        } finally {
+            setGeneratingAI(false);
         }
     };
 
@@ -117,15 +177,27 @@ const AccountSettings = () => {
                     </div>
                 </div>
 
-                <div className="space-y-1">
-                    <label className="text-sm text-gray-400 block">Username</label>
-                    <input
-                        type="text"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        placeholder="Enter username..."
-                        className="w-full bg-gray-900 border border-gray-700 p-2.5 rounded-lg text-gray-200 focus:ring-2 focus:ring-primary-500 outline-none"
-                    />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                        <label className="text-sm text-gray-400 block">Username</label>
+                        <input
+                            type="text"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            placeholder="Enter username..."
+                            className="w-full bg-gray-900 border border-gray-700 p-2.5 rounded-lg text-gray-200 focus:ring-2 focus:ring-primary-500 outline-none"
+                        />
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-sm text-gray-400 block">Contact Email</label>
+                        <input
+                            type="email"
+                            value={contactEmail}
+                            onChange={(e) => setContactEmail(e.target.value)}
+                            placeholder="your@email.com"
+                            className="w-full bg-gray-900 border border-gray-700 p-2.5 rounded-lg text-gray-200 focus:ring-2 focus:ring-primary-500 outline-none"
+                        />
+                    </div>
                 </div>
 
                 <div className="pt-6 border-t border-gray-700 space-y-4">
@@ -148,23 +220,40 @@ const AccountSettings = () => {
                     </div>
 
                     <div className="space-y-1">
-                        <label className="text-sm text-gray-400 block">Avatar URL</label>
-                        <div className="flex gap-4">
-                            <div className="flex-1">
-                                <input
-                                    type="text"
-                                    value={avatar}
-                                    onChange={(e) => setAvatar(e.target.value)}
-                                    placeholder="https://example.com/avatar.jpg"
-                                    className="w-full bg-gray-900 border border-gray-700 p-2.5 rounded-lg text-gray-200 focus:ring-2 focus:ring-primary-500 outline-none"
-                                />
-                            </div>
-                            <div className="w-10 h-10 rounded-full bg-gray-700 overflow-hidden flex-shrink-0 border border-gray-600">
-                                {avatar ? (
-                                    <img src={avatar} alt="Avatar Preview" className="w-full h-full object-cover" />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs">?</div>
-                                )}
+                        <label className="text-sm text-gray-400 block">Avatar</label>
+                        <div className="flex flex-col space-y-4">
+                            <div className="flex gap-4 items-center">
+                                <div className="w-16 h-16 rounded-full bg-gray-700 overflow-hidden flex-shrink-0 border-2 border-primary-500 shadow-lg shadow-primary-500/20">
+                                    {avatar ? (
+                                        <img src={avatar} alt="Avatar Preview" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-gray-500 text-xl font-bold">
+                                            {username?.charAt(0) || '?'}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex-1 space-y-2">
+                                    <input
+                                        type="text"
+                                        value={avatar}
+                                        onChange={(e) => setAvatar(e.target.value)}
+                                        placeholder="https://example.com/avatar.jpg"
+                                        className="w-full bg-gray-900 border border-gray-700 p-2.5 rounded-lg text-gray-200 focus:ring-2 focus:ring-primary-500 outline-none text-sm"
+                                    />
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={handleGenerateAIAvatar}
+                                            disabled={generatingAI}
+                                            className="flex-1 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white text-xs font-bold py-2 px-3 rounded flex items-center justify-center gap-2 transition-all shadow-lg shadow-orange-900/20 disabled:opacity-50"
+                                        >
+                                            <Sparkles className="w-3.5 h-3.5" />
+                                            {generatingAI ? 'Forging Avatar...' : 'Magic AI: Generate Avatar'}
+                                        </button>
+                                    </div>
+                                    <p className="text-[10px] text-gray-500 italic">
+                                        * AI Generation uses approx. 5,000 credits and references your playstyle & the Forge logo.
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>

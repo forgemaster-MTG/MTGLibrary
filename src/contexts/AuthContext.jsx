@@ -33,6 +33,7 @@ export const AuthProvider = ({ children }) => {
         },
         enabled: !!currentUser,
         staleTime: 1000 * 10,
+        refetchOnWindowFocus: false,
     });
 
     // Valid only for public pricing (no auth needed)
@@ -280,7 +281,6 @@ export const AuthProvider = ({ children }) => {
         logout,
         resetPassword,
         sendVerification,
-        updateProfileFields,
         updateProfileFields,
         uploadProfilePicture,
         pricingConfig
