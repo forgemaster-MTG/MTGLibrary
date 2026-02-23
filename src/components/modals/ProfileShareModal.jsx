@@ -230,8 +230,8 @@ const ProfileShareModal = ({ isOpen, onClose, profile, archetype, decksCount }) 
                                         {/* Top Branding Bar */}
                                         <div className="relative z-10 w-full flex items-center justify-center gap-2 pb-2 border-b border-white/5">
                                             <img src="/logo.png" alt="Forge" className="w-4 h-4" />
-                                            <span className="text-[10px] font-black uppercase tracking-[0.3em] italic bg-gradient-to-r from-[#fcd34d] via-[#f59e0b] to-[#b91c1c] bg-clip-text text-transparent pr-2">
-                                                MTG-Forge.com
+                                            <span className="inline-block text-[10px] font-black uppercase tracking-[0.3em] italic bg-gradient-to-r from-[#fcd34d] via-[#f59e0b] to-[#b91c1c] bg-clip-text text-transparent pr-4 whitespace-nowrap">
+                                                MTG-Forge.com&nbsp;
                                             </span>
                                         </div>
 
@@ -248,12 +248,12 @@ const ProfileShareModal = ({ isOpen, onClose, profile, archetype, decksCount }) 
                                                         )}
                                                     </div>
                                                 </div>
-                                                <div className="text-center w-full">
-                                                    <h4 className="font-black text-xl uppercase italic tracking-tighter leading-[0.9] bg-gradient-to-b from-[#fcd34d] via-[#f59e0b] to-[#b91c1c] bg-clip-text text-transparent drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] line-clamp-2 px-2">
+                                                <div className="text-center w-full px-2 max-w-[90%]">
+                                                    <h4 className="font-black text-xl uppercase italic tracking-tighter leading-[0.9] bg-gradient-to-b from-[#fcd34d] via-[#f59e0b] to-[#b91c1c] bg-clip-text text-transparent drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] line-clamp-2 break-all overflow-hidden pb-1">
                                                         {profile.username}
                                                     </h4>
                                                     <div className="mt-2 text-center flex justify-center w-full">
-                                                        <p className="text-white text-[9px] font-bold uppercase tracking-widest break-all line-clamp-2 px-2">
+                                                        <p className="inline-block text-white text-[9px] font-bold uppercase tracking-widest break-all line-clamp-2 px-1">
                                                             {profile.contact_email || userProfile?.contact_email || 'No Contact Email'}
                                                         </p>
                                                     </div>
@@ -318,8 +318,8 @@ const ProfileShareModal = ({ isOpen, onClose, profile, archetype, decksCount }) 
                                     {/* Top Branding Bar */}
                                     <div className="relative z-10 w-full flex items-center justify-center gap-4 pb-4 border-b border-white/5">
                                         <img src="/logo.png" alt="Forge" className="w-8 h-8" />
-                                        <span className="text-lg font-black uppercase tracking-[0.3em] italic bg-gradient-to-r from-[#fcd34d] via-[#f59e0b] to-[#b91c1c] bg-clip-text text-transparent pr-4">
-                                            MTG-Forge.com
+                                        <span className="inline-block text-lg font-black uppercase tracking-[0.3em] italic bg-gradient-to-r from-[#fcd34d] via-[#f59e0b] to-[#b91c1c] bg-clip-text text-transparent pr-8 whitespace-nowrap">
+                                            MTG-Forge.com&nbsp;
                                         </span>
                                     </div>
 
@@ -336,12 +336,12 @@ const ProfileShareModal = ({ isOpen, onClose, profile, archetype, decksCount }) 
                                                     )}
                                                 </div>
                                             </div>
-                                            <div className="text-center w-full">
-                                                <h4 className="font-black text-3xl uppercase italic tracking-tighter leading-[0.85] bg-gradient-to-b from-[#fcd34d] via-[#f59e0b] to-[#b91c1c] bg-clip-text text-transparent drop-shadow-[0_4px_6px_rgba(0,0,0,0.6)] line-clamp-2 px-2">
+                                            <div className="text-center w-full px-2 max-w-[90%]">
+                                                <h4 className="font-black text-3xl uppercase italic tracking-tighter leading-[0.85] bg-gradient-to-b from-[#fcd34d] via-[#f59e0b] to-[#b91c1c] bg-clip-text text-transparent drop-shadow-[0_4px_6px_rgba(0,0,0,0.6)] line-clamp-2 break-all overflow-hidden pb-1">
                                                     {profile.username}
                                                 </h4>
                                                 <div className="mt-4 text-center flex justify-center w-full">
-                                                    <p className="text-white text-xs font-bold uppercase tracking-[0.25em] break-all line-clamp-2 px-2">
+                                                    <p className="inline-block text-white text-xs font-bold uppercase tracking-[0.25em] break-all line-clamp-2 px-1">
                                                         {profile.contact_email || userProfile?.contact_email || 'No Contact Email'}
                                                     </p>
                                                 </div>
@@ -390,8 +390,8 @@ const ProfileShareModal = ({ isOpen, onClose, profile, archetype, decksCount }) 
                                         {/* Top Branding Bar */}
                                         <div className="relative z-10 w-full flex items-center justify-center gap-4 pb-4 border-b border-white/5">
                                             <img src="/logo.png" alt="Forge" className="w-8 h-8" />
-                                            <span className="text-lg font-black uppercase tracking-[0.3em] italic bg-gradient-to-r from-[#fcd34d] via-[#f59e0b] to-[#b91c1c] bg-clip-text text-transparent pr-4">
-                                                MTG-Forge.com
+                                            <span className="inline-block text-lg font-black uppercase tracking-[0.3em] italic bg-gradient-to-r from-[#fcd34d] via-[#f59e0b] to-[#b91c1c] bg-clip-text text-transparent pr-8 whitespace-nowrap">
+                                                MTG-Forge.com&nbsp;
                                             </span>
                                         </div>
 
@@ -408,12 +408,12 @@ const ProfileShareModal = ({ isOpen, onClose, profile, archetype, decksCount }) 
                                                         )}
                                                     </div>
                                                 </div>
-                                                <div className="text-center w-full">
-                                                    <h4 className="font-black text-3xl uppercase italic tracking-tighter leading-[0.85] bg-gradient-to-b from-[#fcd34d] via-[#f59e0b] to-[#b91c1c] bg-clip-text text-transparent drop-shadow-[0_4px_6px_rgba(0,0,0,0.6)] line-clamp-2 px-2">
+                                                <div className="text-center w-full px-2 max-w-[90%]">
+                                                    <h4 className="font-black text-3xl uppercase italic tracking-tighter leading-[0.85] bg-gradient-to-b from-[#fcd34d] via-[#f59e0b] to-[#b91c1c] bg-clip-text text-transparent drop-shadow-[0_4px_6px_rgba(0,0,0,0.6)] line-clamp-2 break-all overflow-hidden pb-1">
                                                         {profile.username}
                                                     </h4>
                                                     <div className="mt-4 text-center flex justify-center w-full">
-                                                        <p className="text-white text-xs font-bold uppercase tracking-[0.25em] break-all line-clamp-2 px-2">
+                                                        <p className="inline-block text-white text-xs font-bold uppercase tracking-[0.25em] break-all line-clamp-2 px-1">
                                                             {profile.contact_email || userProfile?.contact_email || 'No Contact Email'}
                                                         </p>
                                                     </div>
