@@ -230,7 +230,7 @@ const ProfileShareModal = ({ isOpen, onClose, profile, archetype, decksCount }) 
                                         {/* Top Branding Bar */}
                                         <div className="relative z-10 w-full flex items-center justify-center gap-2 pb-2 border-b border-white/5">
                                             <img src="/logo.png" alt="Forge" className="w-4 h-4" />
-                                            <span className="text-[10px] font-black uppercase tracking-[0.3em] italic bg-gradient-to-r from-[#fcd34d] via-[#f59e0b] to-[#b91c1c] bg-clip-text text-transparent">
+                                            <span className="text-[10px] font-black uppercase tracking-[0.3em] italic bg-gradient-to-r from-[#fcd34d] via-[#f59e0b] to-[#b91c1c] bg-clip-text text-transparent pr-2">
                                                 MTG-Forge.com
                                             </span>
                                         </div>
@@ -318,7 +318,7 @@ const ProfileShareModal = ({ isOpen, onClose, profile, archetype, decksCount }) 
                                     {/* Top Branding Bar */}
                                     <div className="relative z-10 w-full flex items-center justify-center gap-4 pb-4 border-b border-white/5">
                                         <img src="/logo.png" alt="Forge" className="w-8 h-8" />
-                                        <span className="text-lg font-black uppercase tracking-[0.3em] italic bg-gradient-to-r from-[#fcd34d] via-[#f59e0b] to-[#b91c1c] bg-clip-text text-transparent">
+                                        <span className="text-lg font-black uppercase tracking-[0.3em] italic bg-gradient-to-r from-[#fcd34d] via-[#f59e0b] to-[#b91c1c] bg-clip-text text-transparent pr-4">
                                             MTG-Forge.com
                                         </span>
                                     </div>
@@ -390,7 +390,7 @@ const ProfileShareModal = ({ isOpen, onClose, profile, archetype, decksCount }) 
                                         {/* Top Branding Bar */}
                                         <div className="relative z-10 w-full flex items-center justify-center gap-4 pb-4 border-b border-white/5">
                                             <img src="/logo.png" alt="Forge" className="w-8 h-8" />
-                                            <span className="text-lg font-black uppercase tracking-[0.3em] italic bg-gradient-to-r from-[#fcd34d] via-[#f59e0b] to-[#b91c1c] bg-clip-text text-transparent">
+                                            <span className="text-lg font-black uppercase tracking-[0.3em] italic bg-gradient-to-r from-[#fcd34d] via-[#f59e0b] to-[#b91c1c] bg-clip-text text-transparent pr-4">
                                                 MTG-Forge.com
                                             </span>
                                         </div>
