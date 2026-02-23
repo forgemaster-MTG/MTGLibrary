@@ -252,8 +252,8 @@ const ProfileShareModal = ({ isOpen, onClose, profile, archetype, decksCount }) 
                                                     <h4 className="font-black text-xl uppercase italic tracking-tighter leading-[0.9] bg-gradient-to-b from-[#fcd34d] via-[#f59e0b] to-[#b91c1c] bg-clip-text text-transparent drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] line-clamp-2 pb-1">
                                                         {profile.username}
                                                     </h4>
-                                                    <div className="mt-2 text-center flex justify-center w-full overflow-hidden">
-                                                        <p className="inline-block text-white text-[9px] font-bold uppercase tracking-widest whitespace-nowrap px-1 transform scale-90 sm:scale-100 origin-center truncate">
+                                                    <div className="mt-2 text-center flex justify-center w-full">
+                                                        <p className="inline-block text-white text-[7px] sm:text-[8px] font-bold uppercase tracking-widest whitespace-nowrap px-1">
                                                             {profile.contact_email || userProfile?.contact_email || 'No Contact Email'}
                                                         </p>
                                                     </div>
@@ -340,8 +340,8 @@ const ProfileShareModal = ({ isOpen, onClose, profile, archetype, decksCount }) 
                                                 <h4 className="font-black text-3xl uppercase italic tracking-tighter leading-[0.85] bg-gradient-to-b from-[#fcd34d] via-[#f59e0b] to-[#b91c1c] bg-clip-text text-transparent drop-shadow-[0_4px_6px_rgba(0,0,0,0.6)] line-clamp-2 pb-1">
                                                     {profile.username}
                                                 </h4>
-                                                <div className="mt-4 text-center flex justify-center w-full overflow-hidden">
-                                                    <p className="inline-block text-white text-xs font-bold uppercase tracking-[0.25em] whitespace-nowrap px-1 transform scale-90 md:scale-100 origin-center truncate">
+                                                <div className="mt-4 text-center flex justify-center w-full">
+                                                    <p className="inline-block text-white text-[9px] sm:text-[10px] font-bold uppercase tracking-widest whitespace-nowrap px-1">
                                                         {profile.contact_email || userProfile?.contact_email || 'No Contact Email'}
                                                     </p>
                                                 </div>
@@ -412,8 +412,8 @@ const ProfileShareModal = ({ isOpen, onClose, profile, archetype, decksCount }) 
                                                     <h4 className="font-black text-3xl uppercase italic tracking-tighter leading-[0.85] bg-gradient-to-b from-[#fcd34d] via-[#f59e0b] to-[#b91c1c] bg-clip-text text-transparent drop-shadow-[0_4px_6px_rgba(0,0,0,0.6)] line-clamp-2 pb-1">
                                                         {profile.username}
                                                     </h4>
-                                                    <div className="mt-4 text-center flex justify-center w-full overflow-hidden">
-                                                        <p className="inline-block text-white text-xs font-bold uppercase tracking-[0.25em] whitespace-nowrap px-1 transform scale-90 md:scale-100 origin-center truncate">
+                                                    <div className="mt-4 text-center flex justify-center w-full">
+                                                        <p className="inline-block text-white text-[9px] sm:text-[10px] font-bold uppercase tracking-widest whitespace-nowrap px-1">
                                                             {profile.contact_email || userProfile?.contact_email || 'No Contact Email'}
                                                         </p>
                                                     </div>
