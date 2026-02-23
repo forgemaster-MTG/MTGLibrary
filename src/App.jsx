@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
 import ScrollToTop from './components/ScrollToTop';
 import Navbar from './components/Navbar';
@@ -40,6 +40,11 @@ import TournamentPage from './pages/TournamentPage';
 import TournamentJoinPage from './pages/TournamentJoinPage';
 import SolitairePage from './pages/SolitairePage';
 import AdminPage from './pages/AdminPage';
+import SupportPage from './pages/SupportPage';
+import TermsOfService from './pages/legal/TermsOfService';
+import PrivacyPolicy from './pages/legal/PrivacyPolicy';
+import FeedbackBanner from './components/common/FeedbackBanner';
+import LegalAgreementModal from './components/modals/LegalAgreementModal';
 import ChatWidget from './components/ChatWidget';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -158,7 +163,10 @@ function App() {
                                             <Route path="/tournaments/:id/join" element={<TournamentJoinPage />} />
                                             <Route path="/solitaire/:deckId" element={<SolitairePage />} />
                                             <Route path="/products" element={<ProductsPage />} />
-                                            <Route path="/products" element={<ProductsPage />} />
+                                            <Route path="/support" element={<SupportPage />} />
+                                            <Route path="/terms" element={<TermsOfService />} />
+                                            <Route path="/privacy" element={<PrivacyPolicy />} />
+                                            {/* Authenticated Routes */}
                                             <Route path="/admin/*" element={
                                                 <AdminGuard>
                                                     <AdminPage />
@@ -169,6 +177,8 @@ function App() {
                                 </AuthGuard>
                                 <ApiInterceptor />
                                 {/* Global Components */}
+                                <FeedbackBanner />
+                                <LegalAgreementCheck />
                                 <ChatWidget />
                                 <CardDetailsModal />
                                 <UsernamePrompt />
@@ -181,5 +191,29 @@ function App() {
         </PersistQueryClientProvider>
     );
 }
+
+// Helper component to check for legal agreement
+const LegalAgreementCheck = () => {
+    const { user, userProfile } = useAuth();
+    const { pathname } = useLocation();
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    React.useEffect(() => {
+        const isLegalPath = pathname === '/terms' || pathname === '/privacy';
+
+        if (user && userProfile && !userProfile.agreed_to_terms_at && !isLegalPath) {
+            setIsModalOpen(true);
+        } else {
+            setIsModalOpen(false);
+        }
+    }, [user, userProfile, pathname]);
+
+    return (
+        <LegalAgreementModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+        />
+    );
+};
 
 export default App;

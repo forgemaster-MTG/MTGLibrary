@@ -11,6 +11,8 @@ export const userUpdateSchema = z.object({
     settings: z.record(z.any()).optional(),
     data: z.record(z.any()).optional(),
     lfg_status: z.string().optional(),
+    agreed_to_terms_at: z.string().datetime().nullable().optional(),
+    marketing_opt_in: z.boolean().optional(),
 
     // Admin only fields might be passed here too?
     subscription_status: z.string().optional(),

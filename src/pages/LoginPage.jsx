@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 // ... (imports remain the same)
 
@@ -15,6 +15,8 @@ const LoginPage = () => {
     const [isResetMode, setIsResetMode] = useState(false);
     const [resetSent, setResetSent] = useState(false);
     const [error, setError] = useState('');
+    const [agreedToTerms, setAgreedToTerms] = useState(false);
+    const [feedbackOptIn, setFeedbackOptIn] = useState(false);
     const { login, signup, loginWithGoogle, resetPassword } = useAuth();
     const navigate = useNavigate();
 
@@ -38,10 +40,15 @@ const LoginPage = () => {
                 if (password.length < 6) {
                     return setError('Password must be at least 6 characters');
                 }
+                if (!agreedToTerms) {
+                    return setError('You must agree to the Terms of Service and Privacy Policy');
+                }
                 await signup(email, password, {
                     username,
                     first_name: firstName,
-                    last_name: lastName
+                    last_name: lastName,
+                    agreed_to_terms_at: new Date().toISOString(),
+                    marketing_opt_in: feedbackOptIn
                 });
                 navigate('/onboarding');
             }
@@ -148,19 +155,36 @@ const LoginPage = () => {
                             </div>
                         )}
                         {!isLogin && !isResetMode && (
-                            <div>
-                                <label htmlFor="confirm-password" className="sr-only">Confirm Password</label>
-                                <input
-                                    id="confirm-password"
-                                    name="confirmConnectPassword"
-                                    type="password"
-                                    autoComplete="new-password"
-                                    required
-                                    className="appearance-none rounded-lg relative block w-full px-3 py-3 border border-gray-700 placeholder-gray-500 text-white bg-gray-800 focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
-                                    placeholder="Confirm Password"
-                                    value={confirmPassword}
-                                    onChange={(e) => setConfirmPassword(e.target.value)}
-                                />
+                            <div className="space-y-4 pt-2">
+                                <label className="flex items-start gap-3 cursor-pointer group">
+                                    <input
+                                        type="checkbox"
+                                        required
+                                        checked={agreedToTerms}
+                                        onChange={(e) => setAgreedToTerms(e.target.checked)}
+                                        className="mt-1 w-4 h-4 rounded border-gray-700 bg-gray-800 text-primary-600 focus:ring-primary-500 transition-all cursor-pointer"
+                                    />
+                                    <span className="text-xs text-gray-400 group-hover:text-gray-300 transition-colors select-none">
+                                        I agree to the <Link to="/terms" target="_blank" className="text-primary-400 hover:underline font-bold">Terms of Service</Link> and <Link to="/privacy" target="_blank" className="text-primary-400 hover:underline font-bold">Privacy Policy</Link>.
+                                    </span>
+                                </label>
+
+                                <label className="flex items-start gap-3 cursor-pointer group">
+                                    <input
+                                        type="checkbox"
+                                        checked={feedbackOptIn}
+                                        onChange={(e) => setFeedbackOptIn(e.target.checked)}
+                                        className="mt-1 w-4 h-4 rounded border-gray-700 bg-gray-800 text-primary-600 focus:ring-primary-500 transition-all cursor-pointer"
+                                    />
+                                    <div className="space-y-1">
+                                        <span className="text-xs text-gray-400 group-hover:text-gray-300 transition-colors select-none font-bold block">
+                                            Help us improve The Forge
+                                        </span>
+                                        <span className="text-[10px] text-gray-500 group-hover:text-gray-400 leading-relaxed transition-colors select-none block">
+                                            I agree to receive occasional feedback requests. Your input directly shapes the platform—we promise <strong>zero sales spam</strong>, only communications meant to improve the site.
+                                        </span>
+                                    </div>
+                                </label>
                             </div>
                         )}
                     </div>

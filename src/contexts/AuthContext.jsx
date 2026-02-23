@@ -157,9 +157,15 @@ export const AuthProvider = ({ children }) => {
     const uploadProfilePicture = async (file) => {
         if (!currentUser) throw new Error("No user logged in");
 
-        // ... (Existing validation logic) ...
+        // Admin bypass for size limits
+        const isAdmin = userProfile?.settings?.isAdmin || userProfile?.firestore_id === 'Kyrlwz6G6NWICCEPYbXtFfyLzWI3';
+
         if (!file.type.startsWith('image/')) throw new Error("File must be an image.");
-        if (file.size > 10 * 1024 * 1024) throw new Error("File size must be under 10MB.");
+
+        const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+        if (!isAdmin && file.size > MAX_SIZE) {
+            throw new Error("File size must be under 10MB.");
+        }
 
         const reader = new FileReader();
         const base64Promise = new Promise((resolve, reject) => {
@@ -171,7 +177,17 @@ export const AuthProvider = ({ children }) => {
 
         if (!userProfile?.id) throw new Error("User profile not ready");
 
-        await updateProfileMutation.mutateAsync({ id: userProfile.id, data: { photo_url: photoDataURL } });
+        // Correctly merge avatar into the 'data' object to ensure backend saves it
+        const updatedData = {
+            ...(userProfile.data || {}),
+            avatar: photoDataURL
+        };
+
+        await updateProfileMutation.mutateAsync({
+            id: userProfile.id,
+            data: { data: updatedData }
+        });
+
         return photoDataURL;
     };
 
@@ -244,6 +260,9 @@ export const AuthProvider = ({ children }) => {
             profile.settings?.permissions || [],
             { isTrial: profile.subscription_status === 'trial' }
         );
+
+        // Map data.avatar to photo_url for consistent UI display in Navbar etc.
+        profile.photo_url = profile.data?.avatar || profile.photo_url || null;
 
         return profile;
     }, [userProfile]);

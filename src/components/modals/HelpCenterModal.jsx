@@ -113,6 +113,18 @@ const HelpCenterModal = ({ isOpen, onClose, onStartTour, onOpenChat, initialGuid
                                                     <h4 className="text-xl font-black text-white mb-2">Ask AI Helper</h4>
                                                     <p className="text-sm text-gray-400">Chat with the intelligent assistant. It knows exactly what you're looking at.</p>
                                                 </button>
+
+                                                {/* Support & Alpha Info Card */}
+                                                <button
+                                                    onClick={() => { onClose(); navigate('/support'); }}
+                                                    className="group relative p-8 rounded-3xl bg-gray-800/50 border border-gray-700 hover:border-orange-500 hover:bg-orange-500/5 transition-all text-left"
+                                                >
+                                                    <div className="absolute top-6 right-6 p-3 bg-orange-500/10 rounded-xl text-orange-400 group-hover:scale-110 transition-transform">
+                                                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                    </div>
+                                                    <h4 className="text-xl font-black text-white mb-2">Support & Alpha</h4>
+                                                    <p className="text-sm text-gray-400">Learn about our development phase and how to get in touch.</p>
+                                                </button>
                                             </div>
 
                                             <div className="mt-8 pt-8 border-t border-gray-800">

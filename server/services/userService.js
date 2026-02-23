@@ -22,7 +22,7 @@ class UserService {
             throw new AppError('Not authorized to update this user', 403);
         }
 
-        const { email, username, first_name, last_name, is_public_library, settings, data, lfg_status } = payload;
+        const { email, username, first_name, last_name, is_public_library, settings, data, lfg_status, agreed_to_terms_at, marketing_opt_in } = payload;
 
         // Deep copy settings or init new
         let newSettings = settings ? { ...settings } : {};
@@ -85,6 +85,15 @@ class UserService {
         if (lfg_status !== undefined) {
             updateData.lfg_status = lfg_status;
             updateData.lfg_last_updated = knex.fn.now();
+        }
+
+        if (agreed_to_terms_at !== undefined) updateData.agreed_to_terms_at = agreed_to_terms_at;
+        if (marketing_opt_in !== undefined) updateData.marketing_opt_in = marketing_opt_in;
+
+        // Safety check to avoid empty .update() call error in Knex
+        if (Object.keys(updateData).length === 0) {
+            console.warn(`[UserService] Empty update call detected for user ${userId}. Skipping db operation.`);
+            return await knex('users').where({ id: userId }).first();
         }
 
         const result = await knex('users')
