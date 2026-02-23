@@ -1512,8 +1512,16 @@ const GeminiService = {
     archetype,
     referenceImageBase64 = null,
     userProfile = null,
+    customPrompt = ""
   ) {
-    const prompt = `A high-quality MTG-style avatar for a player named ${username}. They have a ${playstyle || "balanced"} playstyle and their deck archetype is ${archetype || "Forge Traveler"}. Use the provided logo as a style reference for colors and branding. Design it to be a premium profile picture for a Magic: The Gathering platform.`;
+    const baseStyle = `A high-quality MTG-style avatar for a player named ${username}. They have a ${playstyle || "balanced"} playstyle and their deck archetype is ${archetype || "Forge Traveler"}.`;
+    let prompt = baseStyle;
+
+    if (customPrompt && customPrompt.trim() !== "") {
+      prompt = `${baseStyle} Special user instructions to follow: "${customPrompt}".`;
+    }
+
+    prompt += ` Use the provided logo as a style reference for colors and branding. Design it to be a premium profile picture for a Magic: The Gathering platform.`;
 
     // Standard Gemini generateImages payload structure
     const payload = {

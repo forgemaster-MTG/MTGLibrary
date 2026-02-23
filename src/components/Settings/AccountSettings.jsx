@@ -22,6 +22,8 @@ const AccountSettings = () => {
     const [resetLoading, setResetLoading] = useState(false);
     const [verifyLoading, setVerifyLoading] = useState(false);
     const [generatingAI, setGeneratingAI] = useState(false);
+    const [customAvatarPrompt, setCustomAvatarPrompt] = useState('');
+    const [generatedAvatarCandidate, setGeneratedAvatarCandidate] = useState(null);
 
     const initializedRef = React.useRef(null);
     useEffect(() => {
@@ -105,23 +107,40 @@ const AccountSettings = () => {
                 playstyle,
                 archetypeTitle,
                 logoBase64,
-                userProfile
+                userProfile,
+                customAvatarPrompt
             );
 
-            // 4. Update Avatar State and save to profile
-            setAvatar(generatedImage);
-            await updateProfileFields({
-                data: {
-                    ...(userProfile?.data || {}),
-                    avatar: generatedImage
-                }
-            });
-            alert('Avatar forged successfully!');
+            // 4. Set Candidate for Review
+            setGeneratedAvatarCandidate(generatedImage);
+
         } catch (error) {
             console.error('Failed to generate avatar:', error);
             alert('Error generating avatar: ' + (error.message || 'Unknown error'));
         } finally {
             setGeneratingAI(false);
+            setCustomAvatarPrompt(''); // clear prompt after use
+        }
+    };
+
+    const handleKeepAvatar = async () => {
+        if (!generatedAvatarCandidate) return;
+        setSaving(true);
+        try {
+            setAvatar(generatedAvatarCandidate);
+            await updateProfileFields({
+                data: {
+                    ...(userProfile?.data || {}),
+                    avatar: generatedAvatarCandidate
+                }
+            });
+            setGeneratedAvatarCandidate(null);
+            alert('Avatar forged successfully!');
+        } catch (error) {
+            console.error('Failed to save generated avatar:', error);
+            alert('Error saving avatar: ' + (error.message || 'Unknown error'));
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -240,11 +259,18 @@ const AccountSettings = () => {
                                         placeholder="https://example.com/avatar.jpg"
                                         className="w-full bg-gray-900 border border-gray-700 p-2.5 rounded-lg text-gray-200 focus:ring-2 focus:ring-primary-500 outline-none text-sm"
                                     />
-                                    <div className="flex gap-2">
+                                    <div className="flex flex-col gap-2">
+                                        <input
+                                            type="text"
+                                            value={customAvatarPrompt}
+                                            onChange={(e) => setCustomAvatarPrompt(e.target.value)}
+                                            placeholder="Optional Custom Prompt (e.g., 'A fierce fire mage')"
+                                            className="w-full bg-gray-900 border border-gray-700 p-2.5 rounded-lg text-gray-200 focus:ring-2 focus:ring-primary-500 outline-none text-sm"
+                                        />
                                         <button
                                             onClick={handleGenerateAIAvatar}
                                             disabled={generatingAI}
-                                            className="flex-1 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white text-xs font-bold py-2 px-3 rounded flex items-center justify-center gap-2 transition-all shadow-lg shadow-orange-900/20 disabled:opacity-50"
+                                            className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white text-xs font-bold py-2.5 px-3 rounded flex items-center justify-center gap-2 transition-all shadow-lg shadow-orange-900/20 disabled:opacity-50"
                                         >
                                             <Sparkles className="w-3.5 h-3.5" />
                                             {generatingAI ? 'Forging Avatar...' : 'Magic AI: Generate Avatar'}
@@ -321,6 +347,43 @@ const AccountSettings = () => {
                     </div>
                 </div>
             </section>
+
+            {/* Avatar Preview Modal */}
+            {generatedAvatarCandidate && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+                    <div className="bg-gray-800 rounded-xl max-w-sm w-full p-6 border border-gray-700 shadow-2xl flex flex-col items-center">
+                        <h3 className="text-xl font-bold text-white mb-2">Review Avatar</h3>
+                        <p className="text-gray-400 text-sm text-center mb-6">
+                            Your new Forge profile picture has been forged. Do you want to keep this avatar?
+                        </p>
+
+                        <div className="w-48 h-48 rounded-full overflow-hidden border-4 border-primary-500 shadow-lg mb-6">
+                            <img src={generatedAvatarCandidate} alt="Generated Preview" className="w-full h-full object-cover" />
+                        </div>
+
+                        <div className="flex gap-4 w-full">
+                            <button
+                                onClick={() => setGeneratedAvatarCandidate(null)}
+                                disabled={saving}
+                                className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold transition-colors disabled:opacity-50"
+                            >
+                                Discard
+                            </button>
+                            <button
+                                onClick={handleKeepAvatar}
+                                disabled={saving}
+                                className="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-500 text-white rounded-lg font-bold transition-colors flex justify-center items-center gap-2 disabled:opacity-50"
+                            >
+                                {saving ? (
+                                    <div className="w-5 h-5 border-2 border-white/20 border-t-transparent rounded-full animate-spin"></div>
+                                ) : (
+                                    'Keep Avatar'
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
