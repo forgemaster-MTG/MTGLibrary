@@ -1572,8 +1572,8 @@ Return ONLY a valid JSON array of objects with the keys "userContent" and "aiCon
     // Nano Banana Pro lineage uses Imagen 3 models
     const isQuality = quality === "quality";
     const models = isQuality
-      ? ["imagen-3.0-generate-001"] // Quality / Nano Banana Pro
-      : ["imagen-3.0-fast-generate-001"]; // Speed / Nano Banana
+      ? ["imagen-3.0-generate-002", "imagen-3.0-generate-001", "imagen-3", "imagen-2.0-generate-001"] // Quality / Nano Banana Pro
+      : ["imagen-3.0-fast-generate-001", "imagen-3.0-generate-002", "imagen-3.0-generate-001", "imagen-3", "imagen-2.0-generate-001"]; // Speed / Nano Banana
 
     // Standard Gemini generateImages payload structure
     const payload = {
@@ -1587,26 +1587,42 @@ Return ONLY a valid JSON array of objects with the keys "userContent" and "aiCon
       },
     };
 
-    const runResponse = await this.executeWithFallback(payload, userProfile, {
-      models: models,
-      method: "predict", // The correct method for these models on the generativelanguage API
-    });
+    try {
+      const runResponse = await this.executeWithFallback(payload, userProfile, {
+        models: models,
+        method: "predict",
+      });
 
-    if (
-      runResponse &&
-      runResponse.predictions &&
-      runResponse.predictions[0]?.bytesBase64Encoded
-    ) {
-      return `data:image/png;base64,${runResponse.predictions[0].bytesBase64Encoded}`;
-    }
+      if (
+        runResponse &&
+        runResponse.predictions &&
+        runResponse.predictions[0]?.bytesBase64Encoded
+      ) {
+        return `data:image/png;base64,${runResponse.predictions[0].bytesBase64Encoded}`;
+      }
+    } catch (err) {
+      console.warn("[GeminiService] Predict failed, trying generateImages fallback...", err.message);
 
-    // Handle standard generateImages response format if the above fails
-    if (
-      runResponse &&
-      runResponse.generatedImages &&
-      runResponse.generatedImages[0]?.image?.imageBytes
-    ) {
-      return `data:image/png;base64,${runResponse.generatedImages[0].image.imageBytes}`;
+      // If failure was Oracle Exhausted (meaning all models @ predict failed), try generateImages
+      // GenerateImages uses a slightly different payload structure on some API versions
+      const giPayload = {
+        prompt: prompt,
+        number_of_images: 1,
+      };
+
+      try {
+        const giResponse = await this.executeWithFallback(giPayload, userProfile, {
+          models: models,
+          method: "generateImages",
+        });
+
+        if (giResponse?.generatedImages?.[0]?.image?.imageBytes) {
+          return `data:image/png;base64,${giResponse.generatedImages[0].image.imageBytes}`;
+        }
+      } catch (giErr) {
+        console.error("[GeminiService] Both predict and generateImages failed.", giErr.message);
+        throw giErr; // Re-throw the second failure
+      }
     }
 
     throw new Error(

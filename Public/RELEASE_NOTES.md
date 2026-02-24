@@ -1,3 +1,26 @@
+# Release Notes - 2026-02-24 (v1.0.5)
+
+## ✨ The AI & UI Overhaul
+
+### 🤖 Advanced AI Personas & Imagery
+*   **Nano Banana Pro Lineage (Imagen 3.0)**: Integrated latest Imagen 3.0 models. Performance is now split between "Pro AI" for top-tier quality and "Fast AI" for rapid, cost-effective generation.
+*   **Persona Details Redesign**: Complete visual overhaul of individual AI Helper pages.
+    *   **Banner Layout**: Cinematic 21:7 top-banner displays characters with high-contrast text overlays.
+    *   **Max-Width Expansion**: Modal width increased to `max-w-5xl` for a more open, premium feel.
+    *   **Information Hierarchy**: Refined vertical content flow for biographies and interaction logs.
+*   **Emerald Forge Stylized Scrollbars**: Custom emerald-themed scrollbars implemented across the Persona interface for maximum aesthetic consistency.
+
+### 💼 Admin & Infrastructure
+*   **Persona Manager 2.0**: 
+    *   **PNG-to-Base64 Upload**: Direct upload support for local character art, automatically optimized into Data URLs.
+    *   **Collapsible Interface**: Improved management UI with collapsible forms to optimize screen real estate.
+*   **Dynamic Pricing Service**: Centralized AI cost management with sustainable credit deduction logic and configurable markups (default 115%).
+
+### 💎 User Experience
+*   **Cost Confirmation**: Added real-time credit cost previews and mandatory confirmation dialogs for profile and helper avatar generation.
+
+---
+
 # Release Notes - 2025-11-27
 
 ## 📚 Documentation
