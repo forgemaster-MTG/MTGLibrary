@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../../services/api';
 import { format } from 'date-fns';
+import * as htmlToImage from 'html-to-image';
+import { jsPDF } from 'jspdf';
 
 const parseReleaseData = (release) => {
     if (!release) return { html: '', unusedImages: [] };
@@ -29,6 +31,7 @@ const parseReleaseData = (release) => {
 const ReleaseDetailModal = ({ isOpen, onClose, release }) => {
     const [mounted, setMounted] = useState(false);
     const [spotlightImageIndex, setSpotlightImageIndex] = useState(null);
+    const [isExporting, setIsExporting] = useState(false);
 
     useEffect(() => {
         setMounted(true);
@@ -59,6 +62,82 @@ const ReleaseDetailModal = ({ isOpen, onClose, release }) => {
         }
     };
 
+    const exportToPDF = async (e) => {
+        e.stopPropagation();
+        if (isExporting) return;
+        setIsExporting(true);
+
+        try {
+            const contentElement = document.getElementById('release-notes-export-content');
+            if (!contentElement) throw new Error("Content not found");
+
+            // Add a temporary class to expand the element to full content height, neutralizing scrollbars
+            const originalMaxHeight = contentElement.style.maxHeight;
+            const originalOverflow = contentElement.style.overflow;
+            contentElement.style.maxHeight = 'none';
+            contentElement.style.overflow = 'visible';
+
+            // Filter out external stylesheets that trigger CORS SecurityErrors in html-to-image
+            const filterNodes = (node) => {
+                if (node.tagName === 'LINK' && node.href?.includes('fonts.googleapis.com')) return false;
+                if (node.tagName === 'STYLE' && node.textContent?.includes('@import url')) return false;
+                return true;
+            };
+
+            const imgData = await htmlToImage.toPng(contentElement, {
+                pixelRatio: 2,
+                backgroundColor: '#0f172a', // mtg-navy bg
+                filter: filterNodes,
+                style: {
+                    margin: '0',
+                }
+            });
+
+            // Restore original styles
+            contentElement.style.maxHeight = originalMaxHeight;
+            contentElement.style.overflow = originalOverflow;
+
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            // Force the entire PDF background to be navy to prevent white letterboxing at the bottom
+            pdf.setFillColor(15, 23, 42); // #0f172a rgb
+            pdf.rect(0, 0, pdf.internal.pageSize.getWidth(), pdf.internal.pageSize.getHeight(), 'F');
+
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const elementWidth = contentElement.scrollWidth || contentElement.offsetWidth;
+            const elementHeight = contentElement.scrollHeight || contentElement.offsetHeight;
+
+            // Calculate ratio
+            const pdfHeight = (elementHeight * pdfWidth) / elementWidth;
+
+            let heightLeft = pdfHeight;
+            let position = 0;
+            const pageHeight = pdf.internal.pageSize.getHeight();
+
+            pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+            heightLeft -= pageHeight;
+
+            while (heightLeft > 0) {
+                position = heightLeft - pdfHeight;
+                pdf.addPage();
+
+                // Keep the background on sequential pages too!
+                pdf.setFillColor(15, 23, 42);
+                pdf.rect(0, 0, pdf.internal.pageSize.getWidth(), pdf.internal.pageSize.getHeight(), 'F');
+
+                pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+                heightLeft -= pageHeight;
+            }
+
+            pdf.save(`MTG_Forge_Release_${release.version.replace(/[^a-zA-Z0-9.-]/g, '_')}.pdf`);
+            if (window.addToast) window.addToast("PDF Exported Successfully!", "success");
+        } catch (error) {
+            console.error("PDF Export failed:", error);
+            if (window.addToast) window.addToast("PDF Export Failed", "error");
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     return createPortal(
         <>
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in" onClick={onClose}>
@@ -72,12 +151,26 @@ const ReleaseDetailModal = ({ isOpen, onClose, release }) => {
                                 </span>
                             </div>
                         </div>
-                        <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={exportToPDF}
+                                disabled={isExporting}
+                                className="px-3 py-1.5 bg-primary-600/20 text-primary-400 hover:bg-primary-600/40 hover:text-white rounded-lg text-sm font-bold flex items-center gap-2 transition-colors disabled:opacity-50"
+                            >
+                                {isExporting ? (
+                                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                ) : (
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                                )}
+                                Export PDF
+                            </button>
+                            <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                        </div>
                     </div>
 
-                    <div className="p-0 overflow-y-auto custom-scrollbar bg-gray-900/50 relative">
+                    <div id="release-notes-export-content" className="p-0 overflow-y-auto custom-scrollbar bg-gray-900/50 relative">
                         <style dangerouslySetInnerHTML={{
                             __html: `
                             @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&display=swap');

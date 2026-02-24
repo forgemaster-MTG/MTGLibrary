@@ -1550,6 +1550,12 @@ const GeminiService = {
                         </div>
                     </div>
                 </div>
+                
+                <!-- CRITICAL INSTRUCTION FOR IMAGES -->
+                <!-- You MUST proactively suggest where screenshots should be placed by inserting "{{image:X}}" beneath major feature sections where a visual demonstration would be helpful. Increment X starting from 0. -->
+                <!-- Example: -->
+                <!-- <p>We added a new format grid!</p> -->
+                <!-- {{image:0}} -->
             </section>
 
             <!-- Use this section style for Bug Fixes -->
@@ -1569,6 +1575,8 @@ const GeminiService = {
     const userText = `
         Tickets: ${JSON.stringify(tickets)}
         Manual Additions / Offline Work: ${manualAdditions || 'None'}
+        
+        CRITICAL TASK: Analyze the updates and determine at least 1-3 places where an uploaded screenshot would best demonstrate the new feature to the user. Insert an {{image:X}} tag (starting at 0) in the HTML at those exact locations. Add a small HTML comment above the tag explaining what the screenshot should depict so the admin knows what to upload.
     `;
 
     const payload = {
