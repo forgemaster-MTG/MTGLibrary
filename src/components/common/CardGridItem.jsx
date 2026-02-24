@@ -52,7 +52,7 @@ const CardGridItem = memo(function CardGridItem({ card, availableFoils, onRemove
 
     return (
         <div
-            className={`relative group perspective-1000 h-full w-full aspect-[2.5/3.5] min-h-[200px] cursor-pointer ${isSelected ? 'ring-4 ring-primary-500 rounded-xl' : ''}`}
+            className={`relative group perspective-1000 w-full aspect-[2.5/3.5] cursor-pointer ${isSelected ? 'ring-4 ring-primary-500 rounded-xl' : ''}`}
             onClick={handleClick}
         >
             <div className={`relative w-full h-full transition-all duration-500 transform-style-3d ${isFlipped ? 'rotate-y-180' : ''}`}>
@@ -62,7 +62,7 @@ const CardGridItem = memo(function CardGridItem({ card, availableFoils, onRemove
                     <LazyImage
                         src={frontImage}
                         alt={card.name}
-                        className="w-full h-full rounded-lg"
+                        className="w-full h-full rounded-lg object-cover"
                     />
 
                     {/* Badges (Front only) */}
@@ -193,7 +193,7 @@ const CardGridItem = memo(function CardGridItem({ card, availableFoils, onRemove
                         <LazyImage
                             src={backImage}
                             alt={`${card.name} (Back)`}
-                            className="w-full h-full rounded-lg"
+                            className="w-full h-full rounded-lg object-cover"
                         />
                         {/* Hover Overlay Back */}
                         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-200 flex flex-col justify-center items-center gap-2 p-2 backdrop-blur-sm z-30">

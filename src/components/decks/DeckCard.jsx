@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getArtCrop, getDeckColors } from '../../utils/deckUtils';
 import { getIdentity } from '../../utils/identityRegistry';
+import { isCommanderFormat } from '../../utils/formatUtils';
 
 const DeckCard = memo(function DeckCard({ deck }) {
     const navigate = useNavigate();
@@ -125,7 +126,7 @@ const DeckCard = memo(function DeckCard({ deck }) {
                             <div className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-400 opacity-80">
                                 {identity.badge}
                             </div>
-                            
+
                             {(Number(deck.is_thematic) === 1 || deck.is_thematic === true) && (
                                 <div className="flex items-center gap-1 bg-amber-900/40 border border-amber-500/30 px-1.5 py-0.5 rounded-full">
                                     <svg className="w-2.5 h-2.5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
@@ -139,7 +140,7 @@ const DeckCard = memo(function DeckCard({ deck }) {
                         <p className="text-xs text-gray-500 font-medium line-clamp-1">
                             {deck.commander_partner
                                 ? `${deck.commander?.name} & ${deck.commander_partner?.name}`
-                                : (deck.commander?.name || 'No Commander')}
+                                : (deck.commander?.name || (isCommanderFormat(deck.format) ? 'No Commander' : 'No Spotlight'))}
                         </p>
                     </div>
 
@@ -150,8 +151,8 @@ const DeckCard = memo(function DeckCard({ deck }) {
                         </div>
                         <div className="flex flex-col items-end">
                             <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Cards</span>
-                            <span className={`text-sm font-mono font-bold ${cardCount >= (deck.format?.toLowerCase() === 'standard' ? 60 : 100) ? 'text-green-500' : 'text-primary-400'}`}>
-                                {cardCount}<span className="text-gray-600 text-[10px]">/{deck.format?.toLowerCase() === 'standard' ? '60' : '100'}</span>
+                            <span className={`text-sm font-mono font-bold ${cardCount >= (isCommanderFormat(deck.format) ? 100 : 60) ? 'text-green-500' : 'text-primary-400'}`}>
+                                {cardCount}<span className="text-gray-600 text-[10px]">/{isCommanderFormat(deck.format) ? '100' : '60'}</span>
                             </span>
                         </div>
                     </div>

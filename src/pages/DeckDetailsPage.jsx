@@ -23,6 +23,7 @@ import SocialShareHub from '../components/Social/SocialShareHub';
 import DeckAI from '../components/DeckAI';
 import CardGridItem from '../components/common/CardGridItem';
 import StartAuditButton from '../components/Audit/StartAuditButton';
+import { isCommanderFormat } from '../utils/formatUtils';
 
 import ForgeLensModal from '../components/modals/ForgeLensModal';
 import PrintSettingsModal from '../components/printing/PrintSettingsModal';
@@ -296,6 +297,29 @@ const DeckDetailsPage = () => {
 
         return value;
     }, [deckCards, deck]);
+
+    // Auto-assign spotlight card for non-commander decks
+    useEffect(() => {
+        if (!deck || !deckCards || deckCards.length === 0 || !isOwner) return;
+
+        if (!isCommanderFormat(deck.format)) {
+            const mostExpensive = deckCards.reduce((max, card) => {
+                const getPrice = (c) => parseFloat(c.prices?.[c.finish === 'foil' ? 'usd_foil' : 'usd'] || c.data?.prices?.[c.finish === 'foil' ? 'usd_foil' : 'usd'] || 0);
+                return getPrice(card) > getPrice(max) ? card : max;
+            }, deckCards[0]);
+
+            const currentSpotlightId = deck.commander?.id || deck.commander?.scryfall_id;
+            const newSpotlightId = mostExpensive?.scryfall_id || mostExpensive?.id;
+
+            if (mostExpensive && currentSpotlightId !== newSpotlightId) {
+                deckService.updateDeck(currentUser.id, deck.id, { commander: mostExpensive.data || mostExpensive })
+                    .then(() => {
+                        deck.commander = mostExpensive.data || mostExpensive;
+                    })
+                    .catch(err => console.error("Failed to auto-assign spotlight", err));
+            }
+        }
+    }, [deckCards, deck, isOwner, currentUser]);
 
     // KPI Calculations (Moved before early returns)
     const kpiData = useMemo(() => {
@@ -1066,7 +1090,7 @@ const DeckDetailsPage = () => {
                                 return (
                                     <div key={type} className="animate-fade-in text-left">
                                         <h4 className="text-sm font-bold text-primary-300 border-b border-white/5 mb-4 pb-2 sticky top-0 bg-gray-950/60 backdrop-blur-md z-10 flex justify-between uppercase tracking-wider pl-1">
-                                            <span>{type}</span>
+                                            <span>{type === 'Commander' && !isCommanderFormat(deck.format) ? 'Spotlight Card' : type}</span>
                                             <span className="text-gray-500 text-xs bg-gray-900 px-2 py-0.5 rounded-full border border-gray-700">
                                                 {cards.reduce((a, c) => a + (c.countInDeck || 1), 0)}
                                             </span>
@@ -1153,7 +1177,7 @@ const DeckDetailsPage = () => {
                             <div className="bg-gray-950/40 backdrop-blur-3xl rounded-3xl shadow-2xl overflow-hidden border border-white/10 relative group">
                                 <div className="p-4 bg-white/5 border-b border-white/5 flex justify-between items-center">
                                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                                        {deck.format?.toLowerCase() === 'standard' ? 'Spotlight Card' : (deck.commander_partner ? 'Partners' : 'Commander')}
+                                        {!isCommanderFormat(deck.format) ? 'Spotlight Card' : (deck.commander_partner ? 'Partners' : 'Commander')}
                                     </h3>
                                     {deck.commander_partner && (
                                         <button

@@ -9,6 +9,7 @@ import { GeminiService } from '../services/gemini';
 import { api } from '../services/api';
 import CardGridItem from '../components/common/CardGridItem';
 import { getTierConfig } from '../config/tiers';
+import { isCommanderFormat } from '../utils/formatUtils';
 
 const STEPS = {
     ANALYSIS: 1,
@@ -26,13 +27,20 @@ const DeckBuildWizardPage = () => {
     const { cards: collection } = useCollection();
 
     useEffect(() => {
-        if (!userProfile) return;
+        if (!userProfile || deckLoading) return;
+
+        if (deck && !isCommanderFormat(deck.format)) {
+            addToast(`${deck.format || 'This format'} AI Deckbuilding coming soon!`, "info");
+            navigate(`/decks/${deckId}`);
+            return;
+        }
+
         const tier = userProfile.tierConfig;
         if (!tier.features.deckSuggestions) {
             addToast("Deck Builder requires Magician tier or higher.", "error");
             navigate(`/decks/${deckId}`);
         }
-    }, [userProfile, deckId]);
+    }, [userProfile, deckId, deck, deckLoading]);
 
     // Wizard State
     const [step, setStep] = useState(STEPS.ANALYSIS);

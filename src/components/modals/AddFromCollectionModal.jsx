@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { deckService } from '../../services/deckService';
 import { useCardModal } from '../../contexts/CardModalContext';
+import { isCommanderFormat, getFormatLimit, isCardLegalInFormat } from '../../utils/formatUtils';
 
 // Helper for color identity check
 const isColorIdentityValid = (cardColors, commanderColors) => {
@@ -33,7 +34,8 @@ const AddFromCollectionModal = ({ isOpen, onClose, deck, deckCards = [], onCardA
     const availableCards = useMemo(() => {
         if (!collection || !deck) return [];
 
-        const isStandard = deck.format?.toLowerCase() === 'standard';
+        const formatLimit = getFormatLimit(deck.format);
+        const commanderFormat = isCommanderFormat(deck.format);
         const commanderColors = deck.commander?.color_identity || [];
         const partnerColors = deck.commander_partner?.color_identity || [];
         const identity = new Set([...commanderColors, ...partnerColors]);
@@ -44,8 +46,10 @@ const AddFromCollectionModal = ({ isOpen, onClose, deck, deckCards = [], onCardA
 
             const isBasic = card.type_line?.toLowerCase().includes('basic land');
 
-            // 2. Color Identity (Deck Legal Check - Commander Only)
-            if (!isStandard) {
+            // 2. Format Legality & Color Identity
+            if (!isCardLegalInFormat(card, deck.format)) return false;
+
+            if (commanderFormat) {
                 if (!isColorIdentityValid(card.color_identity, [...identity])) return false;
             }
 
@@ -76,18 +80,13 @@ const AddFromCollectionModal = ({ isOpen, onClose, deck, deckCards = [], onCardA
                 if (card.cmc !== mv) return false;
             }
 
-            // 5. Deck Limits (Singleton vs 4-of)
+            // 5. Deck Limits
             const currentCount = deckCards
                 .filter(c => c.name === card.name)
                 .reduce((acc, c) => acc + (c.countInDeck || 1), 0);
 
-            // Commander/Singleton: Hide if already in deck (count >= 1)
-            // Standard: Limit is 4
-            const limit = isStandard ? 4 : 1;
-
-            // User Request: "not show cards already in the deck when in commander view"
-            // If not standard (Commander) and count > 0, hide it.
-            if (!isBasic && currentCount >= limit) return false;
+            // Hide if we've reached the format limit for this card
+            if (!isBasic && currentCount >= formatLimit) return false;
 
             // 6. Search Filter
             const term = searchTerm.toLowerCase();
@@ -211,7 +210,7 @@ const AddFromCollectionModal = ({ isOpen, onClose, deck, deckCards = [], onCardA
                                 <label className="block text-[10px] font-black uppercase tracking-widest text-gray-500 mb-3">Color Identity</label>
                                 <div className="flex flex-wrap gap-2">
                                     {['W', 'U', 'B', 'R', 'G'].filter(color => {
-                                        if (deck?.format?.toLowerCase() === 'standard') return true;
+                                        if (!isCommanderFormat(deck?.format)) return true;
                                         const identity = new Set([...(deck?.commander?.color_identity || []), ...(deck?.commander_partner?.color_identity || [])]);
                                         return identity.has(color);
                                     }).map(color => (
