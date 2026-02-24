@@ -1504,9 +1504,67 @@ const GeminiService = {
     const { tickets = [], manualAdditions = '' } = payloadData;
 
     const systemPrompt = `You are the Lead Developer of MTG Forge. Generate professional, evocative release notes for the latest update.
-        Use HTML with Tailwind (text-gray-300, primary-400 highlights). 
-        Include sections: [New Mechanics], [Bug Squashing], [In the Forge].
-        If there are any 'Manual Additions', you MUST include them logically into the notes.`;
+        You MUST output ONLY raw HTML (no markdown backticks, no <html>, <head>, or <body> tags). 
+        You MUST adhere to this exact layout, styling, structure, and CSS classes (use the provided tickets and manual additions to fill in the data and sections):
+        
+        <div class="hero-glow"></div>
+        <main class="max-w-4xl mx-auto px-6 py-16">
+            <header class="mb-16 text-center md:text-left">
+                <h1 class="heading-font text-5xl md:text-7xl font-bold mb-4 tracking-tight">
+                    MTG Forge: <span class="gold-gradient-text">Version [VERSION_NUMBER]</span>
+                </h1>
+                <h2 class="text-2xl md:text-3xl font-light text-slate-400 italic">[CATCHY_SUBTITLE]</h2>
+                <div class="mt-8 p-6 bg-slate-800/40 rounded-2xl border border-slate-700/50 text-slate-300 leading-relaxed italic">
+                    [EVOCATIVE_INTRO_PARAGRAPH_SUMMARIZING_THE_RELEASE]
+                </div>
+            </header>
+            
+            <!-- Use this section style for major new features from tickets -->
+            <section class="mb-16">
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="h-px flex-1 bg-gradient-to-r from-transparent to-amber-500/50"></div>
+                    <h3 class="heading-font text-3xl font-bold text-amber-400 uppercase tracking-widest">[FEATURE_SECTION_TITLE]</h3>
+                    <div class="h-px flex-1 bg-gradient-to-l from-transparent to-amber-500/50"></div>
+                </div>
+                <div class="grid md:grid-cols-2 gap-8">
+                    <div class="section-card p-8 rounded-r-2xl">
+                        <h4 class="text-xl font-bold text-white mb-3">[FEATURE_1_TITLE]</h4>
+                        <p class="text-slate-400 text-sm leading-relaxed">[FEATURE_1_DESC]</p>
+                    </div>
+                    <!-- Add more section-cards as needed -->
+                </div>
+            </section>
+
+            <!-- Use this section style for other major features or epic updates -->
+            <section class="mb-16">
+                <h3 class="heading-font text-3xl font-bold text-amber-400 mb-8 border-b border-slate-700 pb-4">[ANOTHER_SECTION_TITLE]</h3>
+                <p class="text-slate-300 mb-8 leading-relaxed">[SECTION_INTRO_TEXT]</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="format-tag p-4 rounded-xl flex items-start gap-4 hover:border-amber-400/60 transition-colors">
+                        <div class="bg-amber-500/10 p-2 rounded-lg">
+                            <svg class="w-6 h-6 text-amber-500"...><!-- Pick a relevant heroicon SVG -->
+                        </div>
+                        <div>
+                            <h5 class="font-bold text-white">[ITEM_TITLE]</h5>
+                            <p class="text-xs text-slate-500">[ITEM_DESC]</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Use this section style for Bug Fixes -->
+            <section class="mb-16">
+                <h3 class="heading-font text-3xl font-bold text-amber-400 mb-8 border-b border-slate-700 pb-4">Banishing the Shadows</h3>
+                <ul class="space-y-4">
+                    <li class="flex items-start gap-3">
+                        <span class="text-emerald-500 mt-1">✦</span>
+                        <span class="text-slate-300"><strong class="text-white">[BUG_TITLE]:</strong> [BUG_DESC_AND_FIX]</span>
+                    </li>
+                </ul>
+            </section>
+        </main>
+
+        Incorporate 'Manual Additions' into the content creatively. Be professional but embrace the Magic: The Gathering flavor in your writing.`;
 
     const userText = `
         Tickets: ${JSON.stringify(tickets)}

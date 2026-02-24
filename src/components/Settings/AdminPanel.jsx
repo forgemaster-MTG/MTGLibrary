@@ -484,6 +484,7 @@ const AdminPanel = () => {
         end: format(new Date(), 'yyyy-MM-dd')
     });
     const [reportTickets, setReportTickets] = useState([]);
+    const [hasFetchedReport, setHasFetchedReport] = useState(false);
     const [manualNotes, setManualNotes] = useState('');
     const [fetchingReport, setFetchingReport] = useState(false);
     const [generatedNotes, setGeneratedNotes] = useState('');
@@ -491,6 +492,7 @@ const AdminPanel = () => {
     const [publishing, setPublishing] = useState(false);
     const [releaseVersion, setReleaseVersion] = useState('');
     const [showPublishModal, setShowPublishModal] = useState(false);
+    const [releaseImages, setReleaseImages] = useState([]);
 
     // Fetch Epics when switching to epics tab
     useEffect(() => {
@@ -585,6 +587,7 @@ const AdminPanel = () => {
                 status: '' // Fetch all activity
             });
             setReportTickets(data);
+            setHasFetchedReport(true);
         } catch (err) {
             alert('Failed to fetch report: ' + err.message);
         } finally {
@@ -625,6 +628,40 @@ const AdminPanel = () => {
         setShowPublishModal(true);
     };
 
+    const handleImageUpload = (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length + releaseImages.length > 5) {
+            alert('Maximum 5 images allowed per release.');
+            return;
+        }
+
+        files.forEach(file => {
+            if (!file.type.startsWith('image/')) {
+                alert('Only image files are allowed.');
+                return;
+            }
+
+            // Max 2MB per image to save space
+            if (file.size > 2 * 1024 * 1024) {
+                alert(`File ${file.name} is too large. Max 2MB allowed.`);
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                setReleaseImages(prev => [...prev, event.target.result]);
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // reset file input
+        e.target.value = null;
+    };
+
+    const removeImage = (index) => {
+        setReleaseImages(prev => prev.filter((_, i) => i !== index));
+    };
+
     const handleConfirmPublish = async () => {
         setPublishing(true);
         try {
@@ -639,7 +676,8 @@ const AdminPanel = () => {
                 version: releaseVersion,
                 notes: generatedNotes,
                 ticketIds: reportTickets.map(t => t.id),
-                typeStats: stats
+                typeStats: stats,
+                images: releaseImages
             });
 
             // Success feedback
@@ -647,6 +685,9 @@ const AdminPanel = () => {
             setGeneratedNotes('');
             setManualNotes('');
             setReportTickets([]);
+            setHasFetchedReport(false);
+            setReleaseImages([]);
+            setReleaseVersion('');
             alert('Release Published Successfully!'); // Still use alert for success or could use toast
         } catch (err) {
             alert('Failed to publish: ' + err.message);
@@ -705,7 +746,7 @@ const AdminPanel = () => {
                 </button>
                 <button
                     onClick={() => setActiveSection('release')}
-                    className={`px-4 py-2 border-b-2 font-medium transition-colors whitespace-nowrap ${activeSection === 'release' ? 'border-primary-500 text-primary-400' : 'border-transparent text-gray-400 hover:text-white'}`}
+                    className={`px-4 py-2 border-b-2 font-medium transition-colors whitespace-nowrap ${activeSection === 'release' ? 'border-primary-500 text-primary-400' : 'border-transparent text-gray-400 hover:text-'}`}
                 >
                     Release Notes
                 </button>
@@ -1345,9 +1386,12 @@ const AdminPanel = () => {
 
             {activeSection === 'release' && (
                 <div className="space-y-6 animate-fade-in">
-                    <h2 className="text-xl font-semibold text-white">AI Release Notes Generator</h2>
+                    <h2 className="text-xl font-semibold text-white">Release Notes Builder</h2>
 
+                    {/* 1. Context Gathering */}
                     <div className="bg-gray-800/50 p-6 rounded-xl border border-white/10 space-y-6">
+                        <h3 className="text-lg font-medium text-primary-400 font-bold uppercase tracking-widest">1. Gather Context & Generate Base</h3>
+
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
                             <div>
                                 <label className="block text-sm font-medium text-gray-400 mb-1">Start Date</label>
@@ -1367,102 +1411,164 @@ const AdminPanel = () => {
                                     onChange={e => setReportPeriod({ ...reportPeriod, end: e.target.value })}
                                 />
                             </div>
-                            <button
-                                onClick={handleFetchReport}
-                                disabled={fetchingReport}
-                                className="px-6 py-2 bg-primary-600 hover:bg-primary-500 text-white font-bold rounded-lg transition-all disabled:opacity-50"
-                            >
-                                {fetchingReport ? 'Fetching...' : 'Fetch Active Tickets'}
-                            </button>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-400 mb-1">&nbsp;</label>
+                                <button
+                                    onClick={handleFetchReport}
+                                    disabled={fetchingReport}
+                                    className="w-full px-6 py-2 bg-primary-600 hover:bg-primary-500 text-white font-bold rounded-lg transition-all disabled:opacity-50"
+                                >
+                                    {fetchingReport ? 'Fetching...' : 'Fetch Active Tickets'}
+                                </button>
+                            </div>
                         </div>
 
                         {reportTickets.length > 0 && (
-                            <div className="space-y-4 pt-4 border-t border-white/5">
-                                <div className="flex justify-between items-center">
-                                    <h3 className="text-lg font-medium text-white italic">Tickets Found ({reportTickets.length})</h3>
-                                    <button
-                                        onClick={handleGenerateNotes}
-                                        disabled={generatingNotes}
-                                        className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-purple-600 to-primary-600 hover:from-purple-500 hover:to-primary-500 text-white font-bold rounded-lg shadow-lg transition-all disabled:opacity-50"
-                                    >
-                                        ✨ {generatingNotes ? 'Generating...' : 'Generate AI Release Notes'}
-                                    </button>
-                                </div>
-                                <div className="max-h-64 overflow-y-auto space-y-2 pr-2">
-                                    {reportTickets.map(t => (
-                                        <div key={t.id} className="bg-black/30 p-3 rounded-lg border border-white/5 flex gap-4 items-center">
-                                            <div className="flex flex-col gap-1">
-                                                <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded text-center ${t.type === 'bug' ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
-                                                    {t.type}
-                                                </span>
-                                                <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded text-center ${t.status === 'completed' ? 'bg-green-500/20 text-green-400' : 'bg-primary-500/20 text-primary-400'}`}>
-                                                    {t.status.replace('_', ' ')}
-                                                </span>
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-medium text-white truncate">{t.title}</p>
-                                                <div className="flex gap-2">
-                                                    {t.epic_title && <p className="text-[10px] text-gray-400">Project: {t.epic_title}</p>}
-                                                    {t.type === 'bug' && t.created_by_username && (
-                                                        <p className="text-[10px] text-primary-400">By: {t.created_by_username}</p>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <span className="text-[10px] text-gray-500 whitespace-nowrap">
-                                                {format(new Date(t.updated_at), 'MMM d')}
+                            <div className="max-h-48 overflow-y-auto space-y-2 pr-2 border-t border-white/5 pt-4">
+                                <h4 className="text-sm font-medium text-gray-400 mb-2">Tickets Found ({reportTickets.length})</h4>
+                                {reportTickets.map(t => (
+                                    <div key={t.id} className="bg-black/30 p-3 rounded-lg border border-white/5 flex gap-4 items-center">
+                                        <div className="flex flex-col gap-1">
+                                            <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded text-center ${t.type === 'bug' ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                                                {t.type}
                                             </span>
                                         </div>
-                                    ))}
-
-                                </div>
-                                <div className="mt-4 border-t border-white/5 pt-4">
-                                    <label className="block text-sm font-medium text-gray-400 mb-2">Manual Additions / Offline Work</label>
-                                    <textarea
-                                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary-500 min-h-[100px] text-sm"
-                                        placeholder="Enter details of work done outside of tickets... (This will be sent to the AI)"
-                                        value={manualNotes}
-                                        onChange={e => setManualNotes(e.target.value)}
-                                    ></textarea>
-                                </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-medium text-white truncate">{t.title}</p>
+                                        </div>
+                                        <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded text-center ${t.status === 'completed' ? 'bg-green-500/20 text-green-400' : 'bg-primary-500/20 text-primary-400'}`}>
+                                            {t.status.replace('_', ' ')}
+                                        </span>
+                                    </div>
+                                ))}
                             </div>
                         )}
 
-                        {generatedNotes && (
-                            <div className="space-y-4 pt-6 border-t border-primary-500/30">
-                                <div className="flex justify-between items-center">
-                                    <h3 className="text-lg font-medium text-primary-400 font-black uppercase tracking-widest">Release Notes Preview</h3>
-                                    <div className="flex items-center gap-3">
+                        <div className="mt-4 border-t border-white/5 pt-4 space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-400 mb-2">Additional Instructions / Offline Work (Sent to AI)</label>
+                                <textarea
+                                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary-500 min-h-[80px] text-sm custom-scrollbar"
+                                    placeholder="E.g., Format this playfully. Make sure to mention we fixed the chat widget timeout..."
+                                    value={manualNotes}
+                                    onChange={e => setManualNotes(e.target.value)}
+                                ></textarea>
+                            </div>
+                            <div className="flex justify-end">
+                                <button
+                                    onClick={handleGenerateNotes}
+                                    disabled={generatingNotes}
+                                    className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-purple-600 to-primary-600 hover:from-purple-500 hover:to-primary-500 text-white font-bold rounded-lg shadow-lg transition-all disabled:opacity-50"
+                                >
+                                    ✨ {generatingNotes ? 'Generating...' : 'Generate Base Notes with AI'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 2. Live Editor */}
+                    <div className="bg-gray-800/50 p-6 rounded-xl border border-white/10 space-y-6">
+                        <div className="flex justify-between items-center">
+                            <h3 className="text-lg font-medium text-primary-400 font-bold uppercase tracking-widest">2. Live Editor & Publish</h3>
+                            <button
+                                onClick={() => {
+                                    navigator.clipboard.writeText(generatedNotes);
+                                    alert('Copied HTML to clipboard!');
+                                }}
+                                className="text-xs text-primary-400 hover:text-white transition-colors"
+                            >
+                                Copy HTML
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div className="space-y-2 flex flex-col h-full">
+                                <label className="text-sm font-medium text-gray-400 flex items-center gap-2">
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
+                                    HTML Source
+                                </label>
+                                <textarea
+                                    className="flex-1 min-h-[500px] w-full bg-gray-950 border border-gray-700 rounded-lg px-4 py-4 text-emerald-400 focus:outline-none focus:border-primary-500 font-mono text-sm custom-scrollbar"
+                                    placeholder="<h1>Release v1.0.0</h1>\n<p>Enter your release notes here...</p>\n\n<ul>\n  <li>Feature 1</li>\n</ul>"
+                                    value={generatedNotes}
+                                    onChange={e => setGeneratedNotes(e.target.value)}
+                                ></textarea>
+                            </div>
+
+                            <div className="space-y-2 flex flex-col h-full">
+                                <label className="text-sm font-medium text-gray-400 flex items-center gap-2">
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                    Live Preview
+                                </label>
+                                <div className="flex-1 min-h-[500px] bg-gray-900 border border-primary-500/20 p-6 rounded-xl overflow-y-auto custom-scrollbar shadow-inner">
+                                    <div
+                                        className="prose prose-invert max-w-none break-words leading-relaxed space-y-4"
+                                        dangerouslySetInnerHTML={{ __html: generatedNotes || '<p class="text-gray-500 italic mt-4">Start typing in the HTML editor to see a live preview...</p>' }}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Attachments & Publish */}
+                        <div className="border-t border-white/5 pt-6 space-y-6">
+                            <div>
+                                <div className="flex items-center justify-between mb-4">
+                                    <h4 className="text-sm font-medium text-gray-400">Attachments</h4>
+                                    <div className="relative">
                                         <input
-                                            type="text"
-                                            placeholder="v1.0.0"
-                                            className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-1 text-white text-sm"
-                                            value={releaseVersion}
-                                            onChange={e => setReleaseVersion(e.target.value)}
+                                            type="file"
+                                            multiple
+                                            accept="image/*"
+                                            onChange={handleImageUpload}
+                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                            title="Upload Images"
                                         />
-                                        <button
-                                            onClick={handlePublishClick}
-                                            disabled={publishing}
-                                            className="px-4 py-1.5 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg text-sm shadow-lg disabled:opacity-50"
-                                        >
-                                            🚀 Publish Release
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                navigator.clipboard.writeText(generatedNotes);
-                                                alert('Copied to clipboard!');
-                                            }}
-                                            className="text-xs text-primary-400 hover:text-white transition-colors"
-                                        >
-                                            Copy HTML
+                                        <button className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold rounded-lg text-sm flex items-center gap-2 transition-colors">
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                                            Add Images ({releaseImages.length}/5)
                                         </button>
                                     </div>
                                 </div>
-                                <div
-                                    className="bg-gray-900 border border-primary-500/20 p-6 rounded-xl prose prose-invert max-w-none shadow-2xl"
-                                    dangerouslySetInnerHTML={{ __html: generatedNotes }}
-                                ></div>
+                                {releaseImages.length > 0 && (
+                                    <div className="flex gap-4 overflow-x-auto pb-2">
+                                        {releaseImages.map((img, i) => (
+                                            <div key={i} className="relative group w-32 h-32 rounded-xl border-2 border-gray-700 bg-gray-900 overflow-hidden flex-shrink-0">
+                                                <img src={img} alt={`Upload ${i}`} className="w-full h-full object-cover" />
+                                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                    <button
+                                                        onClick={() => removeImage(i)}
+                                                        className="bg-red-600 hover:bg-red-500 text-white p-2 rounded-full cursor-pointer transform hover:scale-110 transition-transform"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
-                        )}
+
+                            <div className="flex items-center justify-between bg-black/20 p-4 rounded-xl border border-white/5 mt-4">
+                                <div className="flex flex-col gap-1 w-64">
+                                    <label className="text-xs text-gray-500 uppercase tracking-wider font-bold">Release Version</label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. v1.0.5"
+                                        className="bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white font-mono focus:border-primary-500 focus:outline-none"
+                                        value={releaseVersion}
+                                        onChange={e => setReleaseVersion(e.target.value)}
+                                    />
+                                </div>
+                                <button
+                                    onClick={handlePublishClick}
+                                    disabled={publishing || !generatedNotes || !releaseVersion}
+                                    className="px-8 py-3 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white font-black uppercase tracking-wider rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.5)] disabled:opacity-50 disabled:shadow-none transition-all flex items-center gap-3 transform hover:-translate-y-0.5"
+                                >
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+                                    {publishing ? 'Publishing...' : 'Publish Release'}
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

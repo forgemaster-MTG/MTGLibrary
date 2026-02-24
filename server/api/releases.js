@@ -7,12 +7,33 @@ const router = express.Router();
 // GET /releases - Fetch recent releases
 router.get('/', async (req, res) => {
     try {
+        const limit = parseInt(req.query.limit, 10) || 10;
+        const offset = parseInt(req.query.offset, 10) || 0;
+
         const releases = await knex('releases')
+            .select('id', 'version', 'released_at', 'notes', 'stats', 'created_at', 'updated_at')
             .orderBy('released_at', 'desc')
-            .limit(10);
+            .limit(limit)
+            .offset(offset);
+
         res.json(releases);
     } catch (err) {
         console.error('[releases] fetch error', err);
+        res.status(500).json({ error: 'db error' });
+    }
+});
+
+// GET /releases/:id - Fetch a specific release including heavy image payload
+router.get('/:id', async (req, res) => {
+    try {
+        const release = await knex('releases')
+            .where({ id: req.params.id })
+            .first();
+
+        if (!release) return res.status(404).json({ error: 'Release not found' });
+        res.json(release);
+    } catch (err) {
+        console.error('[releases] fetch single error', err);
         res.status(500).json({ error: 'db error' });
     }
 });
@@ -24,7 +45,7 @@ router.post('/', authMiddleware, async (req, res) => {
         const isAdmin = isRoot || req.user.settings?.isAdmin || req.user.settings?.permissions?.includes('manage_tickets');
         if (!isAdmin) return res.status(403).json({ error: 'Not authorized' });
 
-        const { version, notes, ticketIds, typeStats } = req.body;
+        const { version, notes, ticketIds, typeStats, images } = req.body;
         if (!version) return res.status(400).json({ error: 'Version is required' });
 
         await knex.transaction(async (trx) => {
@@ -33,6 +54,7 @@ router.post('/', authMiddleware, async (req, res) => {
                 version,
                 notes,
                 stats: typeStats || {},
+                images: images ? JSON.stringify(images) : '[]',
                 released_at: trx.fn.now() // Use server time
             }).returning('*');
 

@@ -145,7 +145,8 @@ export const api = {
 
     // Releases
     // Releases
-    getReleases: () => request('GET', '/api/releases'),
+    getReleases: (params) => request('GET', '/api/releases', null, params),
+    getReleaseById: (id) => request('GET', `/api/releases/${id}`),
     publishRelease: (data) => request('POST', '/api/releases', data),
 
     // Precons
