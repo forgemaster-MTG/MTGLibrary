@@ -113,6 +113,32 @@ body {
     font-family: 'Inter', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+    overflow-y: overlay; /* Allows scrollbar to be overlaid, preventing layout shift, though standard auto works too. Using auto to prevent double bars. */
+}
+
+/* Global Scrollbar Styling */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #111827; /* gray-900 baseline */
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.2) #111827;
 }
 
 @layer utilities {
@@ -175,6 +201,7 @@ body {
         }
     }
 
+    /* Legacy custom-scrollbar references mapping to the new global style for safety */
     .custom-scrollbar::-webkit-scrollbar {
         width: 6px;
     }
@@ -184,12 +211,12 @@ body {
     }
 
     .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.05);
+        background: rgba(255, 255, 255, 0.2);
         border-radius: 10px;
     }
 
     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-        background: rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.3);
     }
 
     /* Production-Safe Chat Typography Overrides */

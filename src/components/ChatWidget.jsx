@@ -100,15 +100,15 @@ const ChatWidget = () => {
     };
 
     return (
-        <div className={`fixed bottom-0 right-0 z-50 transition-all duration-300 ${isExpanded ? 'w-full h-full p-0 flex flex-col' : 'w-full md:w-[450px] md:right-4 h-[600px] mb-4'}`}>
+        <div className={`fixed bottom-0 right-0 z-50 pointer-events-none transition-all duration-300 ${isExpanded ? 'w-full h-full p-0 flex flex-col' : isOpen ? 'w-full md:w-[450px] md:right-4 h-[600px] mb-4' : 'w-full h-full max-h-[100px] max-w-[100px] bg-transparent'}`}>
             {/* Overlay for expanded mode on mobile */}
-            {isExpanded && <div className="fixed inset-0 bg-black/50 backdrop-blur-sm -z-10" onClick={() => setIsExpanded(false)}></div>}
+            {isExpanded && <div className="fixed inset-0 bg-black/50 backdrop-blur-sm -z-10 pointer-events-auto" onClick={() => setIsExpanded(false)}></div>}
 
             {/* Toggle Button (when closed) */}
             {!isOpen && (
                 <button
                     onClick={() => setIsOpen(true)}
-                    className="absolute bottom-4 right-4 w-14 h-14 bg-gradient-to-br from-primary-600 to-primary-700 text-white rounded-full shadow-2xl hover:scale-110 active:scale-95 transition-all flex items-center justify-center border-2 border-primary-400 group overflow-hidden"
+                    className="pointer-events-auto absolute bottom-4 right-4 w-14 h-14 bg-gradient-to-br from-primary-600 to-primary-700 text-white rounded-full shadow-2xl hover:scale-110 active:scale-95 transition-all flex items-center justify-center border-2 border-primary-400 group overflow-hidden"
                 >
                     <div className="absolute inset-0 bg-white/10 group-hover:bg-transparent transition-colors"></div>
                     {helperAvatar ? (
@@ -124,7 +124,7 @@ const ChatWidget = () => {
 
             {/* Chat Window */}
             {isOpen && (
-                <div className={`flex flex-col h-full bg-gray-800 border-t border-l border-gray-700 shadow-2xl overflow-hidden ${isExpanded ? 'w-full h-full' : 'rounded-tl-2xl md:rounded-tr-2xl md:border-r'}`}>
+                <div className={`pointer-events-auto flex flex-col h-full bg-gray-800 border-t border-l border-gray-700 shadow-2xl overflow-hidden ${isExpanded ? 'w-full h-full' : 'rounded-tl-2xl md:rounded-tr-2xl md:border-r'}`}>
                     {/* Header */}
                     <div className="flex items-center justify-between p-4 bg-gray-900 border-b border-gray-700">
                         <div className="flex items-center gap-3">
