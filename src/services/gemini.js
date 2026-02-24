@@ -99,14 +99,14 @@ const getKeys = (primaryKey, userProfile) => {
 };
 
 const PRO_MODELS = [
-  "gemini-2.0-pro-exp-02-05", // 2.0 Pro Experimental
-  "gemini-1.5-pro", // Stable 1.5
+  "gemini-2.5-pro",
+  "gemini-1.5-pro",
 ];
 
 const FLASH_MODELS = [
-  "gemini-2.0-flash", // 2.0 Flash
-  "gemini-2.0-flash-lite-preview-02-05", // 2.0 Flash Lite
-  "gemini-1.5-flash", // Stable Fallback
+  "gemini-2.5-flash-lite",
+  "gemini-2.5-flash",
+  "gemini-1.5-flash",
 ];
 
 const PREFERRED_MODELS = [...PRO_MODELS, ...FLASH_MODELS];
