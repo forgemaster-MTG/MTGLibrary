@@ -536,6 +536,10 @@ const GeminiService = {
            - Aggro might need 33 lands. Control might need 38. YOU DECIDE.
            - Ensure the total of Packages + Vegetables = ~63 (assuming 36 lands + 1 commander, but adjust lands as needed).
         
+        CRITICAL CONSTRAINTS:
+        - COLOR IDENTITY: You MUST strictly adhere to the Commander's Color Identity. Do not suggest or plan for any cards that have pips outside this identity.
+        - LEGALITY: You MUST NOT suggest strategies that rely on Commander Banned cards.
+        
         OUTPUT JSON:
         {
             "strategyName": "String",
@@ -603,12 +607,16 @@ const GeminiService = {
         ? `CONSTRAINT: You MUST select cards from the provided [CANDIDATE POOL] below. 
                - If perfect matches aren't found, choose the best available functional substitutes from the pool.
                - Do NOT suggest cards not in the pool.`
-        : `CONSTRAINT: Search the entire MTG history for the absolute best synergies.`
+        : `CONSTRAINT: Search the entire MTG history for the absolute best synergies.
+           CRITICAL CONSTRAINTS:
+           - COLOR IDENTITY: You MUST STRICTLY adhere to the Commander's color identity. No off-color cards (e.g. no green cards in a red deck).
+           - LEGALITY: Do NOT suggest any card that is banned in the Commander format.`
       }
             
         OUTPUT JSON:
-        { "suggestions": [ { "name": "Card Name", "reason": "Why it fits", "role": "Synergy", "rating": 1-10 } ] }
+        { "suggestions": [ { "name": "Card Name", "reason": "Why it fits", "role": "Synergy", "rating": 1-10, "set": "optional set code", "collectorNumber": "optional cn" } ] }
         CRITICAL: You MUST provide a 'rating' (integer 1-10) for every card, representing its power level/synergy in this deck. 10=Perfect, 1=Weak.
+        If the user requested 'cheapest', bias your 'set' and 'collectorNumber' towards mass reprints (e.g., Commander precons, Masters sets).
         `;
 
     const candidateText = isCollectionMode
@@ -683,6 +691,9 @@ const GeminiService = {
 
         CRITICAL INSTRUCTIONS FOR DISCOVERY MODE:
         Search entire MTG history. Resolve by Name. Recommend 'set' and 'collectorNumber'.
+        - CHEAPEST PRINTING: If the User's [SPECIAL FOCUS] or strategy implies budget/cheapest, strictly prioritize mass reprints (e.g., Commander precons, Masters sets) over standard non-foil printings for the 'set' and 'collectorNumber'.
+        - LEGALITY: You MUST NOT suggest any cards that are banned in the Commander format.
+        - STRICT COLOR IDENTITY: You MUST strictly adhere to the Commander's Color Identity: ${payload.commanderColorIdentity}. NEVER include off-color cards.
         
         CRITICAL INSTRUCTIONS FOR COLLECTION MODE:
         Only suggest from [CANDIDATE POOL]. Use 'firestoreId'.`;
