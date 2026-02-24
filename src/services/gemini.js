@@ -1569,64 +1569,61 @@ Return ONLY a valid JSON array of objects with the keys "userContent" and "aiCon
 
     prompt += ` Use the provided logo as a style reference for colors and branding. Design it to be a premium profile picture for a Magic: The Gathering platform.`;
 
-    // Nano Banana Pro lineage uses Imagen 3 models
+    // Nano Banana Pro lineage uses Imagen 4.0 and latest Flash/Preview models
     const isQuality = quality === "quality";
     const models = isQuality
-      ? ["imagen-3.0-generate-002", "imagen-3.0-generate-001", "imagen-3", "imagen-2.0-generate-001"] // Quality / Nano Banana Pro
-      : ["imagen-3.0-fast-generate-001", "imagen-3.0-generate-002", "imagen-3.0-generate-001", "imagen-3", "imagen-2.0-generate-001"]; // Speed / Nano Banana
+      ? ["imagen-4.0-generate-001", "nano-banana-pro-preview", "gemini-3-pro-image-preview"]
+      : ["imagen-4.0-fast-generate-001", "gemini-2.5-flash-image", "gemini-2.0-flash-exp-image-generation"];
 
     // Standard Gemini generateImages payload structure
-    const payload = {
-      instances: [
-        {
-          prompt: prompt
-        }
-      ],
-      parameters: {
-        sampleCount: 1,
-      },
-    };
-
-    try {
-      const runResponse = await this.executeWithFallback(payload, userProfile, {
-        models: models,
-        method: "predict",
-      });
-
-      if (
-        runResponse &&
-        runResponse.predictions &&
-        runResponse.predictions[0]?.bytesBase64Encoded
-      ) {
-        return `data:image/png;base64,${runResponse.predictions[0].bytesBase64Encoded}`;
-      }
-    } catch (err) {
-      console.warn("[GeminiService] Predict failed, trying generateImages fallback...", err.message);
-
-      // If failure was Oracle Exhausted (meaning all models @ predict failed), try generateImages
-      // GenerateImages uses a slightly different payload structure on some API versions
-      const giPayload = {
-        prompt: prompt,
-        number_of_images: 1,
-      };
-
+    for (const model of models) {
       try {
-        const giResponse = await this.executeWithFallback(giPayload, userProfile, {
-          models: models,
-          method: "generateImages",
+        const isPredictModel = model.includes("imagen") || model.includes("veo");
+        const method = isPredictModel ? "predict" : "generateContent";
+
+        let finalPayload;
+        if (method === "generateContent") {
+          finalPayload = {
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { sampleCount: 1 }
+          };
+        } else {
+          finalPayload = {
+            instances: [{ prompt }],
+            parameters: { sampleCount: 1 }
+          };
+        }
+
+        const runResponse = await this.executeWithFallback(finalPayload, userProfile, {
+          models: [model],
+          method: method,
         });
 
-        if (giResponse?.generatedImages?.[0]?.image?.imageBytes) {
-          return `data:image/png;base64,${giResponse.generatedImages[0].image.imageBytes}`;
+        // 1. Handle 'predict' style response (Imagen 4.0)
+        if (runResponse?.predictions?.[0]?.bytesBase64Encoded) {
+          return `data:image/png;base64,${runResponse.predictions[0].bytesBase64Encoded}`;
         }
-      } catch (giErr) {
-        console.error("[GeminiService] Both predict and generateImages failed.", giErr.message);
-        throw giErr; // Re-throw the second failure
+
+        // 2. Handle 'generateContent' style response (Nano Banana / Flash Image)
+        const imagePart = runResponse?.candidates?.[0]?.content?.parts?.find(p => p.inlineData || p.inline_data);
+        const imageBase64 = imagePart?.inlineData?.data || imagePart?.inline_data?.data;
+        if (imageBase64) {
+          return `data:image/png;base64,${imageBase64}`;
+        }
+
+        // 3. Handle 'generateImages' style legacy response
+        if (runResponse?.generatedImages?.[0]?.image?.imageBytes) {
+          return `data:image/png;base64,${runResponse.generatedImages[0].image.imageBytes}`;
+        }
+
+      } catch (err) {
+        console.warn(`[GeminiService] Method attempt failed for ${model}:`, err.message);
+        continue; // Try next model in the list
       }
     }
 
     throw new Error(
-      "Failed to generate image: No valid prediction returned from AI.",
+      "Failed to generate image: All models and methods exhausted.",
     );
   },
 

@@ -3,7 +3,7 @@
 ## ✨ The AI & UI Overhaul
 
 ### 🤖 Advanced AI Personas & Imagery
-*   **Nano Banana Pro Lineage (Imagen 3.0)**: Integrated latest Imagen 3.0 models. Performance is now split between "Pro AI" for top-tier quality and "Fast AI" for rapid, cost-effective generation.
+*   **Imagen 4.0 & Nano Banana Pro (Latest)**: Integrated the state-of-the-art **Imagen 4.0** and **Nano Banana Pro Preview** models. Performance is now split between "Pro AI" for studio-quality 4K visuals and "Fast AI" for rapid, cost-effective generation.
 *   **Persona Details Redesign**: Complete visual overhaul of individual AI Helper pages.
     *   **Banner Layout**: Cinematic 21:7 top-banner displays characters with high-contrast text overlays.
     *   **Max-Width Expansion**: Modal width increased to `max-w-5xl` for a more open, premium feel.
