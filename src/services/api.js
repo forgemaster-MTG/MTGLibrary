@@ -179,5 +179,12 @@ export const api = {
     reorderFeaturedProducts: (order) => request('PUT', '/api/featured/reorder/batch', { order }),
 
     // Credit Reset
-    resetUserCredits: (userId) => request('POST', `/api/admin/credit-reset/${userId}`)
+    resetUserCredits: (userId) => request('POST', `/api/admin/credit-reset/${userId}`),
+
+    // AI Personas
+    getPersonas: () => request('GET', '/api/personas'),
+    getAdminPersonas: () => request('GET', '/api/personas/admin'),
+    createPersona: (data) => request('POST', '/api/personas/admin', data),
+    updatePersona: (id, data) => request('PUT', `/api/personas/admin/${id}`, data),
+    deletePersona: (id) => request('DELETE', `/api/personas/admin/${id}`)
 };

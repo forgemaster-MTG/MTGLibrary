@@ -24,6 +24,17 @@ const AccountSettings = () => {
     const [generatingAI, setGeneratingAI] = useState(false);
     const [customAvatarPrompt, setCustomAvatarPrompt] = useState('');
     const [generatedAvatarCandidate, setGeneratedAvatarCandidate] = useState(null);
+    const [pricingConfig, setPricingConfig] = useState(null);
+
+    useEffect(() => {
+        const fetchPricing = async () => {
+            try {
+                const data = await api.get('/api/admin/pricing');
+                if (data.config) setPricingConfig(data.config);
+            } catch (err) { console.error("Failed to load pricing for estimation"); }
+        };
+        fetchPricing();
+    }, []);
 
     const initializedRef = React.useRef(null);
     useEffect(() => {
@@ -81,8 +92,9 @@ const AccountSettings = () => {
         }
     };
 
-    const handleGenerateAIAvatar = async () => {
-        if (!confirm('Forging a new avatar costs approx. 5,000 AI credits. Proceed?')) return;
+    const handleGenerateAIAvatar = async (quality = "quality") => {
+        const cost = GeminiService.getImagenCost(quality, pricingConfig?.assumptions || {});
+        if (!confirm(`Forging a new avatar costs approx. ${cost.toLocaleString()} credits. Proceed with ${quality === 'quality' ? 'Nano Banana Pro' : 'Nano Banana'}?`)) return;
 
         setGeneratingAI(true);
         try {
@@ -108,7 +120,8 @@ const AccountSettings = () => {
                 archetypeTitle,
                 logoBase64,
                 userProfile,
-                customAvatarPrompt
+                customAvatarPrompt,
+                quality
             );
 
             // 4. Set Candidate for Review
@@ -267,17 +280,29 @@ const AccountSettings = () => {
                                             placeholder="Optional Custom Prompt (e.g., 'A fierce fire mage')"
                                             className="w-full bg-gray-900 border border-gray-700 p-2.5 rounded-lg text-gray-200 focus:ring-2 focus:ring-primary-500 outline-none text-sm"
                                         />
-                                        <button
-                                            onClick={handleGenerateAIAvatar}
-                                            disabled={generatingAI}
-                                            className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white text-xs font-bold py-2.5 px-3 rounded flex items-center justify-center gap-2 transition-all shadow-lg shadow-orange-900/20 disabled:opacity-50"
-                                        >
-                                            <Sparkles className="w-3.5 h-3.5" />
-                                            {generatingAI ? 'Forging Avatar...' : 'Magic AI: Generate Avatar'}
-                                        </button>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <button
+                                                onClick={() => handleGenerateAIAvatar('fast')}
+                                                disabled={generatingAI}
+                                                className="bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 text-white text-[11px] font-bold py-2.5 px-3 rounded flex items-center justify-center gap-2 transition-all shadow-lg shadow-purple-900/20 disabled:opacity-50"
+                                                title={`~${GeminiService.getImagenCost('fast', pricingConfig?.assumptions || {}).toLocaleString()} credits`}
+                                            >
+                                                <Sparkles className="w-3.5 h-3.5" />
+                                                {generatingAI ? '...' : 'Fast AI'}
+                                            </button>
+                                            <button
+                                                onClick={() => handleGenerateAIAvatar('quality')}
+                                                disabled={generatingAI}
+                                                className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white text-[11px] font-bold py-2.5 px-3 rounded flex items-center justify-center gap-2 transition-all shadow-lg shadow-orange-900/20 disabled:opacity-50"
+                                                title={`~${GeminiService.getImagenCost('quality', pricingConfig?.assumptions || {}).toLocaleString()} credits`}
+                                            >
+                                                <Sparkles className="w-3.5 h-3.5" />
+                                                {generatingAI ? '...' : 'Pro AI (4K)'}
+                                            </button>
+                                        </div>
                                     </div>
                                     <p className="text-[10px] text-gray-500 italic">
-                                        * AI Generation uses approx. 5,000 credits and references your playstyle & the Forge logo.
+                                        * AI Generation uses dynamic credits based on market rates & references your playstyle.
                                     </p>
                                 </div>
                             </div>

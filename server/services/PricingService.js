@@ -118,7 +118,10 @@ export const PricingService = {
                 hostingCost: 0.25,
                 avgUsagePercent: 80,
                 proTokenCost: 2.50,
-                exchangeRate: 15
+                exchangeRate: 6, // 6M credits per $1
+                imageCostMarket: 0.03, // $0.03 market cost
+                fastImageCostMarket: 0.01, // $0.01 market cost
+                imageMarkup: 1.15 // 115% markup
             },
             tiers: [
                 {

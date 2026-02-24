@@ -82,16 +82,23 @@ router.post('/generate', async (req, res) => {
         let cost = 0;
         let finalCredits = null;
 
+        const config = await PricingService.getConfig();
+        const assumptions = config.assumptions || {};
+        const exchangeRate = assumptions.exchangeRate || 15;
+        const markup = assumptions.imageMarkup || 1.15;
+
         // Special handling for high-cost operations like Image Generation (Imagen)
         const isImageGen = model.toLowerCase().includes('imagen');
 
         if (isImageGen) {
-            cost = 5000; // Fixed cost for image generation
+            const isFast = model.toLowerCase().includes('fast');
+            const marketCost = isFast ? (assumptions.fastImageCostMarket || 0.01) : (assumptions.imageCostMarket || 0.03);
+
+            // Cost in Credits = (Market $ * Markup) * ExchangeRate (Millions)
+            // Example: (0.03 * 1.15) * 6 * 1,000,000 = 207,000 credits
+            cost = Math.ceil((marketCost * markup) * exchangeRate * 1000000);
         } else if (responseData.usageMetadata) {
             const { totalTokenCount = 0 } = responseData.usageMetadata;
-            // Get rate
-            const config = await PricingService.getConfig();
-            const exchangeRate = config.assumptions?.exchangeRate || 15; // Default 15 credits per token
             cost = Math.ceil(totalTokenCount * exchangeRate);
         }
 

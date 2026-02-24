@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 const DeckAI = ({ deck, cards }) => {
     const { userProfile } = useAuth();
     const helperName = userProfile?.settings?.helper?.name || "Oracle";
+    const helperAvatar = userProfile?.settings?.helper?.avatar_url || userProfile?.settings?.helper?.avatar;
 
     const [analysis, setAnalysis] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -46,6 +47,9 @@ Please provide:
         <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                    {helperAvatar && (
+                        <img src={helperAvatar} alt={helperName} className="w-8 h-8 rounded-full border border-purple-500/50 object-cover shadow-sm" />
+                    )}
                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
                         {helperName} Analysis
                     </span>

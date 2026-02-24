@@ -1503,6 +1503,51 @@ const GeminiService = {
       .trim();
   },
 
+  async generatePersonaSamples(apiKey, personaContext, userProfile = null) {
+    if (!personaContext || !personaContext.personality) {
+      throw new Error("Missing persona personality context.");
+    }
+
+    const systemInstruction = `You are tasked with generating 3 example interactions for an AI Persona in a Magic: The Gathering deckbuilder application.
+The persona's details:
+- Name: ${personaContext.name}
+- Archetype/Type: ${personaContext.type}
+- Personality Prompt: ${personaContext.personality}
+
+Your goal is to provide 3 distinct questions a user might ask, and 3 corresponding responses written EXACTLY in the voice, tone, and style described by the personality prompt.
+Ensure the responses strongly reflect the character. The user questions should be typical MTG deckbuilding/rules questions (e.g. "Should I add more lands?", "Is this card good in my deck?").
+Return ONLY a valid JSON array of objects with the keys "userContent" and "aiContent". Do not include markdown blocks. Example:
+[
+  { "userContent": "Should I add more lands?", "aiContent": "..." },
+  { "userContent": "What do you think of my commander?", "aiContent": "..." },
+  { "userContent": "Suggest a combo.", "aiContent": "..." }
+]`;
+
+    const payload = {
+      system_instruction: { parts: [{ text: systemInstruction }] },
+      contents: [{ role: "user", parts: [{ text: "Generate the 3 sample interactions now." }] }],
+      generationConfig: {
+        responseMimeType: "application/json",
+      },
+    };
+
+    try {
+      const result = await this.executeWithFallback(payload, userProfile, {
+        apiKey,
+        models: FLASH_MODELS,
+      });
+
+      const data = JSON.parse(result.text.trim());
+      if (Array.isArray(data) && data.length > 0) {
+        return data;
+      }
+      return [];
+    } catch (err) {
+      console.error("[GeminiService] Failed to generate sample responses:", err);
+      throw new Error("Could not generate persona sample responses.");
+    }
+  },
+
   /**
    * Generates a high-quality MTG-style avatar based on user profile.
    */
@@ -1512,7 +1557,8 @@ const GeminiService = {
     archetype,
     referenceImageBase64 = null,
     userProfile = null,
-    customPrompt = ""
+    customPrompt = "",
+    quality = "quality"
   ) {
     const baseStyle = `A high-quality MTG-style avatar for a player named ${username}. They have a ${playstyle || "balanced"} playstyle and their deck archetype is ${archetype || "Forge Traveler"}.`;
     let prompt = baseStyle;
@@ -1522,6 +1568,12 @@ const GeminiService = {
     }
 
     prompt += ` Use the provided logo as a style reference for colors and branding. Design it to be a premium profile picture for a Magic: The Gathering platform.`;
+
+    // Nano Banana Pro lineage uses Imagen 3 models
+    const isQuality = quality === "quality";
+    const models = isQuality
+      ? ["imagen-3.0-generate-001"] // Quality / Nano Banana Pro
+      : ["imagen-3.0-fast-generate-001"]; // Speed / Nano Banana
 
     // Standard Gemini generateImages payload structure
     const payload = {
@@ -1536,7 +1588,7 @@ const GeminiService = {
     };
 
     const runResponse = await this.executeWithFallback(payload, userProfile, {
-      models: ["imagen-4.0-fast-generate-001", "imagen-4.0-generate-001"],
+      models: models,
       method: "predict", // The correct method for these models on the generativelanguage API
     });
 
@@ -1560,6 +1612,20 @@ const GeminiService = {
     throw new Error(
       "Failed to generate image: No valid prediction returned from AI.",
     );
+  },
+
+  /**
+   * Estimates credit cost for image generation based on assumptions.
+   */
+  getImagenCost(quality = "quality", assumptions = {}) {
+    const marketCost = quality === "quality"
+      ? (assumptions.imageCostMarket || 0.03)
+      : (assumptions.fastImageCostMarket || 0.01);
+
+    const markup = assumptions.imageMarkup || 1.15;
+    const exchangeRate = assumptions.exchangeRate || 6;
+
+    return Math.ceil(marketCost * markup * exchangeRate * 1000000);
   },
 };
 

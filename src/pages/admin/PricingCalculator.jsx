@@ -17,7 +17,10 @@ const PricingCalculator = () => {
             avgUsagePercent: 80,
             proTokenCost: 2.50,
             exchangeRate: 15,
-            topUpCreditRate: 6 // New field
+            topUpCreditRate: 6,
+            imageCostMarket: 0.03,
+            fastImageCostMarket: 0.01,
+            imageMarkup: 1.15
         },
         tiers: [],
         packs: [],
@@ -103,7 +106,8 @@ const PricingCalculator = () => {
             estDecks,
             estCost,
             projProfit,
-            marginUsed: margin
+            marginUsed: margin,
+            estImages: Math.floor(proposedLimit / ((assumptions.imageCostMarket || 0.03) * (assumptions.imageMarkup || 1.15) * (assumptions.exchangeRate || 6) * 1000000))
         };
     };
 
@@ -393,6 +397,7 @@ const PricingCalculator = () => {
                             <th className="p-4 text-white">Current Limit</th>
                             <th className="p-4 text-green-400">Proposed</th>
                             <th className="p-4">Est. Decks</th>
+                            <th className="p-4 text-purple-400">Est. Images</th>
                             <th className="p-4 text-emerald-300">Proj. Profit</th>
                         </tr>
                     </thead>
@@ -420,6 +425,7 @@ const PricingCalculator = () => {
                                     </td>
                                     <td className="p-4 font-bold text-xl text-green-400">{formatMillions(stats.proposedLimit)}</td>
                                     <td className="p-4 font-bold text-yellow-300 text-lg">{stats.estDecks}</td>
+                                    <td className="p-4 font-bold text-purple-400 text-lg">{stats.estImages}</td>
                                     <td className="p-4 text-emerald-300 font-bold">${stats.projProfit.toFixed(2)}</td>
                                 </tr>
                             );

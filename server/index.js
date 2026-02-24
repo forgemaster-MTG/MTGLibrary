@@ -42,6 +42,7 @@ import socialApi from './api/social.js';
 import tournamentsApi from './api/tournaments.js';
 import aiApi from './api/ai.js';
 import featuredApi from './api/featured.js';
+import personasApi from './api/personas.js';
 
 import tradesApi from './api/trades.js';
 import creditsApi from './api/credits.js';
@@ -244,6 +245,7 @@ app.use('/api/ai', aiApi);
 app.use('/api/featured', featuredApi);
 app.use('/api/trades', tradesApi);
 app.use('/api/credits', creditsApi);
+app.use('/api/personas', personasApi);
 
 
 // Health endpoint with DB check
