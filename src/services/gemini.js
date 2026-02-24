@@ -99,15 +99,13 @@ const getKeys = (primaryKey, userProfile) => {
 };
 
 const PRO_MODELS = [
-  "gemini-2.5-pro", // 2.0 Pro Experimental
-  "gemini-2.0-pro",
+  "gemini-2.0-pro-exp-02-05", // 2.0 Pro Experimental
   "gemini-1.5-pro", // Stable 1.5
 ];
 
 const FLASH_MODELS = [
-  "gemini-2.5-flash-lite", // 2.0 Flash Lite (Typo fix if needed, assuming 2.5 was correct but checking docs)
-  // Actually assuming 2.5 is correct as per user context, but let's add 1.5
-  "gemini-2.5-flash",
+  "gemini-2.0-flash", // 2.0 Flash
+  "gemini-2.0-flash-lite-preview-02-05", // 2.0 Flash Lite
   "gemini-1.5-flash", // Stable Fallback
 ];
 
@@ -178,9 +176,19 @@ const parseResponse = (text) => {
         text.substring(Math.max(0, pos - 50), pos + 50),
       );
     }
-    throw new Error("Failed to parse AI response: " + e.message);
+    return { aiResponse: text, updatedDraft: {} };
   }
 };
+
+/**
+ * Strips heavy data (base64 images, sample responses) from a persona/helper object
+ * before passing it to AI prompts to prevent token overflow.
+ */
+function sanitizeHelper(helper) {
+  if (!helper) return null;
+  const { avatar_url, avatar, photo_url, sample_responses, personality_base64, ...clean } = helper;
+  return clean;
+}
 
 // Diagnostic: List models for a key to verify what it can see
 const verifyModels = async (key) => {
@@ -1430,9 +1438,10 @@ const GeminiService = {
   },
 
   async forgeHelperChat(apiKey, history, currentDraft, userProfile = null) {
+    const cleanDraft = sanitizeHelper(currentDraft);
     const systemPrompt = `You are the MTG Spark-Forge. You are interviewing the user to create their permanent AI Deck-Building companion.
         
-        CURRENT DRAFT: ${JSON.stringify(currentDraft)}
+        CURRENT DRAFT: ${JSON.stringify(cleanDraft)}
         
         You need to determine:
         - Name

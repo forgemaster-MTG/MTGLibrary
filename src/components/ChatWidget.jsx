@@ -47,12 +47,18 @@ const ChatWidget = () => {
 
             // Get history for context
             const history = messages.map(m => ({ role: m.role, content: m.content }));
-            history.push(userMsg);
 
-            // Use the specialized forgeHelperChat for personified responses
-            const result = await GeminiService.forgeHelperChat(apiKey, history, helper || {});
+            // Use the standard personified sendMessage which is lighter and supports HTML
+            const result = await GeminiService.sendMessage(
+                apiKey,
+                history,
+                input,
+                "", // Context
+                helper || {},
+                userProfile
+            );
 
-            setMessages(prev => [...prev, { role: 'model', content: result.aiResponse }]);
+            setMessages(prev => [...prev, { role: 'model', content: result.result }]);
         } catch (err) {
             console.error(err);
             setMessages(prev => [...prev, { role: 'model', content: `<div class="text-red-400 font-bold p-2 border border-red-500/30 rounded bg-red-950/20">Forge Connection Interrupted: ${err.message}</div>` }]);
