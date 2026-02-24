@@ -33,6 +33,38 @@ const ChatWidget = () => {
         return () => window.removeEventListener('toggle-chat', handleToggleChat);
     }, []);
 
+    // Trigger welcome message when chat is opened for the first time
+    useEffect(() => {
+        if (isOpen && messages.length === 0 && !loading) {
+            handleWelcome();
+        }
+    }, [isOpen]);
+
+    const handleWelcome = async () => {
+        const apiKey = userProfile?.settings?.geminiApiKey;
+        if (!apiKey) return;
+
+        setLoading(true);
+        try {
+            // Send a hidden initialization prompt to get the persona to introduce themselves
+            const result = await GeminiService.sendMessage(
+                apiKey,
+                [],
+                "Introduce yourself and offer your services as my Magic: The Gathering deck-building companion.",
+                "This is the very first message of the session.",
+                helper || {},
+                userProfile
+            );
+
+            setMessages([{ role: 'model', content: result.result }]);
+        } catch (err) {
+            console.error("Welcome message failed:", err);
+            // Don't show an error message in the chat for the welcome fail, just leave it blank
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleSend = async () => {
         if (!input.trim() || loading) return;
 

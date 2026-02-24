@@ -881,6 +881,7 @@ const GeminiService = {
         - Use <strong class="text-primary-400"> for card names or key terms.
         - Use <ul class="space-y-1 list-disc pl-4 my-2"> for lists.
         - Use <div class="p-2.5 bg-primary-500/10 border border-primary-500/20 rounded-lg my-2"> for emphasis or summary blocks.
+        - CRITICAL: Never use h-full, min-h-screen, items-center, or justify-center on top-level containers. Let the chat bubble determine its own height.
         
         [CONTEXT]
         ${context}
