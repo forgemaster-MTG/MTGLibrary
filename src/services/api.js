@@ -61,7 +61,7 @@ async function request(method, endpoint, body = null, params = {}) {
 
     const response = await fetch(url, config);
 
-    if (!response.ok) {
+    if (!response.ok && response.status !== 304) {
         // Try to parse error message
         let errMsg = response.statusText;
         let errCode = null;

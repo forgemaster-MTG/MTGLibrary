@@ -1,153 +1,86 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { GeminiService } from '../services/gemini';
-import { getPageDoc } from '../data/helpDocs';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { GeminiService } from '../services/gemini';
 import HelperSettingsModal from './modals/HelperSettingsModal';
 
 const ChatWidget = () => {
     const { userProfile } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
-    const [isHelperModalOpen, setIsHelperModalOpen] = useState(false);
-
-    // Helper Data
-    const helper = userProfile?.settings?.helper;
-    const helperName = helper?.name || "MTG Forge";
-    const helperAvatar = helper?.avatar_url || helper?.avatar;
-
-    // Initial message state (loading state for intro)
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
-    const [introFetched, setIntroFetched] = useState(false);
-
+    const [isHelperModalOpen, setIsHelperModalOpen] = useState(false);
     const messagesEndRef = useRef(null);
+
+    const helper = userProfile?.settings?.helper;
+    const helperName = helper?.name || "MTG Forge";
+    // Robust avatar resolution checking all common fields
+    const helperAvatar = helper?.avatar_url || helper?.avatar || helper?.photo_url || null;
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
     useEffect(() => {
-        scrollToBottom();
-    }, [messages, loading]);
+        if (isOpen) scrollToBottom();
+    }, [messages, isOpen, loading]);
 
-    // Fetch dynamic intro only when opened for the first time
+    // Handle incoming custom events to toggle chat
     useEffect(() => {
-        // Event Listener for external open
-        const handleOpenEvent = () => {
-            setIsOpen(true);
-        };
-        window.addEventListener('open-chat-widget', handleOpenEvent);
-
-        return () => window.removeEventListener('open-chat-widget', handleOpenEvent);
+        const handleToggleChat = () => setIsOpen(prev => !prev);
+        window.addEventListener('toggle-chat', handleToggleChat);
+        return () => window.removeEventListener('toggle-chat', handleToggleChat);
     }, []);
 
-    useEffect(() => {
-        if (!isOpen) return;
-
-        const fetchIntro = async () => {
-            if (introFetched) return;
-
-            setIntroFetched(true); // Prevent double fetch
-
-            // If we already have messages (restored session?), skip intro
-            if (messages.length > 0) return;
-
-            const apiKey = userProfile?.settings?.geminiApiKey;
-
-            try {
-                const introPrompt = `
-                    You are about to have a conversation with a user.
-                    your name is ${helperName}.
-                    Your personality is: ${helper?.personality || "Knowledgeable and friendly"}.
-                    It is not their first time working with you, interact with them appropriately.
-                    Use emojis. 
-                `;
-
-                // We use a history of [] so it treats it as a fresh start
-                const response = await GeminiService.sendMessage(apiKey, [], introPrompt, '', helper, userProfile);
-                setMessages([{ role: 'model', content: response.result }]);
-            } catch (err) {
-                console.error("Intro fetch failed", err);
-                setMessages([{ role: 'model', content: `<p>Greetings. I am ${helperName}. How may I assist?</p>` }]);
-            }
-        };
-
-        fetchIntro();
-    }, [isOpen, userProfile?.settings?.geminiApiKey, helperName, introFetched]);
-
-    // Page Context for AI
-    const location = useLocation();
-
-
-    // Playstyle Context
-    const playstyle = userProfile?.settings?.playstyle;
-    const playstyleContext = playstyle ? `
-User's Playstyle Profile:
-- Archetypes: ${playstyle.archetypes?.join(', ') || 'Unknown'}
-- Summary: ${playstyle.summary || 'Unknown'}
-- Combat Preference: ${playstyle.scores?.aggression > 50 ? 'Aggressive' : 'Defensive'}
-- Interaction Level: ${playstyle.scores?.interaction > 50 ? 'High' : 'Low'}
-    `.trim() : '';
-
-    // Combine Page Docs + Playstyle
-    const pageDoc = getPageDoc ? getPageDoc(location.pathname) : '';
-    const fullContext = `
-${pageDoc}
-
-${playstyleContext}
-    `.trim();
-
-    const handleSend = async (e) => {
-        e.preventDefault();
+    const handleSend = async () => {
         if (!input.trim() || loading) return;
 
-        const userMsg = input.trim();
+        const userMsg = { role: 'user', content: input };
+        setMessages(prev => [...prev, userMsg]);
         setInput('');
-        setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
         setLoading(true);
 
         try {
             const apiKey = userProfile?.settings?.geminiApiKey;
+            if (!apiKey) throw new Error("Please add a Gemini API Key in Settings to chat.");
+
+            // Get history for context
             const history = messages.map(m => ({ role: m.role, content: m.content }));
+            history.push(userMsg);
 
-            // Pass full context (Docs + Playstyle)
-            const response = await GeminiService.sendMessage(apiKey, history, userMsg, fullContext, helper, userProfile);
+            // Use the specialized forgeHelperChat for personified responses
+            const result = await GeminiService.forgeHelperChat(apiKey, history, helper || {});
 
-            setMessages(prev => [...prev, { role: 'model', content: response.result }]);
-        } catch (error) {
-            console.error(error);
-            setMessages(prev => [...prev, {
-                role: 'model',
-                content: `<div class="p-3 bg-red-900/30 border border-red-700 rounded text-red-200">Error: ${error.message}</div>`
-            }]);
+            setMessages(prev => [...prev, { role: 'model', content: result.aiResponse }]);
+        } catch (err) {
+            console.error(err);
+            setMessages(prev => [...prev, { role: 'model', content: `<div class="text-red-400 font-bold p-2 border border-red-500/30 rounded bg-red-950/20">Forge Connection Interrupted: ${err.message}</div>` }]);
         } finally {
             setLoading(false);
         }
     };
 
-    // Dynamic Classes for Expanded Mode
-    // Assuming standard nav height of h-16 (4rem or 64px)
-    const containerClasses = isExpanded
-        ? 'w-full fixed top-16 bottom-0 right-0 left-0 rounded-none border-0 z-40' // Full screen minus nav
-        : 'w-full md:w-96 h-[600px] mb-0 mr-0 bottom-0 right-0 rounded-tl-2xl md:rounded-tr-2xl border-t border-l md:border-r absolute'; // Widget mode - absolute within container
-
-    const wrapperClasses = isExpanded
-        ? 'fixed inset-0 top-16 z-40'
-        : `fixed bottom-0 right-0 z-[60] transition-all duration-300 ${isOpen ? '' : 'w-16 h-16 mb-20 mr-4 md:mb-6 md:mr-6'}`;
-
     return (
-        <div className={`${wrapperClasses} ${!isExpanded && isOpen ? 'w-full md:w-96 h-[600px] mb-16 md:mb-0 mr-0' : ''}`}>
-            {/* Toggle Button */}
+        <div className={`fixed bottom-0 right-0 z-50 transition-all duration-300 ${isExpanded ? 'w-full h-full p-0 flex flex-col' : 'w-full md:w-[450px] md:right-4 h-[600px] mb-4'}`}>
+            {/* Overlay for expanded mode on mobile */}
+            {isExpanded && <div className="fixed inset-0 bg-black/50 backdrop-blur-sm -z-10" onClick={() => setIsExpanded(false)}></div>}
+
+            {/* Toggle Button (when closed) */}
             {!isOpen && (
                 <button
                     onClick={() => setIsOpen(true)}
-                    className="w-16 h-16 bg-gradient-to-r from-primary-600 to-purple-600 rounded-full shadow-lg shadow-purple-500/30 flex items-center justify-center hover:scale-110 transition-transform animate-bounce-slow"
+                    className="absolute bottom-4 right-4 w-14 h-14 bg-gradient-to-br from-primary-600 to-primary-700 text-white rounded-full shadow-2xl hover:scale-110 active:scale-95 transition-all flex items-center justify-center border-2 border-primary-400 group overflow-hidden"
                 >
-                    <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                    </svg>
+                    <div className="absolute inset-0 bg-white/10 group-hover:bg-transparent transition-colors"></div>
+                    {helperAvatar ? (
+                        <img src={helperAvatar} alt={helperName} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                    ) : (
+                        <svg className="w-8 h-8 group-hover:rotate-12 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                        </svg>
+                    )}
+                    <div className="absolute top-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white animate-pulse"></div>
                 </button>
             )}
 
@@ -156,13 +89,19 @@ ${playstyleContext}
                 <div className={`flex flex-col h-full bg-gray-800 border-t border-l border-gray-700 shadow-2xl overflow-hidden ${isExpanded ? 'w-full h-full' : 'rounded-tl-2xl md:rounded-tr-2xl md:border-r'}`}>
                     {/* Header */}
                     <div className="flex items-center justify-between p-4 bg-gray-900 border-b border-gray-700">
-                        <div className="flex items-center gap-2">
-                            {helperAvatar ? (
-                                <img src={helperAvatar} alt={helperName} className="w-6 h-6 rounded-full object-cover border border-purple-500/50" />
-                            ) : (
-                                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                            )}
-                            <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">{helperName}</span>
+                        <div className="flex items-center gap-3">
+                            <div className="relative">
+                                {helperAvatar ? (
+                                    <img src={helperAvatar} alt={helperName} className="w-10 h-10 rounded-full object-cover border-2 border-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]" />
+                                ) : (
+                                    <div className="w-10 h-10 rounded-full bg-gray-800 border-2 border-primary-500/50 flex items-center justify-center text-xl shadow-lg shadow-primary-500/10">🤖</div>
+                                )}
+                                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-gray-900 shadow-sm"></div>
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 leading-tight">{helperName}</span>
+                                <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">{helper?.type || 'AI Assistant'}</span>
+                            </div>
                         </div>
                         <div className="flex items-center gap-2">
                             {/* Edit Persona Button */}
@@ -207,9 +146,18 @@ ${playstyleContext}
                             </div>
                         ) : (
                             messages.map((msg, i) => (
-                                <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                <div key={i} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start items-start'}`}>
+                                    {msg.role !== 'user' && (
+                                        <div className="shrink-0 mt-1">
+                                            {helperAvatar ? (
+                                                <img src={helperAvatar} alt={helperName} className="w-8 h-8 rounded-full object-cover border border-purple-500/30 shadow-sm" />
+                                            ) : (
+                                                <div className="w-8 h-8 rounded-full bg-gray-900 border border-gray-700 flex items-center justify-center text-sm shadow-inner">🤖</div>
+                                            )}
+                                        </div>
+                                    )}
                                     <div
-                                        className={`max-w-[85%] p-2.5 rounded-2xl ${msg.role === 'user' ? 'bg-primary-600 text-white rounded-br-none' : 'bg-gray-700 text-gray-200 rounded-bl-none'} shadow-md text-sm`}
+                                        className={`max-w-[80%] p-3 rounded-2xl ${msg.role === 'user' ? 'bg-primary-600 text-white rounded-br-none shadow-primary-500/10' : 'bg-gray-700 text-gray-200 rounded-bl-none border border-gray-600/50'} shadow-md text-sm`}
                                     >
                                         {msg.role === 'user' ? (
                                             msg.content
@@ -236,30 +184,35 @@ ${playstyleContext}
                     </div>
 
                     {/* Input */}
-                    <form onSubmit={handleSend} className="p-4 bg-gray-900 border-t border-gray-700">
+                    <div className="p-3 bg-gray-900 border-t border-gray-700">
                         <div className="flex gap-2">
                             <input
                                 type="text"
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && handleSend()}
                                 placeholder={`Ask ${helperName}...`}
-                                className="flex-1 bg-gray-800 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                                className="flex-1 bg-gray-800 text-white border border-gray-700 rounded-xl px-4 py-2 focus:outline-none focus:border-primary-500 text-sm"
                             />
                             <button
-                                type="submit"
+                                onClick={handleSend}
                                 disabled={loading}
-                                className="bg-gradient-to-r from-primary-600 to-purple-600 text-white px-4 py-2 rounded-lg font-bold hover:shadow-lg hover:shadow-primary-500/20 transition-all disabled:opacity-50"
+                                className="bg-primary-600 hover:bg-primary-700 text-white p-2 rounded-xl transition-all shadow-lg active:scale-90 disabled:opacity-50"
                             >
                                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                                 </svg>
                             </button>
                         </div>
-                    </form>
+                    </div>
                 </div>
             )}
+
             {/* Helper Settings Modal instance for ChatWidget access */}
-            <HelperSettingsModal isOpen={isHelperModalOpen} onClose={() => setIsHelperModalOpen(false)} />
+            <HelperSettingsModal
+                isOpen={isHelperModalOpen}
+                onClose={() => setIsHelperModalOpen(false)}
+            />
         </div>
     );
 };

@@ -21,7 +21,8 @@ export const HelperForgeStep = ({ onNext, onBack }) => {
     const ORACLE_DEFAULT = {
         name: "Oracle",
         type: "Mystic Construct",
-        personality: "Wise, Efficient, Slightly Mystical"
+        personality: "Wise, Efficient, Slightly Mystical",
+        avatar_url: null // Will fallback to robot icon
     };
 
     useEffect(() => {

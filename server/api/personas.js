@@ -13,12 +13,16 @@ const requireAdmin = (req, res, next) => {
 };
 const router = express.Router();
 
+// GET /api/personas/test-ping
+router.get('/test-ping', (req, res) => res.json({ pong: true, time: new Date().toISOString() }));
+
 // GET /api/personas
-// Public endpoint to fetch all active personas
+// Public endpoint to fetch all active personas (metadata only for performance)
 router.get('/', async (req, res) => {
     try {
         const personas = await knex('ai_personas')
             .where({ is_active: true })
+            .select('id', 'name', 'type', 'price_usd', 'is_active')
             .orderBy('price_usd', 'asc')
             .orderBy('name', 'asc');
 
@@ -26,6 +30,25 @@ router.get('/', async (req, res) => {
     } catch (err) {
         console.error('Error fetching personas:', err);
         res.status(500).json({ error: 'Failed to fetch active personas' });
+    }
+});
+
+// GET /api/personas/fingerprint
+// Returns a simple hash or timestamp to check for roster updates
+router.get('/fingerprint', async (req, res) => {
+    try {
+        const lastUpdate = await knex('ai_personas')
+            .max('created_at as last_update')
+            .first();
+
+        // Simple fingerprint: count + last update timestamp
+        const stats = await knex('ai_personas').count('id as count').first();
+        const fingerprint = `${stats.count}-${lastUpdate?.last_update || '0'}`;
+
+        res.json({ fingerprint });
+    } catch (err) {
+        console.error('Error fetching fingerprint:', err);
+        res.status(500).json({ error: 'Failed to fetch fingerprint' });
     }
 });
 
@@ -39,6 +62,40 @@ router.get('/admin', verifyToken, requireAdmin, async (req, res) => {
     } catch (err) {
         console.error('Error fetching admin personas:', err);
         res.status(500).json({ error: 'Failed to fetch personas' });
+    }
+});
+
+// GET /api/personas/:id
+// Public endpoint to fetch full details for a single persona (including heavy avatar_url)
+router.get('/:id', async (req, res) => {
+    const start = performance.now();
+    try {
+        const { id } = req.params;
+        console.log(`[Personas API] GET /api/personas/${id} - Initiating retrieval`);
+
+        const persona = await knex('ai_personas')
+            .where({ id, is_active: true })
+            .first()
+            .timeout(5000, { cancel: true });
+
+        const duration = (performance.now() - start).toFixed(2);
+
+        if (!persona) {
+            console.warn(`[Personas API] Persona not found for ID: ${id} (${duration}ms)`);
+            return res.status(404).json({ error: 'Persona not found' });
+        }
+
+        console.log(`[Personas API] Successfully retrieved persona ${id} (${duration}ms)`);
+        res.json(persona);
+    } catch (err) {
+        const duration = (performance.now() - start).toFixed(2);
+        console.error(`[Personas API] CRITICAL: Error fetching details for ${req.params.id} after ${duration}ms:`, err);
+
+        if (err.name === 'KnexTimeoutError') {
+            return res.status(503).json({ error: 'Database timeout - too many simultaneous requests' });
+        }
+
+        res.status(500).json({ error: 'Failed to fetch persona details' });
     }
 });
 

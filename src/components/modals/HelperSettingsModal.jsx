@@ -4,14 +4,96 @@ import { GeminiService } from '../../services/gemini';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
 
+// --- Caching Logic ---
+const PERSONA_CACHE_KEY = 'mtg_forge_persona_roster';
+const PERSONA_FINGERPRINT_KEY = 'mtg_forge_persona_fingerprint';
+
+const PersonaCacheService = {
+    get: () => {
+        try {
+            const cached = localStorage.getItem(PERSONA_CACHE_KEY);
+            return cached ? JSON.parse(cached) : null;
+        } catch (e) { return null; }
+    },
+    set: (roster) => {
+        try {
+            localStorage.setItem(PERSONA_CACHE_KEY, JSON.stringify(roster));
+        } catch (e) { console.warn("Cache write failed"); }
+    },
+    getFingerprint: () => localStorage.getItem(PERSONA_FINGERPRINT_KEY),
+    setFingerprint: (fp) => localStorage.setItem(PERSONA_FINGERPRINT_KEY, fp)
+};
+
+// --- Child Component: PersonaCard ---
+const PersonaCard = ({ persona, isEquipped, isSubscriber, onClick }) => {
+    const [fullData, setFullData] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const isFree = parseFloat(persona.price_usd) === 0;
+    const isUnlocked = isFree || isSubscriber;
+
+    useEffect(() => {
+        // Optimization: If we already have the personality/avatar OR it's not a preset, don't fetch
+        if (!persona.id || persona.is_preset === false || (persona.personality && persona.avatar_url)) {
+            setFullData(persona);
+            return;
+        }
+
+        const loadDetails = async () => {
+            setLoading(true);
+            try {
+                const data = await api.get(`/api/personas/${persona.id}`);
+                setFullData(data);
+            } catch (err) { console.error("Failed to lazy-load persona", err); }
+            finally { setLoading(false); }
+        };
+        loadDetails();
+    }, [persona.id, persona.is_preset]);
+
+    const displayAvatar = fullData?.avatar_url || null;
+
+    return (
+        <div
+            onClick={() => onClick(fullData || persona)}
+            className={`group relative cursor-pointer rounded-xl overflow-hidden border-2 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary-500/20 aspect-[3/4] flex flex-col ${isEquipped ? 'border-primary-500' : 'border-gray-800 hover:border-primary-500/50'}`}
+        >
+            {/* BG / Image */}
+            <div className="absolute inset-0 bg-gray-900 z-0">
+                {displayAvatar ? (
+                    <img src={displayAvatar} alt={persona.name} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                ) : loading ? (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-800 animate-pulse text-primary-500">
+                        <div className="w-8 h-8 border-2 border-primary-500/30 border-t-primary-500 rounded-full animate-spin"></div>
+                    </div>
+                ) : (
+                    <div className="w-full h-full flex items-center justify-center text-4xl bg-gradient-to-b from-gray-800 to-gray-900 text-gray-700">🤖</div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+            </div>
+
+            {/* Labels */}
+            <div className="absolute top-2 right-2 flex flex-col gap-1 z-10 items-end">
+                {isEquipped && <span className="text-[10px] bg-primary-500 text-white font-bold uppercase px-2 py-0.5 rounded shadow-lg">Equipped</span>}
+                {!isUnlocked && <span className="text-[10px] bg-gray-800 border border-gray-600 text-gray-300 font-bold px-2 py-0.5 rounded flex items-center gap-1 shadow-md"><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg> Locked</span>}
+            </div>
+
+            {/* Text Info */}
+            <div className="mt-auto p-4 z-10 relative">
+                <h3 className="text-lg font-black text-white leading-tight uppercase tracking-wider translate-z-10">{persona.name}</h3>
+                <p className="text-primary-400 text-xs font-bold uppercase opacity-80 mt-1 tracking-widest">{persona.type}</p>
+            </div>
+        </div>
+    );
+};
+
 const HelperSettingsModal = ({ isOpen, onClose }) => {
     const { userProfile, refreshUserProfile } = useAuth();
 
     const [view, setView] = useState('grid'); // 'grid', 'details', 'custom'
-    const [personas, setPersonas] = useState([]);
-    const [loadingPersonas, setLoadingPersonas] = useState(true);
+    const [personas, setPersonas] = useState(PersonaCacheService.get() || []);
+    const [loadingPersonas, setLoadingPersonas] = useState(false);
     const [selectedPersona, setSelectedPersona] = useState(null);
     const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
+    const [loadingDetails, setLoadingDetails] = useState(false);
 
     // Existing Custom Forge State
     const [isForging, setIsForging] = useState(false);
@@ -51,8 +133,11 @@ const HelperSettingsModal = ({ isOpen, onClose }) => {
     useEffect(() => {
         if (isOpen) {
             setView('grid');
-            fetchPersonas();
-            const h = userProfile?.settings?.helper || {};
+            if (personas.length === 0) {
+                fetchPersonas();
+            } else {
+                validateCache();
+            }
             setName('');
             setType('');
             setPersonality('');
@@ -62,16 +147,52 @@ const HelperSettingsModal = ({ isOpen, onClose }) => {
             setChatHistory([]);
             setDraftHelper({});
         }
-    }, [isOpen, userProfile]);
+    }, [isOpen]);
 
     const customPersonas = Array.isArray(userProfile?.settings?.customHelpers) ? userProfile.settings.customHelpers : [];
 
     const fetchPersonas = async () => {
-        setLoadingPersonas(true);
+        if (personas.length === 0) setLoadingPersonas(true);
         try {
-            const data = await api.getPersonas();
+            const data = await api.get('/api/personas'); // Use full path for clarity
             setPersonas(data || []);
+            PersonaCacheService.set(data || []);
+
+            // Also update fingerprint
+            const fpData = await api.get('/api/personas/fingerprint');
+            if (fpData?.fingerprint) PersonaCacheService.setFingerprint(fpData.fingerprint);
+
         } catch (err) { console.error(err); } finally { setLoadingPersonas(false); }
+    };
+
+    const validateCache = async () => {
+        try {
+            const fpData = await api.get('/api/personas/fingerprint');
+            if (fpData?.fingerprint !== PersonaCacheService.getFingerprint()) {
+                console.log("[Cache] Update detected, refreshing...");
+                fetchPersonas();
+            }
+        } catch (e) { /* silent fail */ }
+    };
+
+    const loadSinglePersonaFull = async (persona) => {
+        if (persona.personality && persona.avatar_url) {
+            setSelectedPersona(persona);
+            setView('details');
+            return;
+        }
+
+        setLoadingDetails(true);
+        setSelectedPersona(persona); // show partial info immediately
+        setView('details');
+        try {
+            const full = await api.get(`/api/personas/${persona.id}`);
+            setSelectedPersona(full);
+        } catch (e) {
+            console.error("[Details Load Error]", e);
+        } finally {
+            setLoadingDetails(false);
+        }
     };
 
     const handleEquipPreset = async (persona) => {
@@ -291,10 +412,10 @@ const HelperSettingsModal = ({ isOpen, onClose }) => {
                 </div>
 
                 {/* Content Area */}
-                <div className="flex-1 overflow-y-auto p-6 relative custom-scrollbar">
+                <div className="flex-1 overflow-hidden relative">
                     {/* VIEW: GRID */}
                     {view === 'grid' && (
-                        <div>
+                        <div className="h-full overflow-y-auto p-6 custom-scrollbar">
                             {!isSubscriber && (
                                 <div className="flex flex-col items-center justify-center gap-2 mb-6 text-center">
                                     <p className="text-gray-400 text-sm md:text-base">
@@ -318,76 +439,26 @@ const HelperSettingsModal = ({ isOpen, onClose }) => {
                                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
 
                                     {/* Presets */}
-                                    {personas.map(persona => {
-                                        const isFree = parseFloat(persona.price_usd) === 0;
-                                        const isUnlocked = isFree || isSubscriber;
-                                        const isEquipped = currentHelperName === persona.name;
-
-                                        return (
-                                            <div
-                                                key={persona.id}
-                                                onClick={() => { setSelectedPersona(persona); setView('details'); }}
-                                                className={`group relative cursor-pointer rounded-xl overflow-hidden border-2 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary-500/20 aspect-[3/4] flex flex-col ${isEquipped ? 'border-primary-500' : 'border-gray-800 hover:border-primary-500/50'}`}
-                                            >
-                                                {/* BG / Image */}
-                                                <div className="absolute inset-0 bg-gray-900 z-0">
-                                                    {persona.avatar_url ? (
-                                                        <img src={persona.avatar_url} alt={persona.name} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
-                                                    ) : (
-                                                        <div className="w-full h-full flex items-center justify-center text-4xl bg-gradient-to-b from-gray-800 to-gray-900">🤖</div>
-                                                    )}
-                                                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
-                                                </div>
-
-                                                {/* Labels */}
-                                                <div className="absolute top-2 right-2 flex flex-col gap-1 z-10 items-end">
-                                                    {isEquipped && <span className="text-[10px] bg-primary-500 text-white font-bold uppercase px-2 py-0.5 rounded shadow-lg">Equipped</span>}
-                                                    {!isUnlocked && <span className="text-[10px] bg-gray-800 border border-gray-600 text-gray-300 font-bold px-2 py-0.5 rounded flex items-center gap-1"><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg> Locked</span>}
-                                                </div>
-
-                                                {/* Text Info */}
-                                                <div className="mt-auto p-4 z-10 relative">
-                                                    <h3 className="text-lg font-black text-white leading-tight uppercase tracking-wider">{persona.name}</h3>
-                                                    <p className="text-primary-400 text-xs font-bold uppercase opacity-80 mt-1">{persona.type}</p>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
+                                    {personas.map(persona => (
+                                        <PersonaCard
+                                            key={persona.id}
+                                            persona={{ ...persona, is_preset: true }}
+                                            isEquipped={currentHelperName === persona.name && userProfile?.settings?.helper?.is_preset}
+                                            isSubscriber={isSubscriber}
+                                            onClick={loadSinglePersonaFull}
+                                        />
+                                    ))}
 
                                     {/* User Custom Personas */}
-                                    {customPersonas.map(persona => {
-                                        const isEquipped = currentHelperName === persona.name && !userProfile?.settings?.helper?.is_preset;
-
-                                        return (
-                                            <div
-                                                key={persona.id}
-                                                onClick={() => { setSelectedPersona(persona); setView('details'); }}
-                                                className={`group relative cursor-pointer rounded-xl overflow-hidden border-2 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary-500/20 aspect-[3/4] flex flex-col ${isEquipped ? 'border-primary-500' : 'border-gray-800 hover:border-primary-500/50'}`}
-                                            >
-                                                {/* BG / Image */}
-                                                <div className="absolute inset-0 bg-gray-900 z-0 border-primary-900 shadow-inner">
-                                                    {persona.avatar_url ? (
-                                                        <img src={persona.avatar_url} alt={persona.name} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
-                                                    ) : (
-                                                        <div className="w-full h-full flex items-center justify-center text-4xl bg-gradient-to-b from-gray-800 to-gray-900">🧬</div>
-                                                    )}
-                                                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
-                                                </div>
-
-                                                {/* Labels */}
-                                                <div className="absolute top-2 right-2 flex flex-col gap-1 z-10 items-end">
-                                                    {isEquipped && <span className="text-[10px] bg-primary-500 text-white font-bold uppercase px-2 py-0.5 rounded shadow-lg">Equipped</span>}
-                                                    <span className="text-[10px] bg-purple-600/50 text-white font-bold uppercase px-2 py-0.5 rounded flex items-center gap-1 border border-purple-500">Custom</span>
-                                                </div>
-
-                                                {/* Text Info */}
-                                                <div className="mt-auto p-4 z-10 relative">
-                                                    <h3 className="text-lg font-black text-white leading-tight uppercase tracking-wider">{persona.name}</h3>
-                                                    <p className="text-primary-400 text-xs font-bold uppercase opacity-80 mt-1">{persona.type}</p>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
+                                    {customPersonas.map(persona => (
+                                        <PersonaCard
+                                            key={persona.id}
+                                            persona={{ ...persona, is_preset: false }}
+                                            isEquipped={currentHelperName === persona.name && !userProfile?.settings?.helper?.is_preset}
+                                            isSubscriber={true} // custom are always unlocked if they exist
+                                            onClick={(p) => { setSelectedPersona(p); setView('details'); }}
+                                        />
+                                    ))}
 
                                     {/* Custom Forge Card */}
                                     <div
@@ -400,163 +471,193 @@ const HelperSettingsModal = ({ isOpen, onClose }) => {
                                             setEditingCustomId(null);
                                             setView('custom');
                                         }}
-                                        className={`group relative ${isCustomForgeAllowed ? 'cursor-pointer' : 'cursor-not-allowed opacity-70'} rounded-xl overflow-hidden border-2 border-primary-600 border-dashed transition-all duration-300 transform hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary-500/20 aspect-[3/4] flex flex-col bg-gray-950`}
+                                        className={`group relative rounded-xl overflow-hidden border-2 border-dashed transition-all duration-300 transform hover:-translate-y-1 hover:shadow-2xl aspect-[3/4] flex flex-col items-center justify-center text-center p-6 ${isCustomForgeAllowed ? 'cursor-pointer border-primary-500/50 hover:border-primary-500 hover:bg-primary-500/5' : 'cursor-not-allowed border-gray-800 opacity-50'}`}
                                     >
-                                        <div className="absolute inset-0 flex items-center justify-center z-0 opacity-20 group-hover:opacity-40 transition-opacity">
-                                            <svg className="w-24 h-24 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+                                        <div className="w-16 h-16 rounded-full bg-gray-800 flex items-center justify-center text-3xl mb-4 border border-gray-700 group-hover:border-primary-500/50 group-hover:scale-110 transition-all shadow-inner">
+                                            {isCustomForgeAllowed ? 'Forge' : '🔒'}
                                         </div>
-                                        <div className="absolute top-2 right-2 flex flex-col gap-1 z-10 items-end">
-                                            {!isCustomForgeAllowed && <span className="text-[10px] bg-gray-800 border border-gray-600 text-gray-300 font-bold px-2 py-0.5 rounded flex items-center gap-1"><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg> Pro ($10+)</span>}
-                                        </div>
-                                        <div className="mt-auto p-4 z-10 relative bg-gradient-to-t from-gray-950 to-transparent">
-                                            <h3 className="text-lg font-black text-white leading-tight uppercase tracking-wider">The Custom Forge</h3>
-                                            <p className="text-primary-400 text-xs font-bold uppercase opacity-80 mt-1">Design Your Own</p>
-                                        </div>
+                                        <h3 className="text-lg font-black text-white uppercase tracking-wider">Custom Construct</h3>
+                                        <p className="text-gray-500 text-[10px] font-bold uppercase mt-2 max-w-[150px]">Forge your own unique AI helper</p>
                                     </div>
-
                                 </div>
                             )}
                         </div>
                     )}
 
-                    {/* VIEW: DETAILS (Preset & Custom) */}
-                    {view === 'details' && selectedPersona && (() => {
-                        const isCustom = selectedPersona.is_preset === false;
-                        const isFree = isCustom ? true : parseFloat(selectedPersona.price_usd) === 0;
-                        const isUnlocked = isCustom ? isCustomForgeAllowed : (isFree || isSubscriber);
-                        const isEquipped = currentHelperName === selectedPersona.name && (isCustom ? userProfile?.settings?.helper?.is_preset === false : userProfile?.settings?.helper?.is_preset === true);
+                    {/* VIEW: DETAILS */}
+                    {(() => {
+                        if (view !== 'details' || !selectedPersona) return null;
+                        const isPreset = !!selectedPersona.price_usd || personas.some(p => p.id === selectedPersona.id);
+                        const isFree = isPreset && parseFloat(selectedPersona.price_usd) === 0;
+                        const isUnlocked = isFree || isSubscriber || customPersonas.some(cp => cp.id === selectedPersona.id);
+                        const isEquipped = isPreset
+                            ? (userProfile?.settings?.helper?.name === selectedPersona.name && userProfile?.settings?.helper?.is_preset)
+                            : (userProfile?.settings?.helper?.name === selectedPersona.name && !userProfile?.settings?.helper?.is_preset);
 
                         return (
-                            <div className="flex flex-col gap-6 animate-slide-up">
-                                {/* Banner Header */}
-                                <div className="relative w-full aspect-[21/9] md:aspect-[21/7] rounded-2xl overflow-hidden border border-gray-700 shadow-2xl group shrink-0">
+                            <div className="flex-1 w-full relative overflow-hidden flex flex-col">
+                                {/* Full Screen Background Image */}
+                                <div className="absolute inset-0 z-0">
                                     {selectedPersona.avatar_url ? (
-                                        <img src={selectedPersona.avatar_url} alt={selectedPersona.name} className="w-full h-full object-cover" />
+                                        <img src={selectedPersona.avatar_url} alt={selectedPersona.name} className="w-full h-full object-cover scale-105 blur-[2px] opacity-40" />
                                     ) : (
-                                        <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center text-7xl">🤖</div>
+                                        <div className="w-full h-full bg-gradient-to-br from-gray-900 to-black"></div>
                                     )}
-                                    <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/20 to-transparent"></div>
-                                    <div className="absolute bottom-0 left-0 right-0 p-8 flex justify-between items-end">
-                                        <div>
-                                            <h3 className="text-4xl md:text-5xl font-black text-white uppercase tracking-tighter drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] leading-none">{selectedPersona.name}</h3>
-                                            <p className="text-primary-400 font-black uppercase mt-2 tracking-widest text-sm md:text-base drop-shadow-md">{selectedPersona.type}</p>
-                                        </div>
-                                        <div className="flex flex-col items-end gap-2">
-                                            {isUnlocked ? (
-                                                <span className="bg-primary-500/20 text-primary-400 border border-primary-500/50 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest backdrop-blur-md">Unlocked</span>
-                                            ) : (
-                                                <span className="bg-amber-500/20 text-amber-500 border border-amber-500/50 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest backdrop-blur-md">Locked</span>
-                                            )}
-                                        </div>
-                                    </div>
+                                    <div className="absolute inset-0 bg-gradient-to-b from-gray-950/20 via-gray-950/80 to-gray-950"></div>
                                 </div>
 
-                                {/* Content Grid */}
-                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                    {/* Profile & Description */}
-                                    <div className="lg:col-span-2 space-y-6">
-                                        <div className="bg-gray-800/40 rounded-2xl p-8 border border-gray-700/50 backdrop-blur-sm relative overflow-hidden">
-                                            <div className="absolute top-0 left-0 w-1.5 h-full bg-primary-500 shadow-[0_0_15px_rgba(16,185,129,0.5)]"></div>
-                                            <h4 className="text-gray-400 text-[10px] font-black uppercase tracking-[0.3em] mb-4">Persona Profile</h4>
-                                            <p className="text-white text-xl md:text-2xl font-medium leading-relaxed italic text-gray-100">
-                                                "{selectedPersona.personality}"
-                                            </p>
-                                        </div>
+                                {/* Content Container */}
+                                <div className="relative z-10 flex-1 flex flex-col overflow-y-auto custom-scrollbar p-8 lg:p-12">
 
-                                        {/* Example Interactions */}
-                                        {Array.isArray(selectedPersona.sample_responses) && selectedPersona.sample_responses.length > 0 && (
-                                            <div className="space-y-4">
-                                                <h4 className="text-gray-400 text-[10px] font-black uppercase tracking-[0.3em] px-2">Example Interactions</h4>
-                                                <div className="grid grid-cols-1 gap-4">
-                                                    {selectedPersona.sample_responses.map((sample, sIdx) => (
-                                                        <div key={sIdx} className="bg-gray-900/50 rounded-xl p-6 border border-gray-800 hover:border-gray-700 transition-all hover:bg-gray-900/80 group">
-                                                            <div className="flex gap-4 mb-3">
-                                                                <span className="text-gray-500 font-black text-xs uppercase shrink-0 mt-1 tracking-widest">Q</span>
-                                                                <p className="text-gray-300 font-medium leading-relaxed">{sample.question || sample.userContent}</p>
-                                                            </div>
-                                                            <div className="flex gap-4">
-                                                                <span className="text-amber-500 font-black text-xs uppercase shrink-0 mt-1 tracking-widest">A</span>
-                                                                <p className="text-primary-100 italic leading-relaxed bg-primary-500/5 p-3 rounded-lg border-l-2 border-primary-500/30">"{sample.response || sample.aiContent}"</p>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
+                                    {/* Header Overlay */}
+                                    <div className="mb-12">
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border shadow-lg ${isUnlocked ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-amber-500/20 text-amber-400 border-amber-500/30'}`}>
+                                                {isUnlocked ? 'Unlocked Construct' : 'Locked Prototype'}
+                                            </span>
+                                            {isEquipped && <span className="bg-primary-500/20 text-primary-400 border border-primary-500/30 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em]">Active</span>}
+                                        </div>
+                                        <h3 className="text-6xl lg:text-8xl font-black text-white uppercase tracking-tighter leading-none mb-2 drop-shadow-2xl">
+                                            {selectedPersona.name}
+                                        </h3>
+                                        <p className="text-primary-400 text-xl lg:text-2xl font-black uppercase tracking-[0.3em] opacity-80 pl-2">
+                                            {selectedPersona.type}
+                                        </p>
                                     </div>
 
-                                    {/* Sidebar Actions / Stats */}
-                                    <div className="space-y-6">
-                                        <div className="bg-gray-800/60 rounded-2xl p-6 border border-gray-700 shadow-xl sticky top-0">
-                                            <h4 className="text-gray-400 text-[10px] font-black uppercase tracking-[0.3em] mb-4">Status & Action</h4>
+                                    {/* Main Grid Layout */}
+                                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
 
-                                            <div className="space-y-4">
-                                                <div className="p-4 bg-gray-950 rounded-xl border border-gray-800 flex justify-between items-center group">
-                                                    <span className="text-gray-500 text-xs font-bold uppercase tracking-wider">Status</span>
-                                                    {isUnlocked ? (
-                                                        <span className="text-primary-400 font-black text-sm flex items-center gap-2">ACTIVE</span>
-                                                    ) : (
-                                                        <span className="text-amber-500 font-black text-sm flex items-center gap-2">LOCKED</span>
-                                                    )}
-                                                </div>
+                                        {/* Left Side: Status & Actions + Bio */}
+                                        <div className="lg:col-span-5 space-y-8">
 
-                                                {!isFree && (
-                                                    <div className="p-4 bg-gray-950 rounded-xl border border-gray-800 flex justify-between items-center">
-                                                        <span className="text-gray-500 text-xs font-bold uppercase tracking-wider">A La Carte</span>
-                                                        <span className="text-2xl font-black text-white">${selectedPersona.price_usd}</span>
+                                            {/* Status & Action Card */}
+                                            <div className="bg-gray-900/60 backdrop-blur-xl p-8 rounded-3xl border border-white/10 shadow-2xl overflow-hidden group">
+                                                <h4 className="text-gray-400 text-[10px] font-black uppercase tracking-[0.3em] mb-6 flex items-center gap-2">
+                                                    Status & Deployment
+                                                </h4>
+
+                                                <div className="space-y-6">
+                                                    <div className="flex justify-between items-center bg-black/40 p-4 rounded-xl border border-white/5">
+                                                        <span className="text-gray-500 font-bold uppercase tracking-wider text-xs">Access</span>
+                                                        <span className={`font-black uppercase tracking-widest text-xs ${isUnlocked ? 'text-green-400' : 'text-amber-500'}`}>
+                                                            {isUnlocked ? 'AUTHORIZED' : 'RESTRICTED'}
+                                                        </span>
                                                     </div>
-                                                )}
 
-                                                <div className="pt-4">
-                                                    {!isUnlocked ? (
+                                                    {!isUnlocked && isPreset && (
+                                                        <div className="flex justify-between items-center bg-black/40 p-4 rounded-xl border border-white/5">
+                                                            <span className="text-gray-500 font-bold uppercase tracking-wider text-xs">Cost</span>
+                                                            <span className="text-amber-400 font-black text-lg font-mono">
+                                                                ${selectedPersona.price_usd}
+                                                            </span>
+                                                        </div>
+                                                    )}
+
+                                                    {isEquipped ? (
+                                                        <div className="w-full bg-primary-500/20 text-primary-400 border border-primary-500/50 font-black px-6 py-4 rounded-2xl flex items-center justify-center gap-3 shadow-xl uppercase tracking-widest text-sm text-center">
+                                                            <svg className="w-5 h-5 animate-pulse" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+                                                            Construct Active
+                                                        </div>
+                                                    ) : isUnlocked ? (
+                                                        <button
+                                                            onClick={() => isPreset ? handleEquipPreset(selectedPersona) : handleEquipCustom(selectedPersona)}
+                                                            disabled={saving}
+                                                            className="w-full bg-primary-600 hover:bg-primary-500 text-white font-black px-8 py-5 rounded-2xl shadow-2xl shadow-primary-500/30 transition-all hover:scale-[1.02] active:scale-95 uppercase tracking-widest text-sm"
+                                                        >
+                                                            {saving ? 'Synchronizing...' : 'Deploy Construct'}
+                                                        </button>
+                                                    ) : (
                                                         <button
                                                             onClick={handlePurchase}
                                                             disabled={isCheckoutLoading}
-                                                            className="w-full bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-black font-black py-4 rounded-xl transition-all shadow-lg uppercase tracking-widest text-xs disabled:opacity-50 active:scale-95"
+                                                            className="w-full bg-amber-600 hover:bg-amber-500 text-white font-black px-8 py-5 rounded-2xl shadow-2xl shadow-amber-500/30 transition-all hover:scale-[1.02] active:scale-95 uppercase tracking-widest text-sm flex items-center justify-center gap-3"
                                                         >
-                                                            {isCheckoutLoading ? 'Processing...' : 'Unlock Now'}
+                                                            <Sparkles className="w-5 h-5" />
+                                                            {isCheckoutLoading ? 'WAITING...' : `Unlock Persona`}
                                                         </button>
-                                                    ) : isEquipped ? (
-                                                        <button disabled className="w-full bg-primary-600/10 text-primary-500/60 border border-primary-500/20 font-black py-4 rounded-xl uppercase tracking-widest text-xs cursor-default">
-                                                            Currently Equipped
-                                                        </button>
-                                                    ) : (
-                                                        <button
-                                                            onClick={() => isCustom ? handleEquipCustom(selectedPersona) : handleEquipPreset(selectedPersona)}
-                                                            className="w-full bg-primary-600 hover:bg-primary-500 text-white font-black py-4 rounded-xl transition-all shadow-lg hover:shadow-primary-500/20 uppercase tracking-widest text-xs active:scale-95"
-                                                        >
-                                                            Equip Persona
-                                                        </button>
+                                                    )}
+
+                                                    {!isPreset && (
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                onClick={() => {
+                                                                    setName(selectedPersona.name);
+                                                                    setType(selectedPersona.type);
+                                                                    setPersonality(selectedPersona.personality);
+                                                                    setAvatarUrl(selectedPersona.avatar_url);
+                                                                    setEditingCustomId(selectedPersona.id);
+                                                                    setView('custom');
+                                                                }}
+                                                                className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white py-3 rounded-xl border border-gray-700 text-[10px] font-black uppercase tracking-widest transition-all"
+                                                            >
+                                                                Re-Forge
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteCustom(selectedPersona.id)}
+                                                                className="bg-red-950/20 hover:bg-red-600 text-red-500 hover:text-white px-4 py-3 rounded-xl border border-red-900/30 transition-all"
+                                                            >
+                                                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                            </button>
+                                                        </div>
                                                     )}
                                                 </div>
                                             </div>
+
+                                            {/* Bio Section */}
+                                            <div className="bg-black/40 backdrop-blur-md p-8 rounded-3xl border border-white/5 space-y-4 shadow-xl">
+                                                <h4 className="text-gray-400 text-[10px] font-black uppercase tracking-[0.3em] flex items-center gap-2">
+                                                    <div className="w-6 h-px bg-primary-500/50"></div> Persona Profile
+                                                </h4>
+                                                <p className="text-gray-200 text-lg leading-relaxed italic font-medium">
+                                                    "{selectedPersona.personality}"
+                                                </p>
+                                            </div>
                                         </div>
 
-                                        {isCustom && (
-                                            <div className="flex flex-col gap-3">
-                                                <button
-                                                    onClick={() => {
-                                                        setName(selectedPersona.name);
-                                                        setType(selectedPersona.type);
-                                                        setPersonality(selectedPersona.personality);
-                                                        setAvatarUrl(selectedPersona.avatar_url);
-                                                        setEditingCustomId(selectedPersona.id);
-                                                        setView('custom');
-                                                    }}
-                                                    className="w-full bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold py-3 rounded-xl transition-all uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 border border-gray-700"
-                                                >
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                                                    Re-Forge (Edit)
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteCustom(selectedPersona.id)}
-                                                    className="w-full text-red-500/40 hover:text-red-500 text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 py-3 hover:bg-red-500/5 rounded-xl border border-transparent hover:border-red-500/20"
-                                                >
-                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                                    De-Construct
-                                                </button>
-                                            </div>
-                                        )}
+                                        {/* Right Side: Example Interactions */}
+                                        <div className="lg:col-span-7 space-y-6">
+                                            <h4 className="text-gray-400 text-[10px] font-black uppercase tracking-[0.3em] flex items-center gap-2 ml-2">
+                                                <div className="w-6 h-px bg-primary-500/50"></div> Example Interactions
+                                            </h4>
+
+                                            {loadingDetails ? (
+                                                <div className="flex flex-col items-center justify-center p-20 space-y-4">
+                                                    <div className="w-12 h-12 border-4 border-primary-500/20 border-t-primary-500 rounded-full animate-spin"></div>
+                                                    <p className="text-gray-500 font-black uppercase tracking-widest text-xs animate-pulse">Decrypting Blueprint...</p>
+                                                </div>
+                                            ) : selectedPersona.sample_responses && selectedPersona.sample_responses.length > 0 ? (
+                                                <div className="space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar pr-4">
+                                                    {selectedPersona.sample_responses.map((res, i) => {
+                                                        const isObj = typeof res === 'object' && res !== null;
+                                                        const userText = isObj ? res.userContent : 'I have a question about my strategy...';
+                                                        const aiText = isObj ? res.aiContent : res;
+                                                        return (
+                                                            <div key={i} className="bg-gray-900/40 backdrop-blur-sm p-6 rounded-2xl border border-white/5 hover:border-primary-500/30 transition-all group shadow-xl">
+                                                                <div className="flex gap-4">
+                                                                    <div className="shrink-0 w-8 h-8 rounded-full bg-black/50 border border-white/10 flex items-center justify-center text-[10px] font-black text-gray-500 group-hover:text-primary-400 transition-colors uppercase">Q</div>
+                                                                    <p className="text-gray-400 text-sm font-medium leading-relaxed">{userText}</p>
+                                                                </div>
+                                                                <div className="mt-4 pl-12 border-l-2 border-primary-500/20">
+                                                                    <div className="flex gap-3 mb-2">
+                                                                        <div className="text-[10px] font-black uppercase text-primary-500 tracking-widest">Construct Response</div>
+                                                                    </div>
+                                                                    <p className="text-gray-300 text-sm italic py-1 leading-relaxed border-t border-white/5 pt-3">
+                                                                        "{aiText}"
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            ) : (
+                                                <div className="bg-black/20 p-20 rounded-3xl border border-white/5 flex flex-col items-center text-center">
+                                                    <div className="text-4xl opacity-20 mb-4">🧩</div>
+                                                    <p className="text-gray-500 text-sm font-medium italic">No simulation data available for this model.</p>
+                                                </div>
+                                            )}
+                                        </div>
+
                                     </div>
                                 </div>
                             </div>
