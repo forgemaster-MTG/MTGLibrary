@@ -34,34 +34,30 @@ export const DEFAULT_LAYOUT = {
 
 export const DEFAULT_PRESETS = {
     'Default': {
-        layout: DEFAULT_LAYOUT,
-        sizes: DEFAULT_WIDGET_SIZES
-    },
-    'Decks Focused': {
-        layout: {
-            grid: [
-                'action_new_deck', 'action_add_cards', 'action_tournaments', 'stats_decks', 'quick_actions', 'identity',
-                'recent_decks', 'community', 'releases',
-                'stats_value', 'stats_total', 'audit', 'action_browse', 'action_wishlist',
-                'system_status', 'subscription', 'social_stats', 'tips', 'guides'
-            ]
-        },
-        sizes: {
-            ...DEFAULT_WIDGET_SIZES,
-            'action_new_deck': 'small',
-            'action_add_cards': 'small',
-            'action_tournaments': 'small',
-            'recent_decks': 'xlarge',
-            'community': 'large'
-        }
-    },
-    'Collector': {
         layout: {
             grid: ["stats_value", "stats_total", "audit", "action_browse", "action_wishlist", "identity", "recent_decks", "releases", "community", "action_new_deck", "action_add_cards", "action_tournaments", "stats_decks", "quick_actions", "system_status", "subscription", "tips", "guides", "action_log", "trade_matches"]
         },
         sizes: {
             ...DEFAULT_WIDGET_SIZES,
             "tips": "small", "audit": "xs", "guides": "small", "identity": "xs", "releases": "xlarge", "community": "medium", "stats_decks": "xs", "stats_total": "xs", "stats_value": "xlarge", "recent_decks": "medium", "social_stats": "small", "subscription": "small", "action_browse": "xs", "quick_actions": "small", "system_status": "small", "trade_matches": "small", "action_new_deck": "xs", "action_wishlist": "xs", "action_add_cards": "xs", "action_tournaments": "xs"
+        }
+    },
+    'Analytics': {
+        layout: {
+            grid: ["stats_value", "stats_total", "stats_decks", "audit", "identity", "action_browse", "action_wishlist", "action_new_deck", "action_add_cards", "action_tournaments", "quick_actions", "recent_decks", "releases", "community", "system_status", "subscription", "tips", "guides", "action_log", "trade_matches"]
+        },
+        sizes: {
+            ...DEFAULT_WIDGET_SIZES,
+            "tips": "small", "audit": "small", "guides": "small", "identity": "small", "releases": "xlarge", "community": "medium", "stats_decks": "small", "stats_total": "small", "stats_value": "xlarge", "recent_decks": "medium", "social_stats": "small", "subscription": "small", "action_browse": "xs", "quick_actions": "small", "system_status": "small", "trade_matches": "small", "action_new_deck": "xs", "action_wishlist": "xs", "action_add_cards": "xs", "action_tournaments": "xs"
+        }
+    },
+    'Decksmith': {
+        layout: {
+            grid: ["recent_decks", "action_new_deck", "action_add_cards", "action_tournaments", "quick_actions", "stats_decks", "identity", "stats_value", "stats_total", "audit", "action_browse", "action_wishlist", "releases", "community", "system_status", "subscription", "tips", "guides", "action_log", "trade_matches"]
+        },
+        sizes: {
+            ...DEFAULT_WIDGET_SIZES,
+            "tips": "small", "audit": "xs", "guides": "small", "identity": "xs", "releases": "xlarge", "community": "medium", "stats_decks": "small", "stats_total": "xs", "stats_value": "xlarge", "recent_decks": "xlarge", "social_stats": "small", "subscription": "small", "action_browse": "xs", "quick_actions": "small", "system_status": "small", "trade_matches": "small", "action_new_deck": "small", "action_wishlist": "xs", "action_add_cards": "small", "action_tournaments": "small"
         }
     }
 };

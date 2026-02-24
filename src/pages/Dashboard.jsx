@@ -330,6 +330,20 @@ const Dashboard = () => {
     useEffect(() => {
         if (!userProfile || editMode) return;
 
+        // 1. Prioritize instantaneous load from Local Storage if they manually selected a preset
+        const localPreset = localStorage.getItem('dashboardActivePreset');
+        if (localPreset && PRESETS[localPreset]) {
+            setLayout(migrateLayout(PRESETS[localPreset].layout));
+            setWidgetSizes(PRESETS[localPreset].sizes || DEFAULT_WIDGET_SIZES);
+
+            // Also load any custom saved layouts to populate the menu
+            if (userProfile.settings?.saved_layouts) {
+                setSavedLayouts(userProfile.settings.saved_layouts);
+            }
+            return; // Exit early, local storage wins for immediate render speed
+        }
+
+        // 2. Fallback to Database settings if they have custom dragged layouts
         if (userProfile.settings?.dashboard_layout) {
             const remote = userProfile.settings.dashboard_layout;
             const migrated = migrateLayout(remote);
@@ -337,6 +351,9 @@ const Dashboard = () => {
                 if (JSON.stringify(curr) === JSON.stringify(migrated)) return curr;
                 return migrated;
             });
+        } else {
+            // 3. Fallback to Collector Default if completely fresh account
+            setLayout(migrateLayout(PRESETS['Collector Default'].layout));
         }
 
         if (userProfile.settings?.dashboard_sizes) {
@@ -347,8 +364,8 @@ const Dashboard = () => {
             });
         } else {
             setWidgetSizes(curr => {
-                if (JSON.stringify(curr) === JSON.stringify(DEFAULT_WIDGET_SIZES)) return curr;
-                return DEFAULT_WIDGET_SIZES;
+                if (JSON.stringify(curr) === JSON.stringify(PRESETS['Collector Default'].sizes)) return curr;
+                return PRESETS['Collector Default'].sizes;
             });
         }
 
@@ -387,6 +404,8 @@ const Dashboard = () => {
     };
 
     const handleLoadLayout = (nameOrPreset) => {
+        localStorage.setItem('dashboardActivePreset', nameOrPreset);
+
         if (savedLayouts && savedLayouts[nameOrPreset]) {
             const savedLayout = savedLayouts[nameOrPreset].layout;
             setLayout(migrateLayout(savedLayout));
@@ -397,6 +416,14 @@ const Dashboard = () => {
             setLayout(migrateLayout(presetLayout));
             if (sizes) setWidgetSizes(sizes);
             addToast(`Loaded preset: ${nameOrPreset}`, 'success');
+
+            // Auto-persist the loaded preset to the DB so subsequent loads on other devices match
+            if (userProfile?.id) {
+                updateSettings({
+                    dashboard_layout: presetLayout,
+                    dashboard_sizes: sizes || DEFAULT_WIDGET_SIZES
+                }).catch(e => console.error("Auto-sync failed", e));
+            }
         }
     };
 
