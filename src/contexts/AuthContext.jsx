@@ -23,9 +23,11 @@ export const AuthProvider = ({ children }) => {
     const [firebaseLoading, setFirebaseLoading] = useState(true);
     const queryClient = useQueryClient();
 
+    const impersonateId = localStorage.getItem('impersonate_user_id') || null;
+
     // Query for User Profile
     const { data: userProfile = null, refetch: refetchProfile, isLoading: profileLoading } = useQuery({
-        queryKey: ['userProfile', currentUser?.uid],
+        queryKey: ['userProfile', currentUser?.uid, impersonateId],
         queryFn: async () => {
             if (!currentUser) return null;
             console.log('[AuthContext] Fetching user profile...');
@@ -76,7 +78,7 @@ export const AuthProvider = ({ children }) => {
                 const { data: fresh } = await refetchProfile();
                 if (fresh?.id) {
                     await api.updateUser(fresh.id, finalProfileData);
-                    queryClient.invalidateQueries(['userProfile', userCredential.user.uid]);
+                    queryClient.invalidateQueries(['userProfile', userCredential.user.uid, impersonateId]);
 
                     // Clear referral after successful use
                     if (referralCode) localStorage.removeItem('mtg_forge_ref');
@@ -101,7 +103,7 @@ export const AuthProvider = ({ children }) => {
 
     // Logout
     const logout = async () => {
-        queryClient.setQueryData(['userProfile', currentUser?.uid], null);
+        queryClient.setQueryData(['userProfile', currentUser?.uid, impersonateId], null);
         queryClient.removeQueries(['userProfile']);
         return signOut(auth);
     };
@@ -123,9 +125,9 @@ export const AuthProvider = ({ children }) => {
             return await api.updateUser(id, data);
         },
         onSuccess: (newData) => {
-            queryClient.invalidateQueries(['userProfile', currentUser?.uid]);
+            queryClient.invalidateQueries(['userProfile', currentUser?.uid, impersonateId]);
             // Optionally optimistic update via setQueryData if API returns the full object
-            // queryClient.setQueryData(['userProfile', currentUser?.uid], (old) => ({ ...old, ...data }));
+            // queryClient.setQueryData(['userProfile', currentUser?.uid, impersonateId], (old) => ({ ...old, ...data }));
         }
     });
 
@@ -139,7 +141,7 @@ export const AuthProvider = ({ children }) => {
         const updatedSettings = { ...(userProfile.settings || {}), ...newSettings };
 
         // Optimistic Update
-        queryClient.setQueryData(['userProfile', currentUser?.uid], (old) => {
+        queryClient.setQueryData(['userProfile', currentUser?.uid, impersonateId], (old) => {
             if (!old) return old;
             return {
                 ...old,
@@ -151,7 +153,7 @@ export const AuthProvider = ({ children }) => {
             await updateProfileMutation.mutateAsync({ id: userProfile.id, data: { settings: updatedSettings } });
         } catch (error) {
             console.error('Failed to update settings:', error);
-            queryClient.invalidateQueries(['userProfile', currentUser?.uid]); // Revert on error
+            queryClient.invalidateQueries(['userProfile', currentUser?.uid, impersonateId]); // Revert on error
         }
     };
 
@@ -212,8 +214,8 @@ export const AuthProvider = ({ children }) => {
                 window.addToast(`${credits_used.toLocaleString()} AI Credits used.`, 'info');
             }
 
-            // 2. Update Local State
-            queryClient.setQueryData(['userProfile', currentUser.uid], (old) => {
+            // Update Local State
+            queryClient.setQueryData(['userProfile', currentUser.uid, impersonateId], (old) => {
                 if (!old) return old;
                 const m = Number(credits_monthly !== undefined ? credits_monthly : (old.credits_monthly || 0));
                 const t = Number(credits_topup !== undefined ? credits_topup : (old.credits_topup || 0));

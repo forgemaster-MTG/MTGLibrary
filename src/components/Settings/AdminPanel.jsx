@@ -484,6 +484,7 @@ const AdminPanel = () => {
         end: format(new Date(), 'yyyy-MM-dd')
     });
     const [reportTickets, setReportTickets] = useState([]);
+    const [manualNotes, setManualNotes] = useState('');
     const [fetchingReport, setFetchingReport] = useState(false);
     const [generatedNotes, setGeneratedNotes] = useState('');
     const [generatingNotes, setGeneratingNotes] = useState(false);
@@ -598,9 +599,14 @@ const AdminPanel = () => {
         }
         setGeneratingNotes(true);
         try {
+            const contextPayload = {
+                tickets: reportTickets,
+                manualAdditions: manualNotes
+            };
+
             const notes = await GeminiService.generateReleaseNotes(
                 userProfile.settings.geminiApiKey,
-                reportTickets,
+                contextPayload,
                 userProfile
             );
             setGeneratedNotes(notes);
@@ -639,6 +645,7 @@ const AdminPanel = () => {
             // Success feedback
             setShowPublishModal(false);
             setGeneratedNotes('');
+            setManualNotes('');
             setReportTickets([]);
             alert('Release Published Successfully!'); // Still use alert for success or could use toast
         } catch (err) {
@@ -1406,11 +1413,19 @@ const AdminPanel = () => {
                                             </span>
                                         </div>
                                     ))}
+
+                                </div>
+                                <div className="mt-4 border-t border-white/5 pt-4">
+                                    <label className="block text-sm font-medium text-gray-400 mb-2">Manual Additions / Offline Work</label>
+                                    <textarea
+                                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary-500 min-h-[100px] text-sm"
+                                        placeholder="Enter details of work done outside of tickets... (This will be sent to the AI)"
+                                        value={manualNotes}
+                                        onChange={e => setManualNotes(e.target.value)}
+                                    ></textarea>
                                 </div>
                             </div>
                         )}
-
-
 
                         {generatedNotes && (
                             <div className="space-y-4 pt-6 border-t border-primary-500/30">

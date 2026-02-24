@@ -1500,23 +1500,31 @@ const GeminiService = {
     return parseResponse(result.text);
   },
 
-  async generateReleaseNotes(apiKey, tickets, userProfile = null) {
+  async generateReleaseNotes(apiKey, payloadData, userProfile = null) {
+    const { tickets = [], manualAdditions = '' } = payloadData;
+
     const systemPrompt = `You are the Lead Developer of MTG Forge. Generate professional, evocative release notes for the latest update.
         Use HTML with Tailwind (text-gray-300, primary-400 highlights). 
-        Include sections: [New Mechanics], [Bug Squashing], [In the Forge].`;
+        Include sections: [New Mechanics], [Bug Squashing], [In the Forge].
+        If there are any 'Manual Additions', you MUST include them logically into the notes.`;
+
+    const userText = `
+        Tickets: ${JSON.stringify(tickets)}
+        Manual Additions / Offline Work: ${manualAdditions || 'None'}
+    `;
 
     const payload = {
       system_instruction: { parts: [{ text: systemPrompt }] },
       contents: [
         {
           role: "user",
-          parts: [{ text: `Tickets: ${JSON.stringify(tickets)}` }],
+          parts: [{ text: userText }],
         },
       ],
     };
     const result = await this.executeWithFallback(payload, userProfile, {
       apiKey,
-      models: PRO_MODELS,
+      models: FLASH_MODELS,
     });
     return result.text
       .replace(/```html/g, "")
