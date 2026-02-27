@@ -26,6 +26,10 @@ async function getHeaders() {
         headers['x-impersonate-user-id'] = impersonateId;
     }
 
+    // Include Game Context for Omni-App Architecture
+    const activeGame = localStorage.getItem('forgegames_active_game') || 'mtg';
+    headers['X-Game-Context'] = activeGame;
+
     return headers;
 }
 

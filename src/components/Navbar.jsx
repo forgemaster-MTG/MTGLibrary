@@ -13,10 +13,12 @@ import AchievementsModal from './modals/AchievementsModal';
 import ForgeLensModal from './modals/ForgeLensModal';
 import { api } from '../services/api';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
+import { useOmni } from '../contexts/OmniContext';
 
 const Navbar = () => {
     const location = useLocation();
     const { currentUser, userProfile, logout, updateSettings, refreshUserProfile, uploadProfilePicture } = useAuth();
+    const { activeGame, setActiveGame } = useOmni();
     const navigate = useNavigate();
     const { addToast } = useToast();
     const isLanding = location.pathname === '/';
@@ -216,9 +218,32 @@ const Navbar = () => {
 
                                     {/* Desktop Title & Badges */}
                                     <div className="hidden sm:flex flex-col justify-center">
-                                        <span className="text-xl font-bold bg-gradient-to-r from-primary-400 to-primary-600 bg-clip-text text-transparent leading-none pb-1">
-                                            MTG-Forge
-                                        </span>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-xl font-bold bg-gradient-to-r from-primary-400 to-primary-600 bg-clip-text text-transparent leading-none pb-1">
+                                                ForgeGames
+                                            </span>
+                                            {/* Omni-Toggle */}
+                                            <div className="flex bg-gray-900 border border-gray-700/50 rounded-lg p-0.5 overflow-hidden shadow-inner w-[140px]">
+                                                <button
+                                                    onClick={(e) => { e.preventDefault(); setActiveGame('mtg'); }}
+                                                    className={`flex-1 text-[10px] font-bold py-1 px-2 rounded-md transition-all ${activeGame === 'mtg'
+                                                        ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
+                                                        : 'text-gray-500 hover:text-gray-300'
+                                                        }`}
+                                                >
+                                                    MTG
+                                                </button>
+                                                <button
+                                                    onClick={(e) => { e.preventDefault(); setActiveGame('pokemon'); }}
+                                                    className={`flex-1 text-[10px] font-bold py-1 px-2 rounded-md transition-all ${activeGame === 'pokemon'
+                                                        ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                                                        : 'text-gray-500 hover:text-gray-300'
+                                                        }`}
+                                                >
+                                                    POKÉMON
+                                                </button>
+                                            </div>
+                                        </div>
                                         <div className="flex items-center gap-2 mt-1">
                                             {/* Alpha Badge */}
                                             <span className="bg-orange-500/10 border border-orange-500/30 text-orange-400 text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse leading-none">

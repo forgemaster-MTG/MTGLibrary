@@ -135,6 +135,12 @@ app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), asyn
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
+// Game Context Middleware (Omni-App Architecture)
+app.use((req, res, next) => {
+  req.gameContext = req.headers['x-game-context'] || 'mtg';
+  next();
+});
+
 // 2. AUTHENTICATED USER ENDPOINTS
 app.get('/me', auth, async (req, res) => {
   // Fetch fresh user data including settings
